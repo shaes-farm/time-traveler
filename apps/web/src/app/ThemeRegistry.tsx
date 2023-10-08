@@ -8,9 +8,18 @@ import CssBaseline from '@mui/material/CssBaseline';
 
 import theme from './theme';
 
+interface ThemeRegistryProps {
+  options: unknown;
+  children: React.ReactNode;
+}
+
+interface EmotionCacheArg {
+  name: string;
+}
+
 // This implementation is from emotion-js
 // https://github.com/emotion-js/emotion/issues/2928#issuecomment-1319747902
-export function ThemeRegistry(props) {
+export function ThemeRegistry(props: ThemeRegistryProps) {
   const { options, children } = props;
 
   const [{ cache, flush }] = React.useState(() => {
@@ -18,7 +27,7 @@ export function ThemeRegistry(props) {
     cache.compat = true;
     const prevInsert = cache.insert;
     let inserted: string[] = [];
-    cache.insert = (...args) => {
+    cache.insert = (args: EmotionCacheArg[]) => {
       const serialized = args[1];
       if (cache.inserted[serialized.name] === undefined) {
         inserted.push(serialized.name);
