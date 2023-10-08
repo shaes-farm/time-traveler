@@ -26,9 +26,9 @@ In this context, this document provides the design and development of Time Trave
 
 Interactive timelines may be broadly classified into three distinct categories according to the type of information they present, as well as the aspect of information they focus on:
 
-a) Historical Events Representation
-b) Temporal Data Representation
-c) Semantic Timelines
+1. Historical Events Representation
+2. Temporal Data Representation
+3. Semantic Timelines
 
 The first category includes timelines that represent historical events, aiming to provide an overview around a specific topic. Timelines representing temporal data consist of numerous values of one or more variables that change over time; therefore, the second category can be considered as enriched graph visualization techniques, which primarily focus on the analysis of data distribution over time. Finally, the third category, semantic timelines, represents events with metadata that can be interrelated with others, primarily focusing on displaying the relationships between events rather than providing detailed information about the events.
 
