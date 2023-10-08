@@ -4,7 +4,8 @@
   "info": {
     "singularName": "timeline",
     "pluralName": "timelines",
-    "displayName": "Timeline"
+    "displayName": "Timeline",
+    "description": ""
   },
   "options": {
     "draftAndPublish": true
@@ -22,6 +23,18 @@
       "type": "uid",
       "targetField": "title",
       "required": true
+    },
+    "events": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::event.event",
+      "inversedBy": "timelines"
+    },
+    "periods": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::period.period",
+      "mappedBy": "timelines"
     }
   }
 }

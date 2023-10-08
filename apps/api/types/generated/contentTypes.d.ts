@@ -736,6 +736,18 @@ export interface ApiEventEvent extends Schema.CollectionType {
       'manyToMany',
       'api::category.category'
     >;
+    importance: Attribute.Integer &
+      Attribute.Required &
+      Attribute.SetMinMax<{
+        min: 0;
+        max: 10;
+      }>;
+    media: Attribute.Media;
+    timelines: Attribute.Relation<
+      'api::event.event',
+      'manyToMany',
+      'api::timeline.timeline'
+    >;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -754,12 +766,53 @@ export interface ApiEventEvent extends Schema.CollectionType {
   };
 }
 
+export interface ApiPeriodPeriod extends Schema.CollectionType {
+  collectionName: 'periods';
+  info: {
+    singularName: 'period';
+    pluralName: 'periods';
+    displayName: 'Period';
+    description: '';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    title: Attribute.String & Attribute.Required & Attribute.Unique;
+    slug: Attribute.UID<'api::period.period', 'title'> & Attribute.Required;
+    summary: Attribute.Text;
+    beganAt: Attribute.DateTime;
+    endedAt: Attribute.DateTime;
+    timelines: Attribute.Relation<
+      'api::period.period',
+      'manyToMany',
+      'api::timeline.timeline'
+    >;
+    createdAt: Attribute.DateTime;
+    updatedAt: Attribute.DateTime;
+    publishedAt: Attribute.DateTime;
+    createdBy: Attribute.Relation<
+      'api::period.period',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+    updatedBy: Attribute.Relation<
+      'api::period.period',
+      'oneToOne',
+      'admin::user'
+    > &
+      Attribute.Private;
+  };
+}
+
 export interface ApiTimelineTimeline extends Schema.CollectionType {
   collectionName: 'timelines';
   info: {
     singularName: 'timeline';
     pluralName: 'timelines';
     displayName: 'Timeline';
+    description: '';
   };
   options: {
     draftAndPublish: true;
@@ -768,6 +821,16 @@ export interface ApiTimelineTimeline extends Schema.CollectionType {
     title: Attribute.String & Attribute.Required;
     summary: Attribute.Text;
     slug: Attribute.UID<'api::timeline.timeline', 'title'> & Attribute.Required;
+    events: Attribute.Relation<
+      'api::timeline.timeline',
+      'manyToMany',
+      'api::event.event'
+    >;
+    periods: Attribute.Relation<
+      'api::timeline.timeline',
+      'manyToMany',
+      'api::period.period'
+    >;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -804,6 +867,7 @@ declare module '@strapi/types' {
       'plugin::i18n.locale': PluginI18NLocale;
       'api::category.category': ApiCategoryCategory;
       'api::event.event': ApiEventEvent;
+      'api::period.period': ApiPeriodPeriod;
       'api::timeline.timeline': ApiTimelineTimeline;
     }
   }

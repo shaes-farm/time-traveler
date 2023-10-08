@@ -38,6 +38,28 @@
       "relation": "manyToMany",
       "target": "api::category.category",
       "mappedBy": "events"
+    },
+    "importance": {
+      "type": "integer",
+      "required": true,
+      "max": 10,
+      "min": 0
+    },
+    "media": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": true
+    },
+    "timelines": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::timeline.timeline",
+      "mappedBy": "events"
     }
   }
 }
