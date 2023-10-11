@@ -2,11 +2,12 @@
   "name": "api",
   "private": true,
   "version": "0.1.0",
-  "description": "A Strapi application",
+  "description": "A headless CMS for Time Traveler",
   "scripts": {
     "dev": "strapi develop",
     "start": "strapi start",
     "build": "strapi build",
+    "build:types": "strapi ts:generate-types --debug",
     "strapi": "strapi"
   },
   "devDependencies": {},
@@ -17,7 +18,7 @@
     "better-sqlite3": "8.6.0"
   },
   "author": {
-    "name": "A Strapi developer"
+    "name": "SHAES Farm <npm@shaes.farm>"
   },
   "strapi": {
     "uuid": "9e7cd81c-4de8-4516-8303-7a3d9e11bd11"
