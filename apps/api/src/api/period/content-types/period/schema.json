@@ -25,17 +25,17 @@
     "summary": {
       "type": "text"
     },
-    "beganAt": {
-      "type": "datetime"
-    },
-    "endedAt": {
-      "type": "datetime"
-    },
     "timelines": {
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::timeline.timeline",
       "inversedBy": "periods"
+    },
+    "beginDate": {
+      "type": "string"
+    },
+    "endDate": {
+      "type": "string"
     }
   }
 }

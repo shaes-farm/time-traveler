@@ -729,8 +729,6 @@ export interface ApiEventEvent extends Schema.CollectionType {
     title: Attribute.String & Attribute.Required;
     slug: Attribute.UID<'api::event.event', 'title'> & Attribute.Required;
     summary: Attribute.Text;
-    beganAt: Attribute.DateTime & Attribute.Required;
-    endedAt: Attribute.DateTime;
     categories: Attribute.Relation<
       'api::event.event',
       'manyToMany',
@@ -748,6 +746,9 @@ export interface ApiEventEvent extends Schema.CollectionType {
       'manyToMany',
       'api::timeline.timeline'
     >;
+    beginDate: Attribute.String & Attribute.Required;
+    endDate: Attribute.String;
+    location: Attribute.String;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -781,13 +782,13 @@ export interface ApiPeriodPeriod extends Schema.CollectionType {
     title: Attribute.String & Attribute.Required & Attribute.Unique;
     slug: Attribute.UID<'api::period.period', 'title'> & Attribute.Required;
     summary: Attribute.Text;
-    beganAt: Attribute.DateTime;
-    endedAt: Attribute.DateTime;
     timelines: Attribute.Relation<
       'api::period.period',
       'manyToMany',
       'api::timeline.timeline'
     >;
+    beginDate: Attribute.String;
+    endDate: Attribute.String;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -831,6 +832,7 @@ export interface ApiTimelineTimeline extends Schema.CollectionType {
       'manyToMany',
       'api::period.period'
     >;
+    scale: Attribute.String;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

@@ -25,14 +25,6 @@
     "summary": {
       "type": "text"
     },
-    "beganAt": {
-      "required": true,
-      "type": "datetime"
-    },
-    "endedAt": {
-      "required": false,
-      "type": "datetime"
-    },
     "categories": {
       "type": "relation",
       "relation": "manyToMany",
@@ -46,20 +38,31 @@
       "min": 0
     },
     "media": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
       "allowedTypes": [
         "images",
         "files",
         "videos",
         "audios"
-      ],
-      "type": "media",
-      "multiple": true
+      ]
     },
     "timelines": {
       "type": "relation",
       "relation": "manyToMany",
       "target": "api::timeline.timeline",
       "mappedBy": "events"
+    },
+    "beginDate": {
+      "type": "string",
+      "required": true
+    },
+    "endDate": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
     }
   }
 }
