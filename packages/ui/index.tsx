@@ -1,2 +1,2 @@
 // component exports
-export { Card } from "./card";
+export { HorizontalStepper } from './src/horizontal-stepper';
