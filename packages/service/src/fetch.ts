@@ -1,6 +1,15 @@
-import type {Period} from './models/event-model';
-import type {StrapiPeriodResponse} from './models/api-model';
-import {mapApiPeriodToModel} from './models/mapper';
+import type {
+  Period,
+  Timeline,
+} from './models/event-model';
+import type {
+  StrapiPeriodResponse,
+  StrapiTimelineResponse,
+} from './models/api-model';
+import {
+  mapApiPeriodToModel,
+  mapApiTimelineToModel,
+} from './models/mapper';
 
 const {debug, error} = console;
 
@@ -38,24 +47,27 @@ export class Fetch {
     return periodResponse.data?.map((period) => mapApiPeriodToModel(period.attributes)) ?? [];
   }
 
-  // async getTimelines(): Promise<Timeline[]> {
-  //   const url = `${this.baseUrl}/api/timelines?populate[events][sort][0]=eventDate`;
-  //   const res = await fetch(url);
+  async getTimelines(): Promise<Timeline[]> {
+    const url = new URL('/api/timelines', this.baseUrl);
 
-  //   if (!res.ok) {
-  //     // This will activate the closest `error.js` Error Boundary
-  //     throw new Error('Failed to fetch timelines')
-  //   }
+    url.searchParams.set('populate', 'events');
 
-  //   const timelines = await res.json() as StrapiMultipleTimelineResponse;
-  //   // console.log({timelines: JSON.stringify(timelines, null, 2)});
+    debug({url});
 
-  //   if (!timelines.data?.length) {
-  //     return [];
-  //   }
+    const res = await fetch(url);
 
-  //   return timelines.data.map((timeline) => mapTimelineToModel(timeline));
-  // }
+    if (!res.ok) {
+      error({res});
+      // This will activate the closest `error.js` Error Boundary
+      throw new Error('Failed to fetch timelines')
+    }
+
+    const timelineResponse: StrapiTimelineResponse = await res.json() as StrapiTimelineResponse;
+
+    debug({timelineResponse: JSON.stringify(timelineResponse, null, 2)});
+
+    return timelineResponse.data?.map((timeline) => mapApiTimelineToModel(timeline.attributes)) ?? [];
+  }
 
   // async getTimeline(slug: string): Promise<Timeline | null> {
   //   const url = `${this.baseUrl}/api/timelines?filters[slug][$eq]=${slug}&populate[events][sort][0]=eventDate`;
