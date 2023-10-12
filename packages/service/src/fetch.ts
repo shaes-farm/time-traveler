@@ -11,6 +11,11 @@ export class Fetch {
     this.baseUrl = baseUrl;
   }
 
+  /**
+   * Fetch all periods from the CMS.
+   * 
+   * @returns An array of Period objects.
+   */
   async getPeriods(): Promise<Period[]> {
     const url = new URL('/api/periods', this.baseUrl);
 
@@ -30,11 +35,7 @@ export class Fetch {
 
     debug({periodResponse: JSON.stringify(periodResponse, null, 2)});
 
-    if (!periodResponse.data?.length) {
-      return [];
-    }
-
-    return periodResponse.data.map((period) => mapApiPeriodToModel(period.attributes));
+    return periodResponse.data?.map((period) => mapApiPeriodToModel(period.attributes)) ?? [];
   }
 
   // async getTimelines(): Promise<Timeline[]> {
