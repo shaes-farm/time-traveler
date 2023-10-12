@@ -49,10 +49,11 @@ export interface StrapiEventResponse {
 
 export interface StrapiTimeline {
   slug: string;
-  name: string;
+  title: string;
   summary?: string;
   scale?: string;
   events?: StrapiEventResponse;
+  periods?: StrapiPeriodResponse;
 }
 
 export interface StrapiTimelineAttributes {

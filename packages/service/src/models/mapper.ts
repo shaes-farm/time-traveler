@@ -21,22 +21,6 @@ export const mapApiCategoryToModel = ({
   events: events?.data?.map((e) => mapApiEventToModel(e.attributes)) ?? [],
 });
 
-export const mapApiPeriodToModel = ({
-  slug,
-  title,
-  summary,
-  beginDate,
-  endDate,
-  timelines,
-}: StrapiPeriod): Period => ({
-  slug,
-  title,
-  summary,
-  beginDate,
-  endDate,
-  timelines: timelines?.data?.map((t) => mapApiTimelineToModel(t.attributes)) ?? [],
-});
-
 export const mapApiEventToModel = ({
   slug,
   title,
@@ -61,10 +45,34 @@ export const mapApiEventToModel = ({
   timelines: timelines?.data?.map((t) => mapApiTimelineToModel(t.attributes)) ?? [],
 });
 
-export const mapApiTimelineToModel = (data: StrapiTimeline): Timeline => ({
-  events: data.events?.data?.map((e) => mapApiEventToModel(e.attributes)) ?? [],
-  scale: data.scale,
-  slug: data.slug,
-  summary: data.summary ?? '',
-  title: data.name,
+export const mapApiPeriodToModel = ({
+  slug,
+  title,
+  summary,
+  beginDate,
+  endDate,
+  timelines,
+}: StrapiPeriod): Period => ({
+  slug,
+  title,
+  summary,
+  beginDate,
+  endDate,
+  timelines: timelines?.data?.map((t) => mapApiTimelineToModel(t.attributes)) ?? [],
+});
+
+export const mapApiTimelineToModel = ({
+  slug,
+  title,
+  summary,
+  scale,
+  events,
+  periods,
+}: StrapiTimeline): Timeline => ({
+  slug,
+  title,
+  summary,
+  scale,
+  events: events?.data?.map((e) => mapApiEventToModel(e.attributes)) ?? [],
+  periods: periods?.data?.map((p) => mapApiPeriodToModel(p.attributes)) ?? [],
 });

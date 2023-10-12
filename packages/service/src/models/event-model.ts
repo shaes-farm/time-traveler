@@ -11,7 +11,7 @@ export interface HistoricalEvent {
   title: string;
   slug: string;
   summary?: string;
-  categories?: Category[];
+  categories: Category[];
   location?: string;
   importance: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   beginDate: string;
@@ -33,7 +33,7 @@ export interface Timeline {
   summary?: string;
   scale?: string;
   events: HistoricalEvent[];
-  period?: Period;
+  periods: Period[];
 }
 
 export interface Period {
