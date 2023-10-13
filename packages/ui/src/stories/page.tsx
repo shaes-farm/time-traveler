@@ -21,19 +21,19 @@ const config = {
 const baseUrl: string = config.app.baseUrl;
 
 const periods = [{
-  label: 'The Bronze Age',
+  label: 'The First Age',
   link: `${baseUrl}/timelines/the-bronze-age`,
 },{
-  label: 'The Iron Age',
+  label: 'The Second Age',
   link: `${baseUrl}/timelines/the-iron-age`,
 },{
-  label: 'The Dark Age',
+  label: 'The Third Age',
   link: `${baseUrl}/timelines/the-dark-age`,
 },{
-  label: 'The Enlightened Age',
+  label: 'The Fourth Age',
   link: `${baseUrl}/timelines/the-enlightened-age`,
 },{
-  label: 'The Awakened Age',
+  label: 'The Fifth Age',
   link: `${baseUrl}/timelines/the-awakened-age`,
 }];
 
