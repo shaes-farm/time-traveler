@@ -69,5 +69,3 @@ export function Header(props: HeaderProps): JSX.Element {
     </header>
   );
 }
-
-export default Header;

@@ -33,5 +33,3 @@ export function CardButtons(props: CardButtonsProps): JSX.Element {
     </Box>
   );
 }
-
-export default CardButtons;

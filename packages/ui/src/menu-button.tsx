@@ -47,12 +47,10 @@ export function MenuButton(props: MenuButtonProps): JSX.Element {
         onClose={handleClose}
         open={open}
       >
-        <MenuItem onClick={() => handleClose('print')}>Print</MenuItem>
-        <MenuItem onClick={() => handleClose('download')}>Download</MenuItem>
-        <MenuItem onClick={() => handleClose('share')}>Share</MenuItem>
+        <MenuItem onClick={() => {handleClose('print')}}>Print</MenuItem>
+        <MenuItem onClick={() => {handleClose('download')}}>Download</MenuItem>
+        <MenuItem onClick={() => {handleClose('share')}}>Share</MenuItem>
       </Menu>
     </>
   );
 }
-
-export default MenuButton;

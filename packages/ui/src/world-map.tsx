@@ -121,5 +121,3 @@ export function WorldMap(props: WorldMapProps): JSX.Element {
     </ComposableMap>
   );
 }
-
-export default WorldMap;

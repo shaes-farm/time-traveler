@@ -65,12 +65,10 @@ export function Footer(props: FooterProps): JSX.Element {
             href={url}
             underline="hover"
           >
-            {holder}
+            {holder.toLowerCase()}
           </Link>. all rights reserved.
         </Typography>
       </Box>
     </footer>      
   );
 }
-
-export default Footer;
