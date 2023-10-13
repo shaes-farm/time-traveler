@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Page } from './page';
 
 const meta: Meta<typeof Page> = {
-  title: 'UI/Page',
+  title: 'Pages/Main',
   component: Page,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/react/configure/story-layout
