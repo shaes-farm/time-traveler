@@ -19,30 +19,32 @@ const meta: Meta<typeof VerticalTimeline> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const {events} = timeline;
+
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
 export const Default: Story = {
   args: {
-    timeline,
+    events,
   },
 };
 
 export const Reverse: Story = {
   args: {
-    timeline,
+    events,
     reverse: true,
   },
 };
 
 export const Alternating: Story = {
   args: {
-    timeline,
+    events,
     alternate: true,
   },
 };
 
 export const ReverseAlternating: Story = {
   args: {
-    timeline,
+    events,
     reverse: true,
     alternate: true,
   },

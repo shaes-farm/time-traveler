@@ -8,30 +8,35 @@ import TimelineSeparator from '@mui/lab/TimelineSeparator';
 import TimelineConnector from '@mui/lab/TimelineConnector';
 import TimelineContent from '@mui/lab/TimelineContent';
 import TimelineDot from '@mui/lab/TimelineDot';
-import type {Timeline as ITimeline} from 'service';
+import type {HistoricalEvent} from 'service';
 
 interface VerticalTimelineProps {
-  timeline: ITimeline;
+  events: HistoricalEvent[];
   alternate?: boolean;
   reverse?: boolean;
 };
 
-const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left" | "right" | "alternate-reverse" | undefined => {
-  return alternate ? (reverse ? "alternate-reverse" : "alternate") : (reverse ? "left" : "right");
-};
+const getAlternateState = (reverse: boolean): "alternate" | "alternate-reverse" =>
+  reverse ? "alternate-reverse" : "alternate";
+
+const getReverseState = (reverse: boolean): "left" | "right" =>
+  reverse ? "left" : "right";
+  
+const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left" | "right" | "alternate-reverse" =>
+  alternate ?  getAlternateState(reverse) : getReverseState(reverse);
 
 export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
-  const {timeline, alternate = false, reverse = false} = props;
+  const {events, alternate = false, reverse = false} = props;
   return (
     <Timeline position={getPosition(alternate, reverse)}>
-      {timeline.events.map((event, index) => (
+      {events.map((event, index) => (
         <TimelineItem key={Symbol(index).toString()}>
           {event.beginDate ? <TimelineOppositeContent color="secondary" variant="h6">
             {event.beginDate}{event.endDate ? `-${event.endDate}` : null}
           </TimelineOppositeContent> : null}
           <TimelineSeparator>
             <TimelineDot color="primary" variant="outlined" />
-            {index < (timeline.events.length-1) && <TimelineConnector />}
+            {index < (events.length-1) && <TimelineConnector />}
           </TimelineSeparator>
           <TimelineContent sx={{py: '6px', px: 2}}>
             <Typography component="span" variant="h6">
