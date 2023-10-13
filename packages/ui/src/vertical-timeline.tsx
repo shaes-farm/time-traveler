@@ -12,17 +12,22 @@ import type {Timeline as ITimeline} from 'service';
 
 interface VerticalTimelineProps {
   timeline: ITimeline;
+  alternate?: boolean;
   reverse?: boolean;
 };
 
+const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left" | "right" | "alternate-reverse" | undefined => {
+  return alternate ? (reverse ? "alternate-reverse" : "alternate") : (reverse ? "left" : "right");
+};
+
 export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
-  const {timeline, reverse = false} = props;
+  const {timeline, alternate = false, reverse = false} = props;
   return (
-    <Timeline position={reverse ? "alternate-reverse" : "alternate"}>
+    <Timeline position={getPosition(alternate, reverse)}>
       {timeline.events.map((event, index) => (
         <TimelineItem key={Symbol(index).toString()}>
           {event.beginDate ? <TimelineOppositeContent color="secondary" variant="h6">
-            {event.beginDate}
+            {event.beginDate}{event.endDate ? `-${event.endDate}` : null}
           </TimelineOppositeContent> : null}
           <TimelineSeparator>
             <TimelineDot color="primary" variant="outlined" />
