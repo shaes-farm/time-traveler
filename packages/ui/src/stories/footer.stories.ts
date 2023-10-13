@@ -3,7 +3,7 @@ import { Footer } from '../components/footer';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof Footer> = {
-  title: 'UI/Footer',
+  title: 'Components/Footer',
   component: Footer,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/react/configure/story-layout

@@ -3,7 +3,7 @@ import { HorizontalStepper } from '../components/horizontal-stepper';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof HorizontalStepper> = {
-  title: 'UI/HorizontalStepper',
+  title: 'Components/HorizontalStepper',
   component: HorizontalStepper,
   parameters: {
     // Optional parameter to center the component in the Canvas. More info: https://storybook.js.org/docs/react/configure/story-layout

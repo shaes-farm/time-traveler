@@ -3,7 +3,7 @@ import { WorldMap } from '../components/world-map';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof WorldMap> = {
-  title: 'UI/WorldMap',
+  title: 'Components/WorldMap',
   component: WorldMap,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/react/configure/story-layout
@@ -20,9 +20,9 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     annotations: [
-      {coordinates: [-74.006, 40.7128], label: 'New York', labelY: -8, dx: -10, dy: -20, anchor: 'end'},
+      {coordinates: [-74.006, 40.7128], label: 'New York', labelY: -8, dx: 10, dy: -20, anchor: 'start'},
       {coordinates: [12.51133, 41.89193], label: 'Rome', labelY: -8, dx: -10, dy: -20, anchor: 'end'},
-      {coordinates: [28.94966, 41.01384], label: 'Istanbul', labelY: -8, dx: 10, dy: -20, anchor: 'start'},
+      {coordinates: [28.94966, 41.01384], label: 'Constantinople', labelY: -8, dx: 10, dy: -20, anchor: 'start'},
     ],
     center: [0,0],
     graticule: true,

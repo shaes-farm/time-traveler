@@ -3,7 +3,7 @@ import { Header } from '../components/header';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof Header> = {
-  title: 'UI/Header',
+  title: 'Components/Header',
   component: Header,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/react/configure/story-layout
