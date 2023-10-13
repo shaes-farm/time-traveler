@@ -53,7 +53,7 @@ export function Page(): JSX.Element {
         <Paper elevation={24}>
           <WorldMap
             annotations={[
-              {coordinates: [-74.006, 40.7128], label: 'New York', labelY: -8, dx: -10, dy: -20, anchor: 'end'},
+              {coordinates: [-74.006, 40.7128], label: 'New York', labelY: -8, dx: 10, dy: -20, anchor: 'start'},
               {coordinates: [12.51133, 41.89193], label: 'Rome', labelY: -8, dx: -10, dy: -20, anchor: 'end'},
               {coordinates: [28.94966, 41.01384], label: 'Istanbul', labelY: -8, dx: 10, dy: -20, anchor: 'start'},
             ]}
