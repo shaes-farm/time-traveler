@@ -7,13 +7,26 @@ export interface Media {
   formats: object;
 }
 
+export enum Importance {
+  Low = 1,
+  Trivial,
+  Minor,
+  Average,
+  Medium,
+  Moderate,
+  Influential,
+  Shaping,
+  Major,
+  Defining,
+}
+
 export interface HistoricalEvent {
   title: string;
   slug: string;
   summary?: string;
   categories: Category[];
   location?: string;
-  importance: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+  importance: Importance;
   beginDate: string;
   endDate?: string;
   timeline?: Timeline;
