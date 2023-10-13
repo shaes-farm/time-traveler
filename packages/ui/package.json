@@ -40,6 +40,8 @@
     "@mui/icons-material": "^5.14.13",
     "@mui/lab": "^5.0.0-alpha.148",
     "@mui/material": "^5.14.13",
+    "@types/react-simple-maps": "^3.0.1",
+    "react-simple-maps": "^3.0.0",
     "service": "*"
   }
 }
