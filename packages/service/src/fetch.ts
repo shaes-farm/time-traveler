@@ -36,17 +36,23 @@ export class Fetch {
 
     if (!res.ok) {
       error({res});
+
       // This will activate the closest `error.js` Error Boundary
       throw new Error('Failed to fetch periods')
     }
 
-    const periodResponse: StrapiPeriodResponse = await res.json() as StrapiPeriodResponse;
+    const periods = await res.json() as StrapiPeriodResponse;
 
-    debug({periodResponse: JSON.stringify(periodResponse, null, 2)});
+    debug({periods: JSON.stringify(periods, null, 2)});
 
-    return periodResponse.data?.map((period) => mapApiPeriodToModel(period.attributes)) ?? [];
+    return periods.data?.map((period) => mapApiPeriodToModel(period.attributes)) ?? [];
   }
 
+  /**
+   * Fetch all timelines from the CMS.
+   *
+   * @returns An array of Timeline objects.
+   */
   async getTimelines(): Promise<Timeline[]> {
     const url = new URL('/api/timelines', this.baseUrl);
 
@@ -58,15 +64,16 @@ export class Fetch {
 
     if (!res.ok) {
       error({res});
+
       // This will activate the closest `error.js` Error Boundary
       throw new Error('Failed to fetch timelines')
     }
 
-    const timelineResponse: StrapiTimelineResponse = await res.json() as StrapiTimelineResponse;
+    const timelines = await res.json() as StrapiTimelineResponse;
 
-    debug({timelineResponse: JSON.stringify(timelineResponse, null, 2)});
+    debug({timelines: JSON.stringify(timelines, null, 2)});
 
-    return timelineResponse.data?.map((timeline) => mapApiTimelineToModel(timeline.attributes)) ?? [];
+    return timelines.data?.map((timeline) => mapApiTimelineToModel(timeline.attributes)) ?? [];
   }
 
   // async getTimeline(slug: string): Promise<Timeline | null> {
