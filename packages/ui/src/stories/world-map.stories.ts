@@ -1,8 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-
-import { WorldMap } from '../world-map';
-
-const WORLD_CONTINENTS = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-continents.json"
+import { WorldMap } from '../components/world-map';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof WorldMap> = {

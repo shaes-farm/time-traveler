@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-
-import { HorizontalStepper } from '../horizontal-stepper';
+import { HorizontalStepper } from '../components/horizontal-stepper';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof HorizontalStepper> = {

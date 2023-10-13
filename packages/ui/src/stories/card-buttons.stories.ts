@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { CardButtons } from '../components/card-buttons';
 
-import { CardButtons } from '../card-buttons';
+const {debug} = console;
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof CardButtons> = {
@@ -14,9 +15,9 @@ const meta: Meta<typeof CardButtons> = {
   tags: ['autodocs'],
   // More on argTypes: https://storybook.js.org/docs/react/api/argtypes
   argTypes: {
-    onLike: (e: object) => {console.log({e})},
-    onShare: (e: object) => {console.log({e})},
-    onSubscribe: (e: object) => {console.log({e})},
+    onLike: (e: object) => {debug({e})},
+    onShare: (e: object) => {debug({e})},
+    onSubscribe: (e: object) => {debug({e})},
   },
 };
 
@@ -25,7 +26,5 @@ type Story = StoryObj<typeof meta>;
 
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
 export const Primary: Story = {
-  args: {
-
-  },
+  args: {},
 };
