@@ -1,2 +1,1 @@
-export * from './src/cards';
-export * from './src/components';
+export * from './src';
