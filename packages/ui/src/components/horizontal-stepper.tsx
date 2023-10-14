@@ -8,6 +8,7 @@ import StepLabel from '@mui/material/StepLabel';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import type { StepIconProps } from '@mui/material/StepIcon';
+import type { LabeledRoute } from '../models';
 
 const Connector = styled(StepConnector)(({theme}) => ({
   [`&.${stepConnectorClasses.alternativeLabel}`]: {
@@ -69,13 +70,8 @@ function StepIcon(props: StepIconProps): JSX.Element {
   );
 }
 
-interface HorizontalStep {
-  label: string;
-  link: string;
-}
-
 interface HorizontalStepperProps {
-  steps: HorizontalStep[];
+  steps: LabeledRoute[];
 }
 
 export function HorizontalStepper(props: HorizontalStepperProps): JSX.Element {
@@ -88,7 +84,7 @@ export function HorizontalStepper(props: HorizontalStepperProps): JSX.Element {
             <StepLabel StepIconComponent={StepIcon}>
               <Link
                 color="inherit"
-                href={step.link}
+                href={step.route}
                 underline="hover"
               >
                 {step.label}

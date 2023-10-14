@@ -1,15 +1,13 @@
-import {Box, Link, Typography} from '@mui/material';
+import {Box, Typography} from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
+import {type LabeledRoute, Menu} from './menu';
 
 interface HeaderProps {
   app: {
     title: string;
     description: string;
   };
-  baseUrl?: string;
-  homePath?: string;
-  aboutPath?: string;
-  contactPath?: string;
+  menu: LabeledRoute[];
 }
 
 export function Header(props: HeaderProps): JSX.Element {
@@ -18,11 +16,9 @@ export function Header(props: HeaderProps): JSX.Element {
       title,
       description,
     },
-    baseUrl = 'http://localhost:3000',
-    homePath = '/',
-    aboutPath = '/about',
-    contactPath = '/contact',
+    menu,
   } = props;
+
   return (
     <header>
       <Box sx={{ m: '1em' }}>
@@ -39,29 +35,7 @@ export function Header(props: HeaderProps): JSX.Element {
           </Grid>            
           <Grid sx={{ alignSelf: 'start' }} xs={4}>
             <Typography component="span" sx={{ display: "flex", justifyContent: "end" }} variant="body2">
-              <Link
-                  color="inherit"
-                  href={new URL(homePath, baseUrl).toString()}
-                  underline="hover"
-                >
-                  home
-              </Link>
-              &nbsp;|&nbsp;
-              <Link
-                color="inherit"
-                href={new URL(aboutPath, baseUrl).toString()}
-                underline="hover"
-              >
-                about
-              </Link>
-              &nbsp;|&nbsp;
-              <Link
-                color="inherit"
-                href={new URL(contactPath, baseUrl).toString()}
-                underline="hover"
-              >
-                contact
-              </Link>
+              <Menu menu={menu} />
             </Typography>
           </Grid>
         </Grid>

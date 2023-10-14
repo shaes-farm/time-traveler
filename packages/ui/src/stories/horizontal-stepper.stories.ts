@@ -21,22 +21,22 @@ export const Default: Story = {
   args: {
     steps: [{
       label: 'Step 1',
-      link: '#',
+      route: '#',
     }, {
       label: 'Step 2',
-      link: '#',
+      route: '#',
     }, {
       label: 'Step 3',
-      link: '#',
+      route: '#',
     }, {
       label: 'Step 4',
-      link: '#',
+      route: '#',
     }, {
       label: 'Step 5',
-      link: '#',
+      route: '#',
     }, {
       label: 'Step 6',
-      link: '#',
+      route: '#',
     }],
   },
 };

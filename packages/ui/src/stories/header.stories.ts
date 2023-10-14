@@ -4,6 +4,17 @@ import { config } from './config';
 
 const {app} = config;
 
+const menu = [{
+  label: 'home',
+  route: '/',
+},{
+  label: 'about',
+  route: '/about',
+},{
+  label: 'contact',
+  route: '/contact',
+}];
+
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof Header> = {
   title: 'Components/Header',
@@ -27,5 +38,6 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     app,
+    menu,
   },
 };

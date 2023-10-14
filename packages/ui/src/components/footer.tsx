@@ -1,4 +1,5 @@
 import {Box, Divider, Link, Typography} from '@mui/material';
+import {type LabeledRoute, Menu} from './menu';
 
 interface FooterProps {
   app: {
@@ -8,10 +9,7 @@ interface FooterProps {
       holder: string;
     }
   }
-  baseUrl?: string;
-  disclaimerPath?: string;
-  privacyPath?: string;
-  termsPath?: string;
+  menu: LabeledRoute[];
 }
 
 export function Footer(props: FooterProps): JSX.Element {
@@ -23,39 +21,14 @@ export function Footer(props: FooterProps): JSX.Element {
         holder,
       },
     },
-    baseUrl = 'http://locahost:3000',
-    disclaimerPath = '/disclaimer',
-    privacyPath = '/privacy',
-    termsPath = '/terms',
-  } = props;
+    menu,
+} = props;
 
   return (
     <footer>
       <Box sx={{ textAlign: 'center', py: '1em' }}>
         <Typography component="div" variant="body2">
-          <Link
-            color="inherit"
-            href={new URL(disclaimerPath, baseUrl).toString()}
-            underline="hover"
-          >
-            disclaimer
-          </Link>
-          &nbsp;|&nbsp;
-          <Link
-            color="inherit"
-            href={new URL(privacyPath, baseUrl).toString()}
-            underline="hover"
-          >
-            privacy&nbsp;policy
-          </Link>
-          &nbsp;|&nbsp;
-          <Link
-            color="inherit"
-            href={new URL(termsPath, baseUrl).toString()}
-            underline="hover"
-          >
-            terms&nbsp;of&nbsp;use
-          </Link>
+          <Menu menu={menu} />
         </Typography>
         <Divider sx={{ my: '1em' }} />
         <Typography component="div" variant="body2">
