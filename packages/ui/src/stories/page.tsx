@@ -7,6 +7,28 @@ import {config} from './config';
 
 const {baseUrl} = config.app;
 
+const headerMenu = [{
+  label: 'home',
+  route: '/',
+},{
+  label: 'about',
+  route: '/about',
+},{
+  label: 'contact',
+  route: '/contact',
+}];
+
+const footerMenu = [{
+  label: 'disclaimer',
+  route: '/disclaimer',
+},{
+  label: 'privacy policy',
+  route: '/privacy',
+},{
+  label: 'terms of use',
+  route: '/terms',
+}];
+
 const periods = [{
   label: 'The First Age',
   route: `${baseUrl}/timelines/the-first-age`,
@@ -27,7 +49,7 @@ const periods = [{
 export function Page(): JSX.Element {
   return (
     <Container maxWidth="lg" sx={{ m: 'auto' }}>
-      <Header app={config.app}/>
+      <Header app={config.app} menu={headerMenu} />
       <main>
         <Paper>
           <Box sx={{py: '3em'}}>
@@ -63,7 +85,7 @@ export function Page(): JSX.Element {
           </Box>
         </Paper>
       </main>
-      <Footer app={config.app}/>
+      <Footer app={config.app} menu={footerMenu} />
     </Container>
   );
 };

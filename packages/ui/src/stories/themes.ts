@@ -1,14 +1,5 @@
-/* eslint-disable camelcase -- cannot control these names */
-import { Roboto } from 'next/font/google'
 import { unstable_createMuiStrictModeTheme } from '@mui/material/styles';
 import { blueGrey, cyan, pink } from '@mui/material/colors';
-
-export const font = Roboto({
-  weight: ['300', '400', '500', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  fallback: ['Helvetica', 'Arial', 'sans-serif'],
-});
 
 export const lightTheme = unstable_createMuiStrictModeTheme({
   palette: {
@@ -21,7 +12,7 @@ export const lightTheme = unstable_createMuiStrictModeTheme({
     },
   },
   typography: {
-    fontFamily: font.style.fontFamily,
+    fontFamily: 'Roboto',
   },
 });
 
@@ -40,6 +31,6 @@ export const darkTheme = unstable_createMuiStrictModeTheme({
     },
   },
   typography: {
-    fontFamily: font.style.fontFamily,
+    fontFamily: 'Roboto',
   },
 });
