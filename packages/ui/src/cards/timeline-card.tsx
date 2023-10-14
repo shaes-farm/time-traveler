@@ -23,7 +23,7 @@ export function TimelineCard(props: TimelineCardProps): JSX.Element {
         {scale ? <Typography color="text.secondary" component="div" variant="body2">
           <em><sup>{scale}</sup></em>
         </Typography> : null}
-        <VerticalTimeline alternate reverse timeline={timeline} />
+        <VerticalTimeline alternate events={timeline.events} reverse />
       </CardContent>
       <CardActions disableSpacing>
         <CardButtons />
