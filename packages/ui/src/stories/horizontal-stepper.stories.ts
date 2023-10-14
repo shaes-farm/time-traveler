@@ -11,13 +11,6 @@ const meta: Meta<typeof HorizontalStepper> = {
   },
   // This component will have an automatically generated Autodocs entry: https://storybook.js.org/docs/react/writing-docs/autodocs
   tags: ['autodocs'],
-  // More on argTypes: https://storybook.js.org/docs/react/api/argtypes
-  argTypes: {
-    steps: [{
-      label: 'Step',
-      link: '/link',
-    }]
-  },
 };
 
 export default meta;
@@ -27,17 +20,23 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     steps: [{
-      label: 'Step 1', link: '#'
+      label: 'Step 1',
+      link: '#',
     }, {
-      label: 'Step 2', link: '#'
+      label: 'Step 2',
+      link: '#',
     }, {
-      label: 'Step 3', link: '#'
+      label: 'Step 3',
+      link: '#',
     }, {
-      label: 'Step 4', link: '#'
+      label: 'Step 4',
+      link: '#',
     }, {
-      label: 'Step 5', link: '#'
+      label: 'Step 5',
+      link: '#',
     }, {
-      label: 'Step 6', link: '#'
+      label: 'Step 6',
+      link: '#',
     }],
   },
 };

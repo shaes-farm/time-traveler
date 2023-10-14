@@ -1,5 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { Footer } from '../components/footer';
+import { config } from './config';
+
+const {app} = config;
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof Footer> = {
@@ -23,12 +26,6 @@ type Story = StoryObj<typeof meta>;
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
 export const Default: Story = {
   args: {
-    app: {
-      copyright: {
-        year: 2023,
-        url: 'http://example.com',
-        holder: 'Jimbo Pickins',
-      },
-    }
+    app,
   },
 };
