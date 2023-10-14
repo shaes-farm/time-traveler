@@ -9,19 +9,19 @@ const {baseUrl} = config.app;
 
 const periods = [{
   label: 'The First Age',
-  link: `${baseUrl}/timelines/the-first-age`,
+  route: `${baseUrl}/timelines/the-first-age`,
 },{
   label: 'The Second Age',
-  link: `${baseUrl}/timelines/the-second-age`,
+  route: `${baseUrl}/timelines/the-second-age`,
 },{
   label: 'The Third Age',
-  link: `${baseUrl}/timelines/the-third-age`,
+  route: `${baseUrl}/timelines/the-third-age`,
 },{
   label: 'The Fourth Age',
-  link: `${baseUrl}/timelines/the-fourth-age`,
+  route: `${baseUrl}/timelines/the-fourth-age`,
 },{
   label: 'The Fifth Age',
-  link: `${baseUrl}/timelines/the-fifth-age`,
+  route: `${baseUrl}/timelines/the-fifth-age`,
 }];
 
 export function Page(): JSX.Element {
