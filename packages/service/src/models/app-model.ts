@@ -8,52 +8,55 @@ export interface Media {
 }
 
 export enum Importance {
-  Low = 1,
+  Insignificant = 1,
   Trivial,
   Minor,
   Average,
   Medium,
   Moderate,
   Influential,
-  Shaping,
   Major,
+  Significant,
+  Shaping,
   Defining,
 }
 
 export interface HistoricalEvent {
-  title: string;
   slug: string;
-  summary?: string;
-  categories: Category[];
-  location?: string;
+  title: string;
+  summary: string | null;
+  location: string | null;
   importance: Importance;
   beginDate: string;
-  endDate?: string;
+  endDate: string | null;
   timeline?: Timeline;
+  categories: Category[];
   timelines: Timeline[];
   media: Media[];
 }
 
 export interface Category {
-  title: string;
   slug: string;
+  title: string;
   events: HistoricalEvent[];
 }
 
 export interface Timeline {
-  title: string;
   slug: string;
-  summary?: string;
-  scale?: string;
+  title: string;
+  summary: string | null;
+  scale: string | null;
+  beginDate: string;
+  endDate: string;
   events: HistoricalEvent[];
   periods: Period[];
 }
 
 export interface Period {
-  title: string;
   slug: string;
-  summary?: string;
+  title: string;
+  summary: string | null;
   beginDate: string;
-  endDate?: string;
+  endDate: string;
   timelines: Timeline[];
 }
