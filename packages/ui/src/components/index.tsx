@@ -1,6 +1,8 @@
 // component exports
 export { Breadcrumbs } from './breadcrumbs';
 export { CardButtons } from './card-buttons';
+export { CustomError } from './custom-error';
+export { ErrorCard } from './error-card';
 export { Footer } from './footer';
 export { Header } from './header';
 export { HorizontalStepper } from './horizontal-stepper';
