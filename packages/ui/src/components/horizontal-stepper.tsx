@@ -1,14 +1,14 @@
 'use client'
 import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
-import Link from '@mui/material/Link';
+import Button from '@mui/material/Button';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
 import type { StepIconProps } from '@mui/material/StepIcon';
-import type { LabeledRoute } from '../models';
+import type { LabeledClickable } from '../models';
 
 const Connector = styled(StepConnector)(({theme}) => ({
   [`&.${stepConnectorClasses.alternativeLabel}`]: {
@@ -58,7 +58,6 @@ const StepIconRoot = styled('div')<{ ownerState: { active?: boolean } }>(
 
 function StepIcon(props: StepIconProps): JSX.Element {
   const { active, completed, className } = props;
-
   return (
     <StepIconRoot className={className} ownerState={{ active }}>
       {completed ? (
@@ -71,24 +70,28 @@ function StepIcon(props: StepIconProps): JSX.Element {
 }
 
 interface HorizontalStepperProps {
-  steps: LabeledRoute[];
+  activeStep?: number;
+  steps: LabeledClickable[];
 }
 
 export function HorizontalStepper(props: HorizontalStepperProps): JSX.Element {
-  const {steps} = props;
+  const {activeStep = 0, steps} = props;
   return (
     <Box sx={{ width: '100%' }}>
-      <Stepper activeStep={-1} alternativeLabel connector={<Connector />}>
+      <Stepper
+        activeStep={activeStep && activeStep >= 0 ? activeStep - 1 :  -1}
+        alternativeLabel
+        connector={<Connector />}
+      >
         {steps.map((step) => (
-          <Step key={step.label}>
+          <Step key={Symbol(step.label).toString()}>
             <StepLabel StepIconComponent={StepIcon}>
-              <Link
+              <Button
                 color="inherit"
-                href={step.route}
-                underline="hover"
+                onClick={step.onClick}
               >
                 {step.label}
-              </Link>
+              </Button>
             </StepLabel>
           </Step>
         ))}

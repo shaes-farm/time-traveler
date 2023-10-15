@@ -21,22 +21,47 @@ export const Default: Story = {
   args: {
     steps: [{
       label: 'Step 1',
-      route: '#',
+      onClick: () => {},
     }, {
       label: 'Step 2',
-      route: '#',
+      onClick: () => {},
     }, {
       label: 'Step 3',
-      route: '#',
+      onClick: () => {},
     }, {
       label: 'Step 4',
-      route: '#',
+      onClick: () => {},
     }, {
       label: 'Step 5',
-      route: '#',
+      onClick: () => {},
     }, {
       label: 'Step 6',
-      route: '#',
+      onClick: () => {},
+    }],
+  },
+};
+
+export const Active: Story = {
+  args: {
+    activeStep: 3,
+    steps: [{
+      label: 'Step 1',
+      onClick: () => {},
+    }, {
+      label: 'Step 2',
+      onClick: () => {},
+    }, {
+      label: 'Step 3',
+      onClick: () => {},
+    }, {
+      label: 'Step 4',
+      onClick: () => {},
+    }, {
+      label: 'Step 5',
+      onClick: () => {},
+    }, {
+      label: 'Step 6',
+      onClick: () => {},
     }],
   },
 };
