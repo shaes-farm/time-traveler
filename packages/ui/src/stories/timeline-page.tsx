@@ -1,8 +1,12 @@
 import {Container} from '@mui/material';
-import {Footer} from '../components/footer';
-import {Header} from '../components/header';
-import {Breadcrumbs} from '../components/breadcrumbs';
-import {TimelineCard} from '../cards/timeline-card';
+import {
+  Breadcrumbs,
+  Footer,
+  Header,
+} from '../components';
+import {
+  TimelineCard,
+} from '../views';
 import {config} from './config';
 import {timeline} from './timeline';
 

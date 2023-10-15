@@ -10,7 +10,7 @@ const meta: Meta<typeof VerticalTimeline> = {
   component: VerticalTimeline,
   parameters: {
     // Optional parameter to center the component in the Canvas. More info: https://storybook.js.org/docs/react/configure/story-layout
-    layout: 'centered',
+    layout: 'fullscreen',
   },
   // This component will have an automatically generated Autodocs entry: https://storybook.js.org/docs/react/writing-docs/autodocs
   tags: ['autodocs'],
@@ -20,13 +20,13 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
-export const Default: Story = {
+export const Basic: Story = {
   args: {
     markers: events,
   },
 };
 
-export const Reverse: Story = {
+export const LeftPositioned: Story = {
   args: {
     markers: events,
     reverse: true,
@@ -45,5 +45,27 @@ export const ReverseAlternating: Story = {
     markers: events,
     reverse: true,
     alternate: true,
+  },
+};
+
+export const Colored: Story = {
+  args: {
+    markers: events,
+    colored: true,
+  },
+};
+
+export const Outlined: Story = {
+  args: {
+    markers: events,
+    outlined: true,
+  },
+};
+
+export const ColoredOutline: Story = {
+  args: {
+    markers: events,
+    colored: true,
+    outlined: true,
   },
 };

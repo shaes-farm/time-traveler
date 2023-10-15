@@ -4,8 +4,7 @@ import React from 'react';
 import {Card, CardActions, CardContent, CardHeader, Grid, Typography} from '@mui/material';
 // import Carousel from 'react-material-ui-carousel'
 import type {HistoricalEvent/* , HistoricalEventMedia */} from 'service';
-import {MenuButton} from '../components/menu-button';
-import {CardButtons} from '../components/card-buttons';
+import {CardButtons, MenuButton} from '../components';
 
 // function MediaItem(m: HistoricalEventMedia): JSX.Element {
 //   return (
@@ -29,16 +28,18 @@ import {CardButtons} from '../components/card-buttons';
 //   );
 // }
 
+const {debug} = console;
+
 interface HistoricalEventCardProps {
   event: HistoricalEvent;
 }
 
 export function HistoricalEventCard(props: HistoricalEventCardProps): JSX.Element {
-  const {title, summary, location, beginDate, endDate} = props.event;
+  const {slug, title, summary, location, beginDate, endDate} = props.event;
   return (
     <Card sx={{ textAlign: 'center' }}>
       <CardHeader
-        action={<MenuButton />}
+        action={<MenuButton onDownload={() => {debug(`download ${slug}`)}} onPrint={() => {debug(`print ${slug}`)}} onShare={() => {debug(`share ${slug}`)}} />}
         subheader={`${location ? location : ''}${location && beginDate ? ' - ' : ''}${beginDate ? beginDate : ''}`}
         title={title}
       />
@@ -55,7 +56,7 @@ export function HistoricalEventCard(props: HistoricalEventCardProps): JSX.Elemen
         </Grid>
       </CardContent>
       <CardActions disableSpacing>
-        <CardButtons />
+        <CardButtons onLike={() => {debug(`like ${slug}`)}} onShare={() => {debug(`share ${slug}`)}} onSubscribe={() => {debug(`subscribe ${slug}`)}} />
       </CardActions>
     </Card>
   );

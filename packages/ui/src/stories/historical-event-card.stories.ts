@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { HistoricalEventCard } from '../cards';
+import { HistoricalEventCard } from '../views';
 import { timeline } from './timeline';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof HistoricalEventCard> = {
-  title: 'Cards/HistoricalEventCard',
+  title: 'Views/HistoricalEventCard',
   component: HistoricalEventCard,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/react/configure/story-layout

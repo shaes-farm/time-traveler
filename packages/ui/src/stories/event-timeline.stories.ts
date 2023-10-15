@@ -18,8 +18,32 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
-export const Default: Story = {
+export const Basic: Story = {
   args: {
     events: timeline.events,
+    alternate: false,
+    reverse: false,
+  },
+};
+
+export const LeftPositioned: Story = {
+  args: {
+    events: timeline.events,
+    reverse: true,
+  },
+};
+
+export const Alternating: Story = {
+  args: {
+    events: timeline.events,
+    alternate: true,
+  },
+};
+
+export const ReverseAlternating: Story = {
+  args: {
+    events: timeline.events,
+    reverse: true,
+    alternate: true,
   },
 };

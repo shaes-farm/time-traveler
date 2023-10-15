@@ -9,7 +9,7 @@ import TimelineConnector from '@mui/lab/TimelineConnector';
 import TimelineContent from '@mui/lab/TimelineContent';
 import TimelineDot from '@mui/lab/TimelineDot';
 
-interface TimelineMarker {
+export interface TimelineMarker {
   slug: string;
   title: string;
   summary: string | null;
@@ -17,9 +17,11 @@ interface TimelineMarker {
   endDate: string | null;
 }
 
-interface VerticalTimelineProps {
+export interface VerticalTimelineProps {
   markers: TimelineMarker[];
   alternate?: boolean;
+  colored?: boolean;
+  outlined?: boolean;
   reverse?: boolean;
 };
 
@@ -33,16 +35,16 @@ const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left"
   alternate ?  getAlternateState(reverse) : getReverseState(reverse);
 
 export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
-  const {markers, alternate = false, reverse = false} = props;
+  const {markers, alternate = false, colored = false, outlined = false, reverse = false} = props;
   return (
     <Timeline position={getPosition(alternate, reverse)}>
       {markers.map((marker, index) => (
         <TimelineItem key={Symbol(index).toString()}>
-          {marker.beginDate ? <TimelineOppositeContent color="secondary" variant="h6">
+          {marker.beginDate ? <TimelineOppositeContent color={colored ? "secondary" : "text.secondary"} variant="h6">
             {marker.beginDate}{marker.endDate && marker.endDate !== marker.beginDate ? `-${marker.endDate}` : null}
           </TimelineOppositeContent> : null}
           <TimelineSeparator>
-            <TimelineDot color="primary" variant="outlined" />
+            <TimelineDot color={colored ? "primary" : "grey"} variant={outlined ? "outlined" : "filled"} />
             {index < (markers.length-1) && <TimelineConnector />}
           </TimelineSeparator>
           <TimelineContent sx={{py: '6px', px: 2}}>

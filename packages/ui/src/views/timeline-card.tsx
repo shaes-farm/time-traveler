@@ -1,9 +1,10 @@
 'use client'
 import {Card, CardActions, CardContent, CardHeader, Typography} from '@mui/material';
 import type {Timeline} from 'service';
-import {VerticalTimeline} from '../components/vertical-timeline';
-import {MenuButton} from '../components/menu-button';
-import {CardButtons} from '../components/card-buttons';
+import {CardButtons, MenuButton} from '../components';
+import {EventTimeline} from './event-timeline';
+
+const {debug} = console;
 
 interface TimelineCardProps {
   timeline: Timeline;
@@ -11,11 +12,11 @@ interface TimelineCardProps {
 
 export function TimelineCard(props: TimelineCardProps): JSX.Element {
   const {timeline} = props;
-  const {title, summary, scale} = timeline;
+  const {slug, title, summary, scale} = timeline;
   return (
     <Card sx={{ textAlign: 'center' }}>
       <CardHeader
-        action={<MenuButton />}
+        action={<MenuButton onDownload={() => {debug(`download ${slug}`)}} onPrint={() => {debug(`print ${slug}`)}} onShare={() => {debug(`share ${slug}`)}} />}
         subheader={summary}
         title={title}
       />
@@ -23,10 +24,10 @@ export function TimelineCard(props: TimelineCardProps): JSX.Element {
         {scale ? <Typography color="text.secondary" component="div" variant="body2">
           <em><sup>{scale}</sup></em>
         </Typography> : null}
-        <VerticalTimeline alternate events={timeline.events} reverse />
+        <EventTimeline alternate events={timeline.events} reverse />
       </CardContent>
       <CardActions disableSpacing>
-        <CardButtons />
+      <CardButtons onLike={() => {debug(`like ${slug}`)}} onShare={() => {debug(`share ${slug}`)}} onSubscribe={() => {debug(`subscribe ${slug}`)}} />
       </CardActions>
     </Card>
   )
