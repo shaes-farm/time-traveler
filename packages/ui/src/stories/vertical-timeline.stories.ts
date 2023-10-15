@@ -22,27 +22,27 @@ type Story = StoryObj<typeof meta>;
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
 export const Default: Story = {
   args: {
-    events,
+    markers: events,
   },
 };
 
 export const Reverse: Story = {
   args: {
-    events,
+    markers: events,
     reverse: true,
   },
 };
 
 export const Alternating: Story = {
   args: {
-    events,
+    markers: events,
     alternate: true,
   },
 };
 
 export const ReverseAlternating: Story = {
   args: {
-    events,
+    markers: events,
     reverse: true,
     alternate: true,
   },

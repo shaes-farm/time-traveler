@@ -8,10 +8,17 @@ import TimelineSeparator from '@mui/lab/TimelineSeparator';
 import TimelineConnector from '@mui/lab/TimelineConnector';
 import TimelineContent from '@mui/lab/TimelineContent';
 import TimelineDot from '@mui/lab/TimelineDot';
-import type {HistoricalEvent} from 'service';
+
+interface TimelineMarker {
+  slug: string;
+  title: string;
+  summary: string | null;
+  beginDate: string;
+  endDate: string | null;
+}
 
 interface VerticalTimelineProps {
-  events: HistoricalEvent[];
+  markers: TimelineMarker[];
   alternate?: boolean;
   reverse?: boolean;
 };
@@ -26,26 +33,26 @@ const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left"
   alternate ?  getAlternateState(reverse) : getReverseState(reverse);
 
 export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
-  const {events, alternate = false, reverse = false} = props;
+  const {markers, alternate = false, reverse = false} = props;
   return (
     <Timeline position={getPosition(alternate, reverse)}>
-      {events.map((event, index) => (
+      {markers.map((marker, index) => (
         <TimelineItem key={Symbol(index).toString()}>
-          {event.beginDate ? <TimelineOppositeContent color="secondary" variant="h6">
-            {event.beginDate}{event.endDate ? `-${event.endDate}` : null}
+          {marker.beginDate ? <TimelineOppositeContent color="secondary" variant="h6">
+            {marker.beginDate}{marker.endDate && marker.endDate !== marker.beginDate ? `-${marker.endDate}` : null}
           </TimelineOppositeContent> : null}
           <TimelineSeparator>
             <TimelineDot color="primary" variant="outlined" />
-            {index < (events.length-1) && <TimelineConnector />}
+            {index < (markers.length-1) && <TimelineConnector />}
           </TimelineSeparator>
           <TimelineContent sx={{py: '6px', px: 2}}>
             <Typography component="span" variant="h6">
-              <Link color="inherit" href={`/events/${event.slug}`} underline="none">
-                {event.title}
+              <Link color="inherit" href={`/events/${marker.slug}`} underline="none">
+                {marker.title}
               </Link>
             </Typography>
-            {event.summary ? <Typography color="text.secondary" component="div" variant="body2">
-              {event.summary}
+            {marker.summary ? <Typography color="text.secondary" component="div" variant="body2">
+              {marker.summary}
             </Typography> : null}
           </TimelineContent>
         </TimelineItem>
