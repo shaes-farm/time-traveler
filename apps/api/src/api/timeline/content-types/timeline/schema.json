@@ -38,6 +38,14 @@
     },
     "scale": {
       "type": "string"
+    },
+    "beginDate": {
+      "type": "string",
+      "required": true
+    },
+    "endDate": {
+      "type": "string",
+      "required": true
     }
   }
 }

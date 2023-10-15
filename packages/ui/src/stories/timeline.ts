@@ -5,11 +5,15 @@ export const timeline: Timeline = {
   title: 'A Timeline',
   summary: 'A demonstration timeline used as filler for the story. Est culpa qui qui tempore ex qui quis. Consequatur et laborum quia. Magnam voluptas delectus laudantium molestiae. Assumenda dolorem aliquid et possimus atque repellat illo. Molestiae repellat delectus consequatur numquam ipsa nisi. Excepturi doloribus laudantium laboriosam et consequatur aperiam doloremque.',
   scale: 'The timeline scale (1:1,000,000)',
+  beginDate: '1234',
+  endDate: '1237',
   periods: [{
     slug: 'a-time-period',
     title: 'A Time Period',
+    summary: null,
     beginDate: '1234',
-    timelines: []
+    endDate: '1237',
+    timelines: [],
   }],
   events: [{
     slug: 'an-event',

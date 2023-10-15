@@ -35,7 +35,8 @@
       "type": "string"
     },
     "endDate": {
-      "type": "string"
+      "type": "string",
+      "required": true
     }
   }
 }

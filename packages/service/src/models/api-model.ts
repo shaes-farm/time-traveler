@@ -1,4 +1,4 @@
-import type {Media} from './event-model';
+import type {Media} from './app-model';
 
 export interface StrapiMediaAttributes {
   attributes: Media;
@@ -29,12 +29,12 @@ export interface StrapiCategoriesResponse {
 export interface StrapiEvent {
   title: string;
   slug: string;
-  summary?: string;
-  categories?: StrapiCategoriesResponse;
+  summary: string | null;
   importance: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-  location?: string;
+  location: string | null;
   beginDate: string;
-  endDate?: string;
+  endDate: string | null;
+  categories?: StrapiCategoriesResponse;
   media?: StrapiMediaResponse;
   timelines?: StrapiTimelineResponse;
 }
@@ -50,10 +50,12 @@ export interface StrapiEventResponse {
 export interface StrapiTimeline {
   slug: string;
   title: string;
-  summary?: string;
-  scale?: string;
+  summary: string | null;
+  scale: string | null;
+  beginDate: string;
+  endDate: string;
   events?: StrapiEventResponse;
-  periods?: StrapiPeriodResponse;
+  periods?: StrapiPeriodsResponse;
 }
 
 export interface StrapiTimelineAttributes {
@@ -67,9 +69,9 @@ export interface StrapiTimelineResponse {
 export interface StrapiPeriod {
   title: string;
   slug: string;
-  summary?: string;
+  summary: string | null;
   beginDate: string;
-  endDate?: string;
+  endDate: string;
   timelines?: StrapiTimelineResponse;
 }
 
@@ -77,6 +79,6 @@ export interface StrapiPeriodAttributes {
   attributes: StrapiPeriod;
 }
 
-export interface StrapiPeriodResponse {
+export interface StrapiPeriodsResponse {
   data: StrapiPeriodAttributes[] | null;
 }

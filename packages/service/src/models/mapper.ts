@@ -1,15 +1,15 @@
 import type {
-  Category,
-  HistoricalEvent,
-  Period,
-  Timeline
-} from './event-model';
-import type {
   StrapiCategory,
   StrapiEvent,
   StrapiPeriod,
   StrapiTimeline
 } from './api-model';
+import type {
+  Category,
+  HistoricalEvent,
+  Period,
+  Timeline
+} from './app-model';
 
 export const mapApiCategoryToModel = ({
   slug,
@@ -66,6 +66,8 @@ export const mapApiTimelineToModel = ({
   title,
   summary,
   scale,
+  beginDate,
+  endDate,
   events,
   periods,
 }: StrapiTimeline): Timeline => ({
@@ -73,6 +75,8 @@ export const mapApiTimelineToModel = ({
   title,
   summary,
   scale,
+  beginDate,
+  endDate,
   events: events?.data?.map((e) => mapApiEventToModel(e.attributes)) ?? [],
   periods: periods?.data?.map((p) => mapApiPeriodToModel(p.attributes)) ?? [],
 });

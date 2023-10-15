@@ -788,7 +788,7 @@ export interface ApiPeriodPeriod extends Schema.CollectionType {
       'api::timeline.timeline'
     >;
     beginDate: Attribute.String;
-    endDate: Attribute.String;
+    endDate: Attribute.String & Attribute.Required;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
@@ -833,6 +833,8 @@ export interface ApiTimelineTimeline extends Schema.CollectionType {
       'api::period.period'
     >;
     scale: Attribute.String;
+    beginDate: Attribute.String & Attribute.Required;
+    endDate: Attribute.String & Attribute.Required;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;
