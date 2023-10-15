@@ -1,15 +1,11 @@
-import type {
-  Period,
-  Timeline,
-} from './models/event-model';
-import type {
-  StrapiPeriodResponse,
-  StrapiTimelineResponse,
-} from './models/api-model';
 import {
+  type StrapiPeriodsResponse,
+  type StrapiTimelineResponse,
+  type Period,
+  type Timeline,
   mapApiPeriodToModel,
   mapApiTimelineToModel,
-} from './models/mapper';
+} from './models';
 
 const {debug, error} = console;
 
@@ -41,11 +37,39 @@ export class Fetch {
       throw new Error('Failed to fetch periods')
     }
 
-    const periods = await res.json() as StrapiPeriodResponse;
+    const periods = await res.json() as StrapiPeriodsResponse;
 
     debug({periods: JSON.stringify(periods, null, 2)});
 
     return periods.data?.map((period) => mapApiPeriodToModel(period.attributes)) ?? [];
+  }
+
+  /**
+   * Fetch a period by slug.
+   * 
+   * @returns An array of Period objects.
+   */
+
+  async getPeriod(slug: string): Promise<Period | null> {
+    const url = new URL('/api/period', this.baseUrl);
+    
+    url.searchParams.set('filters[slug][$eq]', slug);
+    url.searchParams.set('sort', 'beginDate');
+
+    debug({url});
+
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      // This will activate the closest `error.js` Error Boundary
+      throw new Error(`Failed to fetch period by "${slug}"`);
+    }
+
+    const periods = await res.json() as StrapiPeriodsResponse;
+
+    debug({periods: JSON.stringify(periods, null, 2)});
+
+    return periods.data?.length ? mapApiPeriodToModel(periods.data[0].attributes) : null;
   }
 
   /**
@@ -56,7 +80,7 @@ export class Fetch {
   async getTimelines(): Promise<Timeline[]> {
     const url = new URL('/api/timelines', this.baseUrl);
 
-    url.searchParams.set('populate', 'events');
+    url.searchParams.set('populate[events][sort][0]', 'beginDate');
 
     debug({url});
 
