@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { ErrorCard } from '../cards';
+import { ErrorCard } from '../components';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
 const meta: Meta<typeof ErrorCard> = {
-  title: 'Cards/ErrorCard',
+  title: 'Components/ErrorCard',
   component: ErrorCard,
   parameters: {
     // More on how to position stories at: https://storybook.js.org/docs/react/configure/story-layout
@@ -11,10 +11,6 @@ const meta: Meta<typeof ErrorCard> = {
   },
   // This component will have an automatically generated Autodocs entry: https://storybook.js.org/docs/react/writing-docs/autodocs
   tags: ['autodocs'],
-  // More on argTypes: https://storybook.js.org/docs/react/api/argtypes
-  argTypes: {
-    
-  },
 };
 
 export default meta;
