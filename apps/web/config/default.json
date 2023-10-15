@@ -1,6 +1,19 @@
 {
   "app": {
-    "baseUrl": "http://localhost:3000"
+    "title": "Time Traveler",
+    "description": "Telling Stories Through Time",
+    "version": "1.0.0",
+    "baseUrl": "http://localhost:3000",
+    "icon": "",
+    "logo": {
+      "main": "",
+      "contrast": ""
+    },
+    "copyright": {
+      "holder": "SHAES Farm",
+      "year": 2023,
+      "url": "https://shaes.farm"
+    }
   },
   "api": {
     "baseUrl": "http://localhost:1337"
