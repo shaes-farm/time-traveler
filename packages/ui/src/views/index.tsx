@@ -1,5 +1,5 @@
-export { EventTimeline } from './event-timeline';
-export { HistoricalEventCard } from './historical-event-card';
-export { PeriodNavigator } from './period-navigator';
-export { PeriodTimelines } from './period-timelines';
-export { TimelineCard } from './timeline-card';
+export * from './event-timeline';
+export * from './historical-event-card';
+export * from './period-navigator';
+export * from './period-timelines';
+export * from './timeline-card';

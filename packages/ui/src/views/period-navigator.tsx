@@ -6,7 +6,7 @@ import type {Period} from 'service';
 import {HorizontalStepper} from '../components/horizontal-stepper';
 import {PeriodTimelines} from './period-timelines';
 
-interface PeriodNavigatorProps {
+export interface PeriodNavigatorProps {
   periods: Period[];
 }
 
@@ -25,7 +25,7 @@ export function PeriodNavigator(props: PeriodNavigatorProps): JSX.Element {
         } />
       </Box>
       <Box sx={{ px: '4em' }}>
-        <PeriodTimelines alternate period={periods[step - 1]} reverse />
+        <PeriodTimelines alternate colored outlined period={periods[step - 1]} reverse />
       </Box>
     </Stack>
   );

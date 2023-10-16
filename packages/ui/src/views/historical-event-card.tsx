@@ -30,7 +30,7 @@ import {CardButtons, MenuButton} from '../components';
 
 const {debug} = console;
 
-interface HistoricalEventCardProps {
+export interface HistoricalEventCardProps {
   event: HistoricalEvent;
 }
 

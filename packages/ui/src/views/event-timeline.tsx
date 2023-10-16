@@ -1,11 +1,9 @@
 'use client'
 import type {HistoricalEvent} from 'service';
-import {VerticalTimeline} from '../components';
+import {VerticalTimeline, type VerticalTimelineProps} from '../components';
 
-interface EventTimelineProps {
+export interface EventTimelineProps extends Omit<VerticalTimelineProps, 'markers'>{
   events: HistoricalEvent[];
-  alternate?: boolean;
-  reverse?: boolean;
 };
 
 export function EventTimeline(props: EventTimelineProps): JSX.Element {

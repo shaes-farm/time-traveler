@@ -1,14 +1,26 @@
 'use client'
 import type {Period} from 'service';
-import {VerticalTimeline} from '../components';
+import {VerticalTimeline, type VerticalTimelineProps} from '../components';
 
-interface PeriodTimelinesProps {
+export interface PeriodTimelinesProps extends Omit<VerticalTimelineProps, 'markers'>{
   period: Period;
-  alternate?: boolean;
-  reverse?: boolean;
 };
 
 export function PeriodTimelines(props: PeriodTimelinesProps): JSX.Element {
-  const {period, ...rest} = props;
-  return <VerticalTimeline markers={period.timelines} {...rest} />;
+  const {
+    period,
+    alternate = true,
+    colored = true,
+    outlined = true,
+    reverse = false,
+  } = props;
+  return (
+    <VerticalTimeline
+      alternate={alternate}
+      colored={colored}
+      markers={period.timelines}
+      outlined={outlined}
+      reverse={reverse}
+    />
+  );
 }
