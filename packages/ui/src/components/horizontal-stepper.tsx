@@ -69,7 +69,7 @@ function StepIcon(props: StepIconProps): JSX.Element {
   );
 }
 
-interface HorizontalStepperProps {
+export interface HorizontalStepperProps {
   activeStep?: number;
   steps: LabeledClickable[];
 }

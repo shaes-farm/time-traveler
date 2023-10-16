@@ -1,7 +1,7 @@
 'use client'
 import {Box, Container, Grid, Typography,} from '@mui/material';
 
-interface CustomErrorProps {
+export interface CustomErrorProps {
   status?: number;
   message: string;
 }

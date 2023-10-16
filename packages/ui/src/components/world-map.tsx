@@ -14,11 +14,11 @@ import {
 // const WORLD_COUNTRIES_WO_ANTARCTICA = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries-sans-antarctica.json"
 // const WORLD_COUNTRIES = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-countries.json"
 // const WORLD_CONTINENTS = "https://raw.githubusercontent.com/deldersveld/topojson/master/world-continents.json"
-const WORLD_COUNTRIES_110m = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
-// const WORLD_COUNTRIES_50m = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"
-// const WORLD_COUNTRIES_10m = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json"
+const WORLD_COUNTRIES_110M = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json"
+// const WORLD_COUNTRIES_50M = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json"
+// const WORLD_COUNTRIES_10M = "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-10m.json"
 
-const GEO_URL = WORLD_COUNTRIES_110m;
+const GEO_URL = WORLD_COUNTRIES_110M;
 
 interface GeoJSON {
   rsmKey: string;
@@ -41,7 +41,7 @@ export interface WorldMapAnnotation {
   labelY?: number;
 }
 
-interface WorldMapProps {
+export interface WorldMapProps {
   annotations?: WorldMapAnnotation[];
   center?: [number, number];
   geoUrl?: string | URL;

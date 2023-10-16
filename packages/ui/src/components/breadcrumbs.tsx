@@ -9,7 +9,7 @@ export interface BreadCrumb {
   label: string;
 }
 
-interface BreadcrumbsProps {
+export interface BreadcrumbsProps {
   crumbs: BreadCrumb[];
 }
 

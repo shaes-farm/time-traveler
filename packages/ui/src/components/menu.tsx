@@ -1,7 +1,7 @@
 import {Link} from '@mui/material';
 import type {LabeledRoute} from '../models';
 
-interface MenuProps {
+export interface MenuProps {
   menu: LabeledRoute[];
 }
 

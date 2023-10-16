@@ -2,7 +2,7 @@ import {Box, Typography} from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import {type LabeledRoute, Menu} from './menu';
 
-interface HeaderProps {
+export interface HeaderProps {
   app: {
     title: string;
     description: string;

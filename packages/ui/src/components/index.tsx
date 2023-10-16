@@ -1,12 +1,12 @@
 // component exports
-export { Breadcrumbs } from './breadcrumbs';
-export { CardButtons } from './card-buttons';
-export { CustomError } from './custom-error';
-export { ErrorCard } from './error-card';
-export { Footer } from './footer';
-export { Header } from './header';
-export { HorizontalStepper } from './horizontal-stepper';
-export { Menu } from './menu';
-export { MenuButton } from './menu-button';
-export { VerticalTimeline } from './vertical-timeline';
-export { WorldMap } from './world-map';
+export * from './breadcrumbs';
+export * from './card-buttons';
+export * from './custom-error';
+export * from './error-card';
+export * from './footer';
+export * from './header';
+export * from './horizontal-stepper';
+export * from './menu';
+export * from './menu-button';
+export * from './vertical-timeline';
+export * from './world-map';

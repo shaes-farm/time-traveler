@@ -5,7 +5,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import ShareIcon from '@mui/icons-material/Share';
 import SubscribeIcon from '@mui/icons-material/AlternateEmail';
 
-interface CardButtonsProps {
+export interface CardButtonsProps {
   onLike: () => void;
   onShare: () => void;
   onSubscribe: () => void;

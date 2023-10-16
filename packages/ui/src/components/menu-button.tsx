@@ -3,7 +3,7 @@ import React, {useState} from 'react';
 import {IconButton, Menu, MenuItem, Tooltip} from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
-interface MenuButtonProps {
+export interface MenuButtonProps {
   onPrint: () => void;
   onDownload: () => void;
   onShare: () => void;
@@ -16,7 +16,7 @@ export function MenuButton(props: MenuButtonProps): JSX.Element {
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>): void => {
     setAnchorEl(event.currentTarget);
   };
-  const handleClose = (op: string): void => {
+  const handleCloseAnd = (op: string): void => {
     setAnchorEl(null);
     switch (op) {
       case 'print': onPrint(); break;
@@ -44,12 +44,12 @@ export function MenuButton(props: MenuButtonProps): JSX.Element {
         }}
         anchorEl={anchorEl}
         id="timeline-menu"
-        onClose={handleClose}
+        onClose={handleCloseAnd}
         open={open}
       >
-        <MenuItem onClick={() => {handleClose('print')}}>Print</MenuItem>
-        <MenuItem onClick={() => {handleClose('download')}}>Download</MenuItem>
-        <MenuItem onClick={() => {handleClose('share')}}>Share</MenuItem>
+        <MenuItem onClick={() => {handleCloseAnd('print')}}>Print</MenuItem>
+        <MenuItem onClick={() => {handleCloseAnd('download')}}>Download</MenuItem>
+        <MenuItem onClick={() => {handleCloseAnd('share')}}>Share</MenuItem>
       </Menu>
     </>
   );
