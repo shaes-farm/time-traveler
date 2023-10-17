@@ -1,10 +1,6 @@
-import './globals.css'
 import config from 'config';
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import {ThemeRegistry} from './theme-registry';
-
-const inter = Inter({ subsets: ['latin'] })
 
 const {
   title,
@@ -39,7 +35,7 @@ export default function RootLayout({
 }): JSX.Element {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body>
         <ThemeRegistry options={{ key: 'mui' }}>
           {children}
         </ThemeRegistry>
