@@ -12,7 +12,7 @@ export interface PeriodNavigatorProps {
 
 export function PeriodNavigator(props: PeriodNavigatorProps): JSX.Element {
   const {periods} = props;
-  const [step, setStep] = useState<number>(periods.length ? 1 : 0);
+  const [step, setStep] = useState<number>(1);
 
   return (
     <Stack>
@@ -25,7 +25,7 @@ export function PeriodNavigator(props: PeriodNavigatorProps): JSX.Element {
         } />
       </Box>
       <Box sx={{ px: '4em' }}>
-        <PeriodTimelines alternate colored outlined period={periods[step - 1]} reverse />
+        {periods.length ? <PeriodTimelines alternate colored outlined period={periods[step - 1]} reverse /> : null}
       </Box>
     </Stack>
   );
