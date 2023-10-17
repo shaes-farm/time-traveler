@@ -12,9 +12,17 @@ export function CustomError(props: CustomErrorProps): JSX.Element {
     <Container maxWidth="lg" sx={{ m: 'auto' }}>
       <Box display="flex" flexDirection="row" height="100vh">
         <Grid alignItems="center" container direction="row" item justifyContent="center">
-          <Typography align="center" component="div" variant="h6">
-            {status ? `${status} | ` : null}{message}
-          </Typography>
+          <Grid item>
+            {status ? <><Typography color="text.secondary" component="span" variant="h6">
+              {status}
+            </Typography>
+            <Typography color="text.primary" component="span" variant="h6">
+              &nbsp;|&nbsp;
+            </Typography></>: null}
+            <Typography align="center" color="text.secondary" component="span" variant="h6">
+              {message}
+            </Typography>
+          </Grid>
         </Grid>
       </Box>
     </Container>
