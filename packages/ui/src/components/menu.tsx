@@ -1,3 +1,4 @@
+'use client';
 import {Link} from '@mui/material';
 import type {LabeledRoute} from '../models';
 
