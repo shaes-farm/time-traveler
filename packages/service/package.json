@@ -9,11 +9,14 @@
     "test": "jest ./src"
   },
   "devDependencies": {
+    "@babel/core": "^7.23.2",
+    "@babel/preset-env": "^7.23.2",
     "@babel/preset-typescript": "^7.23.0",
     "@faker-js/faker": "^8.1.0",
     "@turbo/gen": "^1.10.12",
     "@types/jest": "^29.5.5",
     "@types/node": "^20.5.2",
+    "babel-jest": "^29.7.0",
     "eslint-config-custom": "*",
     "jest": "^29.7.0",
     "tsconfig": "*",

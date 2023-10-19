@@ -9,9 +9,10 @@ const STRAPI_CATEGORY: StrapiCategory = {
 
 describe('model mappers', () => {
   it('should map from one category to another', () => {
-    expect(Mapper.mapApiCategoryToModel(STRAPI_CATEGORY)).toEqual({
+    expect(Mapper.mapApiCategoryToModel(STRAPI_CATEGORY)).toStrictEqual({
       slug: STRAPI_CATEGORY.slug,
       title: STRAPI_CATEGORY.title,
+      events: [],
     })
   });
 });
