@@ -39,7 +39,7 @@ export function TimelineCard(props: TimelineCardProps): JSX.Element {
         />
       </CardContent>
       <CardActions disableSpacing>
-      <CardButtons onLike={() => {debug(`like ${slug}`)}} onShare={() => {debug(`share ${slug}`)}} onSubscribe={() => {debug(`subscribe ${slug}`)}} />
+        <CardButtons onLike={() => {debug(`like ${slug}`)}} onShare={() => {debug(`share ${slug}`)}} onSubscribe={() => {debug(`subscribe ${slug}`)}} />
       </CardActions>
     </Card>
   )
