@@ -30,6 +30,7 @@ export interface StrapiEvent {
   title: string;
   slug: string;
   summary: string | null;
+  detail: string | null;
   importance: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
   location: string | null;
   beginDate: string;

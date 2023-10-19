@@ -749,6 +749,7 @@ export interface ApiEventEvent extends Schema.CollectionType {
     beginDate: Attribute.String & Attribute.Required;
     endDate: Attribute.String;
     location: Attribute.String;
+    detail: Attribute.RichText;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
     publishedAt: Attribute.DateTime;

@@ -63,6 +63,9 @@
     },
     "location": {
       "type": "string"
+    },
+    "detail": {
+      "type": "richtext"
     }
   }
 }

@@ -25,6 +25,7 @@ export interface HistoricalEvent {
   slug: string;
   title: string;
   summary: string | null;
+  detail: string | null;
   location: string | null;
   importance: Importance;
   beginDate: string;
