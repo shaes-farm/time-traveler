@@ -4,7 +4,7 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import type {Period} from 'service';
 import {HorizontalStepper} from '../components/horizontal-stepper';
-import {PeriodTimelines} from './period-timelines';
+import {PeriodTimeline} from './period-timeline';
 
 export interface PeriodNavigatorProps {
   periods: Period[];
@@ -13,7 +13,6 @@ export interface PeriodNavigatorProps {
 export function PeriodNavigator(props: PeriodNavigatorProps): JSX.Element {
   const {periods} = props;
   const [step, setStep] = useState<number>(1);
-
   return (
     <Stack>
       <Box sx={{ py: '1em' }}>
@@ -25,7 +24,9 @@ export function PeriodNavigator(props: PeriodNavigatorProps): JSX.Element {
         } />
       </Box>
       <Box sx={{ px: '4em' }}>
-        {periods.length ? <PeriodTimelines alternate colored outlined period={periods[step - 1]} reverse /> : null}
+        {periods.length ?
+          <PeriodTimeline period={periods[step - 1]} />
+        : null}
       </Box>
     </Stack>
   );
