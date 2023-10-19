@@ -1,7 +1,7 @@
 'use client'
 import { styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import Link from '@mui/material/Link';
 import Stepper from '@mui/material/Stepper';
 import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
@@ -86,12 +86,18 @@ export function HorizontalStepper(props: HorizontalStepperProps): JSX.Element {
         {steps.map((step) => (
           <Step key={Symbol(step.label).toString()}>
             <StepLabel StepIconComponent={StepIcon}>
-              <Button
+              <Link
                 color="inherit"
-                onClick={step.onClick}
+                component="a"
+                href="#"
+                onClick={(e: Event) => {
+                  e.preventDefault();
+                  step.onClick();
+                }}
+                underline="none"
               >
                 {step.label}
-              </Button>
+              </Link>
             </StepLabel>
           </Step>
         ))}
