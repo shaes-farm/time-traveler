@@ -5,9 +5,8 @@ import {Fetch} from 'service';
 
 const f = new Fetch(config.get('api.baseUrl'));
 
-export default async function Home(): Promise<JSX.Element> {
+export default async function Page(): Promise<JSX.Element> {
   const periods = await f.getPeriods();
-
   return (
     <main>
       <Container>
