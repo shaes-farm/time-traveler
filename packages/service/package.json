@@ -5,8 +5,8 @@
   "types": "./index.ts",
   "license": "MIT",
   "scripts": {
-    "lint": "eslint .",
-    "test": "jest"
+    "lint": "eslint --ext .tsx,.ts ./src",
+    "test": "jest ./src"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.23.0",
