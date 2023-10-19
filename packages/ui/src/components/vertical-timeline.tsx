@@ -9,6 +9,15 @@ import TimelineConnector from '@mui/lab/TimelineConnector';
 import TimelineContent from '@mui/lab/TimelineContent';
 import TimelineDot from '@mui/lab/TimelineDot';
 
+const getAlternateState = (reverse: boolean): "alternate" | "alternate-reverse" =>
+  reverse ? "alternate-reverse" : "alternate";
+
+const getReverseState = (reverse: boolean): "left" | "right" =>
+  reverse ? "left" : "right";
+  
+const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left" | "right" | "alternate-reverse" =>
+  alternate ?  getAlternateState(reverse) : getReverseState(reverse);
+
 export interface TimelineMarker {
   slug: string;
   title: string;
@@ -21,26 +30,31 @@ export interface VerticalTimelineProps {
   markers: TimelineMarker[];
   alternate?: boolean;
   colored?: boolean;
+  opposite?: boolean;
   outlined?: boolean;
   reverse?: boolean;
+  summary?: boolean;
+  sx?: object;
+  onSelect?: (slug: string) => void;
 };
 
-const getAlternateState = (reverse: boolean): "alternate" | "alternate-reverse" =>
-  reverse ? "alternate-reverse" : "alternate";
-
-const getReverseState = (reverse: boolean): "left" | "right" =>
-  reverse ? "left" : "right";
-  
-const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left" | "right" | "alternate-reverse" =>
-  alternate ?  getAlternateState(reverse) : getReverseState(reverse);
-
 export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
-  const {markers, alternate = false, colored = false, outlined = false, reverse = false} = props;
+  const {
+    markers,
+    alternate = false,
+    colored = false,
+    opposite = true,
+    outlined = false,
+    reverse = false,
+    summary = true,
+    sx,
+    onSelect = () => ({}),
+  } = props;
   return (
-    <Timeline position={getPosition(alternate, reverse)}>
+    <Timeline position={getPosition(alternate, reverse)} sx={sx}>
       {markers.map((marker, index) => (
         <TimelineItem key={Symbol(index).toString()}>
-          {marker.beginDate ? <TimelineOppositeContent color={colored ? "secondary" : "text.secondary"} variant="h6">
+          {opposite && marker.beginDate ? <TimelineOppositeContent color={colored ? "secondary" : "text.secondary"} variant="h6">
             {marker.beginDate}{marker.endDate && marker.endDate !== marker.beginDate ? `-${marker.endDate}` : null}
           </TimelineOppositeContent> : null}
           <TimelineSeparator>
@@ -49,11 +63,19 @@ export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
           </TimelineSeparator>
           <TimelineContent sx={{py: '6px', px: 2}}>
             <Typography component="span" variant="h6">
-              <Link color="inherit" href={`/events/${marker.slug}`} underline="none">
+              <Link
+                color="inherit"
+                href="#"
+                onClick={(e: Event) => {
+                  e.preventDefault();
+                  onSelect(marker.slug);
+                }}
+                underline="none"
+              >
                 {marker.title}
               </Link>
             </Typography>
-            {marker.summary ? <Typography color="text.secondary" component="div" variant="body2">
+            {summary && marker.summary ? <Typography color="text.secondary" component="div" variant="body2">
               {marker.summary}
             </Typography> : null}
           </TimelineContent>
