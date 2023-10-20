@@ -27,8 +27,8 @@ export interface StrapiCategoriesResponse {
 }
 
 export interface StrapiEvent {
-  title: string;
   slug: string;
+  title: string;
   summary: string | null;
   detail: string | null;
   importance: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
@@ -68,8 +68,8 @@ export interface StrapiTimelineResponse {
 }
 
 export interface StrapiPeriod {
-  title: string;
   slug: string;
+  title: string;
   summary: string | null;
   beginDate: string;
   endDate: string;
