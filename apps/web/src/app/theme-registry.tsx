@@ -1,14 +1,14 @@
 'use client';
-import React from 'react';
-import createCache from '@emotion/cache';
-import { useServerInsertedHTML } from 'next/navigation';
-import { CacheProvider } from '@emotion/react';
-import { ThemeProvider } from '@mui/material/styles';
+import React, {useState} from 'react';
+import createCache, {type Options} from '@emotion/cache';
+import {useServerInsertedHTML} from 'next/navigation';
+import {CacheProvider} from '@emotion/react';
+import {ThemeProvider} from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import {theme} from './theme';
 
 interface ThemeRegistryProps {
-  options: unknown;
+  options: Options;
   children: React.ReactNode;
 }
 
@@ -17,24 +17,27 @@ interface ThemeRegistryProps {
 export function ThemeRegistry(props: ThemeRegistryProps): JSX.Element {
   const { options, children } = props;
 
-  const [{ cache, flush }] = React.useState(() => {
-    const cache = createCache(options);
-    cache.compat = true;
-    const prevInsert = cache.insert;
+  // eslint-disable-next-line react/hook-use-state -- because its all we need
+  const [{ cache, flush }] = useState(() => {
+    const emotionCache = createCache(options);
+    emotionCache.compat = true;
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- because we like it
+    const prevInsert = emotionCache.insert;
     let inserted: string[] = [];
-    cache.insert = (...args) => {
+    emotionCache.insert = (...args) => {
       const serialized = args[1];
-      if (cache.inserted[serialized.name] === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- because it works
+      if (emotionCache.inserted[serialized.name] === undefined) {
         inserted.push(serialized.name);
       }
       return prevInsert(...args);
     };
-    const flush = () => {
+    const flushIt = (): string[] => {
       const prevInserted = inserted;
       inserted = [];
       return prevInserted;
     };
-    return { cache, flush };
+    return { cache: emotionCache, flush: flushIt };
   });
 
   useServerInsertedHTML(() => {
@@ -48,11 +51,9 @@ export function ThemeRegistry(props: ThemeRegistryProps): JSX.Element {
     }
     return (
       <style
-        key={cache.key}
+        dangerouslySetInnerHTML={{__html: styles}}
         data-emotion={`${cache.key} ${names.join(' ')}`}
-        dangerouslySetInnerHTML={{
-          __html: styles,
-        }}
+        key={cache.key}
       />
     );
   });
