@@ -66,6 +66,7 @@ export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
             <Typography component="span" variant="h6">
               <Link
                 color="inherit"
+                component="a"
                 href="#"
                 onClick={(e: Event) => {
                   e.preventDefault();
