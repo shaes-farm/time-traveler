@@ -22,7 +22,7 @@ describe('Header component', () => {
   test('displays the header', () => {
     render(<Header app={app} menu={menu} />);
   
-    // await userEvent.click(screen.getByText('Load Greeting'))
+    // await userEvent.click(screen.getByText('home'))
     // await screen.findByRole('heading')
   
     expect(screen.getByRole('heading')).toHaveTextContent('The Application Title')

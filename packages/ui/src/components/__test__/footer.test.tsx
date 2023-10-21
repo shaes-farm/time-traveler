@@ -22,7 +22,7 @@ describe('Footer component', () => {
   test('displays the footer', () => {
     render(<Footer app={app} menu={menu} />);
   
-    // await userEvent.click(screen.getByText('Load Greeting'))
+    // await userEvent.click(screen.getByText('home'))
     // await screen.findByRole('heading')
   
     expect(screen.getByRole('contentinfo')).toHaveTextContent('jimbo pickins')
