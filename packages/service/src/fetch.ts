@@ -52,7 +52,7 @@ export class Fetch {
 
   async getPeriod(slug: string): Promise<Period | null> {
     const url = new URL('/api/period', this.baseUrl);
-    
+
     url.searchParams.set('filters[slug][$eq]', slug);
     url.searchParams.set('sort', 'beginDate');
 
