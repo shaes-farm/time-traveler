@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import {Link} from '@mui/material';
 import type {LabeledRoute} from '../models';
 
@@ -14,17 +15,16 @@ export function Menu(props: MenuProps): JSX.Element {
   return (
     <nav>
       {menu.map((item, index) => (
-        <>
+        <span key={Symbol(index).toString()}>
           <Link
             color="inherit"
             href={item.route}
-            key={Symbol(index).toString()}
             underline="hover"
           >
             {item.label}
           </Link>
           {index < (menu.length-1) ? <>&nbsp;|&nbsp;</> : null}
-        </>
+        </span>
       ))}
     </nav>
   );

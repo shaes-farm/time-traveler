@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 import {Box, Divider, Link, Typography} from '@mui/material';
 import {type LabeledRoute, Menu} from './menu';
 
