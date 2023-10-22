@@ -4,6 +4,7 @@ import {VerticalTimeline, type VerticalTimelineProps} from '../components';
 
 export interface PeriodTimelineProps extends Omit<VerticalTimelineProps, 'markers'>{
   period: Period;
+  onSelect: (slug: string) => void;
 };
 
 export function PeriodTimeline(props: PeriodTimelineProps): JSX.Element {
@@ -11,6 +12,7 @@ export function PeriodTimeline(props: PeriodTimelineProps): JSX.Element {
     period,
     alternate = true,
     colored = true,
+    onSelect,
     outlined = true,
     reverse = false,
   } = props;
@@ -19,6 +21,7 @@ export function PeriodTimeline(props: PeriodTimelineProps): JSX.Element {
       alternate={alternate}
       colored={colored}
       markers={period.timelines}
+      onSelect={onSelect}
       outlined={outlined}
       reverse={reverse}
     />

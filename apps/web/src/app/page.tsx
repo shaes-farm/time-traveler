@@ -10,7 +10,7 @@ export default async function Page(): Promise<JSX.Element> {
   return (
     <main>
       <Container>
-        <PeriodNavigator periods={periods} />
+        <PeriodNavigator periods={periods} timelineRoute="/timeline" />
       </Container>
     </main>
   )

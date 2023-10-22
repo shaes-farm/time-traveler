@@ -47,9 +47,8 @@ export class Fetch {
   /**
    * Fetch a period by slug.
    * 
-   * @returns An array of Period objects.
+   * @returns A Period object if found, otherwise null.
    */
-
   async getPeriod(slug: string): Promise<Period | null> {
     const url = new URL('/api/period', this.baseUrl);
 
@@ -100,26 +99,31 @@ export class Fetch {
     return timelines.data?.map((timeline) => mapApiTimelineToModel(timeline.attributes)) ?? [];
   }
 
-  // async getTimeline(slug: string): Promise<Timeline | null> {
-  //   const url = `${this.baseUrl}/api/timelines?filters[slug][$eq]=${slug}&populate[events][sort][0]=eventDate`;
-  //   const res = await fetch(url);
+  /**
+   * Fetch a timeline by slug.
+   * 
+   * @returns A Timeline object if found, otherwise null.
+   */
+   async getTimeline(slug: string): Promise<Timeline | null> {
+    const url = `${this.baseUrl}/api/timelines?filters[slug][$eq]=${slug}&populate[events][sort][0]=eventDate`;
+    const res = await fetch(url);
 
-  //   if (!res.ok) {
-  //     // This will activate the closest `error.js` Error Boundary
-  //     throw new Error('Failed to fetch timeline')
-  //   }
+    if (!res.ok) {
+      // This will activate the closest `error.js` Error Boundary
+      throw new Error('Failed to fetch timeline')
+    }
 
-  //   const timeline = await res.json() as StrapiMultipleTimelineResponse;
-  //   // console.log({timeline: JSON.stringify(timeline)});
+    const timeline = await res.json() as StrapiTimelineResponse;
+    // console.log({timeline: JSON.stringify(timeline)});
 
-  //   if (!timeline.data?.length) {
-  //     return null;
-  //   }
+    if (!timeline.data?.length) {
+      return null;
+    }
 
-  //   // const events = await this.getEvents();
+    // const events = await this.getEvents();
     
-  //   return mapTimelineToModel(timeline.data[0]);
-  // }
+    return mapApiTimelineToModel(timeline.data[0].attributes);
+  }
 
   // async getEvents(): Promise<HistoricalEvent[]> {
   //   const res = await fetch(`${this.baseUrl}/api/events?sort=eventDate`);

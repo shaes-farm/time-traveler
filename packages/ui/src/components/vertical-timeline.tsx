@@ -36,7 +36,7 @@ export interface VerticalTimelineProps {
   reverse?: boolean;
   summary?: boolean;
   sx?: object;
-  onSelect?: (slug: string) => void;
+  onSelect: (slug: string) => void;
 };
 
 export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
@@ -49,7 +49,7 @@ export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
     reverse = false,
     summary = true,
     sx,
-    onSelect = () => ({}),
+    onSelect,
   } = props;
   return (
     <Timeline position={getPosition(alternate, reverse)} sx={sx}>
