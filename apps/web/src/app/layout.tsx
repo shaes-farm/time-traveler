@@ -1,27 +1,56 @@
 import config from 'config';
 import type { Metadata } from 'next'
+import {Container} from '@mui/material';
+import {Footer, Header, type LabeledRoute} from 'ui';
 import {ThemeRegistry} from './theme-registry';
 
-const {
-  title,
-  description,
-  copyright: {
-    holder,
-    url,
-  },
-}: {
+interface AppConfig {
   title: string;
   description: string;
   copyright: {
     holder: string;
     url: string;
+    year: number;
   };
-} = config.get('app');
+};
+
+const app: AppConfig = config.get('app');
+
+const headerMenu: LabeledRoute[] = [{
+  label: 'home',
+  route: '/',
+},{
+  label: 'about',
+  route: '/about',
+},{
+  label: 'contact',
+  route: '/contact',
+}];
+
+const footerMenu: LabeledRoute[] = [{
+  label: 'credits',
+  route: '/credits',
+},{
+  label: 'terms',
+  route: '/terms',
+},{
+  label: 'privacy',
+  route: '/privacy',
+}];
+
+const {
+  title,
+  description,
+  copyright: {
+    holder: name,
+    url,
+  },
+} = app;
 
 export const metadata: Metadata = {
   applicationName: title,
   authors: {
-    name: holder,
+    name,
     url,
   },
   title,
@@ -37,9 +66,13 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ThemeRegistry options={{ key: 'mui' }}>
-          {children}
+          <Container maxWidth="lg" sx={{ m: 'auto' }}>
+            <Header app={app} menu={headerMenu} />
+              {children}
+            <Footer app={app} menu={footerMenu} />
+          </Container>
         </ThemeRegistry>
       </body>
     </html>
-  )
+  );
 }
