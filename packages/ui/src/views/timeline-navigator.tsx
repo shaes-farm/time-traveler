@@ -30,13 +30,13 @@ export function TimelineNavigator(props: TimelineNavigatorProps): JSX.Element {
         <Box sx={{ textAlign: 'center' }}>
           <Grid container spacing={2}>
             <Grid md={5}>
-              <Paper elevation={3}>
+              <Paper elevation={3} >
                 <Typography component="h3" variant="h5">
                   Time span: {beginDate}-{endDate}
                 </Typography>
-                <Typography component="sub" variant="caption">
+                {scale ? <Typography component="sub" variant="caption">
                   ({scale})
-                </Typography>
+                </Typography> : null}
                 <EventTimeline
                   alternate={false}
                   events={timeline.events}
@@ -52,27 +52,27 @@ export function TimelineNavigator(props: TimelineNavigatorProps): JSX.Element {
             </Grid>
             <Grid md={7}>
               <Paper elevation={3}>
-              {event ? <>
-                <Typography variant="h3">
-                  {event.title}
-                </Typography>
-                <Typography color="text.secondary" component="em" display="block">
-                  {event.location}
-                </Typography>
-                <Typography color="text.secondary">
-                  {event.beginDate}-{event.endDate}
-                </Typography>
-                <Typography py={2}>
-                  {event.summary}
-                </Typography>
-                <Typography>
-                  {event.media.map((item, index) => (
-                    <div key={Symbol(index).toString()}>{item.caption}</div>
-                  ))}
-                </Typography>
-                <Typography py={2}>
-                  {event.detail}
-                </Typography>
+                {event ? <>
+                  <Typography variant="h3">
+                    {event.title}
+                  </Typography>
+                  {event.location ? <Typography color="text.secondary" component="em" display="block">
+                    {event.location}
+                  </Typography> : null}
+                  <Typography color="text.secondary">
+                    {event.beginDate}{event.endDate ? <>`-${event.endDate}`</> : null}
+                  </Typography>
+                  {event.summary ? <Typography py={2}>
+                    {event.summary}
+                  </Typography> : null}
+                  {event.media.length ? <Typography>
+                    {event.media.map((item, index) => (
+                      <div key={Symbol(index).toString()}>{item.caption}</div>
+                    ))}
+                  </Typography> : null}
+                  {event.detail ? <Typography py={2}>
+                    {event.detail}
+                  </Typography> : null}
                 </> : null}
               </Paper>
             </Grid>
