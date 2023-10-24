@@ -1,24 +1,43 @@
 import config from 'config';
 import {notFound} from 'next/navigation'
-import {Container} from '@mui/material';
-import {TimelineNavigator} from 'ui';
+import {Breadcrumbs, TimelineNavigator} from 'ui';
 import {Fetch} from 'service';
+import type {AppConfig} from '../../types';
+
+const app: AppConfig = config.get('app');
 
 const f = new Fetch(config.get('api.baseUrl'));
 
-export default async function Page({ params }: { params: { slug: string } }): Promise<JSX.Element> {
-  const {slug} = params;
-  const timeline = await f.getTimeline(slug);
+interface PageProps {
+  params: {
+    slug: string;
+  };
+}
+
+export default async function Page(props: PageProps): Promise<JSX.Element> {
+  const {params} = props;
+  const timeline = await f.getTimeline(params.slug);
 
   if (!timeline) {
     notFound();
   }
 
+  const crumbs = [{
+    label: app.title,
+    link: '/',
+  },{
+    label: 'Period One',
+    link: '/periods/[slug]',
+  },{
+    label: timeline.title,
+  }];
+
   return (
-    <main>
-      <Container>
+    <>
+      <Breadcrumbs crumbs={crumbs} />
+      <main>
         <TimelineNavigator timeline={timeline} />
-      </Container>
-    </main>
+      </main>
+    </>
   );
 }
