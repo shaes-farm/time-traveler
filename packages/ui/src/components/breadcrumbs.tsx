@@ -6,13 +6,13 @@ import {
   Typography
 } from '@mui/material';
 
-export interface BreadCrumb {
-  link?: string;
+export interface Crumb {
   label: string;
+  link?: string;
 }
 
 export interface BreadcrumbsProps {
-  crumbs: BreadCrumb[];
+  crumbs: Crumb[];
 }
 
 export function Breadcrumbs(props: BreadcrumbsProps): JSX.Element {
