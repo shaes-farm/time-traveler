@@ -1,5 +1,5 @@
 import config from 'config';
-import {Container} from '@mui/material';
+import {Paper} from '@mui/material';
 import {PeriodNavigator} from 'ui';
 import {Fetch} from 'service';
 
@@ -9,9 +9,9 @@ export default async function Page(): Promise<JSX.Element> {
   const periods = await f.getPeriods();
   return (
     <main>
-      <Container>
+      <Paper>
         <PeriodNavigator periods={periods} timelineRoute="/timeline" />
-      </Container>
+      </Paper>
     </main>
   )
 }
