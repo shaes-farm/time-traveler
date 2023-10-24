@@ -2,6 +2,7 @@
 import {useState} from 'react';
 import {Box, Paper, Stack, Typography} from '@mui/material';
 import Grid from '@mui/material/Unstable_Grid2'; // MUI Grid v2
+import Markdown from 'react-markdown';
 import type {Timeline, HistoricalEvent} from 'service';
 import {EventTimeline} from './event-timeline';
 
@@ -69,9 +70,14 @@ export function TimelineNavigator(props: TimelineNavigatorProps): JSX.Element {
                     <div key={Symbol(index).toString()}>{item.caption}</div>
                   ))}
                 </Typography> : null}
-                {event.detail ? <Typography color="text.secondary" py={2}>
-                  {event.detail}
-                </Typography> : null}
+                {event.detail ? 
+                  <Box sx={{ textAlign: 'left' }}>
+                    <Typography color="text.secondary" py={2}>
+                      <Markdown>
+                        {event.detail}
+                      </Markdown>
+                    </Typography>
+                  </Box> : null}
               </> : null}
             </Paper>
           </Grid>
