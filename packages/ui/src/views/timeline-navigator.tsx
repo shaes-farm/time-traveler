@@ -17,8 +17,8 @@ export function TimelineNavigator(props: TimelineNavigatorProps): JSX.Element {
 
   return (
     <Stack spacing={2}>
-      <Paper elevation={3}>
-        <Box sx={{ m: 2, py: 1, textAlign: 'center' }}>
+      <Paper elevation={3} sx={{ py: 6, px: 3 }}>
+        <Box sx={{ textAlign: 'center' }}>
           <Typography variant="h2">
             {title}
           </Typography>
@@ -30,28 +30,23 @@ export function TimelineNavigator(props: TimelineNavigatorProps): JSX.Element {
       <Box sx={{ textAlign: 'center' }}>
         <Grid container spacing={2}>
           <Grid md={5} sm={12} xs={12}>
-            <Paper elevation={3}>
+            <Paper elevation={3} sx={{ p: 3 }}>
               <Typography component="h3" variant="h5">
-                Spans {beginDate} to {endDate}
+                {beginDate} to {endDate}
               </Typography>
               {scale ? <Typography component="sub" variant="caption">
                 ({scale})
               </Typography> : null}
               <EventTimeline
-                alternate={false}
                 events={timeline.events}
                 onSelect={(slug: string) => {
                   setEvent(timeline.events.find((e) => e.slug === slug) ?? null);
                 }}
-                opposite
-                outlined
-                reverse
-                summary={false}
               />
             </Paper>
           </Grid>
           <Grid md={7} sm={12} xs={12}>
-            <Paper elevation={3}>
+            <Paper elevation={3} sx={{ p: 3 }}>
               {event ? <>
                 <Typography variant="h3">
                   {event.title}
@@ -72,11 +67,9 @@ export function TimelineNavigator(props: TimelineNavigatorProps): JSX.Element {
                 </Typography> : null}
                 {event.detail ? 
                   <Box sx={{ textAlign: 'left' }}>
-                    <Typography color="text.secondary" py={2}>
-                      <Markdown>
-                        {event.detail}
-                      </Markdown>
-                    </Typography>
+                    <Markdown>
+                      {event.detail}
+                    </Markdown>
                   </Box> : null}
               </> : null}
             </Paper>
