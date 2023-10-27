@@ -8,16 +8,11 @@ const {debug} = console;
 
 export interface TimelineCardProps extends Omit<EventTimelineProps, 'events'> {
   timeline: Timeline;
+  onSelect: (slug: string) => void;
 }
 
 export function TimelineCard(props: TimelineCardProps): JSX.Element {
-  const {
-    timeline,
-    alternate = true,
-    colored = true,
-    outlined = true,
-    reverse = true,
-  } = props;
+  const {timeline, ...rest} = props;
   const {slug, title, summary, scale} = timeline;
   return (
     <Card sx={{ textAlign: 'center' }}>
@@ -30,13 +25,7 @@ export function TimelineCard(props: TimelineCardProps): JSX.Element {
         {scale ? <Typography color="text.secondary" component="div" variant="body2">
           <em><sup>{scale}</sup></em>
         </Typography> : null}
-        <EventTimeline
-          alternate={alternate}
-          colored={colored}
-          events={timeline.events}
-          outlined={outlined}
-          reverse={reverse}
-        />
+        <EventTimeline events={timeline.events} {...rest} />
       </CardContent>
       <CardActions disableSpacing>
         <CardButtons onLike={() => {debug(`like ${slug}`)}} onShare={() => {debug(`share ${slug}`)}} onSubscribe={() => {debug(`subscribe ${slug}`)}} />
