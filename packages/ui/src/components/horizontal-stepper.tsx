@@ -1,14 +1,17 @@
 'use client'
 import React from 'react';
-import { styled } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import Link from '@mui/material/Link';
-import Stepper from '@mui/material/Stepper';
-import Step from '@mui/material/Step';
-import StepLabel from '@mui/material/StepLabel';
+import {styled} from '@mui/material/styles';
+import type {StepIconProps} from '@mui/material';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
-import StepConnector, { stepConnectorClasses } from '@mui/material/StepConnector';
-import type { StepIconProps } from '@mui/material/StepIcon';
+import {
+  Box,
+  Button,
+  Step,
+  Stepper,
+  StepLabel,
+  StepConnector,
+  stepConnectorClasses
+} from '@mui/material';
 import type { LabeledClickable } from '../models';
 
 const Connector = styled(StepConnector)(({theme}) => ({
@@ -87,18 +90,13 @@ export function HorizontalStepper(props: HorizontalStepperProps): JSX.Element {
         {steps.map((step) => (
           <Step key={Symbol(step.label).toString()}>
             <StepLabel StepIconComponent={StepIcon}>
-              <Link
-                color="inherit"
-                component="a"
-                href="#"
-                onClick={(e: Event) => {
-                  e.preventDefault();
-                  step.onClick();
-                }}
-                underline="none"
+              <Button
+                disableRipple
+                onClick={step.onClick}
+                variant="text"
               >
                 {step.label}
-              </Link>
+              </Button>
             </StepLabel>
           </Step>
         ))}
