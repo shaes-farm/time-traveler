@@ -1,7 +1,6 @@
 'use client'
 import React from 'react';
-// import NextLink from 'next/link';
-import {Link, Typography} from '@mui/material';
+import {Button, Typography} from '@mui/material';
 import Timeline from '@mui/lab/Timeline';
 import TimelineItem from '@mui/lab/TimelineItem';
 import TimelineOppositeContent from '@mui/lab/TimelineOppositeContent';
@@ -9,14 +8,15 @@ import TimelineSeparator from '@mui/lab/TimelineSeparator';
 import TimelineConnector from '@mui/lab/TimelineConnector';
 import TimelineContent from '@mui/lab/TimelineContent';
 import TimelineDot from '@mui/lab/TimelineDot';
+// import {Link} from './link';
 
 const getAlternateState = (reverse: boolean): "alternate" | "alternate-reverse" =>
   reverse ? "alternate-reverse" : "alternate";
 
 const getReverseState = (reverse: boolean): "left" | "right" =>
   reverse ? "left" : "right";
-  
-const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "left" | "right" | "alternate-reverse" =>
+
+const getPosition = (alternate: boolean, reverse: boolean): "alternate" | "alternate-reverse" | "left" | "right" =>
   alternate ?  getAlternateState(reverse) : getReverseState(reverse);
 
 export interface TimelineMarker {
@@ -44,10 +44,10 @@ export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
     markers,
     alternate = false,
     colored = false,
-    opposite = true,
+    opposite = false,
     outlined = false,
     reverse = false,
-    summary = true,
+    summary = false,
     sx,
     onSelect,
   } = props;
@@ -55,27 +55,24 @@ export function VerticalTimeline(props: VerticalTimelineProps): JSX.Element {
     <Timeline position={getPosition(alternate, reverse)} sx={sx}>
       {markers.map((marker, index) => (
         <TimelineItem key={Symbol(index).toString()}>
-          {opposite && marker.beginDate ? <TimelineOppositeContent color={colored ? "secondary" : "text.secondary"} variant="h6">
+          {opposite && marker.beginDate ? <TimelineOppositeContent color={colored ? "secondary" : "text.secondary"} sx={{ pt: 1.5 }} variant="body2">
             {marker.beginDate}{marker.endDate && marker.endDate !== marker.beginDate ? `-${marker.endDate}` : null}
           </TimelineOppositeContent> : null}
           <TimelineSeparator>
             <TimelineDot color={colored ? "primary" : "grey"} variant={outlined ? "outlined" : "filled"} />
             {index < (markers.length-1) && <TimelineConnector />}
           </TimelineSeparator>
-          <TimelineContent sx={{py: '6px', px: 2}}>
+          <TimelineContent>
             <Typography component="span" variant="h6">
-              <Link
-                color="inherit"
-                component="a"
-                href="#"
-                onClick={(e: Event) => {
-                  e.preventDefault();
+              <Button
+                disableRipple
+                onClick={() => {
                   onSelect(marker.slug);
                 }}
-                underline="none"
+                variant="text"
               >
                 {marker.title}
-              </Link>
+              </Button>
             </Typography>
             {summary && marker.summary ? <Typography color="text.secondary" component="div" variant="body2">
               {marker.summary}
