@@ -23,8 +23,7 @@ export function Header(props: HeaderProps): JSX.Element {
 
   return (
     <header>
-      <Box sx={{ m: '1em' }}>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} sx={{ py: 2 }}>
           <Grid xs={8}>
             <Box sx={{ py: '1em' }}>
               <Typography component="h1" variant="h4">
@@ -41,7 +40,6 @@ export function Header(props: HeaderProps): JSX.Element {
             </Typography>
           </Grid>
         </Grid>
-      </Box>
     </header>
   );
 }
