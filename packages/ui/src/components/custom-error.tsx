@@ -1,14 +1,15 @@
-'use client'
+'use client';
 import React from 'react';
-import {Box, Container, Grid, Typography,} from '@mui/material';
+import {Box, Container, Grid, Paper, Typography,} from '@mui/material';
 
 export interface CustomErrorProps {
-  status?: number;
+  dump?: unknown;
   message: string;
+  status?: number;
 }
 
 export function CustomError(props: CustomErrorProps): JSX.Element {
-  const {status, message} = props;
+  const {dump, status, message} = props;
   return (
     <Container maxWidth="lg" sx={{ m: 'auto' }}>
       <Box display="flex" flexDirection="row" height="100vh">
@@ -23,6 +24,13 @@ export function CustomError(props: CustomErrorProps): JSX.Element {
             <Typography align="center" color="text.secondary" component="span" variant="h6">
               {message}
             </Typography>
+            <Paper>
+              <Typography align="center" color="text.secondary" component="span" variant="h6">
+                <pre>
+                  {JSON.stringify(dump, null, 4)}
+                </pre>
+              </Typography>
+            </Paper>
           </Grid>
         </Grid>
       </Box>
