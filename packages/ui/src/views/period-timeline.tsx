@@ -13,8 +13,10 @@ export function PeriodTimeline(props: PeriodTimelineProps): JSX.Element {
     alternate = true,
     colored = true,
     onSelect,
+    opposite = true,
     outlined = true,
-    reverse = false,
+    summary = true,
+    ...rest
   } = props;
   return (
     <VerticalTimeline
@@ -22,8 +24,10 @@ export function PeriodTimeline(props: PeriodTimelineProps): JSX.Element {
       colored={colored}
       markers={period.timelines}
       onSelect={onSelect}
+      opposite={opposite}
       outlined={outlined}
-      reverse={reverse}
+      summary={summary}
+      {...rest}
     />
   );
 }
