@@ -8,5 +8,6 @@ export * from './header';
 export * from './horizontal-stepper';
 export * from './menu';
 export * from './menu-button';
+export * from './theme-registry';
 export * from './vertical-timeline';
 export * from './world-map';

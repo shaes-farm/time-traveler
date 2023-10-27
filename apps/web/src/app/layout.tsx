@@ -1,9 +1,8 @@
 import config from 'config';
 import type { Metadata } from 'next'
 import {Container} from '@mui/material';
-import {Footer, Header} from 'ui';
-import type {AppConfig} from './types';
-import {ThemeRegistry} from './theme-registry';
+import {Footer, Header, ThemeRegistry} from 'ui';
+import type {AppConfig} from '../types';
 
 const app: AppConfig = config.get('app');
 
@@ -32,7 +31,7 @@ export const metadata: Metadata = {
   },
   title,
   description,
-}
+};
 
 export default function RootLayout({
   children,
@@ -42,10 +41,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ThemeRegistry options={{ key: 'mui' }}>
+        <ThemeRegistry>
           <Container maxWidth="lg" sx={{ m: 'auto' }}>
             <Header app={app} menu={headerMenu} />
-              {children}
+            {children}
             <Footer app={app} menu={footerMenu} />
           </Container>
         </ThemeRegistry>
