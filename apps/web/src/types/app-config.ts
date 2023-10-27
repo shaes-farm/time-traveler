@@ -24,12 +24,3 @@ export interface AppConfig {
     };
   };
 }
-
-export interface ApiConfig {
-  baseUrl: string;
-}
-
-export interface Config {
-  app: AppConfig;
-  api: ApiConfig;
-}
