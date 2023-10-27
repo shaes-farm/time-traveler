@@ -2,7 +2,7 @@ import config from 'config';
 import {notFound} from 'next/navigation'
 import {Breadcrumbs, TimelineNavigator} from 'ui';
 import {Fetch} from 'service';
-import type {AppConfig} from '../../types';
+import type {AppConfig} from '../../../types';
 
 const app: AppConfig = config.get('app');
 
