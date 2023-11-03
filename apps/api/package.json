@@ -10,12 +10,12 @@
     "build:types": "strapi ts:generate-types --debug",
     "strapi": "strapi"
   },
-  "devDependencies": {},
   "dependencies": {
-    "@strapi/strapi": "4.14.3",
-    "@strapi/plugin-users-permissions": "4.14.3",
     "@strapi/plugin-i18n": "4.14.3",
-    "better-sqlite3": "8.6.0"
+    "@strapi/plugin-users-permissions": "4.14.3",
+    "@strapi/strapi": "4.14.3",
+    "better-sqlite3": "8.6.0",
+    "strapi-plugin-vercel-deploy": "^1.4.0"
   },
   "author": {
     "name": "SHAES Farm <npm@shaes.farm>"
