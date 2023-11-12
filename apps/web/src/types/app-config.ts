@@ -1,5 +1,3 @@
-import type {LabeledRoute} from 'ui';
-
 export interface AppConfig {
   title: string;
   description: string;
@@ -14,13 +12,5 @@ export interface AppConfig {
     holder: string;
     url: string;
     year: number;
-  };
-  ui: {
-    header: {
-      menu: LabeledRoute[];
-    };
-    footer: {
-      menu: LabeledRoute[];
-    };
   };
 }

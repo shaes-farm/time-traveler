@@ -3,7 +3,7 @@
     "title": "Time Traveler",
     "description": "Telling Stories Through Time",
     "version": "1.0.0",
-    "baseUrl": "http://192.168.0.100:3000",
+    "baseUrl": "http://localhost:3000",
     "icon": "",
     "logo": {
       "main": "",
@@ -13,35 +13,9 @@
       "holder": "SHAES Farm",
       "year": 2023,
       "url": "https://shaes.farm"
-    },
-    "ui": {
-      "header": {
-        "menu": [{
-          "label": "home",
-          "route": "/"
-        },{
-          "label": "about",
-          "route": "/about"
-        },{
-          "label": "contact",
-          "route": "/contact"
-        }]
-      },
-      "footer": {
-        "menu": [{
-          "label": "credits",
-          "route": "/credits"
-        },{
-          "label": "terms",
-          "route": "/terms"
-        },{
-          "label": "privacy",
-          "route": "/privacy"
-        }]
-      }
     }
   },
   "api": {
-    "baseUrl": "http://192.168.0.100:1337"
+    "baseUrl": "http://localhost:1337"
   }
 }

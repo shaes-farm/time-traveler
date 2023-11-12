@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import {Container} from '@mui/material';
 import {Footer, Header, ThemeRegistry} from 'ui';
 import type {AppConfig} from '../types';
+import {ui} from './ui';
 
 const app: AppConfig = config.get('app');
 
@@ -12,15 +13,7 @@ const {
   copyright: {
     holder: name,
     url,
-  },
-  ui: {
-    header: {
-      menu: headerMenu,
-    },
-    footer: {
-      menu: footerMenu,
-    },
-  },
+  }
 } = app;
 
 export const metadata: Metadata = {
@@ -43,9 +36,9 @@ export default function RootLayout({
       <body>
         <ThemeRegistry>
           <Container maxWidth="lg" sx={{ m: 'auto' }}>
-            <Header app={app} menu={headerMenu} />
+            <Header app={app} menu={ui.header.menu} />
             {children}
-            <Footer app={app} menu={footerMenu} />
+            <Footer app={app} menu={ui.footer.menu} />
           </Container>
         </ThemeRegistry>
       </body>
