@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "clean": "rm -fr node_modules",
     "start": "next start",
     "lint": "next lint"
   },
@@ -19,6 +20,7 @@
     "@mui/material": "^5.14.12",
     "@types/config": "^3.3.1",
     "config": "^3.3.9",
+    "isomorphic-fetch": "^3.0.0",
     "next": "13.5.4",
     "react": "^17.0.0 || ^18.0.0",
     "react-dom": "^17.0.0 || ^18.0.0",
@@ -26,6 +28,7 @@
     "ui": "*"
   },
   "devDependencies": {
+    "@types/isomorphic-fetch": "^0.0.39",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

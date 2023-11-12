@@ -1,3 +1,4 @@
+import fetch from 'isomorphic-fetch';
 import {
   type StrapiPeriodsResponse,
   type StrapiTimelineResponse,
