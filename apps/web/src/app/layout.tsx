@@ -1,11 +1,14 @@
-import config from 'config';
+import getConfig from 'next/config';
 import type { Metadata } from 'next'
 import {Container} from '@mui/material';
 import {Footer, Header, ThemeRegistry} from 'ui';
-import type {AppConfig} from '../types';
 import {ui} from './ui';
 
-const app: AppConfig = config.get('app');
+import type {PublicRuntimeConfig} from '../types';
+
+const {publicRuntimeConfig} = getConfig();
+
+const {app} = publicRuntimeConfig as PublicRuntimeConfig;
 
 const {
   title,
