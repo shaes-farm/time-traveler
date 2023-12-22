@@ -3,13 +3,13 @@ import type {
   StrapiEvent,
   StrapiPeriod,
   StrapiTimeline
-} from './api-model';
+} from '../models/strapi-model';
 import type {
   Category,
   HistoricalEvent,
   Period,
   Timeline
-} from './app-model';
+} from '../models/app-model';
 
 export const mapApiCategoryToModel = ({
   slug,
