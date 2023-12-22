@@ -16,6 +16,7 @@
     }
   },
   "api": {
+    "backend": "strapi",
     "baseUrl": "http://localhost:1337"
   }
 }
