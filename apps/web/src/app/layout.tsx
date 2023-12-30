@@ -4,20 +4,19 @@ import {Container} from '@mui/material';
 import {Footer, Header, ThemeRegistry} from 'ui';
 import {ui} from './ui';
 
-import type {PublicRuntimeConfig} from '../types';
-
-const {publicRuntimeConfig} = getConfig();
-
-const {app} = publicRuntimeConfig as PublicRuntimeConfig;
-
-const {
-  title,
-  description,
-  copyright: {
-    holder: name,
-    url,
-  }
-} = app;
+const { 
+  publicRuntimeConfig: {
+    app: {
+      title,
+      description,
+      copyright: {
+        holder: name,
+        url,
+        year: copyrightYear
+      }
+    },
+  },
+} = getConfig();
 
 export const metadata: Metadata = {
   applicationName: title,
@@ -39,9 +38,9 @@ export default function RootLayout({
       <body>
         <ThemeRegistry>
           <Container maxWidth="lg" sx={{ m: 'auto' }}>
-            <Header app={app} menu={ui.header.menu} />
+            <Header title={title} description={description} menu={ui.header.menu} />
             {children}
-            <Footer app={app} menu={ui.footer.menu} />
+            <Footer year={copyrightYear} url={url} holder={name} menu={ui.footer.menu} />
           </Container>
         </ThemeRegistry>
       </body>
