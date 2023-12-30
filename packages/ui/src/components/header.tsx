@@ -5,19 +5,15 @@ import Grid from '@mui/material/Unstable_Grid2'; // Grid version 2
 import {type LabeledRoute, Menu} from './menu';
 
 export interface HeaderProps {
-  app: {
-    title: string;
-    description: string;
-  };
+  title: string;
+  description: string;
   menu: LabeledRoute[];
 }
 
 export function Header(props: HeaderProps): JSX.Element {
   const {
-    app: {
-      title,
-      description,
-    },
+    title,
+    description,
     menu,
   } = props;
 
