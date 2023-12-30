@@ -21,6 +21,7 @@
     "@types/config": "^3.3.1",
     "config": "^3.3.9",
     "debug": "^4.3.4",
+    "encoding": "^0.1.13",
     "isomorphic-fetch": "^3.0.0",
     "next": "13.5.4",
     "react": "^17.0.0 || ^18.0.0",
