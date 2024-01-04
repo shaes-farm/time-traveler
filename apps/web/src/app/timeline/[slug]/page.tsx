@@ -38,7 +38,7 @@ export default async function Page(props: PageProps): Promise<JSX.Element> {
     link: '/',
   },{
     label: 'Period One',
-    link: `/periods/[slug]`,
+    link: '/periods/[slug]',
   },{
     label: timeline.title,
   }];
