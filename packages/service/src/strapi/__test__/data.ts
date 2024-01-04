@@ -4,10 +4,10 @@ import type {
   StrapiEvent,
   StrapiPeriod,
   StrapiTimeline,
-} from '../api-model';
+} from '../../models/strapi-model';
 import type {
   Media,
-} from '../app-model';
+} from '../../models/app-model';
 
 const STRAPI_TIMELINE: StrapiTimeline = {
   slug: faker.lorem.slug(),

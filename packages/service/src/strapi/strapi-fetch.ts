@@ -1,16 +1,23 @@
 import fetch from 'isomorphic-fetch';
+
 import {
   type StrapiPeriodsResponse,
   type StrapiTimelineResponse,
+  type HistoricalEvent,
   type Period,
   type Timeline,
+} from '../models';
+
+import {
   mapApiPeriodToModel,
   mapApiTimelineToModel,
-} from './models';
+} from './mapper';
 
-const {debug, error} = console;
+import type { Fetch } from '../types';
 
-export class Fetch {
+const { debug, error } = console;
+
+export class StrapiFetch implements Fetch {
   baseUrl: string;
 
   constructor(baseUrl: string) {
@@ -27,12 +34,12 @@ export class Fetch {
 
     url.searchParams.set('populate[timelines][sort][0]', 'beginDate');
 
-    debug({url});
+    debug({ url });
 
     const res = await fetch(url);
 
     if (!res.ok) {
-      error({res});
+      error({ res });
 
       // This will activate the closest `error.js` Error Boundary
       throw new Error('Failed to fetch periods')
@@ -40,7 +47,7 @@ export class Fetch {
 
     const periods = await res.json() as StrapiPeriodsResponse;
 
-    debug({periods: JSON.stringify(periods, null, 2)});
+    debug({ periods: JSON.stringify(periods, null, 2) });
 
     return periods.data?.map((period) => mapApiPeriodToModel(period.attributes)) ?? [];
   }
@@ -56,7 +63,7 @@ export class Fetch {
     url.searchParams.set('filters[slug][$eq]', slug);
     url.searchParams.set('sort', 'beginDate');
 
-    debug({url});
+    debug({ url });
 
     const res = await fetch(url);
 
@@ -67,7 +74,7 @@ export class Fetch {
 
     const periods = await res.json() as StrapiPeriodsResponse;
 
-    debug({periods: JSON.stringify(periods, null, 2)});
+    debug({ periods: JSON.stringify(periods, null, 2) });
 
     return periods.data?.length ? mapApiPeriodToModel(periods.data[0].attributes) : null;
   }
@@ -82,12 +89,12 @@ export class Fetch {
 
     url.searchParams.set('populate[events][sort][0]', 'beginDate');
 
-    debug({url});
+    debug({ url });
 
     const res = await fetch(url);
 
     if (!res.ok) {
-      error({res});
+      error({ res });
 
       // This will activate the closest `error.js` Error Boundary
       throw new Error('Failed to fetch timelines')
@@ -95,7 +102,7 @@ export class Fetch {
 
     const timelines = await res.json() as StrapiTimelineResponse;
 
-    debug({timelines: JSON.stringify(timelines, null, 2)});
+    debug({ timelines: JSON.stringify(timelines, null, 2) });
 
     return timelines.data?.map((timeline) => mapApiTimelineToModel(timeline.attributes)) ?? [];
   }
@@ -105,7 +112,7 @@ export class Fetch {
    * 
    * @returns A Timeline object if found, otherwise null.
    */
-   async getTimeline(slug: string): Promise<Timeline | null> {
+  async getTimeline(slug: string): Promise<Timeline | null> {
     const url = `${this.baseUrl}/api/timelines?filters[slug][$eq]=${slug}&populate[events][sort][0]=eventDate`;
     const res = await fetch(url);
 
@@ -122,9 +129,11 @@ export class Fetch {
     }
 
     // const events = await this.getEvents();
-    
+
     return mapApiTimelineToModel(timeline.data[0].attributes);
   }
+
+  async getEvents(): Promise<HistoricalEvent[]> { return [] as HistoricalEvent[]; }
 
   // async getEvents(): Promise<HistoricalEvent[]> {
   //   const res = await fetch(`${this.baseUrl}/api/events?sort=eventDate`);
@@ -145,6 +154,8 @@ export class Fetch {
 
   //   return events.data.map((event) => mapEventToModel(event));
   // }
+
+  async getEvent(slug: string): Promise<HistoricalEvent | null> { return null; }
 
   // async getEvent(slug: string): Promise<HistoricalEvent | null> {
   //   const res = await fetch(`${this.baseUrl}/api/events?filters[slug][$eq]=${slug}&populate=*`);

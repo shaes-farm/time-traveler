@@ -1,12 +1,23 @@
-import config from 'config';
+import getConfig from 'next/config';
 import {notFound} from 'next/navigation'
-import {Breadcrumbs, TimelineNavigator} from 'ui';
-import {Fetch} from 'service';
-import type {AppConfig} from '../../../types';
+import {Breadcrumbs, type Crumb, TimelineNavigator} from 'ui';
+import {FetchFactory} from 'service';
 
-const app: AppConfig = config.get('app');
+const {
+  publicRuntimeConfig: {
+    app: {
+      title,
+    }
+  },
+  serverRuntimeConfig: {
+    api: {
+      backend,
+      baseUrl,
+    }
+  }
+} = getConfig();
 
-const f = new Fetch(config.get('api.baseUrl'));
+const f = FetchFactory.create(backend, baseUrl);
 
 interface PageProps {
   params: {
@@ -15,15 +26,15 @@ interface PageProps {
 }
 
 export default async function Page(props: PageProps): Promise<JSX.Element> {
-  const {params} = props;
-  const timeline = await f.getTimeline(params.slug);
+  const {params: {slug}} = props;
+  const timeline = await f.getTimeline(slug);
 
   if (!timeline) {
     notFound();
   }
 
-  const crumbs = [{
-    label: app.title,
+  const crumbs: Crumb[] = [{
+    label: title,
     link: '/',
   },{
     label: 'Period One',

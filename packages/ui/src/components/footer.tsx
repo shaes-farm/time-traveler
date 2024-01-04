@@ -4,25 +4,17 @@ import {Box, Divider, Link, Typography} from '@mui/material';
 import {type LabeledRoute, Menu} from './menu';
 
 export interface FooterProps {
-  app: {
-    copyright: {
-      year: number;
-      url: string;
-      holder: string;
-    }
-  }
+  year: number;
+  url: string;
+  holder: string;
   menu: LabeledRoute[];
 }
 
 export function Footer(props: FooterProps): JSX.Element {
   const {
-    app: {
-      copyright: {
-        year,
-        url,
-        holder,
-      },
-    },
+    year,
+    url,
+    holder,
     menu,
 } = props;
 
