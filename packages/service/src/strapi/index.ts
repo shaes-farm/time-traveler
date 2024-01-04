@@ -1,1 +1,1 @@
-export * from './StrapiFetch';
+export * from './strapi-fetch';

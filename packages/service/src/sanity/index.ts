@@ -1,1 +1,1 @@
-export * from './SanityFetch';
+export * from './sanity-fetch';

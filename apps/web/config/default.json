@@ -15,6 +15,14 @@
       "url": "https://shaes.farm"
     }
   },
+  "strapi": {
+    "backend": "strapi",
+    "baseUrl": "http://localhost:1337"
+  },
+  "sanity": {
+    "backend": "sanity",
+    "baseUrl": "https://l4b7bear.api.sanity.io/v2021-10-21/data/query/production"
+  },
   "api": {
     "backend": "strapi",
     "baseUrl": "http://localhost:1337"

@@ -1,4 +1,5 @@
 import fetch from 'isomorphic-fetch';
+
 import {
   type StrapiPeriodsResponse,
   type StrapiTimelineResponse,
@@ -6,14 +7,17 @@ import {
   type Period,
   type Timeline,
 } from '../models';
+
 import {
   mapApiPeriodToModel,
   mapApiTimelineToModel,
 } from './mapper';
 
+import type { Fetch } from '../types';
+
 const { debug, error } = console;
 
-export class StrapiFetch {
+export class StrapiFetch implements Fetch {
   baseUrl: string;
 
   constructor(baseUrl: string) {
