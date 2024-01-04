@@ -36,16 +36,12 @@ export default async function Page(props: PageProps): Promise<JSX.Element> {
   const crumbs: Crumb[] = [{
     label: title,
     link: '/',
-  }];
-
-  crumbs.push({
+  },{
     label: 'Period One',
-    link: '/periods/[slug]',
-  });
-
-  crumbs.push({
+    link: `/periods/[slug]`,
+  },{
     label: timeline.title,
-  });
+  }];
 
   return (
     <>
