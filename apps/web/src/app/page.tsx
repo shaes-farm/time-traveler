@@ -12,9 +12,11 @@ const {
   }
 } = getConfig();
 
+const f = FetchFactory.create(backend, baseUrl);
+
 export default async function Page(): Promise<JSX.Element> {
-  const f = FetchFactory.create(backend, baseUrl);
   const periods = await f.getPeriods();
+
   return (
     <main>
       <Paper>

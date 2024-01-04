@@ -17,6 +17,8 @@ const {
   }
 } = getConfig();
 
+const f = FetchFactory.create(backend, baseUrl);
+
 interface PageProps {
   params: {
     slug: string;
@@ -24,12 +26,7 @@ interface PageProps {
 }
 
 export default async function Page(props: PageProps): Promise<JSX.Element> {
-  const {
-    params: {
-      slug,
-    }
-  } = props;
-  const f = FetchFactory.create(backend, baseUrl);
+  const {params: {slug}} = props;
   const timeline = await f.getTimeline(slug);
 
   if (!timeline) {
