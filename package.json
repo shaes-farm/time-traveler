@@ -3,13 +3,17 @@
   "scripts": {
     "build": "turbo run build",
     "clean": "turbo run clean",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:status": "supabase status",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "lint": "turbo run lint"
   },
   "devDependencies": {
     "eslint": "^8.48.0",
     "prettier": "^3.0.3",
+    "supabase": "^1.127.4",
     "tsconfig": "*",
     "turbo": "^1.11.2"
   },
