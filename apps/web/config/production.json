@@ -3,6 +3,7 @@
     "baseUrl": "https://time-traveler-web.vercel.app:3000"
   },
   "api": {
-    "baseUrl": "https://time-traveler-api.vercel.app:1337"
+    "backend": "supabase",
+    "baseUrl": "https://fhksymzqcoozwfxpurzn.supabase.co"
   }
 }
