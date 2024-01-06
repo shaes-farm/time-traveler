@@ -1,5 +1,4 @@
 import { createClient, type QueryData, type SupabaseClient } from '@supabase/supabase-js'
-import fetch from 'isomorphic-fetch';
 
 import type {
   Database,
