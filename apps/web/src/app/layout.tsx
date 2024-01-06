@@ -2,21 +2,22 @@ import getConfig from 'next/config';
 import type { Metadata } from 'next'
 import {Container} from '@mui/material';
 import {Footer, Header, ThemeRegistry} from 'ui';
+import type {NextConfig} from '../types';
 import {ui} from './ui';
 
 const { 
   publicRuntimeConfig: {
     app: {
-      title,
-      description,
       copyright: {
         holder: name,
         url,
         year: copyrightYear
-      }
+      },
+      description,
+      title,
     },
   },
-} = getConfig();
+} = getConfig() as NextConfig;
 
 export const metadata: Metadata = {
   applicationName: title,
@@ -24,8 +25,8 @@ export const metadata: Metadata = {
     name,
     url,
   },
-  title,
   description,
+  title,
 };
 
 export default function RootLayout({
@@ -38,9 +39,9 @@ export default function RootLayout({
       <body>
         <ThemeRegistry>
           <Container maxWidth="lg" sx={{ m: 'auto' }}>
-            <Header title={title} description={description} menu={ui.header.menu} />
+            <Header description={description} menu={ui.header.menu} title={title} />
             {children}
-            <Footer year={copyrightYear} url={url} holder={name} menu={ui.footer.menu} />
+            <Footer holder={name} menu={ui.footer.menu} url={url} year={copyrightYear} />
           </Container>
         </ThemeRegistry>
       </body>

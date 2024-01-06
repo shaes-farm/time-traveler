@@ -1,18 +1,19 @@
 import getConfig from 'next/config';
 import {Paper} from '@mui/material';
 import {PeriodNavigator} from 'ui';
-import {FetchFactory} from 'service';
+import {fetchFactory} from 'service';
+import type {NextConfig} from '../types';
 
 const {
   serverRuntimeConfig: {
     api: {
-      backend,
       baseUrl,
+      backend,
     }
   }
-} = getConfig();
+} = getConfig() as NextConfig;
 
-const f = FetchFactory.create(backend, baseUrl);
+const f = fetchFactory(backend, baseUrl);
 
 export default async function Page(): Promise<JSX.Element> {
   const periods = await f.getPeriods();

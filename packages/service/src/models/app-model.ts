@@ -1,10 +1,10 @@
 export interface Media {
-  alternativeText: string;
-  caption: string;
-  url:string;
-  width: number;
-  height: number;
-  formats: object;
+  alternativeText?: string;
+  caption?: string;
+  url?:string;
+  width?: number;
+  height?: number;
+  formats?: object;
 }
 
 export enum Importance {
@@ -50,7 +50,7 @@ export interface Timeline {
   beginDate: string;
   endDate: string;
   events: HistoricalEvent[];
-  periods: Period[];
+  periods?: Period[];
 }
 
 export interface Period {

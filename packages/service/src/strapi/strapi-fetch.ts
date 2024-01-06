@@ -1,5 +1,4 @@
 import fetch from 'isomorphic-fetch';
-
 import {
   type StrapiPeriodsResponse,
   type StrapiTimelineResponse,
@@ -7,13 +6,11 @@ import {
   type Period,
   type Timeline,
 } from '../models';
-
+import type { Fetch } from '../types';
 import {
   mapApiPeriodToModel,
   mapApiTimelineToModel,
 } from './mapper';
-
-import type { Fetch } from '../types';
 
 const { debug, error } = console;
 
@@ -133,7 +130,9 @@ export class StrapiFetch implements Fetch {
     return mapApiTimelineToModel(timeline.data[0].attributes);
   }
 
-  async getEvents(): Promise<HistoricalEvent[]> { return [] as HistoricalEvent[]; }
+  async getEvents(): Promise<HistoricalEvent[]> {
+    return new Promise(resolve => {resolve([]);});
+  }
 
   // async getEvents(): Promise<HistoricalEvent[]> {
   //   const res = await fetch(`${this.baseUrl}/api/events?sort=eventDate`);
@@ -155,7 +154,9 @@ export class StrapiFetch implements Fetch {
   //   return events.data.map((event) => mapEventToModel(event));
   // }
 
-  async getEvent(slug: string): Promise<HistoricalEvent | null> { return null; }
+  async getEvent(slug: string): Promise<HistoricalEvent | null> {
+    return new Promise(resolve => {debug({slug}); resolve(null);});
+  }
 
   // async getEvent(slug: string): Promise<HistoricalEvent | null> {
   //   const res = await fetch(`${this.baseUrl}/api/events?filters[slug][$eq]=${slug}&populate=*`);
