@@ -50,7 +50,7 @@ export interface Timeline {
   beginDate: string;
   endDate: string;
   events: HistoricalEvent[];
-  periods: Period[];
+  periods?: Period[];
 }
 
 export interface Period {
