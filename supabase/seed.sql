@@ -36,7 +36,7 @@ Eligendi similique molestias quos ~~consequatur~~ dolor rerum corporis. Deleniti
 3. A numbered list item
 
 ```
-debug.print(\"foo\");
+debug.print("foo");
 ```
 
 A [link](http://example.com) to nowhere.
@@ -61,9 +61,9 @@ Eligendi similique molestias quos ~~consequatur~~ dolor rerum corporis. Deleniti
 2. A numbered list item
 3. A numbered list item
 
-\`\`\`
-debug.print(\"foo\");
-\`\`\`
+```
+debug.print("foo");
+```
 
 A [link](http://example.com) to nowhere.
 
@@ -87,14 +87,15 @@ Eligendi similique molestias quos ~~consequatur~~ dolor rerum corporis. Deleniti
 2. A numbered list item
 3. A numbered list item
 
-\`\`\`
-debug.print(\"foo\");
-\`\`\`
+```
+debug.print("foo");
+```
 
 A [link](http://example.com) to nowhere.
 
 
->Quoth the Raven, Nevermore', 'Another Place', 10, '1.222', '1.333');
+>Quoth the Raven, Nevermore
+', 'Another Place', 10, '1.222', '1.333');
 
 insert into categories
     (slug, title)
