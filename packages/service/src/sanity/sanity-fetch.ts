@@ -64,26 +64,7 @@ export class SanityFetch implements Fetch {
    * @returns An array of Timeline objects.
    */
   async getTimelines(): Promise<Timeline[]> {
-    const url = new URL(this.baseUrl);
-    
-    url.searchParams.set('query', '*[_type == "timeline"]');
-
-    debug({ url });
-
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      error({ res });
-
-      // This will activate the closest `error.js` Error Boundary
-      throw new Error('Failed to fetch timelines')
-    }
-
-    const periods = await res.json() as SanityPeriodsResponse;
-
-    debug({ periods: JSON.stringify(periods, null, 2) });
-
-    return periods.result?.map((period) => mapApiTimelineToModel(period.attributes)) ?? [];
+    return new Promise(resolve => {resolve([]);});
   }
 
   /**
@@ -101,26 +82,7 @@ export class SanityFetch implements Fetch {
    * @returns An array of event objects.
    */
   async getEvents(): Promise<HistoricalEvent[]> {
-    const url = new URL(this.baseUrl);
-    
-    url.searchParams.set('query', '*[_type == "event"]');
-
-    debug({ url });
-
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      error({ res });
-
-      // This will activate the closest `error.js` Error Boundary
-      throw new Error('Failed to fetch events')
-    }
-
-    const periods = await res.json() as SanityPeriodsResponse;
-
-    debug({ periods: JSON.stringify(periods, null, 2) });
-
-    return periods.data?.map((period) => mapApiEventToModel(period.attributes)) ?? [];
+    return new Promise(resolve => {resolve([]);});
   }
 
   /**
