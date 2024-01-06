@@ -2,7 +2,9 @@ import getConfig from 'next/config';
 import type { Metadata } from 'next'
 import {Container} from '@mui/material';
 import {Footer, Header, ThemeRegistry} from 'ui';
+
 import {ui} from './ui';
+import {NextConfig} from '../types';
 
 const { 
   publicRuntimeConfig: {
@@ -16,7 +18,7 @@ const {
       }
     },
   },
-} = getConfig();
+} = getConfig() as NextConfig;
 
 export const metadata: Metadata = {
   applicationName: title,
