@@ -1,24 +1,18 @@
 import fetch from 'isomorphic-fetch';
-
 import type {
   SanityPeriodsResponse,
   HistoricalEvent,
   Period,
   Timeline,
 } from '../models';
-
+import type { Fetch } from '../types';
 import {
   mapApiEventToModel,
   mapApiPeriodToModel,
   mapApiTimelineToModel,
 } from './mapper';
 
-import type { Fetch } from '../types';
-
 const { debug, error } = console;
-
-type SanityTimelinesResponse = any;
-type SanityEventsResponse = any;
 
 export class SanityFetch implements Fetch {
   baseUrl: string;
@@ -61,7 +55,7 @@ export class SanityFetch implements Fetch {
    * @returns A Period object if found, otherwise null.
    */
   async getPeriod(slug: string): Promise<Period | null> {
-    return null;
+    return new Promise(resolve => {debug({slug}); resolve(null);} );
   }
 
   /**
@@ -85,11 +79,11 @@ export class SanityFetch implements Fetch {
       throw new Error('Failed to fetch timelines')
     }
 
-    const periods = await res.json() as SanityTimelinesResponse;
+    const periods = await res.json() as SanityPeriodsResponse;
 
     debug({ periods: JSON.stringify(periods, null, 2) });
 
-    return periods.data?.map((period) => mapApiTimelineToModel(period.attributes)) ?? [];
+    return periods.result?.map((period) => mapApiTimelineToModel(period.attributes)) ?? [];
   }
 
   /**
@@ -98,7 +92,7 @@ export class SanityFetch implements Fetch {
    * @returns A Timeline object if found, otherwise null.
    */
   async getTimeline(slug: string): Promise<Timeline | null> {
-    return null;
+    return new Promise(resolve => {debug({slug}); resolve(null);} );
   }
 
   /**
@@ -122,7 +116,7 @@ export class SanityFetch implements Fetch {
       throw new Error('Failed to fetch events')
     }
 
-    const periods = await res.json() as SanityEventsResponse;
+    const periods = await res.json() as SanityPeriodsResponse;
 
     debug({ periods: JSON.stringify(periods, null, 2) });
 
@@ -135,7 +129,7 @@ export class SanityFetch implements Fetch {
    * @returns An event object if found, otherwise null.
    */
   async getEvent(slug: string): Promise<HistoricalEvent | null> {
-    return null;
+    return new Promise(resolve => {debug({slug}); resolve(null);} );
   }
 
 };

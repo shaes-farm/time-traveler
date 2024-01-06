@@ -2,8 +2,12 @@ import type {
   Category,
   HistoricalEvent,
   Period,
-  Timeline
-} from '../models/app-model';
+  PostgrestCategory,
+  PostgrestHistoricalEvent,
+  PostgrestPeriod,
+  PostgrestTimeline,
+  Timeline,
+} from '../models';
 
 export const mapApiPeriodToModel = ({
   slug,
@@ -12,13 +16,13 @@ export const mapApiPeriodToModel = ({
   begin_date: beginDate,
   end_date: endDate,
   timelines,
-}): Period => ({
+}: PostgrestPeriod): Period => ({
   slug,
   title,
   summary,
   beginDate,
   endDate,
-  timelines: timelines?.map((t) => mapApiTimelineToModel(t)) ?? [],
+  timelines: timelines?.map((t) => mapApiTimelineToModel(t as PostgrestTimeline)) ?? [],
 });
 
 export const mapApiTimelineToModel = ({
@@ -28,17 +32,17 @@ export const mapApiTimelineToModel = ({
   scale,
   begin_date: beginDate,
   end_date: endDate,
-  historical_events,
+  historical_events: events,
   periods,
-}): Timeline => ({
+}: PostgrestTimeline): Timeline => ({
   slug,
   title,
   summary,
   scale,
   beginDate,
   endDate,
-  events: historical_events?.map((e) => mapApiEventToModel(e)) ?? [],
-  periods: periods?.map((p) => mapApiPeriodToModel(p)) ?? [],
+  events: events?.map((e) => mapApiEventToModel(e as PostgrestHistoricalEvent)) ?? [],
+  periods: periods?.map((p) => mapApiPeriodToModel(p as PostgrestPeriod)) ?? [],
 });
 
 export const mapApiEventToModel = ({
@@ -53,26 +57,26 @@ export const mapApiEventToModel = ({
   end_date: endDate,
   media,
   timelines,
-}): HistoricalEvent => ({
+}: PostgrestHistoricalEvent): HistoricalEvent => ({
   slug,
   title,
   summary,
   detail,
-  categories: categories?.map((c) => mapApiCategoryToModel(c)) ?? [],
+  categories: categories?.map((c) => mapApiCategoryToModel(c as PostgrestCategory)) ?? [],
   importance,
   location,
   beginDate,
   endDate,
   media: media?.map((m) => m) ?? [],
-  timelines: timelines?.map((t) => mapApiTimelineToModel(t)) ?? [],
+  timelines: timelines?.map((t) => mapApiTimelineToModel(t as PostgrestTimeline)) ?? [],
 });
 
 export const mapApiCategoryToModel = ({
   slug,
   title,
   events,
-}): Category => ({
+}: PostgrestCategory): Category => ({
   slug,
   title,
-  events: events?.map((e) => mapApiEventToModel(e)) ?? [],
+  events: events?.map((e) => mapApiEventToModel(e as PostgrestHistoricalEvent)) ?? [],
 });

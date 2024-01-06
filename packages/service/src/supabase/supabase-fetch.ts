@@ -1,21 +1,19 @@
+/* eslint-disable @typescript-eslint/no-throw-literal -- throw supabase errors */
 import { createClient, type QueryData, type SupabaseClient } from '@supabase/supabase-js'
-
 import type {
   Database,
   HistoricalEvent,
   Period,
+  PostgrestPeriod,
   Timeline,
 } from '../models';
-
+import type { Fetch } from '../types';
 import {
-  mapApiEventToModel,
   mapApiPeriodToModel,
   mapApiTimelineToModel,
 } from './mapper';
 
-import type { Fetch } from '../types';
-
-const { debug, error } = console;
+const { debug } = console;
 
 export class SupabaseFetch implements Fetch {
   baseUrl: string;
@@ -28,7 +26,7 @@ export class SupabaseFetch implements Fetch {
   }
 
   /**
-   * Fetch all periods from the CMS.
+   * Fetch all periods from the API.
    * 
    * @returns An array of Period objects.
    */
@@ -47,12 +45,12 @@ export class SupabaseFetch implements Fetch {
             end_date
         )
     `);
-    type PeriodTimelines = QueryData<typeof periodsQuery>;
+    // type PeriodTimelines = QueryData<typeof periodsQuery>;
     const { data, error } = await periodsQuery;
     if (error) throw error;
-    const periods: PeriodTimelines = data;
+    const periods = data as PostgrestPeriod[];
     debug({ periods: JSON.stringify(periods, null, 2) });
-    return periods.map((period) => mapApiPeriodToModel(period)) ?? [];
+    return periods.map((period) => mapApiPeriodToModel(period));
   }
 
   /**
@@ -61,16 +59,16 @@ export class SupabaseFetch implements Fetch {
    * @returns A Period object if found, otherwise null.
    */
   async getPeriod(slug: string): Promise<Period | null> {
-    return null;
+    return new Promise(resolve => {debug({slug}); resolve(null);} );
   }
 
   /**
-   * Fetch all timelines from the CMS.
+   * Fetch all timelines from the API.
    *
    * @returns An array of Timeline objects.
    */
   async getTimelines(): Promise<Timeline[]> {
-    return [];
+    return new Promise(resolve => {resolve([]);} );
   }
 
   /**
@@ -118,16 +116,18 @@ export class SupabaseFetch implements Fetch {
 
     debug({ timeline: JSON.stringify(timeline, null, 2) });
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment -- fix this
+    // @ts-expect-error
     return timeline ? mapApiTimelineToModel(timeline) : null;
   }
 
   /**
-   * Fetch all events from the CMS.
+   * Fetch all events from the API.
    *
    * @returns An array of event objects.
    */
   async getEvents(): Promise<HistoricalEvent[]> {
-    return [];
+    return new Promise(resolve => {resolve([]);} );
   }
 
   /**
@@ -136,7 +136,7 @@ export class SupabaseFetch implements Fetch {
    * @returns An event object if found, otherwise null.
    */
   async getEvent(slug: string): Promise<HistoricalEvent | null> {
-    return null;
+    return new Promise(resolve => {debug({slug}); resolve(null);} );
   }
 
 };

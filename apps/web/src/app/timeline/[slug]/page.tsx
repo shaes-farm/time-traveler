@@ -1,7 +1,8 @@
 import getConfig from 'next/config';
 import {notFound} from 'next/navigation'
 import {Breadcrumbs, type Crumb, TimelineNavigator} from 'ui';
-import {FetchFactory} from 'service';
+import {fetchFactory} from 'service';
+import type {NextConfig} from '../../../types';
 
 const {
   publicRuntimeConfig: {
@@ -15,9 +16,9 @@ const {
       baseUrl,
     }
   }
-} = getConfig();
+} = getConfig() as NextConfig;
 
-const f = FetchFactory.create(backend, baseUrl);
+const f = fetchFactory(backend, baseUrl);
 
 interface PageProps {
   params: {

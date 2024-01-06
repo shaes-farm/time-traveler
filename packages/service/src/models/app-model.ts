@@ -1,10 +1,10 @@
 export interface Media {
-  alternativeText: string;
-  caption: string;
-  url:string;
-  width: number;
-  height: number;
-  formats: object;
+  alternativeText?: string;
+  caption?: string;
+  url?:string;
+  width?: number;
+  height?: number;
+  formats?: object;
 }
 
 export enum Importance {

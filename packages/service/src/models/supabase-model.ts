@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents -- generated file*/
 export type Json =
   | string
   | number

@@ -1,7 +1,7 @@
 import type {
     PublicRuntimeConfig,
     ServerRuntimeConfig
-} from '../types';
+} from '.';
 
 export interface NextConfig {
     publicRuntimeConfig: PublicRuntimeConfig
