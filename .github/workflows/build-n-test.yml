@@ -35,6 +35,6 @@ jobs:
     - name: Install dependencies
       run: npm ci --omit=optional --ignore-scripts
     - name: Test application
-      run: npm lint
+      run: npm run lint
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@v2
