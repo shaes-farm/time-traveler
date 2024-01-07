@@ -34,7 +34,7 @@ jobs:
         restore-keys: npm-
     - name: Install dependencies
       run: npm ci --omit=optional --ignore-scripts
-    - name: Test application
-      run: npm run lint
+    - name: Build application
+      run: npm run build
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@v2
