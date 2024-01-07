@@ -1,3 +1,4 @@
+import {Analytics} from '@vercel/analytics/react';
 import getConfig from 'next/config';
 import type { Metadata } from 'next'
 import {Container} from '@mui/material';
@@ -44,6 +45,7 @@ export default function RootLayout({
             <Footer holder={name} menu={ui.footer.menu} url={url} year={copyrightYear} />
           </Container>
         </ThemeRegistry>
+        <Analytics />
       </body>
     </html>
   );
