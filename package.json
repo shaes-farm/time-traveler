@@ -9,7 +9,8 @@
     "db:status": "supabase status",
     "db:stop": "supabase stop",
     "db:sync": "supabase db pull",
-    "db:types": "supabase gen types typescript --local > ./packages/service/src/models/supabase-model.ts",
+    "db:gen:migration": "supabase migration new",
+    "db:gen:types": "supabase gen types typescript --local > ./packages/service/src/models/supabase-model.ts",
     "dev": "turbo run dev",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "lint": "turbo run lint"
