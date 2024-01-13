@@ -20,7 +20,7 @@
     "prettier": "^3.0.3",
     "supabase": "^1.127.4",
     "tsconfig": "*",
-    "turbo": "^1.11.2"
+    "turbo": "^1.11.3"
   },
   "name": "time-traveler",
   "packageManager": "npm@9.8.0",
