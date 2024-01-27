@@ -1,12 +1,13 @@
-import {Analytics} from '@vercel/analytics/react';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import getConfig from 'next/config';
 import type { Metadata } from 'next'
-import {Container} from '@mui/material';
-import {Footer, Header, ThemeRegistry} from 'ui';
-import type {NextConfig} from '../types';
-import {ui} from './ui';
+import { Container } from '@mui/material';
+import { Footer, Header, ThemeRegistry } from 'ui';
+import type { NextConfig } from '../types';
+import { ui } from './ui';
 
-const { 
+const {
   publicRuntimeConfig: {
     app: {
       copyright: {
@@ -46,6 +47,7 @@ export default function RootLayout({
           </Container>
         </ThemeRegistry>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
