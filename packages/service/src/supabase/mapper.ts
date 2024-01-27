@@ -1,9 +1,11 @@
 import type {
   Category,
   HistoricalEvent,
+  Media,
   Period,
   PostgrestCategory,
   PostgrestHistoricalEvent,
+  PostgrestMedia,
   PostgrestPeriod,
   PostgrestTimeline,
   Timeline,
@@ -19,7 +21,7 @@ export const mapApiPeriodToModel = ({
 }: PostgrestPeriod): Period => ({
   slug,
   title,
-  summary,
+  summary: summary ?? null,
   beginDate,
   endDate,
   timelines: timelines?.map((t) => mapApiTimelineToModel(t as PostgrestTimeline)) ?? [],
@@ -37,8 +39,8 @@ export const mapApiTimelineToModel = ({
 }: PostgrestTimeline): Timeline => ({
   slug,
   title,
-  summary,
-  scale,
+  summary: summary ?? null,
+  scale: scale ?? null,
   beginDate,
   endDate,
   events: events?.map((e) => mapApiEventToModel(e as PostgrestHistoricalEvent)) ?? [],
@@ -67,7 +69,7 @@ export const mapApiEventToModel = ({
   location,
   beginDate,
   endDate,
-  media: media?.map((m) => m) ?? [],
+  media: media?.map((m) => mapApiMediaToModel(m)) ?? [],
   timelines: timelines?.map((t) => mapApiTimelineToModel(t as PostgrestTimeline)) ?? [],
 });
 
@@ -79,4 +81,22 @@ export const mapApiCategoryToModel = ({
   slug,
   title,
   events: events?.map((e) => mapApiEventToModel(e as PostgrestHistoricalEvent)) ?? [],
+});
+
+export const mapApiMediaToModel = ({
+  slug,
+  alternative_text: alternativeText,
+  caption,
+  url,
+  width,
+  height,
+  formats,
+}: PostgrestMedia): Media => ({
+  slug,
+  alternativeText,
+  caption,
+  url,
+  width,
+  height,
+  formats,
 });
