@@ -91,7 +91,7 @@ create policy "Allow anonymous access to categories"
 create table media (
     id bigint primary key generated always as identity,
     slug varchar(100) not null,
-    alternativeText text,
+    alternativetext text,
     caption text,
     url varchar(2000),
     width integer,
