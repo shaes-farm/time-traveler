@@ -1,14 +1,23 @@
 /* eslint-disable @typescript-eslint/no-throw-literal -- throw supabase errors */
 import { createClient, type QueryData, type SupabaseClient } from '@supabase/supabase-js'
 import type {
+  Category,
   Database,
   HistoricalEvent,
+  Media,
   Period,
+  PostgrestCategory,
+  PostgrestHistoricalEvent,
+  PostgrestMedia,
   PostgrestPeriod,
+  PostgrestTimeline,
   Timeline,
 } from '../models';
 import type { Fetch } from '../types';
 import {
+  mapApiCategoryToModel,
+  mapApiEventToModel,
+  mapApiMediaToModel,
   mapApiPeriodToModel,
   mapApiTimelineToModel,
 } from './mapper';
@@ -31,7 +40,7 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of Period objects.
    */
   async getPeriods(): Promise<Period[]> {
-    const periodsQuery = this.supabase.from('periods').select(`
+    const { data, error } = await this.supabase.from('periods').select(`
         slug,
         title,
         summary,
@@ -45,8 +54,6 @@ export class SupabaseFetch implements Fetch {
             end_date
         )
     `);
-    // type PeriodTimelines = QueryData<typeof periodsQuery>;
-    const { data, error } = await periodsQuery;
     if (error) throw error;
     const periods = data as PostgrestPeriod[];
     debug({ periods: JSON.stringify(periods, null, 2) });
@@ -59,7 +66,7 @@ export class SupabaseFetch implements Fetch {
    * @returns A Period object if found, otherwise null.
    */
   async getPeriod(slug: string): Promise<Period | null> {
-    return new Promise(resolve => {debug({slug}); resolve(null);} );
+    return new Promise(resolve => { debug({ slug }); resolve(null); });
   }
 
   /**
@@ -68,7 +75,19 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of Timeline objects.
    */
   async getTimelines(): Promise<Timeline[]> {
-    return new Promise(resolve => {resolve([]);} );
+    const { data, error } = await this.supabase.from('timelines').select(`
+      slug,
+      title,
+      summary,
+      scale,
+      begin_date,
+      end_date
+    `);
+    if (error) throw error;
+    debug({data});
+    const timelines = data as PostgrestTimeline[];
+    debug({ timelines: JSON.stringify(timelines, null, 2) });
+    return timelines.map((timeline) => mapApiTimelineToModel(timeline));
   }
 
   /**
@@ -77,10 +96,10 @@ export class SupabaseFetch implements Fetch {
    * @returns A Timeline object if found, otherwise null.
    */
   async getTimeline(slug: string): Promise<Timeline | null> {
-    debug({slug});
+    debug({ slug });
     const timelineQuery = this.supabase
-        .from('timelines')
-        .select(`
+      .from('timelines')
+      .select(`
             slug,
             title,
             summary,
@@ -102,9 +121,9 @@ export class SupabaseFetch implements Fetch {
                 )
             )
         `)
-        .eq('slug', slug)
-        .order('begin_date')
-        .maybeSingle();
+      .eq('slug', slug)
+      .order('begin_date')
+      .maybeSingle();
 
     type TimelineEvents = QueryData<typeof timelineQuery>;
 
@@ -127,7 +146,21 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of event objects.
    */
   async getEvents(): Promise<HistoricalEvent[]> {
-    return new Promise(resolve => {resolve([]);} );
+    const { data, error } = await this.supabase.from('historical_events').select(`
+      slug,
+      title,
+      summary,
+      detail,
+      location,
+      importance,
+      begin_date,
+      end_date
+    `);
+    if (error) throw error;
+    debug({data});
+    const events = data as PostgrestHistoricalEvent[];
+    debug({ events: JSON.stringify(events, null, 2) });
+    return events.map((event) => mapApiEventToModel(event));
   }
 
   /**
@@ -136,7 +169,64 @@ export class SupabaseFetch implements Fetch {
    * @returns An event object if found, otherwise null.
    */
   async getEvent(slug: string): Promise<HistoricalEvent | null> {
-    return new Promise(resolve => {debug({slug}); resolve(null);} );
+    return new Promise(resolve => { debug({ slug }); resolve(null); });
+  }
+
+  /**
+   * Fetch all categories from the API.
+   *
+   * @returns An array of category objects.
+   */
+  async getCategories(): Promise<Category[]> {
+    const { data, error } = await this.supabase.from('categories').select(`
+      slug,
+      title
+    `);
+    if (error) throw error;
+    debug({data});
+    const categories = data as PostgrestCategory[];
+    debug({ categories: JSON.stringify(categories, null, 2) });
+    return categories.map((category) => mapApiCategoryToModel(category));
+  }
+
+  /**
+   * Fetch a category by slug.
+   * 
+   * @returns An category object if found, otherwise null.
+   */
+  async getCategory(slug: string): Promise<Category | null> {
+    return new Promise(resolve => { debug({ slug }); resolve(null); });
+  }
+
+  /**
+   * Fetch all media from the API.
+   *
+   * @returns An array of media objects.
+   */
+  async getMedia(): Promise<Media[]> {
+    const { data, error } = await this.supabase.from('media').select(`
+      slug,
+      alternative_text,
+      caption,
+      url,
+      width,
+      height,
+      formats
+      `);
+    if (error) throw error;
+    debug({data});
+    const media = data as PostgrestMedia[];
+    debug({ media: JSON.stringify(media, null, 2) });
+    return media.map((item) => mapApiMediaToModel(item));
+  }
+
+  /**
+   * Fetch a media item by slug.
+   * 
+   * @returns An media object if found, otherwise null.
+   */
+  async getMediaItem(slug: string): Promise<Media | null> {
+    return new Promise(resolve => { debug({ slug }); resolve(null); });
   }
 
 };
