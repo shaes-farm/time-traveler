@@ -55,9 +55,9 @@ export class SupabaseFetch implements Fetch {
         )
     `);
     if (error) throw error;
-    const periods = data as PostgrestPeriod[];
+    const periods = data as PostgrestPeriod[] | null;
     debug({ periods: JSON.stringify(periods, null, 2) });
-    return periods.map((period) => mapApiPeriodToModel(period));
+    return periods ? periods.map((period) => mapApiPeriodToModel(period)) : [];
   }
 
   /**
@@ -66,7 +66,27 @@ export class SupabaseFetch implements Fetch {
    * @returns A Period object if found, otherwise null.
    */
   async getPeriod(slug: string): Promise<Period | null> {
-    return new Promise(resolve => { debug({ slug }); resolve(null); });
+    debug({slug});
+    const { data, error } = await this.supabase.from('periods').select(`
+        slug,
+        title,
+        summary,
+        begin_date,
+        end_date,
+        timelines (
+            slug,
+            title,
+            summary,
+            begin_date,
+            end_date
+        )
+    `)
+    .eq('slug', slug)
+    .maybeSingle();
+    if (error) throw error;
+    const period = data as PostgrestPeriod | null;
+    debug({ period: JSON.stringify(period, null, 2) });
+    return period ? mapApiPeriodToModel(period) : null;
   }
 
   /**
@@ -206,7 +226,7 @@ export class SupabaseFetch implements Fetch {
   async getMedia(): Promise<Media[]> {
     const { data, error } = await this.supabase.from('media').select(`
       slug,
-      alternative_text,
+      alternativetext,
       caption,
       url,
       width,
@@ -215,9 +235,9 @@ export class SupabaseFetch implements Fetch {
       `);
     if (error) throw error;
     debug({data});
-    const media = data as PostgrestMedia[];
+    const media = data as PostgrestMedia[] | null;
     debug({ media: JSON.stringify(media, null, 2) });
-    return media.map((item) => mapApiMediaToModel(item));
+    return media ? media.map((item) => mapApiMediaToModel(item)) : [];
   }
 
   /**
