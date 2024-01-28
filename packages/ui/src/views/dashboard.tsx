@@ -82,7 +82,6 @@ export function Dashboard({toolbar, routes, router, drawerOpen = true, children}
               {route.icon}
             </IconButton>
           )}
-          {toolbar.tertiary?.length > 1 || (toolbar.tertiary?.length === 1 && toolbar.tertiary[0].slug !== 'search-input') ? <NewItemsMenuButton router={router} routes={toolbar.tertiary} /> : null}
           <ProfileButton profile={profile} router={router} routes={toolbar.secondary ?? []} />
         </Toolbar>
       </AppBar>

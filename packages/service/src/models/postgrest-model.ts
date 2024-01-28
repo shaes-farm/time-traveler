@@ -7,7 +7,7 @@ export interface PostgrestPeriod {
   summary?: string;
   begin_date: string;
   end_date: string;
-  timelines?: Partial<PostgrestTimeline>[];
+  timelines?: PostgrestTimeline[];
 }
 
 export interface PostgrestTimeline {
@@ -17,8 +17,8 @@ export interface PostgrestTimeline {
   scale?: string;
   begin_date: string;
   end_date: string;
-  historical_events?: Partial<PostgrestHistoricalEvent>[];
-  periods?: Partial<PostgrestPeriod>[];
+  historical_events?: PostgrestHistoricalEvent[];
+  periods?: PostgrestPeriod[];
 }
 
 export interface PostgrestHistoricalEvent {
@@ -26,29 +26,29 @@ export interface PostgrestHistoricalEvent {
   title: string;
   summary: string;
   detail: string;
-  categories?: Partial<PostgrestCategory>[];
+  categories?: PostgrestCategory[];
   importance: number;
   location: string;
   begin_date: string;
   end_date: string;
-  media?: Partial<PostgrestMedia>[];
-  timelines?: Partial<PostgrestTimeline>[];
+  media?: PostgrestMedia[];
+  timelines?: PostgrestTimeline[];
 }
 
 export interface PostgrestCategory {
   slug: string;
   title: string;
-  events?: Partial<PostgrestHistoricalEvent>[];
+  events?: PostgrestHistoricalEvent[];
 }
 
 export interface PostgrestMedia {
   slug: string;
-  alternativetext: string;
-  caption: string;
+  alternativetext?: string;
+  caption?: string;
   url:string;
-  width: number;
-  height: number;
-  formats: string;
+  width?: number;
+  height?: number;
+  formats?: string;
 }
 
 export interface ModelResult<Type> {

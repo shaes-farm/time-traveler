@@ -93,7 +93,7 @@ create table media (
     slug varchar(100) not null,
     alternativetext text,
     caption text,
-    url varchar(2000),
+    url varchar(2000) not null,
     width integer,
     height integer,
     formats text,

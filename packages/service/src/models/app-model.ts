@@ -2,7 +2,7 @@ export interface Media {
   slug: string;
   alternativeText?: string;
   caption?: string;
-  url?:string;
+  url:string;
   width?: number;
   height?: number;
   formats?: string;
