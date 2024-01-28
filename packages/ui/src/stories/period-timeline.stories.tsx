@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { PeriodTimelines } from '../views';
+import { PeriodTimeline } from '../views';
 import { periods } from './periods';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction#default-export
-const meta: Meta<typeof PeriodTimelines> = {
-  title: 'Views/PeriodTimelines',
-  component: PeriodTimelines,
+const meta: Meta<typeof PeriodTimeline> = {
+  title: 'Views/PeriodTimeline',
+  component: PeriodTimeline,
   parameters: {
     // Optional parameter to center the component in the Canvas. More info: https://storybook.js.org/docs/react/configure/story-layout
     layout: 'centered',

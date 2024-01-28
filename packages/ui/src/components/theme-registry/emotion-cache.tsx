@@ -1,5 +1,5 @@
 'use client';
-import * as React from 'react';
+import {useState} from 'react';
 import createCache from '@emotion/cache';
 import {useServerInsertedHTML} from 'next/navigation';
 import {CacheProvider as DefaultCacheProvider} from '@emotion/react';
@@ -16,11 +16,17 @@ export interface NextAppDirEmotionCacheProviderProps {
   children: React.ReactNode;
 };
 
+interface CacheItem {
+  name: string;
+  isGlobal: boolean;
+}
+
 // Adapted from https://github.com/garronej/tss-react/blob/main/src/next/appDir.tsx
 export function NextAppDirEmotionCacheProvider(props: NextAppDirEmotionCacheProviderProps): JSX.Element {
   const { options, CacheProvider = DefaultCacheProvider, children } = props;
 
-  const [registry] = React.useState(() => {
+  // eslint-disable-next-line react/hook-use-state -- mui example
+  const [registry] = useState(() => {
     const cache = createCache(options);
     cache.compat = true;
     // eslint-disable-next-line @typescript-eslint/unbound-method -- it works, don't fix it
@@ -37,7 +43,7 @@ export function NextAppDirEmotionCacheProvider(props: NextAppDirEmotionCacheProv
       }
       return prevInsert(...args);
     };
-    const flush = () => {
+    const flush = (): CacheItem[] => {
       const prevInserted = inserted;
       inserted = [];
       return prevInserted;

@@ -1,4 +1,4 @@
-import {Container} from '@mui/material';
+import { Container } from '@mui/material';
 import {
   Breadcrumbs,
   Footer,
@@ -7,16 +7,28 @@ import {
 import {
   TimelineCard,
 } from '../views';
-import {config} from './config';
-import {timeline} from './timeline';
+import { config } from './config';
+import { timeline } from './timeline';
+
+const {
+  app: {
+    title,
+    description,
+    copyright: {
+      year,
+      url,
+      holder,
+    }
+  }
+} = config;
 
 const headerMenu = [{
   label: 'home',
   route: '/',
-},{
+}, {
   label: 'about',
   route: '/about',
-},{
+}, {
   label: 'contact',
   route: '/contact',
 }];
@@ -24,10 +36,10 @@ const headerMenu = [{
 const footerMenu = [{
   label: 'disclaimer',
   route: '/disclaimer',
-},{
+}, {
   label: 'privacy policy',
   route: '/privacy',
-},{
+}, {
   label: 'terms of use',
   route: '/terms',
 }];
@@ -35,7 +47,11 @@ const footerMenu = [{
 export function Page(): JSX.Element {
   return (
     <Container maxWidth="lg" sx={{ m: 'auto' }}>
-      <Header app={config.app} menu={headerMenu} />
+      <Header
+        description={description}
+        menu={headerMenu}
+        title={title}
+      />
       <Breadcrumbs crumbs={[
         {
           link: config.app.baseUrl,
@@ -50,9 +66,15 @@ export function Page(): JSX.Element {
         },
       ]} />
       <main>
-        <TimelineCard timeline={timeline} />
+        <TimelineCard onSelect={(/* slug: string */) => {/* TODO */}} timeline={timeline} />
       </main>
-      <Footer app={config.app} menu={footerMenu} />
+      <Footer
+        holder={holder}
+        menu={footerMenu}
+        url={url}
+        year={year}
+      />
+
     </Container>
   );
 };

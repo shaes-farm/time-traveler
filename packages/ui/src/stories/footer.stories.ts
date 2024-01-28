@@ -2,7 +2,13 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { Footer } from '../components/footer';
 import { config } from './config';
 
-const {app} = config;
+const {app: {
+  copyright: {
+    year,
+    url,
+    holder,
+  }
+}} = config;
 
 const menu = [{
   label: 'disclaimer',
@@ -33,7 +39,9 @@ type Story = StoryObj<typeof meta>;
 // More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
 export const Default: Story = {
   args: {
-    app,
+    holder,
     menu,
+    url,
+    year,
   },
 };

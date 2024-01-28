@@ -5,7 +5,13 @@ import '@testing-library/jest-dom';
 import {config} from '../../stories/config';
 import {Footer} from '../footer';
 
-const {app} = config;
+const {app: {
+  copyright: {
+    year,
+    url,
+    holder,
+  }
+}} = config;
 
 const menu = [{
   label: 'home',
@@ -20,7 +26,14 @@ const menu = [{
 
 describe('Footer component', () => {
   test('displays the footer', () => {
-    render(<Footer app={app} menu={menu} />);
+    render(
+      <Footer
+        holder={holder}
+        menu={menu}
+        url={url}
+        year={year}
+      />
+    );
   
     // await userEvent.click(screen.getByText('home'))
     // await screen.findByRole('heading')

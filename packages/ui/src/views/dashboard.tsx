@@ -13,7 +13,6 @@ import {Nav} from '../components/nav';
 import {SearchInput} from '../components/search-input';
 import {useProfile} from '../providers/profile';
 import {ProfileButton} from '../components/profile-button';
-import {NewItemsMenuButton} from '../components/new-items-menu-button';
 
 export interface DashboardProps {
   /**
