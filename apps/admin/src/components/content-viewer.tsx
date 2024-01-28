@@ -2,10 +2,10 @@
 import React from 'react';
 import {useRouter} from 'next/navigation';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   Box,
   Button,
-  Link,
   Typography,
   Unstable_Grid2 as Grid2
 } from '@mui/material';
@@ -23,12 +23,14 @@ export function ContentViewer({title, count, createLink, children}: ContentViewe
     <Box sx={{ p: '1em', mt: '3em', width: '100%' }}>
       <Grid2 container>
         <Grid2 md={6} sm={12}>
-          <Link href="#" onClick={() => {router.back()}}>&lt;&nbsp;Back</Link>
+          <Button aria-label="back" onClick={() => {router.back()}}>
+            <ArrowBackIcon />&nbsp;Back
+          </Button>
           <Typography color="text.primary" variant="h2">
             {title}
           </Typography>
-          <Typography color="text.secondary" variant="body1">
-            {`${count ?? 'No'} entries found`}
+          <Typography color="text.secondary" variant="body2">
+            {`${count ? count : 'No'} entries found`}
           </Typography>
         </Grid2>
         <Grid2 md={6}>
