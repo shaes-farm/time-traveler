@@ -43,12 +43,12 @@ export interface PostgrestCategory {
 
 export interface PostgrestMedia {
   slug: string;
-  alternative_text: string;
+  alternativetext: string;
   caption: string;
   url:string;
   width: number;
   height: number;
-  formats: object;
+  formats: string;
 }
 
 export interface ModelResult<Type> {

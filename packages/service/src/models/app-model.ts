@@ -5,7 +5,7 @@ export interface Media {
   url?:string;
   width?: number;
   height?: number;
-  formats?: object;
+  formats?: string;
 }
 
 export enum Importance {

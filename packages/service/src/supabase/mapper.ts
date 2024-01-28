@@ -85,7 +85,7 @@ export const mapApiCategoryToModel = ({
 
 export const mapApiMediaToModel = ({
   slug,
-  alternative_text: alternativeText,
+  alternativetext: alternativeText,
   caption,
   url,
   width,
