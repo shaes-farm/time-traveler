@@ -90,8 +90,4 @@ export const toolBarRoutes: NavRoutes = {
     label: 'Logout',
     page: '#',
   }],
-  tertiary: [{
-    slug: 'search-input',
-    page: '/search',
-  }],
 };

@@ -1,4 +1,5 @@
 import getConfig from 'next/config';
+import {notFound} from 'next/navigation';
 import { fetchFactory } from 'service';
 import type { NextConfig } from '../../../types';
 import { ContentEditor, PeriodForm } from '../../../components';
@@ -14,11 +15,24 @@ const {
 
 const f = fetchFactory(backend, baseUrl);
 
-export default async function Page(): Promise<JSX.Element> {
+interface PageProps {
+  params: {
+    slug: string;
+  }
+}
+
+export default async function Page(props: PageProps): Promise<JSX.Element> {
+  const { params: { slug } } = props;
   const timelines = await f.getTimelines();
+  const period = await f.getPeriod(slug);
+
+  if (!period) {
+    notFound();
+  }
+
   return (
-    <ContentEditor title="Create a Period">
-      <PeriodForm mode="create" timelines={timelines} />
+    <ContentEditor title="Edit a Period">
+      <PeriodForm mode="edit" period={period} timelines={timelines} />
     </ContentEditor>
   );
 }

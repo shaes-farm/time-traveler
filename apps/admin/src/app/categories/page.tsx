@@ -1,7 +1,7 @@
 import getConfig from 'next/config';
 import {fetchFactory} from 'service';
 import type {NextConfig} from '../../types';
-import {CategoryList, ContentEditor} from '../../components';
+import {CategoryListView} from '../../views';
 
 const {
   serverRuntimeConfig: {
@@ -16,10 +16,12 @@ const f = fetchFactory(backend, baseUrl);
 
 export default async function Page(): Promise<JSX.Element> {
   const categories = await f.getCategories();
-
   return (
-    <ContentEditor count={categories.length} createNewLink="/categories/create" title="Categories">
-      <CategoryList categories={categories} />
-    </ContentEditor>
+    <CategoryListView
+      categories={categories}
+      createLink="/categories/create"
+      deleteLink="/categories/[slug]/delete"
+      editLink="/categories/[slug]"
+    />
   );
 }

@@ -1,7 +1,7 @@
 import getConfig from 'next/config';
 import {fetchFactory} from 'service';
 import type {NextConfig} from '../../types';
-import {ContentEditor, MediaList} from '../../components';
+import {MediaListView} from '../../views';
 
 const {
   serverRuntimeConfig: {
@@ -16,10 +16,12 @@ const f = fetchFactory(backend, baseUrl);
 
 export default async function Page(): Promise<JSX.Element> {
   const media = await f.getMedia();
-
   return (
-    <ContentEditor count={media.length} createNewLink="/media/create" title="Media Library">
-      <MediaList media={media} />
-    </ContentEditor>
+    <MediaListView
+      createLink="/media/create"
+      deleteLink="/media/[slug]/delete"
+      editLink="/media/[slug]"
+      media={media}
+    />
   );
 }

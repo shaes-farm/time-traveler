@@ -1,7 +1,7 @@
 import getConfig from 'next/config';
 import { fetchFactory } from 'service';
 import type { NextConfig } from '../../types';
-import { ContentEditor, PeriodList } from '../../components';
+import { PeriodListView } from '../../views';
 
 const {
   serverRuntimeConfig: {
@@ -17,8 +17,11 @@ const f = fetchFactory(backend, baseUrl);
 export default async function Page(): Promise<JSX.Element> {
   const periods = await f.getPeriods();
   return (
-    <ContentEditor count={periods.length} createNewLink="/periods/create" title="Periods">
-      <PeriodList periods={periods} />
-    </ContentEditor>
+    <PeriodListView
+      createLink="/periods/create"
+      deleteLink="/periods/[slug]/delete"
+      editLink="/periods/[slug]"
+      periods={periods}
+    />
   );
 }

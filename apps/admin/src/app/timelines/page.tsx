@@ -1,7 +1,7 @@
 import getConfig from 'next/config';
 import {fetchFactory} from 'service';
 import type {NextConfig} from '../../types';
-import {ContentEditor, TimelineList} from '../../components';
+import {TimelineListView} from '../../views';
 
 const {
   serverRuntimeConfig: {
@@ -16,14 +16,12 @@ const f = fetchFactory(backend, baseUrl);
 
 export default async function Page(): Promise<JSX.Element> {
   const timelines = await f.getTimelines();
-
   return (
-    <ContentEditor
-      count={timelines.length}
-      createNewLink="/timelines/create"
-      title="Timelines"
-    >
-      <TimelineList timelines={timelines} />
-    </ContentEditor>
+    <TimelineListView
+      createLink="/timelines/create"
+      deleteLink="/timelines/[slug]/delete"
+      editLink="/timelines/[slug]"
+      timelines={timelines}
+    />
   );
 }

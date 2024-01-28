@@ -7,10 +7,7 @@ import {
   Box,
   Button,
   Divider,
-  FormControl,
   Grid,
-  InputLabel,
-  Select,
   TextField,
   Typography,
 } from '@mui/material';
@@ -21,62 +18,73 @@ import type {
   Period,
   Timeline,
 } from 'service';
-
-const validationSchema = yup.object({
-  email: yup
-    .string(/* 'Enter your email' */)
-    .email('Enter a valid email')
-    .required('Email is required'),
-  password: yup
-    .string(/* 'Enter your password' */)
-    .min(8, 'Password should be of minimum 8 characters length')
-    .required('Password is required'),
-});
+import {TransferList} from './transfer-list';
 
 const { log } = console;
+
+const validationSchema = yup.object({
+  title: yup
+    .string()
+    .min(3, 'Title should be a minimum of 3 characters long')
+    .required('Title is required'),
+  slug: yup
+    .string()
+    .required('Slug is required'),
+  summary: yup
+    .string(),
+  beginDate: yup
+    .string()
+    .required('Begin date is required.'),
+  endDate: yup
+    .string()
+    .required('End date is required'),
+});
 
 interface PeriodFormProps {
   mode: 'create' | 'edit';
   period?: Period;
-  timelines?: Timeline[];
-  onDelete?: (period?: Period) => void;
+  timelines?: readonly Timeline[];
   onCreate?: (period: Period) => void;
   onUpdate?: (period: Period) => void;
 }
 
-export function PeriodForm({ mode, period, timelines, onCreate, onDelete }: PeriodFormProps): JSX.Element {
+export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: PeriodFormProps): JSX.Element {
   const router = useRouter();
+
+  const initialValues: Period = (mode === 'edit' && period) ? period : {
+    title: '',
+    slug: '',
+    summary: '',
+    beginDate: '',
+    endDate: '',
+    timelines: [],
+  };
+
   const formik = useFormik({
-    initialValues: {
-      title: '',
-      slug: '',
-      summary: '',
-      beginDate: '',
-      endDate: '',
-      timelines: [],
-    },
+    initialValues,
     validationSchema,
     onSubmit: (values) => {
-      // const {title, slug, summary, beginDate, endDate, timelines} = values;
-      log(JSON.stringify(values, null, 2));
-      onCreate?.(values);
+      mode === 'create' ? onCreate?.(values) : onUpdate?.(values);
     },
   });
-
-  const handleChangeMultiple = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const { options } = event.target;
-    const value: string[] = [];
-    for (let i = 0, l = options.length; i < l; i += 1) {
-      if (options[i].selected) {
-        value.push(options[i].value);
-      }
-    }
-    log(value);
-  };
 
   return (
     <Form onSubmit={formik.handleSubmit}>
       <Grid container spacing={2} sx={{ width: "100%", mx: "auto" }}>
+        <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
+          <Grid display="flex" item xs={12}>
+            <Typography color="text.secondary" sx={{mb: '1em'}} variant="caption">
+                URL slug: {formik.values.slug}
+            </Typography>
+          </Grid>
+          <Box sx={{ flex: '1 1 auto' }} />
+          <Button onClick={() => {router.back()}} sx={{ ml: 2 }} variant='outlined'>
+            Cancel
+          </Button>
+          <Button sx={{ ml: 2 }} type="submit" variant='contained'>
+            Save
+          </Button>
+        </Grid>
         <Grid display="flex" item xs={12}>
           <TextField
             fullWidth
@@ -91,6 +99,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onDelete }: Peri
         <Grid display="flex" item xs={12}>
           <TextField
             fullWidth
+            hidden
             id="slug"
             label="Slug"
             name="slug"
@@ -120,7 +129,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onDelete }: Peri
         <Grid item xs={12}>
           <TextField
             fullWidth
-            id="beginDate"
+            id="begin-date"
             label="Begin Date"
             name="beginDate"
             onChange={formik.handleChange}
@@ -130,7 +139,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onDelete }: Peri
         <Grid item xs={12}>
           <TextField
             fullWidth
-            id="endDate"
+            id="end-date"
             label="End Date"
             name="endDate"
             onChange={formik.handleChange}
@@ -143,69 +152,12 @@ export function PeriodForm({ mode, period, timelines, onCreate, onDelete }: Peri
             Timelines
           </Typography>
         </Grid>
-        <Grid item md={6} xs={12}>
-          <FormControl sx={{ m: 1, minWidth: 120, maxWidth: 300 }}>
-            <InputLabel htmlFor="select-multiple-added" shrink>
-              Added ({timelines?.length ?? 0})
-            </InputLabel>
-            <Select
-              inputProps={{
-                id: 'select-multiple-added',
-              }}
-              label={`Added (${timelines?.length ?? 0})`}
-              multiple
-              native
-              // @ts-expect-error Typings are not considering `native`
-              onChange={handleChangeMultiple}
-              value={formik.values.timelines}
-            >
-              {period?.timelines.map((timeline) => (
-                <option key={timeline.slug} value={timeline.title}>
-                  {timeline.title}
-                </option>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item md={1} xs={12}>
-          <Button variant="outlined">&lt;</Button>
-          &nbsp;
-          <Button variant="outlined">&gt;</Button>
-        </Grid>
-        <Grid item md={5} xs={12}>
-          <FormControl sx={{ m: 1, minWidth: 120, maxWidth: 300 }}>
-            <InputLabel htmlFor="select-multiple-available" shrink>
-              Available ({timelines?.length ?? 0})
-            </InputLabel>
-            <Select
-              inputProps={{
-                id: 'select-multiple-available',
-              }}
-              label={`Available (${timelines?.length ?? 0})`}
-              multiple
-              native
-              // @ts-expect-error Typings are not considering `native`
-              onChange={handleChangeMultiple}
-            >
-              {timelines?.map((timeline) => (
-                <option key={timeline.slug} value={timeline.title}>
-                  {timeline.title}
-                </option>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
-          {(mode !== 'create' && period) ? <Button color='error' onClick={() => onDelete?.(period)} variant='outlined'>
-            Delete
-          </Button> : null}
-          <Box sx={{ flex: '1 1 auto' }} />
-          <Button onClick={() => {router.back()}} sx={{ ml: 2 }} variant='outlined'>
-            Cancel
-          </Button>
-          <Button sx={{ ml: 2 }} type="submit" variant='contained'>
-            Save
-          </Button>
+        <Grid item xs={12}>
+          <TransferList
+            available={timelines ?? []}
+            items={formik.values.timelines}
+            onChange={(t) => {log({t})}}
+          />
         </Grid>
       </Grid>
     </Form>
