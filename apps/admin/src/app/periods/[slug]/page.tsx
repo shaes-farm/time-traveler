@@ -2,7 +2,8 @@ import getConfig from 'next/config';
 import {notFound} from 'next/navigation';
 import { fetchFactory } from 'service';
 import type { NextConfig } from '../../../types';
-import { ContentEditor, PeriodForm } from '../../../components';
+import { ContentEditor } from '../../../components';
+import { PeriodFormView } from '../../../views';
 
 const {
   serverRuntimeConfig: {
@@ -23,16 +24,21 @@ interface PageProps {
 
 export default async function Page(props: PageProps): Promise<JSX.Element> {
   const { params: { slug } } = props;
-  const timelines = await f.getTimelines();
   const period = await f.getPeriod(slug);
 
   if (!period) {
     notFound();
   }
 
+  const timelines = await f.getTimelines();
+
   return (
     <ContentEditor title="Edit a Period">
-      <PeriodForm mode="edit" period={period} timelines={timelines} />
+      <PeriodFormView
+        mode="edit"
+        period={period}
+        timelines={timelines}
+      />
     </ContentEditor>
   );
 }

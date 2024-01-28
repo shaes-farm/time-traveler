@@ -18,7 +18,7 @@ import type {
   Period,
   Timeline,
 } from 'service';
-import {TransferList} from './transfer-list';
+import {TransferList} from '../components/transfer-list';
 
 const { log } = console;
 
@@ -40,7 +40,7 @@ const validationSchema = yup.object({
     .required('End date is required'),
 });
 
-interface PeriodFormProps {
+interface PeriodFormViewProps {
   mode: 'create' | 'edit';
   period?: Period;
   timelines?: readonly Timeline[];
@@ -48,7 +48,7 @@ interface PeriodFormProps {
   onUpdate?: (period: Period) => void;
 }
 
-export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: PeriodFormProps): JSX.Element {
+export function PeriodFormView({ mode, period, timelines, onCreate, onUpdate }: PeriodFormViewProps): JSX.Element {
   const router = useRouter();
 
   const initialValues: Period = (mode === 'edit' && period) ? period : {
@@ -74,7 +74,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
         <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
           <Grid display="flex" item xs={12}>
             <Typography color="text.secondary" sx={{mb: '1em'}} variant="caption">
-                URL slug: {formik.values.slug}
+                URL: {`/periods/${formik.values.slug}`}
             </Typography>
           </Grid>
           <Box sx={{ flex: '1 1 auto' }} />
@@ -126,7 +126,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
             Date Range
           </Typography>
         </Grid>
-        <Grid item xs={12}>
+        <Grid item sm={6} xs={12}>
           <TextField
             fullWidth
             id="begin-date"
@@ -136,7 +136,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
             value={formik.values.beginDate}
           />
         </Grid>
-        <Grid item xs={12}>
+        <Grid item sm={6} xs={12}>
           <TextField
             fullWidth
             id="end-date"
