@@ -1,6 +1,6 @@
 import {Analytics} from '@vercel/analytics/react';
 import getConfig from 'next/config';
-import type {Metadata} from 'next'
+import type {Metadata} from 'next';
 import {ThemeRegistry} from 'ui';
 import type {NextConfig} from '../types';
 import {DashboardLayout} from '../layouts';
