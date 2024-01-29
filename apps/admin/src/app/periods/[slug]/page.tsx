@@ -3,7 +3,7 @@ import {notFound} from 'next/navigation';
 import { fetchFactory } from 'service';
 import type { NextConfig } from '../../../types';
 import { ContentEditor } from '../../../components';
-import { PeriodFormView } from '../../../views';
+import { PeriodForm } from '../../../forms';
 
 const {
   serverRuntimeConfig: {
@@ -34,7 +34,7 @@ export default async function Page(props: PageProps): Promise<JSX.Element> {
 
   return (
     <ContentEditor title="Edit a Period">
-      <PeriodFormView
+      <PeriodForm
         mode="edit"
         period={period}
         timelines={timelines}

@@ -2,7 +2,7 @@ import getConfig from 'next/config';
 import { fetchFactory } from 'service';
 import type { NextConfig } from '../../../types';
 import { ContentEditor } from '../../../components';
-import { PeriodFormView } from '../../../views';
+import { PeriodForm } from '../../../forms';
 
 const {
   serverRuntimeConfig: {
@@ -19,7 +19,7 @@ export default async function Page(): Promise<JSX.Element> {
   const timelines = await f.getTimelines();
   return (
     <ContentEditor title="Create a Period">
-      <PeriodFormView
+      <PeriodForm
         mode="create"
         timelines={timelines}
       />

@@ -40,7 +40,7 @@ const validationSchema = yup.object({
     .required('End date is required'),
 });
 
-interface PeriodFormViewProps {
+interface PeriodFormProps {
   mode: 'create' | 'edit';
   period?: Period;
   timelines?: readonly Timeline[];
@@ -48,7 +48,7 @@ interface PeriodFormViewProps {
   onUpdate?: (period: Period) => void;
 }
 
-export function PeriodFormView({ mode, period, timelines, onCreate, onUpdate }: PeriodFormViewProps): JSX.Element {
+export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: PeriodFormProps): JSX.Element {
   const router = useRouter();
 
   const initialValues: Period = (mode === 'edit' && period) ? period : {
