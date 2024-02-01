@@ -3,6 +3,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
+import SaveIcon from '@mui/icons-material/Save';
 import {
   Box,
   Button,
@@ -38,6 +39,8 @@ const validationSchema = yup.object({
   endDate: yup
     .string()
     .required('End date is required'),
+  timelines: yup
+    .array(),
 });
 
 interface PeriodFormProps {
@@ -61,7 +64,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
   };
 
   const formik = useFormik({
-    initialValues,
+        initialValues,
     validationSchema,
     onSubmit: (values) => {
       mode === 'create' ? onCreate?.(values) : onUpdate?.(values);
@@ -81,7 +84,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
           <Button onClick={() => {router.back()}} sx={{ ml: 2 }} variant='outlined'>
             Cancel
           </Button>
-          <Button sx={{ ml: 2 }} type="submit" variant='contained'>
+          <Button startIcon={<SaveIcon />} sx={{ ml: 2 }} type="submit" variant='contained'>
             Save
           </Button>
         </Grid>
