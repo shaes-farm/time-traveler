@@ -66,14 +66,14 @@ export class SupabaseFetch implements Fetch {
    * @returns A Period object if found, otherwise null.
    */
   async getPeriod(slug: string): Promise<Period | null> {
-    debug({slug});
+    debug({ slug });
     const { data, error } = await this.supabase.from('periods').select(`
         slug,
         title,
         summary,
         begin_date,
         end_date,
-        timelines (
+        timelines!period_timelines (
             slug,
             title,
             summary,
@@ -81,8 +81,8 @@ export class SupabaseFetch implements Fetch {
             end_date
         )
     `)
-    .eq('slug', slug)
-    .maybeSingle();
+      .eq('slug', slug)
+      .maybeSingle();
     if (error) throw error;
     const period = data as PostgrestPeriod | null;
     debug({ period: JSON.stringify(period, null, 2) });
@@ -104,7 +104,7 @@ export class SupabaseFetch implements Fetch {
       end_date
     `);
     if (error) throw error;
-    debug({data});
+    debug({ data });
     const timelines = data as PostgrestTimeline[];
     debug({ timelines: JSON.stringify(timelines, null, 2) });
     return timelines.map((timeline) => mapApiTimelineToModel(timeline));
@@ -145,14 +145,10 @@ export class SupabaseFetch implements Fetch {
       .order('begin_date')
       .maybeSingle();
 
-    type TimelineEvents = QueryData<typeof timelineQuery>;
-
     const { data, error } = await timelineQuery;
-
     if (error) throw error;
-
+    type TimelineEvents = QueryData<typeof timelineQuery>;
     const timeline: TimelineEvents | null = data;
-
     debug({ timeline: JSON.stringify(timeline, null, 2) });
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment -- fix this
@@ -177,7 +173,7 @@ export class SupabaseFetch implements Fetch {
       end_date
     `);
     if (error) throw error;
-    debug({data});
+    debug({ data });
     const events = data as PostgrestHistoricalEvent[];
     debug({ events: JSON.stringify(events, null, 2) });
     return events.map((event) => mapApiEventToModel(event));
@@ -189,7 +185,53 @@ export class SupabaseFetch implements Fetch {
    * @returns An event object if found, otherwise null.
    */
   async getEvent(slug: string): Promise<HistoricalEvent | null> {
-    return new Promise(resolve => { debug({ slug }); resolve(null); });
+    debug({ slug });
+    const eventQuery = this.supabase
+      .from('historical_events')
+      .select(`
+            slug,
+            title,
+            summary,
+            detail,
+            location,
+            importance,
+            begin_date,
+            end_date,
+            timelines!timeline_events (
+              slug,
+              title,
+              summary,
+              scale,
+              begin_date,
+              end_date
+            ),
+            media!event_media (
+              slug,
+              alternativetext,
+              caption,
+              url,
+              width,
+              height,
+              formats
+            ),
+            categories!event_categories (
+              slug,
+              title
+            )
+        `)
+      .eq('slug', slug)
+      .order('begin_date')
+      .maybeSingle();
+
+    const { data, error } = await eventQuery;
+    if (error) throw error;
+    type HistoricalEventData = QueryData<typeof eventQuery>;
+    const event: HistoricalEventData | null = data;
+    debug({ event: JSON.stringify(event, null, 2) });
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment -- fix this
+    // @ts-expect-error
+    return event ? mapApiEventToModel(event) : null;
   }
 
   /**
@@ -203,7 +245,7 @@ export class SupabaseFetch implements Fetch {
       title
     `);
     if (error) throw error;
-    debug({data});
+    debug({ data });
     const categories = data as PostgrestCategory[];
     debug({ categories: JSON.stringify(categories, null, 2) });
     return categories.map((category) => mapApiCategoryToModel(category));
@@ -215,7 +257,24 @@ export class SupabaseFetch implements Fetch {
    * @returns An category object if found, otherwise null.
    */
   async getCategory(slug: string): Promise<Category | null> {
-    return new Promise(resolve => { debug({ slug }); resolve(null); });
+    debug({ slug });
+    const { data, error } = await this.supabase.from('categories').select(`
+        slug,
+        title,
+        historical_events!event_categories (
+            slug,
+            title,
+            summary,
+            begin_date,
+            end_date
+        )
+      `)
+      .eq('slug', slug)
+      .maybeSingle();
+    if (error) throw error;
+    const category = data as PostgrestPeriod | null;
+    debug({ category: JSON.stringify(category, null, 2) });
+    return category ? mapApiCategoryToModel(category) : null;
   }
 
   /**
@@ -234,7 +293,7 @@ export class SupabaseFetch implements Fetch {
       formats
       `);
     if (error) throw error;
-    debug({data});
+    debug({ data });
     const media = data as PostgrestMedia[] | null;
     debug({ media: JSON.stringify(media, null, 2) });
     return media ? media.map((item) => mapApiMediaToModel(item)) : [];
@@ -246,7 +305,22 @@ export class SupabaseFetch implements Fetch {
    * @returns An media object if found, otherwise null.
    */
   async getMediaItem(slug: string): Promise<Media | null> {
-    return new Promise(resolve => { debug({ slug }); resolve(null); });
+    debug({ slug });
+    const { data, error } = await this.supabase.from('media').select(`
+        slug,
+        alternativetext,
+        caption,
+        url,
+        width,
+        height,
+        formats
+      `)
+      .eq('slug', slug)
+      .maybeSingle();
+    if (error) throw error;
+    const media = data as PostgrestMedia | null;
+    debug({ media: JSON.stringify(media, null, 2) });
+    return media ? mapApiMediaToModel(media) : null;
   }
 
 };
