@@ -104,7 +104,6 @@ export class SupabaseFetch implements Fetch {
       end_date
     `);
     if (error) throw error;
-    debug({ data });
     const timelines = data as PostgrestTimeline[];
     debug({ timelines: JSON.stringify(timelines, null, 2) });
     return timelines.map((timeline) => mapApiTimelineToModel(timeline));
@@ -245,7 +244,6 @@ export class SupabaseFetch implements Fetch {
       title
     `);
     if (error) throw error;
-    debug({ data });
     const categories = data as PostgrestCategory[];
     debug({ categories: JSON.stringify(categories, null, 2) });
     return categories.map((category) => mapApiCategoryToModel(category));
@@ -293,7 +291,6 @@ export class SupabaseFetch implements Fetch {
       formats
       `);
     if (error) throw error;
-    debug({ data });
     const media = data as PostgrestMedia[] | null;
     debug({ media: JSON.stringify(media, null, 2) });
     return media ? media.map((item) => mapApiMediaToModel(item)) : [];
