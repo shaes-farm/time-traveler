@@ -4,6 +4,7 @@
     "description": "Administration",
     "version": "1.0.0",
     "baseUrl": "http://localhost:3000",
+    "basePath": "/",
     "icon": "",
     "logo": {
       "main": "",
