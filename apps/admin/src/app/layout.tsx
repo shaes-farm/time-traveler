@@ -3,7 +3,6 @@ import getConfig from 'next/config';
 import type {Metadata} from 'next';
 import {ThemeRegistry} from 'ui';
 import type {NextConfig} from '../types';
-import {DashboardLayout} from '../layouts';
 
 const { 
   publicRuntimeConfig: {
@@ -11,7 +10,6 @@ const {
       copyright: {
         holder: name,
         url,
-        year,
       },
       description,
       title,
@@ -38,9 +36,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ThemeRegistry>
-          <DashboardLayout name={name} url={url} year={year}>
-            {children}
-          </DashboardLayout>
+          {children}
         </ThemeRegistry>
         <Analytics />
       </body>
