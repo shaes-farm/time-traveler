@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents -- generated file*/
 export type Json =
   | string
   | number
@@ -182,7 +181,7 @@ export interface Database {
           id: number
           slug: string
           updated_at: string | null
-          url: string | null
+          url: string
           width: number | null
         }
         Insert: {
@@ -194,7 +193,7 @@ export interface Database {
           id?: never
           slug: string
           updated_at?: string | null
-          url?: string | null
+          url: string
           width?: number | null
         }
         Update: {
@@ -206,7 +205,7 @@ export interface Database {
           id?: never
           slug?: string
           updated_at?: string | null
-          url?: string | null
+          url?: string
           width?: number | null
         }
         Relationships: []
@@ -273,6 +272,41 @@ export interface Database {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          full_name: string | null
+          id: string
+          updated_at: string | null
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       timeline_events: {
         Row: {
