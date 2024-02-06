@@ -1,10 +1,12 @@
 // component exports
 export * from './alert';
+export * from './auth';
 export * from './app-bar';
 export * from './breadcrumbs';
 export * from './card-buttons';
 export * from './copyright';
 export * from './custom-error';
+export * from './drag-and-drop-upload';
 export * from './drawer';
 export * from './error-card';
 export * from './footer';
