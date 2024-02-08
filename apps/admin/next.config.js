@@ -5,6 +5,9 @@ const debug = require('debug')('admin:next:config');
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['ui', 'service'],
+  experimental: {
+    serverActions: true,
+  },
   publicRuntimeConfig: {
     // Will be available on both server and client
     app: config.get('app'),

@@ -7,7 +7,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '../../utils/supabase/actions'
 import type { NextConfig } from '../../types';
 
-
 const {
   publicRuntimeConfig: {
     app: {
