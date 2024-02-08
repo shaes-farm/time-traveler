@@ -95,14 +95,16 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of Timeline objects.
    */
   async getTimelines(): Promise<Timeline[]> {
-    const { data, error } = await this.supabase.from('timelines').select(`
-      slug,
-      title,
-      summary,
-      scale,
-      begin_date,
-      end_date
-    `);
+    const { data, error } = await this.supabase
+      .from('timelines')
+      .select(`
+        slug,
+        title,
+        summary,
+        scale,
+        begin_date,
+        end_date
+      `);
     if (error) throw error;
     const timelines = data as PostgrestTimeline[];
     debug({ timelines: JSON.stringify(timelines, null, 2) });
@@ -119,27 +121,27 @@ export class SupabaseFetch implements Fetch {
     const timelineQuery = this.supabase
       .from('timelines')
       .select(`
+        slug,
+        title,
+        summary,
+        scale,
+        begin_date,
+        end_date,
+        historical_events!timeline_events (
+          slug,
+          title,
+          summary,
+          detail,
+          location,
+          importance,
+          begin_date,
+          end_date,
+          categories!event_categories (
             slug,
-            title,
-            summary,
-            scale,
-            begin_date,
-            end_date,
-            historical_events!timeline_events (
-                slug,
-                title,
-                summary,
-                detail,
-                location,
-                importance,
-                begin_date,
-                end_date,
-                categories!event_categories (
-                    slug,
-                    title
-                )
-            )
-        `)
+            title
+          )
+        )
+      `)
       .eq('slug', slug)
       .order('begin_date')
       .maybeSingle();
@@ -188,36 +190,36 @@ export class SupabaseFetch implements Fetch {
     const eventQuery = this.supabase
       .from('historical_events')
       .select(`
-            slug,
-            title,
-            summary,
-            detail,
-            location,
-            importance,
-            begin_date,
-            end_date,
-            timelines!timeline_events (
-              slug,
-              title,
-              summary,
-              scale,
-              begin_date,
-              end_date
-            ),
-            media!event_media (
-              slug,
-              alternativetext,
-              caption,
-              url,
-              width,
-              height,
-              formats
-            ),
-            categories!event_categories (
-              slug,
-              title
-            )
-        `)
+        slug,
+        title,
+        summary,
+        detail,
+        location,
+        importance,
+        begin_date,
+        end_date,
+        timelines!timeline_events (
+          slug,
+          title,
+          summary,
+          scale,
+          begin_date,
+          end_date
+        ),
+        media!event_media (
+          slug,
+          alternativetext,
+          caption,
+          url,
+          width,
+          height,
+          formats
+        ),
+        categories!event_categories (
+          slug,
+          title
+        )
+      `)
       .eq('slug', slug)
       .order('begin_date')
       .maybeSingle();
@@ -260,11 +262,11 @@ export class SupabaseFetch implements Fetch {
         slug,
         title,
         historical_events!event_categories (
-            slug,
-            title,
-            summary,
-            begin_date,
-            end_date
+          slug,
+          title,
+          summary,
+          begin_date,
+          end_date
         )
       `)
       .eq('slug', slug)
