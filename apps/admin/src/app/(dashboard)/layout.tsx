@@ -21,7 +21,9 @@ export default function Layout({
 }): JSX.Element {
   return (
     <DashboardLayout name={name} url={url} year={year}>
-      {children}
+      <main>
+        {children}
+      </main>
     </DashboardLayout>
   );
 }
