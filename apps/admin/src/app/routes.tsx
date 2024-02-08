@@ -1,4 +1,3 @@
-/* eslint-disable react/jsx-no-useless-fragment -- its temporary */
 import React from 'react';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AccountBoxOutlinedIcon from '@mui/icons-material/AccountBoxOutlined';
@@ -12,16 +11,14 @@ import PermMediaIcon from '@mui/icons-material/PermMedia';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import SettingsIcon from '@mui/icons-material/Settings';
 import TimelineIcon from '@mui/icons-material/Timeline';
-import type {
-  NavRoutes,
-} from 'ui';
+import type {NavRoutes} from 'ui';
 
 export const mainRoutes: NavRoutes = {
   primary: [{
     slug: 'dashboard',
     icon: <DashboardIcon />,
     label: 'Dashboard',
-    page: '/',
+    page: '/dashboard',
   }],
   secondary: [{
     slug: 'periods',
@@ -68,12 +65,12 @@ export const toolBarRoutes: NavRoutes = {
     slug: 'profile',
     icon: <AccountBoxOutlinedIcon fontSize='small' />,
     label: 'Profile',
-    page: '#',
+    page: '/account',
   },{
     slug: 'preferences',
     icon: <DisplaySettingsIcon fontSize='small' />,
     label: 'Preferences',
-    page: '#',
+    page: '/preferences',
   },{
     slug: 'help',
     icon: <HelpIcon fontSize='small' />,
@@ -81,13 +78,13 @@ export const toolBarRoutes: NavRoutes = {
     page: '#',
   },{
     slug: 'div',
-    icon: <></>,
+    icon: null,
     label: '',
     page: '#',
   },{
     slug: 'signout',
     icon: <PowerSettingsNewIcon fontSize='small' />,
     label: 'Logout',
-    page: '#',
+    page: '/signout',
   }],
 };
