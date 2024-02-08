@@ -22,6 +22,7 @@ export * from './notifications';
 export * from './profile-button';
 export * from './search-input';
 export * from './snack-bar-alert';
+export * from './spinner';
 export * from './theme-registry';
 export * from './vertical-timeline';
 export * from './world-map';
