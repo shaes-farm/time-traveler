@@ -12,13 +12,10 @@ export interface AuthProps extends FormProps {
   subTitle?: React.ReactNode;
   signInUrl: string;
   signIn: (formData: FormData) => Promise<void>;
-  // signIn: (credentials: Credentials) => Promise<void>;
   signUpUrl: string;
   signUp: (formData: FormData) => Promise<void>;
-  // signUp: (info: SignUpInfo) => Promise<void>;
   recoverPasswordUrl: string;
-  recoverPassword: (formData: FormData) => Promise<string>;
-  // recoverPassword: (info: RecoverPasswordInfo) => Promise<string>;
+  recoverPassword: (formData: FormData) => Promise<void>;
 }
 
 /**

@@ -11,14 +11,12 @@ import {
 } from '@mui/material';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
 import {Form} from '../form';
-// import type {SignUpInfo} from './_types';
 
 export interface SignUpFormProps {
   icon?: React.ReactNode;
   title?: React.ReactNode | string;
   subTitle?: React.ReactNode | string;
   signUp: (formData: FormData) => Promise<void>;
-  // signUp: (info: SignUpInfo) => Promise<void>;
   signInUrl: string;
   formProps?: object[];
 }
@@ -31,18 +29,6 @@ export function SignUpForm({
   signInUrl,
   ...formProps
 }: SignUpFormProps): JSX.Element {
-  // const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
-  //   event.preventDefault();
-  //   const data = new FormData(event.currentTarget);
-  //   const info: SignUpInfo = {
-  //     firstName: data.get('firstName')?.toString() ?? '',
-  //     lastName: data.get('lastName')?.toString() ?? '',
-  //     email: data.get('email')?.toString() ?? '',
-  //     password: data.get('password')?.toString() ?? '',
-  //   };
-  //   void signUp(info);
-  // };
-
   return (
     <Box
       sx={{
@@ -63,7 +49,6 @@ export function SignUpForm({
       </Typography>
       <Form
         autoComplete="on"
-        // onSubmit={handleSubmit}
         sx={{ mt: 3 }}
         {...formProps}
       >

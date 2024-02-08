@@ -13,14 +13,12 @@ import {
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import {Form} from '../form';
-// import type {Credentials} from './_types';
 
 export interface PasswordFormProps {
   icon?: React.ReactNode;
   title?: React.ReactNode;
   subTitle?: React.ReactNode;
   signIn: (formData: FormData) => Promise<void>;
-  // signIn: (credentials: Credentials) => Promise<void>;
   signUpUrl: string;
   forgotPasswordUrl: string;
   formProps?: Record<string,unknown>;
@@ -35,17 +33,6 @@ export function PasswordForm({
   forgotPasswordUrl,
   ...formProps
 }: PasswordFormProps): JSX.Element {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    // const data = new FormData(event.currentTarget);
-    // const credentials: Credentials = {
-    //   email: data.get('email')?.toString() ?? '',
-    //   password: data.get('password')?.toString() ?? '',
-    //   remember: Boolean(data.get('remember')),
-    // };
-    void signIn(new FormData(event.currentTarget));
-  };
-
   return (
     <Box
       sx={{
@@ -63,7 +50,7 @@ export function PasswordForm({
       {subTitle ? <Typography align="center" color="primary" component="h3" gutterBottom variant="h5">{subTitle}</Typography> : null}
       <Typography variant="body2">Sign in to continue.</Typography>
       <Form
-        onSubmit={handleSubmit}
+        // onSubmit={handleSubmit}
         sx={{ mt: 1 }}
         {...formProps}
       >
@@ -102,6 +89,8 @@ export function PasswordForm({
           </Grid>
         </Grid>
         <Button
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises -- promise okay
+          formAction={signIn}
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           type="submit"

@@ -17,8 +17,7 @@ export interface RecoverPasswordFormProps {
   icon?: React.ReactNode;
   title?: React.ReactNode;
   subTitle?: React.ReactNode;
-  recoverPassword: (formData: FormData) => Promise<string>
-  // recoverPassword: (info: RecoverPasswordInfo) => Promise<string>
+  recoverPassword: (formData: FormData) => Promise<void>
   signInUrl: string;
   formProps?: object[];
 }
@@ -31,15 +30,6 @@ export function RecoverPasswordForm({
   signInUrl,
   ...formProps
 }: RecoverPasswordFormProps): JSX.Element {
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-    // const data = new FormData(event.currentTarget);
-    // const info: RecoverPasswordInfo = {
-    //   email: data.get('email')?.toString() ?? '',
-    // };
-    void recoverPassword(new FormData(event.currentTarget));
-  };
-
   return (
     <Box
       sx={{
@@ -58,7 +48,7 @@ export function RecoverPasswordForm({
         We will send a magic link to the address below.
       </Typography>
       <Form
-        onSubmit={handleSubmit}
+        // onSubmit={handleSubmit}
         sx={{ mt: 1 }}
         {...formProps}
       >
@@ -76,6 +66,8 @@ export function RecoverPasswordForm({
           </Grid>
         </Grid>
         <Button
+          // eslint-disable-next-line @typescript-eslint/no-misused-promises -- promise okay
+          formAction={recoverPassword}
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           type="submit"
