@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import getConfig from 'next/config';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { createClient } from '../../utils/supabase/actions'
+import { createClient } from '../../utils/supabase/server'
 import type { NextConfig } from '../../types';
 
 const {
@@ -14,41 +14,33 @@ const {
       basePath,
     }
   },
-  serverRuntimeConfig: {
-    api: {
-      baseUrl: apiBaseUrl,
-      key,
-    }
-  }
 } = getConfig() as NextConfig;
 
 export async function login(formData: FormData): Promise<void> {
-  const cookieStore = cookies()
-  const supabase = createClient(apiBaseUrl, key, cookieStore)
+  const supabase = createClient(cookies());
 
   // type-casting here for convenience
-  // in practice, you should validate your inputs
+  // todo: validate inputs
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
-  }
+  };
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { error } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
-    redirect('/error')
+    redirect(`${appBaseUrl}${basePath}/error`);
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
+  revalidatePath(`${appBaseUrl}${basePath}`, 'layout');
+  redirect(`${appBaseUrl}${basePath}`);
 }
 
 export async function signup(formData: FormData): Promise<void> {
-  const cookieStore = cookies()
-  const supabase = createClient(apiBaseUrl, key, cookieStore)
+  const supabase = createClient(cookies());
 
   // type-casting here for convenience
-  // in practice, you should validate your inputs
+  // todo: validate inputs
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
@@ -59,24 +51,23 @@ export async function signup(formData: FormData): Promise<void> {
         last_name: formData.get('lastName') as string
       }
     }
-  }
+  };
 
-  const { error } = await supabase.auth.signUp(data)
+  const { error } = await supabase.auth.signUp(data);
 
   if (error) {
-    redirect('/error')
+    redirect(`${appBaseUrl}${basePath}/error`);
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
+  revalidatePath(`${appBaseUrl}${basePath}`, 'layout');
+  redirect(`${appBaseUrl}${basePath}`);
 }
 
 export async function recover(formData: FormData): Promise<void> {
-    const cookieStore = cookies()
-    const supabase = createClient(apiBaseUrl, key, cookieStore)
+    const supabase = createClient(cookies());
   
     // type-casting here for convenience
-    // in practice, you should validate your inputs
+    // todo: validate inputs
     const email = formData.get('email') as string;
   
     const { error } = await supabase.auth.resetPasswordForEmail(
@@ -85,9 +76,9 @@ export async function recover(formData: FormData): Promise<void> {
     );
   
     if (error) {
-      redirect('/error')
+      redirect(`${appBaseUrl}${basePath}/error`);
     }
   
-    revalidatePath('/', 'layout')
-    redirect('/')
+    revalidatePath(`${appBaseUrl}${basePath}`, 'layout');
+    redirect(`${appBaseUrl}${basePath}`);
   }

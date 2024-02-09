@@ -12,17 +12,10 @@ const {
       basePath,
     }
   },
-  serverRuntimeConfig: {
-    api: {
-      baseUrl: apiBaseUrl,
-      key,
-    }
-  }
 } = getConfig() as NextConfig;
 
 export async function GET(): Promise<NextResponse> {
-  const cookieStore = cookies();
-  const supabase = createClient(apiBaseUrl, key, cookieStore);
+  const supabase = createClient(cookies());
   const redirectTo = new URL(basePath, appBaseUrl);
 
   await supabase.auth.signOut()
