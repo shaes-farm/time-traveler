@@ -276,26 +276,29 @@ export interface Database {
       profiles: {
         Row: {
           avatar_url: string | null
-          full_name: string | null
+          bio: string | null
+          first_name: string
           id: string
+          last_name: string
           updated_at: string | null
-          username: string | null
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
-          full_name?: string | null
+          bio?: string | null
+          first_name: string
           id: string
+          last_name: string
           updated_at?: string | null
-          username?: string | null
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
-          full_name?: string | null
+          bio?: string | null
+          first_name?: string
           id?: string
+          last_name?: string
           updated_at?: string | null
-          username?: string | null
           website?: string | null
         }
         Relationships: [

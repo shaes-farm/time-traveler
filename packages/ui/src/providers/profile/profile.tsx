@@ -1,6 +1,6 @@
 'use client';
 import React, {createContext, useContext} from 'react';
-import type { Profile } from './_types';
+import type { Profile } from 'service';
 
 interface ProfileContextProps {
   profile: Profile;

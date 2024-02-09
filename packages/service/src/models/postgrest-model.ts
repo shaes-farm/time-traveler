@@ -51,6 +51,15 @@ export interface PostgrestMedia {
   formats?: string;
 }
 
+export interface PostgrestProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
+  bio?: string;
+  website?: string;
+  avatar_url?: string;
+}
+
 export interface ModelResult<Type> {
   data: Type;
   error: object;

@@ -3,10 +3,12 @@ import type {
   HistoricalEvent,
   Media,
   Period,
+  Profile,
   PostgrestCategory,
   PostgrestHistoricalEvent,
   PostgrestMedia,
   PostgrestPeriod,
+  PostgrestProfile,
   PostgrestTimeline,
   Timeline,
 } from '../models';
@@ -99,4 +101,20 @@ export const mapApiMediaToModel = ({
   width,
   height,
   formats,
+});
+
+export const mapApiProfileToModel = ({
+  id,
+  first_name: firstName,
+  last_name: lastName,
+  bio,
+  website,
+  avatar_url: avatarUrl,
+}: PostgrestProfile): Profile => ({
+  id,
+  firstName,
+  lastName,
+  bio,
+  website,
+  avatarUrl,
 });

@@ -10,7 +10,9 @@ import type {
   PostgrestHistoricalEvent,
   PostgrestMedia,
   PostgrestPeriod,
+  PostgrestProfile,
   PostgrestTimeline,
+  Profile,
   Timeline,
 } from '../models';
 import type { Fetch } from '../types';
@@ -19,6 +21,7 @@ import {
   mapApiEventToModel,
   mapApiMediaToModel,
   mapApiPeriodToModel,
+  mapApiProfileToModel,
   mapApiTimelineToModel,
 } from './mapper';
 
@@ -40,7 +43,9 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of Period objects.
    */
   async getPeriods(): Promise<Period[]> {
-    const { data, error } = await this.supabase.from('periods').select(`
+    const { data, error } = await this.supabase
+      .from('periods')
+      .select(`
         slug,
         title,
         summary,
@@ -53,7 +58,7 @@ export class SupabaseFetch implements Fetch {
             begin_date,
             end_date
         )
-    `);
+      `);
     if (error) throw error;
     const periods = data as PostgrestPeriod[] | null;
     debug({ periods: JSON.stringify(periods, null, 2) });
@@ -67,7 +72,9 @@ export class SupabaseFetch implements Fetch {
    */
   async getPeriod(slug: string): Promise<Period | null> {
     debug({ slug });
-    const { data, error } = await this.supabase.from('periods').select(`
+    const { data, error } = await this.supabase
+      .from('periods')
+      .select(`
         slug,
         title,
         summary,
@@ -80,7 +87,7 @@ export class SupabaseFetch implements Fetch {
             begin_date,
             end_date
         )
-    `)
+      `)
       .eq('slug', slug)
       .maybeSingle();
     if (error) throw error;
@@ -163,7 +170,9 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of event objects.
    */
   async getEvents(): Promise<HistoricalEvent[]> {
-    const { data, error } = await this.supabase.from('historical_events').select(`
+    const { data, error } = await this.supabase
+    .from('historical_events')
+    .select(`
       slug,
       title,
       summary,
@@ -241,7 +250,9 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of category objects.
    */
   async getCategories(): Promise<Category[]> {
-    const { data, error } = await this.supabase.from('categories').select(`
+    const { data, error } = await this.supabase
+    .from('categories')
+    .select(`
       slug,
       title
     `);
@@ -258,7 +269,9 @@ export class SupabaseFetch implements Fetch {
    */
   async getCategory(slug: string): Promise<Category | null> {
     debug({ slug });
-    const { data, error } = await this.supabase.from('categories').select(`
+    const { data, error } = await this.supabase
+      .from('categories')
+      .select(`
         slug,
         title,
         historical_events!event_categories (
@@ -283,14 +296,16 @@ export class SupabaseFetch implements Fetch {
    * @returns An array of media objects.
    */
   async getMedia(): Promise<Media[]> {
-    const { data, error } = await this.supabase.from('media').select(`
-      slug,
-      alternativetext,
-      caption,
-      url,
-      width,
-      height,
-      formats
+    const { data, error } = await this.supabase
+      .from('media')
+      .select(`
+        slug,
+        alternativetext,
+        caption,
+        url,
+        width,
+        height,
+        formats
       `);
     if (error) throw error;
     const media = data as PostgrestMedia[] | null;
@@ -305,7 +320,9 @@ export class SupabaseFetch implements Fetch {
    */
   async getMediaItem(slug: string): Promise<Media | null> {
     debug({ slug });
-    const { data, error } = await this.supabase.from('media').select(`
+    const { data, error } = await this.supabase
+      .from('media')
+      .select(`
         slug,
         alternativetext,
         caption,
@@ -321,5 +338,29 @@ export class SupabaseFetch implements Fetch {
     debug({ media: JSON.stringify(media, null, 2) });
     return media ? mapApiMediaToModel(media) : null;
   }
+
+  /**
+   * Fetch a user profile by user id.
+   * 
+   * @returns A profile object if found, otherwise null.
+   */
+  async getProfile(id: string): Promise<Profile | null> {
+    const { data, error } = await this.supabase
+      .from('profiles')
+      .select(`
+        id,
+        first_name,
+        last_name,
+        bio,
+        website,
+        avatar_url
+      `)
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    const profile = data as PostgrestProfile | null;
+    debug({profile: JSON.stringify(profile, null, 2) });
+    return profile ? mapApiProfileToModel(profile) : null;
+  }  
 
 };

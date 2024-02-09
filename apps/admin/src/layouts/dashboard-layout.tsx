@@ -1,39 +1,51 @@
 'use client';
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Container, Paper} from '@mui/material';
-import type {
-  NavRoute,
-  NavRouter,
-  Profile
-} from 'ui';
+import type {Profile} from 'service';
+import type {NavRoute, NavRouter} from 'ui';
 import {
   Dashboard,
   Copyright,
   ProfileProvider,
 } from 'ui';
 import {mainRoutes, toolBarRoutes} from '../app/routes';
-
-export const userProfile: Profile = {
-  id: '123',
-  firstName: 'Joe',
-  lastName: 'User',
-  bio: 'I am a user',
-  avatarUrl: '',
-  website: 'https://www.example.com',
-  loading: false,
-};
+import {createClient} from '../utils/supabase/client';
 
 interface DashboardLayoutProps {
+  userProfile: Profile;
   name: string;
   url: string;
   year: number;
   children: React.ReactNode;
 }
 
-export function DashboardLayout({name, url, year, children}: DashboardLayoutProps): JSX.Element {
+export function DashboardLayout({name, url, year, userProfile, children}: DashboardLayoutProps): JSX.Element {
   const [profile, setProfile] = useState<Profile>(userProfile);
   const nextRouter = useRouter();
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        const {log} = console;
+        log(event, session)
+  
+        const storageList = [
+          window.localStorage,
+          window.sessionStorage,
+        ];
+  
+        // clear local and session storage
+        storageList.forEach((storage) => {
+          Object.entries(storage)
+            .forEach(([key]) => {
+              storage.removeItem(key)
+            })
+        });
+      }
+    });
+  });
 
   const router: NavRouter = (route: NavRoute) => {
     if (typeof route.page === 'string') {

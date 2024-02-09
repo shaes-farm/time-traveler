@@ -5,5 +5,4 @@ export interface Profile {
   bio?: string
   avatarUrl?: string
   website?: string
-  loading: boolean
 }

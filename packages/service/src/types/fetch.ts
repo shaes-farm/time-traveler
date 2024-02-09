@@ -3,6 +3,7 @@ import type {
   HistoricalEvent,
   Media,
   Period,
+  Profile,
   Timeline,
 } from '../models';
 
@@ -77,5 +78,12 @@ export interface Fetch {
    * @returns An media object if found, otherwise null.
    */
   getMediaItem: (slug: string) => Promise<Media | null>;
+
+  /**
+   * Fetch a user profile by user id.
+   * 
+   * @returns An profile object if found, otherwise null.
+   */
+  getProfile: (id: string) => Promise<Profile | null>;
   
 }
