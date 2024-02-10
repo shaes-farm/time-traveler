@@ -6,13 +6,19 @@
         "name": "next"
       }
     ],
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "types": [
+      "cypress",
+      "@testing-library/cypress"
+    ]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "cypress/support/index.d.ts",
+    "@testing-library/cypress"
   ],
   "exclude": [
     "node_modules"
