@@ -3,7 +3,7 @@ import { Copyright } from '../components/copyright';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction
 const meta: Meta<typeof Copyright> = {
-  title: 'Copyright',
+  title: 'Components/Copyright',
   component: Copyright,
   tags: ['autodocs'],
 };

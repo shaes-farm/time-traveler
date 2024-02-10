@@ -3,7 +3,7 @@ import {AppBar} from '../components/app-bar';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction
 const meta: Meta<typeof AppBar> = {
-  title: 'AppBar',
+  title: 'Components/AppBar',
   component: AppBar,
   tags: ['autodocs'],
   parameters: {

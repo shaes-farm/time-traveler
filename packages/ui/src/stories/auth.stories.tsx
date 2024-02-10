@@ -5,14 +5,14 @@ import {faker} from '@faker-js/faker';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import BlindIcon from '@mui/icons-material/Blind';
+import type {Profile} from 'service';
 import {Auth} from '../components';
 import type {Credentials, SignUpInfo, RecoverPasswordInfo} from '../components';
-import type {Profile} from "../providers";
-import { ProfileProvider} from "../providers";
+import { ProfileProvider} from '../providers';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction
 const meta: Meta<typeof Auth> = {
-  title: 'Auth',
+  title: 'Components/Auth',
   component: Auth,
   tags: ['autodocs'],
   parameters: {

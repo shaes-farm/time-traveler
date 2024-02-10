@@ -3,7 +3,7 @@ import { SnackBarAlert } from '../components/snack-bar-alert';
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction
 const meta: Meta<typeof SnackBarAlert> = {
-  title: 'SnackBarAlert',
+  title: 'Components/SnackBarAlert',
   component: SnackBarAlert,
   decorators: [(Story) => <div style={{ padding: '3em' }}><Story /></div>],
   tags: ['autodocs'],

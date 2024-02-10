@@ -7,14 +7,14 @@ import AllInclusiveIcon from '@mui/icons-material/AllInclusive';
 import AdjustIcon from '@mui/icons-material/Adjust';
 import AccessibleForwardIcon from '@mui/icons-material/AccessibleForward';
 import BlindIcon from '@mui/icons-material/Blind';
+import type {Profile} from 'service';
 import {Dashboard} from '../views/dashboard';
 import type {NavRoute, NavRoutes} from '../components/nav';
-import type {Profile} from "../providers";
 import { ProfileProvider} from "../providers";
 
 // More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction
 const meta: Meta<typeof Dashboard> = {
-  title: 'Dashboard',
+  title: 'Components/Dashboard',
   component: Dashboard,
   tags: ['autodocs'],
   parameters: {

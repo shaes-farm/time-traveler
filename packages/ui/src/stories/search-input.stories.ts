@@ -3,7 +3,7 @@ import {SearchInput} from '../components/search-input';
 import type {NavRoute, NavRouter} from '../components/nav';
 
 const meta: Meta<typeof SearchInput> = {
-  title: 'SearchInput',
+  title: 'Components/SearchInput',
   component: SearchInput,
   tags: ['autodocs'],
 };
