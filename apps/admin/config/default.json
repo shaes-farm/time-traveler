@@ -16,14 +16,6 @@
       "url": "https://shaes.farm"
     }
   },
-  "strapi": {
-    "backend": "strapi",
-    "baseUrl": "http://localhost:1337"
-  },
-  "supabase": {
-    "backend": "supabase",
-    "baseUrl": "http://127.0.0.1:54321"
-  },
   "api": {
     "backend": "supabase",
     "baseUrl": "http://127.0.0.1:54321"
