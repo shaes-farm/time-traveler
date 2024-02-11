@@ -29,10 +29,11 @@ export async function login(formData: FormData): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
-    redirect(`${appBaseUrl}${basePath}/error`);
+    throw error;
   }
 
   revalidatePath(`${appBaseUrl}${basePath}`, 'layout');
+
   redirect(`${appBaseUrl}${basePath}`);
 }
 
@@ -56,10 +57,11 @@ export async function signup(formData: FormData): Promise<void> {
   const { error } = await supabase.auth.signUp(data);
 
   if (error) {
-    redirect(`${appBaseUrl}${basePath}/error`);
+    throw error;
   }
 
   revalidatePath(`${appBaseUrl}${basePath}`, 'layout');
+
   redirect(`${appBaseUrl}${basePath}`);
 }
 
@@ -76,9 +78,10 @@ export async function recover(formData: FormData): Promise<void> {
     );
   
     if (error) {
-      redirect(`${appBaseUrl}${basePath}/error`);
+      throw error;
     }
   
     revalidatePath(`${appBaseUrl}${basePath}`, 'layout');
+
     redirect(`${appBaseUrl}${basePath}`);
   }
