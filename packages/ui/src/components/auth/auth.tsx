@@ -20,6 +20,17 @@ export interface AuthProps extends FormProps {
 
 /**
  * Authentication component that renders a sign-in, sign-up, or password recovery form.
+ * @param type - The auth form to render, one of; "password", "signup", or "recover".
+ * @param icon - The icon to use in the page header (optional).
+ * @param title - The title of the page (optional).
+ * @param subTitle - Sub-title text of the page (optional).
+ * @param signInUrl - The URL of the sign-in page.
+ * @param signIn - A function used to handle sign-in requests.
+ * @param signUpUrl - The URL of the sign-up page.
+ * @param signUp - A function used to handle sign-up requests.
+ * @param recoverPasswordUrl - The URL of the password recovery page.
+ * @param recoverPassword - A function used to handle password recovery requests.
+ * @returns A form component suitable for the operation requested.
  */
 export function Auth({
   type,
@@ -34,7 +45,6 @@ export function Auth({
   recoverPassword,
   ...formProps
 }: AuthProps): JSX.Element {
-
   switch (type) {
     case "password":
       return (
