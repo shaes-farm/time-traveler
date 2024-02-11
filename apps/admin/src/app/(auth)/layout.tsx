@@ -1,6 +1,9 @@
 import getConfig from 'next/config';
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 import type { NextConfig } from '../../types';
 import { AuthLayout } from '../../layouts';
+import { createClient } from '../../utils/supabase/server';
 
 const {
   publicRuntimeConfig: {
@@ -14,11 +17,17 @@ const {
   },
 } = getConfig() as NextConfig;
 
-export default function Layout({
+export default async function Layout({
   children,
 }: {
   children: React.ReactNode
-}): JSX.Element {
+}): Promise<JSX.Element> {
+  const supabase = createClient(cookies());
+
+  const { data: { session }, error } = await supabase.auth.getSession();
+
+  if (!error && session) redirect('/dashboard');
+
   return (
     <AuthLayout name={name} url={url} year={year}>
       <main>
