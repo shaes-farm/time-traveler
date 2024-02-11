@@ -9,7 +9,7 @@ import {
   Copyright,
   ProfileProvider,
 } from 'ui';
-import {mainRoutes, toolBarRoutes} from '../app/routes';
+import {MAIN_ROUTES, TOOLBAR_ROUTES} from '../app/constants';
 import {createClient} from '../utils/supabase/client';
 
 interface DashboardLayoutProps {
@@ -60,8 +60,8 @@ export function DashboardLayout({name, url, year, userProfile, children}: Dashbo
     <ProfileProvider profile={profile} setProfile={setProfile} >
       <Dashboard
           router={router}
-          routes={mainRoutes}
-          toolbar={toolBarRoutes}
+          routes={MAIN_ROUTES}
+          toolbar={TOOLBAR_ROUTES}
       >
           <Container maxWidth="lg" sx={{ m: 'auto' }}>
           <Paper>

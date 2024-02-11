@@ -1,7 +1,7 @@
 import getConfig from 'next/config';
 import { Auth } from 'ui';
 import type { NextConfig } from '../../../types';
-import { RECOVER_URL, SIGNIN_URL, SIGNUP_URL } from '../routes';
+import { RECOVER_URL, SIGNIN_URL, SIGNUP_URL } from '../constants';
 import { login, signup, recover } from '../actions';
 
 const { 
