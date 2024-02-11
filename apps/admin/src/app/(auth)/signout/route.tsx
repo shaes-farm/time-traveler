@@ -20,7 +20,7 @@ export async function GET(): Promise<NextResponse> {
 
   await supabase.auth.signOut()
 
-  revalidatePath('/', 'layout')
+  revalidatePath(redirectTo.toString(), 'layout')
 
   return NextResponse.redirect(redirectTo);
 }
