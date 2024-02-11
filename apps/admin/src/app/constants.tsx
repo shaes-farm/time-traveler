@@ -13,7 +13,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import type {NavRoutes} from 'ui';
 
-export const mainRoutes: NavRoutes = {
+export const MAIN_ROUTES: NavRoutes = {
   primary: [{
     slug: 'dashboard',
     icon: <DashboardIcon />,
@@ -59,7 +59,7 @@ export const mainRoutes: NavRoutes = {
   }],
 };
 
-export const toolBarRoutes: NavRoutes = {
+export const TOOLBAR_ROUTES: NavRoutes = {
   primary: [],
   secondary: [{
     slug: 'profile',
