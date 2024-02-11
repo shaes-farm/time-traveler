@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import { useState } from 'react';
 import {
   Avatar,
   Box,
@@ -10,7 +10,8 @@ import {
   Typography,
 } from '@mui/material';
 import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined';
-import {Form} from '../form';
+import { Form } from '../form';
+import { SnackBarAlert } from '../snack-bar-alert';
 
 export interface SignUpFormProps {
   icon?: React.ReactNode;
@@ -29,6 +30,15 @@ export function SignUpForm({
   signInUrl,
   ...formProps
 }: SignUpFormProps): JSX.Element {
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = (data: FormData): void => {
+    signUp(data).catch((error) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- allow error message
+      setErrorMsg(error.message as string);
+    });
+  };
+
   return (
     <Box
       sx={{
@@ -98,8 +108,7 @@ export function SignUpForm({
           </Grid>
         </Grid>
         <Button
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises -- async okay?
-          formAction={signUp}
+          formAction={handleSubmit}
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           type="submit"
@@ -115,6 +124,7 @@ export function SignUpForm({
           </Grid>
         </Grid>
       </Form>
+      <SnackBarAlert clear={() => { setErrorMsg('') }} message={errorMsg} severity="error" />
     </Box>
   );
 };

@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import { type ReactNode, useState } from 'react';
 import {
   Avatar,
   Box,
@@ -12,16 +12,17 @@ import {
   Typography,
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import {Form} from '../form';
+import { Form } from '../form';
+import { SnackBarAlert } from '../snack-bar-alert';
 
 export interface PasswordFormProps {
-  icon?: React.ReactNode;
-  title?: React.ReactNode;
-  subTitle?: React.ReactNode;
+  icon?: ReactNode;
+  title?: ReactNode;
+  subTitle?: ReactNode;
   signIn: (formData: FormData) => Promise<void>;
   signUpUrl: string;
   forgotPasswordUrl: string;
-  formProps?: Record<string,unknown>;
+  formProps?: Record<string, unknown>;
 }
 
 export function PasswordForm({
@@ -33,6 +34,15 @@ export function PasswordForm({
   forgotPasswordUrl,
   ...formProps
 }: PasswordFormProps): JSX.Element {
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const handleSubmit = (data: FormData): void => {
+    signIn(data).catch((error) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- allow error message
+      setErrorMsg(error.message as string);
+    });
+  };
+
   return (
     <Box
       sx={{
@@ -50,7 +60,7 @@ export function PasswordForm({
       {subTitle ? <Typography align="center" color="primary" component="h3" gutterBottom variant="h5">{subTitle}</Typography> : null}
       <Typography variant="body2">Sign in to continue.</Typography>
       <Form
-        // onSubmit={handleSubmit}
+        autoComplete="on"
         sx={{ mt: 1 }}
         {...formProps}
       >
@@ -89,8 +99,7 @@ export function PasswordForm({
           </Grid>
         </Grid>
         <Button
-          // eslint-disable-next-line @typescript-eslint/no-misused-promises -- promise okay
-          formAction={signIn}
+          formAction={handleSubmit}
           fullWidth
           sx={{ mt: 3, mb: 2 }}
           type="submit"
@@ -109,6 +118,7 @@ export function PasswordForm({
           </Grid>
         </Grid>
       </Form>
+      <SnackBarAlert clear={() => { setErrorMsg('') }} message={errorMsg} severity="error" />
     </Box>
   );
 };
