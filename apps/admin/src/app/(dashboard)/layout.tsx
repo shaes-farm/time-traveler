@@ -33,10 +33,10 @@ export default async function Layout({
 }): Promise<JSX.Element> {
   const supabase = createClient(cookies());
 
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error || !session) redirect('/signin');
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) redirect('/signin');
 
-  const profile = await f.getProfile(session.user.id);
+  const profile = await f.getProfile(user.id);
   if (!profile) redirect('/signin');
 
   return (
