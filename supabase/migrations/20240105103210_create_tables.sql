@@ -90,6 +90,7 @@ create policy "Allow anonymous access to categories"
 
 create table media (
     id bigint primary key generated always as identity,
+    user_id uuid references auth.users,
     slug varchar(100) not null,
     alternativetext text,
     caption text,
@@ -111,6 +112,25 @@ create policy "Allow anonymous access to media"
     for select
     to anon
     using (true);
+
+create policy "Authenticated users can create media"
+    on media
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own media"
+    on media
+    for update
+    to authenticated
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own media"
+    on media
+    for delete
+    to authenticated
+    using ( (select auth.uid()) = user_id );
 
 create table event_categories (
     historical_event_id bigint references historical_events,
