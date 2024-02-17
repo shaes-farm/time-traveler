@@ -1,4 +1,5 @@
 export interface Media {
+  userId: string;
   slug: string;
   alternativeText?: string;
   caption?: string;
