@@ -55,7 +55,7 @@ create trigger on_auth_user_created
 insert into storage.buckets
   (id, name)
 values
-  ('avatars', 'Avatars');
+  ('avatars', 'avatars');
 
 -- Set up access controls for storage.
 -- See https://supabase.com/docs/guides/storage#policy-examples for more details.
@@ -63,13 +63,13 @@ values
 create policy "Avatar images are publicly accessible."
   on storage.objects
   for select
-  using (bucket_id = 'Avatars');
+  using (bucket_id = 'avatars');
 
 create policy "Any authenticated user can upload an avatar."
   on storage.objects
   for insert
   to authenticated
-  with check (bucket_id = 'Avatars');
+  with check (bucket_id = 'avatars');
 
 create policy "Only owning user can update an avatar"
   on storage.objects
@@ -77,7 +77,7 @@ create policy "Only owning user can update an avatar"
   to authenticated
   using (
     auth.uid() = owner_id::uuid and
-    bucket_id = 'Avatars'
+    bucket_id = 'avatars'
   );
 
 create policy "Only owning user can delete an avatar"
@@ -86,5 +86,5 @@ create policy "Only owning user can delete an avatar"
   to authenticated
   using (
     auth.uid() = owner_id::uuid and
-    bucket_id = 'Avatars'
+    bucket_id = 'avatars'
   );
