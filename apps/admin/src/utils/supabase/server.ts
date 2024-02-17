@@ -1,23 +1,12 @@
-import getConfig from 'next/config';
 import type { cookies } from 'next/headers'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from 'service';
-import type { NextConfig } from '../../types';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      baseUrl: apiBaseUrl,
-      key: apiKey,
-    }
-  }
-} = getConfig() as NextConfig;
 
 export function createClient(cookieStore: ReturnType<typeof cookies>): SupabaseClient<Database> {
   return createServerClient(
-    apiBaseUrl,
-    apiKey,
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
     {
       cookies: {
         get(name: string) {
