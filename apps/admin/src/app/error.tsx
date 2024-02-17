@@ -1,9 +1,10 @@
 'use client'
- 
+
+import debugFactory from 'debug';
 import {useEffect} from 'react'
 import {CustomError} from 'ui';
 
-const {log} = console;
+const debug = debugFactory('admin:app:error');
 
 export default function Error({
   error,
@@ -14,7 +15,7 @@ export default function Error({
 }): JSX.Element {
   useEffect(() => {
     // TODO: Log the error to an error reporting service
-    log(error)
+    debug(error)
   }, [error])
  
   return (

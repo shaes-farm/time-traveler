@@ -1,4 +1,5 @@
 'use client';
+import debugFactory from 'debug';
 import {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {Container, Paper} from '@mui/material';
@@ -11,6 +12,8 @@ import {
 } from 'ui';
 import {MAIN_ROUTES, TOOLBAR_ROUTES} from '../app/constants';
 import {createClient} from '../utils/supabase/client';
+
+const debug = debugFactory('admin:layouts:dashboard-layout');
 
 interface DashboardLayoutProps {
   userProfile: Profile;
@@ -28,8 +31,7 @@ export function DashboardLayout({name, url, year, userProfile, children}: Dashbo
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
-        const {log} = console;
-        log(event, session)
+        debug(event, session)
   
         const storageList = [
           window.localStorage,
@@ -43,6 +45,14 @@ export function DashboardLayout({name, url, year, userProfile, children}: Dashbo
               storage.removeItem(key)
             })
         });
+
+        setTimeout(() => {nextRouter.push('/signin')});
+      } else if (event === 'PASSWORD_RECOVERY') {
+        debug(event, session);
+      } else if (event === 'TOKEN_REFRESHED') {
+        debug(event, session);
+      } else if (event === 'USER_UPDATED') {
+        debug(event, session);
       }
     });
   });
