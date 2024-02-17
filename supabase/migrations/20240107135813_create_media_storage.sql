@@ -1,19 +1,19 @@
 insert into storage.buckets
   (id, name, public)
 values
-  ('media', 'Media Library', true);
+  ('media', 'media', true);
 
 create policy "Public Access to Media Library"
   on storage.objects
   for select
-  using ( bucket_id = 'Media Library' );
+  using ( bucket_id = 'media' );
 
-create policy "Restrict Insertions to Media Library"
+create policy "Any authenticated user can upload media"
   on storage.objects
   for insert
   to authenticated
   with check (
-    bucket_id = 'Media Library'
+    bucket_id = 'media'
   );
 
 create policy "Restrict Modifications to Media Library"
@@ -22,7 +22,7 @@ create policy "Restrict Modifications to Media Library"
   to authenticated
   using (
     auth.uid() = owner_id::uuid and
-    bucket_id = 'Media Library'
+    bucket_id = 'media'
   );
 
 create policy "Restrict Deletions from Media Library"
@@ -31,5 +31,5 @@ create policy "Restrict Deletions from Media Library"
   to authenticated
   using (
     auth.uid() = owner_id::uuid and
-    bucket_id = 'Media Library'
+    bucket_id = 'media'
   );
