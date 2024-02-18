@@ -1,8 +1,10 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import { styled } from '@mui/material/styles';
 import {
   Box,
+  Grid,
   LinearProgress,
   type LinearProgressProps,
   Paper,
@@ -34,21 +36,31 @@ const Item = styled(Paper)(({ theme }) => ({
 
 interface FileUploadItemProps {
   item: FileUpload;
-  upload: (file: FileUpload, setProgress: (percentage: number) => void) => void;
+  upload: (file: FileUpload, setProgress: (percentage: number) => void, onError: (error: Error) => void) => void;
 }
 
 function FileUploadItem({ item, upload }: FileUploadItemProps): JSX.Element {
   const [percentage, setPercentage] = useState<number>(item.progress);
+  const [errorMsg, setErrorMsg] = useState<string>('');
 
   useEffect(() => {
     if (item.progress === 0) {
-      upload(item, setPercentage);
+      upload(item, setPercentage, (error: Error): void => {
+        setErrorMsg(error.message);
+      });
     }
   }, [item, upload]);
 
   return (
     <Item>
-      {item.file.name}<br />
+      <Grid container spacing={2}>
+        <Grid item xs={8}>
+          {item.file.name}
+        </Grid>
+        <Grid item xs={4}>
+          {errorMsg ? <Typography color="error" variant="body2">{errorMsg}</Typography> : null}
+        </Grid>
+      </Grid>
       <LinearProgressWithLabel value={percentage} variant="determinate" />
     </Item>
   );
@@ -56,7 +68,7 @@ function FileUploadItem({ item, upload }: FileUploadItemProps): JSX.Element {
 
 interface FileUploadListProps {
   fileList: FileUpload[];
-  upload: (file: FileUpload, setProgress: (percentage: number) => void) => void;
+  upload: (file: FileUpload, setProgress: (percentage: number) => void, onError: (error: Error) => void) => void;
 }
 
 export function FileUploadList({ fileList, upload }: FileUploadListProps): JSX.Element {

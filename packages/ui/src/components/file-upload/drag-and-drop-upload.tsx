@@ -23,7 +23,7 @@ const VisuallyHiddenInput = styled('input')({
 });
 
 interface DragAndDropUploadProps {
-  upload: (file: FileUpload, setProgress: (percentage: number) => void) => void;
+  upload: (file: FileUpload, setProgress: (percentage: number) => void, onError: (error: Error) => void) => void;
 }
 
 export function DragAndDropUpload({ upload }: DragAndDropUploadProps): JSX.Element {
