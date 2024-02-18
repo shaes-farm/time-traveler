@@ -3,6 +3,10 @@ const debug = require('debug')('admin:next:config');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  images: {
+    loader: 'custom',
+    loaderFile: './src/utils/supabase/image-loader.js',
+  },
   reactStrictMode: true,
   transpilePackages: ['ui', 'service'],
   experimental: {
