@@ -1,5 +1,6 @@
+import Image from 'next/image'
 import getConfig from 'next/config';
-import {notFound} from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { fetchFactory } from 'service';
 import type { NextConfig } from '../../../../../types';
 import { ContentEditor } from '../../../../../components';
@@ -31,8 +32,14 @@ export default async function Page(props: PageProps): Promise<JSX.Element> {
 
   return (
     <ContentEditor title="Delete a Media Item">
-        <h2>Are you sure you want to delete this media?</h2>
-        <p>{media.alternativeText}</p>
+      <h2>Are you sure you want to delete this media?</h2>
+      <p>{media.alternativeText}</p>
+      <Image
+        alt={media.alternativeText ?? ''}
+        height={500}
+        src={media.url}
+        width={500}
+      />
     </ContentEditor>
   );
 }
