@@ -8,15 +8,17 @@ export interface CopyrightProps {
   /**
    * The copyright holder.
    */
-  holder: string
+  holder: string;
+
   /**
    * The URL of the copyright holder.
    */
-   url: string
+   url: string;
+
    /**
    * The year the copyright went into effect.
    */
-  year: number
+  year: number;
 }
 
 function CopyrightBase({holder, year, url, ...typoProps}: CopyrightProps): JSX.Element {
