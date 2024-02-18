@@ -11,16 +11,17 @@ import {
 
 interface ContentEditorProps {
   title: string;
+  backLink?: string;
   children: React.ReactNode;
 }
 
-export function ContentEditor({ title, children }: ContentEditorProps): JSX.Element {
+export function ContentEditor({ title, backLink, children }: ContentEditorProps): JSX.Element {
   const router = useRouter();
   return (
     <Box sx={{ p: '1em', mt: '3em', width: '100%' }}>
       <Grid2 container mb="1em">
         <Grid2 xs={12}>
-          <Button aria-label="back" color="secondary" onClick={() => {router.back()}}>
+          <Button aria-label="back" color="secondary" onClick={() => {backLink ? router.push(backLink) : router.back()}}>
             <ArrowBackIcon />&nbsp;Back
           </Button>
           <Typography color="text.primary" variant="h2">
