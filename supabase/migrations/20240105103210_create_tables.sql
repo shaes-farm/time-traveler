@@ -1,5 +1,6 @@
 create table periods (
     id bigint primary key generated always as identity,
+    user_id uuid  not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     summary text,
@@ -20,8 +21,34 @@ create policy "Allow anonymous access to periods"
     to anon
     using (true);
 
+create policy "Allow unrestricted authenticated access to periods"
+    on periods
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create periods"
+    on periods
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own periods"
+    on periods
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own periods"
+    on periods
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
+
 create table timelines (
     id bigint primary key generated always as identity,
+    user_id uuid  not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     summary text,
@@ -43,8 +70,34 @@ create policy "Allow anonymous access to timelines"
     to anon
     using (true);
 
+create policy "Allow unrestricted authenticated access to timelines"
+    on timelines
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create timelines"
+    on timelines
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own timelines"
+    on timelines
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own timelines"
+    on timelines
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
+
 create table historical_events (
     id bigint primary key generated always as identity,
+    user_id uuid  not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     summary text,
@@ -69,8 +122,34 @@ create policy "Allow anonymous access to historical_events"
     to anon
     using (true);
 
+create policy "Allow unrestricted authenticated access to historical_events"
+    on historical_events
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create historical_events"
+    on historical_events
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own historical_events"
+    on historical_events
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own historical_events"
+    on historical_events
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
+
 create table categories (
     id bigint primary key generated always as identity,
+    user_id uuid  not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     created_at timestamptz default now(),
@@ -88,9 +167,34 @@ create policy "Allow anonymous access to categories"
     to anon
     using (true);
 
+create policy "Allow unrestricted authenticated access to categories"
+    on categories
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create categories"
+    on categories
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own categories"
+    on categories
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own categories"
+    on categories
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
+
 create table media (
     id bigint primary key generated always as identity,
-    user_id uuid references auth.users,
+    user_id uuid  not null,
     slug varchar(100) not null,
     alternativetext text,
     caption text,
@@ -111,6 +215,12 @@ create policy "Allow anonymous access to media"
     on media
     for select
     to anon
+    using (true);
+
+create policy "Allow unrestricted authenticated access to media"
+    on media
+    for select
+    to authenticated
     using (true);
 
 create policy "Authenticated users can create media"
