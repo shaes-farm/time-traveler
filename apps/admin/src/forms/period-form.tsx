@@ -1,4 +1,6 @@
 'use client';
+
+import debugFactory from 'debug';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormik } from 'formik';
@@ -19,9 +21,9 @@ import type {
   Period,
   Timeline,
 } from 'service';
-import {TransferList} from '../components/transfer-list';
+import { TransferList } from '../components/transfer-list';
 
-const { log } = console;
+const debug = debugFactory('admin:period-form');
 
 const validationSchema = yup.object({
   title: yup
@@ -47,14 +49,23 @@ interface PeriodFormProps {
   mode: 'create' | 'edit';
   period?: Period;
   timelines?: readonly Timeline[];
-  onCreate?: (period: Period) => void;
-  onUpdate?: (period: Period) => void;
+  create: (period: Period) => Promise<void>;
+  update: (period: Period) => Promise<void>;
 }
 
-export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: PeriodFormProps): JSX.Element {
+export function PeriodForm({ mode, period, timelines, create, update }: PeriodFormProps): JSX.Element {
   const router = useRouter();
 
-  const initialValues: Period = (mode === 'edit' && period) ? period : {
+  const initialValues: Period = (mode === 'edit' && period) ? {
+    userId: period.userId ?? '',
+    title: period.title,
+    slug: period.slug,
+    summary: period.summary ?? '',
+    beginDate: period.beginDate,
+    endDate: period.endDate,
+    timelines: period.timelines,
+  } : {
+    userId: '',
     title: '',
     slug: '',
     summary: '',
@@ -64,10 +75,11 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
   };
 
   const formik = useFormik({
-        initialValues,
+    initialValues,
     validationSchema,
-    onSubmit: (values) => {
-      mode === 'create' ? onCreate?.(values) : onUpdate?.(values);
+    onSubmit: async (values) => {
+      debug('period-form.onSubmit', {mode, values});
+      mode === 'create' ? await create(values) : await update(values);
     },
   });
 
@@ -76,12 +88,12 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
       <Grid container spacing={2} sx={{ width: "100%", mx: "auto" }}>
         <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
           <Grid display="flex" item xs={12}>
-            <Typography color="text.secondary" sx={{mb: '1em'}} variant="caption">
-                URL: {`/periods/${formik.values.slug}`}
+            <Typography color="text.secondary" sx={{ mb: '1em' }} variant="caption">
+              URL: {`/periods/${formik.values.slug}`}
             </Typography>
           </Grid>
           <Box sx={{ flex: '1 1 auto' }} />
-          <Button onClick={() => {router.back()}} sx={{ ml: 2 }} variant='outlined'>
+          <Button onClick={() => { router.back() }} sx={{ ml: 2 }} variant='outlined'>
             Cancel
           </Button>
           <Button startIcon={<SaveIcon />} sx={{ ml: 2 }} type="submit" variant='contained'>
@@ -159,7 +171,7 @@ export function PeriodForm({ mode, period, timelines, onCreate, onUpdate }: Peri
           <TransferList
             available={timelines ?? []}
             items={formik.values.timelines}
-            onChange={(t) => {log({t})}}
+            onChange={(_t) => { /* debug({ t }) */ }}
           />
         </Grid>
       </Grid>
