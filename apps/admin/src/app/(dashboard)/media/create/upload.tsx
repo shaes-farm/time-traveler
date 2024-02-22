@@ -4,7 +4,7 @@ import debugFactory from 'debug';
 import slugify from 'slugify';
 import { DragAndDropUpload } from 'ui';
 import type { Media, UploadInfo } from 'service';
-import { addMedia, upload } from '../../actions';
+import { addMedia, upload } from '../actions';
 
 const debug = debugFactory('admin:app:media:upload');
 
@@ -35,7 +35,7 @@ export function Upload(): JSX.Element {
 
     return (
         <DragAndDropUpload upload={(file, setProgress, onError) => {
-            void upload('media', file, setProgress, onSuccess, onError);
+            void upload(file, setProgress, onSuccess, onError);
         }} />
     );
 }
