@@ -1,21 +1,8 @@
-import getConfig from 'next/config';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../types';
 import { PeriodListView } from '../../../views';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+import { queryAll } from './actions';
 
 export default async function Page(): Promise<JSX.Element> {
-  const periods = await f.getPeriods();
+  const periods = await queryAll();
   return (
     <PeriodListView
       createLink="/periods/create"

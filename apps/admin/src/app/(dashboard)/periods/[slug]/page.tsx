@@ -1,20 +1,8 @@
-import getConfig from 'next/config';
 import {notFound} from 'next/navigation';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../../types';
 import { ContentEditor } from '../../../../components';
 import { PeriodForm } from '../../../../forms';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+import { insert, queryBySlug, update } from '../actions';
+import * as timeline from '../../timelines/actions';
 
 interface PageProps {
   params: {
@@ -24,20 +12,23 @@ interface PageProps {
 
 export default async function Page(props: PageProps): Promise<JSX.Element> {
   const { params: { slug } } = props;
-  const period = await f.getPeriod(slug);
+
+  const period = await queryBySlug(slug);
 
   if (!period) {
     notFound();
   }
 
-  const timelines = await f.getTimelines();
+  const timelines = await timeline.queryAll();
 
   return (
     <ContentEditor title="Edit a Period">
       <PeriodForm
+        create={insert}
         mode="edit"
         period={period}
         timelines={timelines}
+        update={update}
       />
     </ContentEditor>
   );

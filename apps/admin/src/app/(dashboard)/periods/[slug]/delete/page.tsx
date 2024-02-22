@@ -1,19 +1,9 @@
-import getConfig from 'next/config';
-import {notFound} from 'next/navigation';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../../../types';
-import { ContentEditor } from '../../../../../components';
+import debugFactory from 'debug';
+import { notFound } from 'next/navigation';
+import { queryBySlug } from '../../actions';
+import { PeriodDeleteView } from './period-delete-view';
 
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+const debug = debugFactory('admin:periods:delete:page');
 
 interface PageProps {
   params: {
@@ -23,16 +13,16 @@ interface PageProps {
 
 export default async function Page(props: PageProps): Promise<JSX.Element> {
   const { params: { slug } } = props;
-  const period = await f.getPeriod(slug);
 
+  debug({slug});
+
+  const period = await queryBySlug(slug);
+
+  debug({period});
+  
   if (!period) {
     notFound();
   }
 
-  return (
-    <ContentEditor title="Delete a Period">
-        <h2>Are you sure you want to delete this period?</h2>
-        <p>{period.title}</p>
-    </ContentEditor>
-  );
+  return <PeriodDeleteView period={period} />;
 }
