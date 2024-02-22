@@ -15,10 +15,10 @@ export default function Error({
 }): JSX.Element {
   useEffect(() => {
     // TODO: Log the error to an error reporting service
-    debug(error)
-  }, [error])
+    debug({error});
+  }, [error]);
  
   return (
     <CustomError dump={error} message={error.message} status={error.status} />
-  )
+  );
 }
