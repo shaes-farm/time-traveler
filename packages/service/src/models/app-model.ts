@@ -1,5 +1,5 @@
 export interface Media {
-  userId: string;
+  userId?: string;
   slug: string;
   alternativeText?: string;
   caption?: string;
@@ -24,6 +24,7 @@ export enum Importance {
 }
 
 export interface HistoricalEvent {
+  userId?: string;
   slug: string;
   title: string;
   summary: string | null;
@@ -39,12 +40,14 @@ export interface HistoricalEvent {
 }
 
 export interface Category {
+  userId?: string;
   slug: string;
   title: string;
   events: HistoricalEvent[];
 }
 
 export interface Timeline {
+  userId?: string;
   slug: string;
   title: string;
   summary: string | null;
@@ -56,6 +59,7 @@ export interface Timeline {
 }
 
 export interface Period {
+  userId?: string;
   slug: string;
   title: string;
   summary: string | null;

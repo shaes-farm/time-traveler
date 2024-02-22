@@ -2,6 +2,7 @@ import type {PostgrestSingleResponse} from '@supabase/postgrest-js';
 import type {Database} from './supabase-model';
 
 export interface PostgrestPeriod {
+  user_id?: string;
   slug: string;
   title: string;
   summary?: string;
@@ -11,6 +12,7 @@ export interface PostgrestPeriod {
 }
 
 export interface PostgrestTimeline {
+  user_id?: string;
   slug: string;
   title: string;
   summary?: string;
@@ -22,6 +24,7 @@ export interface PostgrestTimeline {
 }
 
 export interface PostgrestHistoricalEvent {
+  user_id?: string;
   slug: string;
   title: string;
   summary: string;
@@ -36,12 +39,14 @@ export interface PostgrestHistoricalEvent {
 }
 
 export interface PostgrestCategory {
+  user_id?: string;
   slug: string;
   title: string;
   events?: PostgrestHistoricalEvent[];
 }
 
 export interface PostgrestMedia {
+  user_id?: string;
   slug: string;
   alternativetext?: string;
   caption?: string;
