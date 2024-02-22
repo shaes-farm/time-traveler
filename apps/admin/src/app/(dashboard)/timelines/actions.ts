@@ -35,7 +35,8 @@ export async function queryAll(): Promise<Timeline[]> {
     const { error, data } = await supabase
         .from('timelines')
         .select()
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .order('begin_date');
 
     debug('queryAll', {error, data});
 

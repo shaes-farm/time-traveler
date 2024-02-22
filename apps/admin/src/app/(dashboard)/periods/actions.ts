@@ -35,7 +35,8 @@ export async function queryAll(): Promise<Period[]> {
     const { error, data } = await supabase
         .from('periods')
         .select()
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .order('begin_date');
 
     debug('queryAll', {error, data});
 
