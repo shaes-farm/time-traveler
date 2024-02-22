@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import type { Media } from 'service';
+import { ContentViewer } from '../components';
 import { MediaImageView } from './media-image-view';
 import { MediaListView } from './media-list-view';
 
@@ -19,30 +20,36 @@ export function MediaTabView({ media }: MediaTabViewProps): JSX.Element {
     };
 
     return (
-        <Box sx={{ width: '100%', bgcolor: 'background.paper' }}>
-            <Tabs
-                aria-label="media view selection tabs"
-                onChange={handleChange}
-                textColor="inherit"
-                value={value}
-            >
-                <Tab label="List View" />
-                <Tab label="Image View" />
-            </Tabs>
-            {value === 0 ?
-                <MediaListView
-                    createLink="/media/create"
-                    deleteLink="/media/[slug]/delete"
-                    editLink="/media/[slug]"
-                    media={media}
-                /> : null}
-            {value === 1 ?
-                <MediaImageView
-                    createLink="/media/create"
-                    deleteLink="/media/[slug]/delete"
-                    editLink="/media/[slug]"
-                    media={media}
-                /> : null}
-        </Box>
+        <ContentViewer
+            count={media.length}
+            createLink="/media/create"
+            title="Media"
+        >
+            <Box sx={{ width: '100%' }}>
+                <Tabs
+                    aria-label="media view selection tabs"
+                    onChange={handleChange}
+                    textColor="inherit"
+                    value={value}
+                >
+                    <Tab label="List View" />
+                    <Tab label="Image View" />
+                </Tabs>
+                {value === 0 ?
+                    <MediaListView
+                        createLink="/media/create"
+                        deleteLink="/media/[slug]/delete"
+                        editLink="/media/[slug]"
+                        media={media}
+                    /> : null}
+                {value === 1 ?
+                    <MediaImageView
+                        createLink="/media/create"
+                        deleteLink="/media/[slug]/delete"
+                        editLink="/media/[slug]"
+                        media={media}
+                    /> : null}
+            </Box>
+        </ContentViewer>
     );
 }

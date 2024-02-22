@@ -1,7 +1,7 @@
 'use client';
 import type { GridColDef } from '@mui/x-data-grid';
 import type { Media } from 'service';
-import {ContentViewer, GridList} from '../components';
+import { GridList } from '../components';
 
 const columns: GridColDef[] = [
   {
@@ -48,19 +48,13 @@ interface MediaListViewProps {
   editLink: string;
 }
 
-export function MediaListView({ media, createLink, deleteLink, editLink }: MediaListViewProps): JSX.Element {
+export function MediaListView({ media, deleteLink, editLink }: MediaListViewProps): JSX.Element {
   return (
-    <ContentViewer
-      count={media.length}
-      createLink={createLink}
-      title="Media"
-    >
-      <GridList
-        columns={columns}
-        deleteLink={deleteLink}
-        editLink={editLink}
-        rows={media}
-      />
-    </ContentViewer>
+    <GridList
+      columns={columns}
+      deleteLink={deleteLink}
+      editLink={editLink}
+      rows={media}
+    />
   );
 }
