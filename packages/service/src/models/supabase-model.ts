@@ -41,6 +41,7 @@ export interface Database {
           slug: string
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
@@ -48,6 +49,7 @@ export interface Database {
           slug: string
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
@@ -55,6 +57,7 @@ export interface Database {
           slug?: string
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -132,6 +135,7 @@ export interface Database {
           timeline_id: number | null
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           begin_date: string
@@ -146,6 +150,7 @@ export interface Database {
           timeline_id?: number | null
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           begin_date?: string
@@ -160,6 +165,7 @@ export interface Database {
           timeline_id?: number | null
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -182,6 +188,7 @@ export interface Database {
           slug: string
           updated_at: string | null
           url: string
+          user_id: string
           width: number | null
         }
         Insert: {
@@ -194,6 +201,7 @@ export interface Database {
           slug: string
           updated_at?: string | null
           url: string
+          user_id: string
           width?: number | null
         }
         Update: {
@@ -206,6 +214,7 @@ export interface Database {
           slug?: string
           updated_at?: string | null
           url?: string
+          user_id?: string
           width?: number | null
         }
         Relationships: []
@@ -250,6 +259,7 @@ export interface Database {
           summary: string | null
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           begin_date: string
@@ -260,6 +270,7 @@ export interface Database {
           summary?: string | null
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           begin_date?: string
@@ -270,6 +281,7 @@ export interface Database {
           summary?: string | null
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -352,6 +364,7 @@ export interface Database {
           summary: string | null
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           begin_date: string
@@ -363,6 +376,7 @@ export interface Database {
           summary?: string | null
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           begin_date?: string
@@ -374,6 +388,7 @@ export interface Database {
           summary?: string | null
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
