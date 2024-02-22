@@ -2,7 +2,6 @@
 import React from 'react';
 import {useRouter} from 'next/navigation';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {
   Box,
   Button,
@@ -23,9 +22,6 @@ export function ContentViewer({title, count, createLink, children}: ContentViewe
     <Box sx={{ p: '1em', mt: '3em', width: '100%' }}>
       <Grid2 container>
         <Grid2 md={6} sm={12}>
-          <Button aria-label="back" color="secondary" onClick={() => {router.back()}}>
-            <ArrowBackIcon />&nbsp;Back
-          </Button>
           <Typography color="text.primary" variant="h2">
             {title}
           </Typography>
