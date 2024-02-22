@@ -1,3 +1,4 @@
+import debugFactory from 'debug';
 import React from 'react';
 // import Paper from '@mui/material/Paper';
 import InputBase from '@mui/material/InputBase';
@@ -8,7 +9,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import type { NavRoute } from './nav';
 import {Form} from './form';
 
-const {log: debug} = console;
+const debug = debugFactory('admin:ui:search-input');
 
 export interface SearchInputProps {
   /**
@@ -26,7 +27,7 @@ export interface SearchInputProps {
  */
 export function SearchInput({router, route}: SearchInputProps): JSX.Element {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
-    // console.debug('Submit event handler called!');
+    // debug('Submit event handler called!');
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     debug({data: data.get('search')});

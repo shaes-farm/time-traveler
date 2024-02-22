@@ -1,5 +1,6 @@
 'use client'
-import React from 'react';
+import debugFactory from 'debug';
+// import React from 'react';
 // import Image from 'next/image';
 import {Card, CardActions, CardContent, CardHeader, Grid, Typography} from '@mui/material';
 // import Carousel from 'react-material-ui-carousel'
@@ -28,7 +29,7 @@ import {CardButtons, MenuButton} from '../components';
 //   );
 // }
 
-const {debug} = console;
+const debug = debugFactory('ui:views:historical-event-card');
 
 export interface HistoricalEventCardProps {
   event: HistoricalEvent;

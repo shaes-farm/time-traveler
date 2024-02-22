@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-throw-literal -- throw supabase errors */
+import debugFactory from 'debug';
 import { createClient, type QueryData, type SupabaseClient } from '@supabase/supabase-js'
 import type {
   Category,
@@ -25,7 +26,7 @@ import {
   mapApiTimelineToModel,
 } from './mapper';
 
-const { debug } = console;
+const debug = debugFactory('service:supabase:fetch');
 
 export class SupabaseFetch implements Fetch {
   baseUrl: string;
@@ -33,7 +34,7 @@ export class SupabaseFetch implements Fetch {
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
-    // Create a single supabase client for interacting with your database
+    // Create a single supabase client for interacting with the database
     this.supabase = createClient<Database>(baseUrl, process.env.SUPABASE_ANON_KEY ?? '');
   }
 
