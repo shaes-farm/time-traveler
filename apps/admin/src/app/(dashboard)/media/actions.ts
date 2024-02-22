@@ -1,11 +1,11 @@
 import debugFactory from 'debug';
 import type { FileUpload } from 'ui';
 import { SupabaseUpload, type Media, type UploadInfo } from 'service';
-import { createClient } from '../../utils/supabase/client';
+import { createClient } from '../../../utils/supabase/client';
 
 const debug = debugFactory('admin:dashboard:actions');
 
-export async function upload(bucketName: string, fileUpload: FileUpload, setProgress: (percentage: number) => void, onSuccess: (info: UploadInfo) => void, onError: (error: Error) => void): Promise<void> {
+export async function upload(fileUpload: FileUpload, setProgress: (percentage: number) => void, onSuccess: (info: UploadInfo) => void, onError: (error: Error) => void): Promise<void> {
   const supabase = createClient();
 
   const supa = new SupabaseUpload(supabase);
@@ -16,7 +16,7 @@ export async function upload(bucketName: string, fileUpload: FileUpload, setProg
   };
 
   await supa.resumableUpload(
-    bucketName,
+    'media',
     fileUpload.file,
     setProgress,
     onReset,
