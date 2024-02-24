@@ -12,7 +12,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import ArrowDropDownOutlinedIcon from '@mui/icons-material/ArrowDropDownOutlined';
 import MenuItem from '@mui/material/MenuItem';
-import type { Profile } from '../providers';
+import type { Profile } from 'service';
 import type { NavRoute, NavRouter } from './nav';
 
 export interface ProfileButtonProps extends Partial<MenuProps> {
