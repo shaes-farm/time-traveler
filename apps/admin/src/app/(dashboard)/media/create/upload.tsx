@@ -4,7 +4,7 @@ import debugFactory from 'debug';
 import slugify from 'slugify';
 import { DragAndDropUpload } from 'ui';
 import type { Media, UploadInfo } from 'service';
-import { addMedia, upload } from '../actions';
+import { addMedia, upload } from './actions';
 
 const debug = debugFactory('admin:app:media:upload');
 

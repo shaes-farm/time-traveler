@@ -1,19 +1,6 @@
-import getConfig from 'next/config';
-import {notFound} from 'next/navigation';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../../types';
+import { notFound } from 'next/navigation';
 import { ContentEditor } from '../../../../components';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+import { queryBySlug } from '../actions';
 
 interface PageProps {
   params: {
@@ -21,9 +8,8 @@ interface PageProps {
   }
 }
 
-export default async function Page(props: PageProps): Promise<JSX.Element> {
-  const { params: { slug } } = props;
-  const media = await f.getMediaItem(slug);
+export default async function Page({ params: { slug } }: PageProps): Promise<JSX.Element> {
+  const media = await queryBySlug(slug);
 
   if (!media) {
     notFound();
@@ -32,7 +18,7 @@ export default async function Page(props: PageProps): Promise<JSX.Element> {
   return (
     <ContentEditor title="Edit a Media Item">
       <pre>
-        {JSON.stringify({media}, null, 2)}
+        {JSON.stringify({ media }, null, 2)}
       </pre>
     </ContentEditor>
   );
