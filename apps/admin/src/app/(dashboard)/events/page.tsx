@@ -1,23 +1,10 @@
-import getConfig from 'next/config';
-import {fetchFactory} from 'service';
-import type {NextConfig} from '../../../types';
-import {EventListView} from '../../../views';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+import { queryAll } from './actions';
+import EventGridView from './grid-view';
 
 export default async function Page(): Promise<JSX.Element> {
-  const events = await f.getEvents();
+  const events = await queryAll();
   return (
-    <EventListView
+    <EventGridView
       createLink="/events/create"
       deleteLink="/events/[slug]/delete"
       editLink="/events/[slug]"

@@ -1,7 +1,7 @@
 'use client';
 import type { GridColDef } from '@mui/x-data-grid';
-import type { Timeline } from 'service';
-import {ContentViewer, GridList} from '../components';
+import type { Period } from 'service';
+import {ContentViewer, GridList} from '../../../components';
 
 const columns: GridColDef[] = [
   {
@@ -13,15 +13,11 @@ const columns: GridColDef[] = [
     field: 'title',
     headerName: 'Title',
     width: 150,
+    editable: true,
   },
   {
     field: 'summary',
     headerName: 'Summary',
-    width: 150,
-  },
-  {
-    field: 'scale',
-    headerName: 'Scale',
     width: 150,
   },
   {
@@ -36,25 +32,25 @@ const columns: GridColDef[] = [
   },
 ];
 
-interface TimelineListViewProps {
-  timelines: Timeline[];
+interface PeriodGridViewProps {
+  periods: Period[];
   createLink: string;
   deleteLink: string;
   editLink: string;
 }
 
-export function TimelineListView({ timelines, createLink, deleteLink, editLink }: TimelineListViewProps): JSX.Element {
+export default function PeriodGridView({ periods, createLink, deleteLink, editLink }: PeriodGridViewProps): JSX.Element {
   return (
     <ContentViewer
-      count={timelines.length}
+      count={periods.length}
       createLink={createLink}
-      title="Timelines"
+      title="Periods"
     >
       <GridList
         columns={columns}
         deleteLink={deleteLink}
         editLink={editLink}
-        rows={timelines}
+        rows={periods}
       />
     </ContentViewer>
   );

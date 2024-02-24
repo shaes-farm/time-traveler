@@ -1,31 +1,31 @@
 'use client';
 import type { GridColDef } from '@mui/x-data-grid';
 import type { Category } from 'service';
-import { ContentViewer, GridList } from '../components';
+import { ContentViewer, GridList } from '../../../components';
 
 const columns: GridColDef[] = [
   {
     field: 'slug',
     headerName: 'Slug',
-    width: 150,
+    width: 300,
     editable: true,
   },
   {
     field: 'title',
     headerName: 'Title',
-    width: 150,
+    width: 300,
     editable: true,
   },
 ];
 
-interface CategoryListViewProps {
+interface GridViewProps {
   categories: Category[];
   createLink: string;
   deleteLink: string;
   editLink: string;
 }
 
-export function CategoryListView({ categories, createLink, deleteLink, editLink }: CategoryListViewProps): JSX.Element {
+export default function GridView({ categories, createLink, deleteLink, editLink }: GridViewProps): JSX.Element {
   return (
     <ContentViewer
       count={categories.length}

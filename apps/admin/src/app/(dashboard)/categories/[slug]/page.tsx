@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { ContentEditor } from '../../../../components';
-import { CategoryForm } from '../../../../forms';
 import { insert, queryBySlug, update } from '../actions';
 import { queryAll as queryAllEvents } from '../../events/actions';
+import CategoryForm from '../form';
 
 interface PageProps {
   params: {

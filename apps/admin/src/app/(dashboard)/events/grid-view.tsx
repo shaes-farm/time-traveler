@@ -1,7 +1,7 @@
 'use client';
 import type { GridColDef } from '@mui/x-data-grid';
 import type { HistoricalEvent } from 'service';
-import {ContentViewer, GridList} from '../components';
+import {ContentViewer, GridList} from '../../../components';
 
 const columns: GridColDef[] = [
   {
@@ -36,14 +36,14 @@ const columns: GridColDef[] = [
   },
 ];
 
-interface EventListViewProps {
+interface GridViewProps {
   events: HistoricalEvent[];
   createLink: string;
   deleteLink: string;
   editLink: string;
 }
 
-export function EventListView({ events, createLink, deleteLink, editLink }: EventListViewProps): JSX.Element {
+export default function GridView({ events, createLink, deleteLink, editLink }: GridViewProps): JSX.Element {
   return (
     <ContentViewer
       count={events.length}

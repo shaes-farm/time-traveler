@@ -1,7 +1,7 @@
 'use client';
 import type { GridColDef } from '@mui/x-data-grid';
 import type { Media } from 'service';
-import { GridList } from '../components';
+import { GridList } from '../../../components';
 
 const columns: GridColDef[] = [
   {

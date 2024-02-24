@@ -1,10 +1,10 @@
-import { TimelineListView } from '../../../views';
 import { queryAll } from './actions';
+import TimelineGridView from './grid-view';
 
 export default async function Page(): Promise<JSX.Element> {
   const timelines = await queryAll();
   return (
-    <TimelineListView
+    <TimelineGridView
       createLink="/timelines/create"
       deleteLink="/timelines/[slug]/delete"
       editLink="/timelines/[slug]"

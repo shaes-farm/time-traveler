@@ -4,9 +4,9 @@ import Box from '@mui/material/Box';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import type { Media } from 'service';
-import { ContentViewer } from '../components';
-import { MediaImageView } from './media-image-view';
-import { MediaListView } from './media-list-view';
+import { ContentViewer } from '../../../components';
+import { MediaImageView } from './image-view';
+import { MediaListView } from './grid-view';
 
 interface MediaTabViewProps {
     media: Media[];
@@ -15,7 +15,7 @@ interface MediaTabViewProps {
     editLink: string;
   }
 
-export function MediaTabView({ media, createLink, deleteLink, editLink }: MediaTabViewProps): JSX.Element {
+export default function MediaTabView({ media, createLink, deleteLink, editLink }: MediaTabViewProps): JSX.Element {
     const [value, setValue] = useState(0);
 
     const handleChange = (event: React.SyntheticEvent, newValue: number): void => {

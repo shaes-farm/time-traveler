@@ -1,10 +1,10 @@
-import { CategoryListView } from '../../../views';
 import { queryAll } from './actions';
+import CategoryGridView from './grid-view';
 
 export default async function Page(): Promise<JSX.Element> {
   const categories = await queryAll();
   return (
-    <CategoryListView
+    <CategoryGridView
       categories={categories}
       createLink="/categories/create"
       deleteLink="/categories/[slug]/delete"

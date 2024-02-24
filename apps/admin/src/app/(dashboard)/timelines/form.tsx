@@ -18,12 +18,12 @@ import {
   Form,
 } from 'ui';
 import type {
-  Category,
   HistoricalEvent,
+  Timeline,
 } from 'service';
-import { TransferList } from '../components/transfer-list';
+import { TransferList } from '../../../components/transfer-list';
 
-const debug = debugFactory('admin:category-form');
+const debug = debugFactory('admin:timeline-form');
 
 const validationSchema = yup.object({
   title: yup
@@ -33,30 +33,53 @@ const validationSchema = yup.object({
   slug: yup
     .string()
     .required('Slug is required'),
-  events: yup
+  summary: yup
+    .string(),
+  scale: yup
+    .string(),
+  beginDate: yup
+    .string()
+    .required('Begin date is required.'),
+  endDate: yup
+    .string(),
+  periods: yup
     .array(),
 });
 
-interface CategoryFormProps {
+interface TimelineFormProps {
   mode: 'create' | 'edit';
-  category?: Category;
+  timeline?: Timeline;
   events?: readonly HistoricalEvent[];
-  create: (category: Category) => Promise<void>;
-  update: (category: Category) => Promise<void>;
+  create: (timeline: Timeline) => Promise<void>;
+  update: (timeline: Timeline) => Promise<void>;
 }
 
-export function CategoryForm({ mode, category, events, create, update }: CategoryFormProps): JSX.Element {
+export default function TimelineForm({ mode, timeline, events, create, update }: TimelineFormProps): JSX.Element {
   const router = useRouter();
 
-  const initialValues: Category = (mode === 'edit' && category) ? {
-    userId: category.userId ?? '',
-    title: category.title,
-    slug: category.slug,
-    events: category.events,
+  debug({
+    mode,
+    timeline,
+    events,
+  });
+
+  const initialValues: Timeline = (mode === 'edit' && timeline) ? {
+    userId: timeline.userId ?? '',
+    title: timeline.title,
+    slug: timeline.slug,
+    summary: timeline.summary ?? '',
+    scale: timeline.scale ?? '',
+    beginDate: timeline.beginDate,
+    endDate: timeline.endDate,
+    events: timeline.events,
   } : {
     userId: '',
     title: '',
     slug: '',
+    summary: '',
+    scale: '',
+    beginDate: '',
+    endDate: '',
     events: [],
   };
 
@@ -64,7 +87,7 @@ export function CategoryForm({ mode, category, events, create, update }: Categor
     initialValues,
     validationSchema,
     onSubmit: async (values) => {
-      debug('category-form.onSubmit', {mode, values});
+      debug('timeline-form.onSubmit', { mode, values });
       mode === 'create' ? await create(values) : await update(values);
     },
   });
@@ -75,7 +98,7 @@ export function CategoryForm({ mode, category, events, create, update }: Categor
         <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
           <Grid display="flex" item xs={12}>
             <Typography color="text.secondary" sx={{ mb: '1em' }} variant="caption">
-              URL: {`/categories/${formik.values.slug}`}
+              URL: {`/timelines/${formik.values.slug}`}
             </Typography>
           </Grid>
           <Box sx={{ flex: '1 1 auto' }} />
@@ -110,9 +133,58 @@ export function CategoryForm({ mode, category, events, create, update }: Categor
           />
         </Grid>
         <Grid item xs={12}>
+          <TextField
+            fullWidth
+            id="summary"
+            label="Summary"
+            multiline
+            name="summary"
+            onChange={formik.handleChange}
+            rows={9}
+            value={formik.values.summary}
+          />
+        </Grid>
+        <Grid display="flex" item xs={12}>
+          <TextField
+            fullWidth
+            hidden
+            id="scale"
+            label="Scale"
+            name="scale"
+            onChange={formik.handleChange}
+            value={formik.values.scale}
+          />
+        </Grid>
+        <Grid item xs={12}>
           <Divider sx={{ mt: 2 }} />
           <Typography sx={{ mt: 1, mb: 1 }} variant="h6">
-            HistoricalEvents
+            Date Range
+          </Typography>
+        </Grid>
+        <Grid item sm={6} xs={12}>
+          <TextField
+            fullWidth
+            id="begin-date"
+            label="Begin Date"
+            name="beginDate"
+            onChange={formik.handleChange}
+            value={formik.values.beginDate}
+          />
+        </Grid>
+        <Grid item sm={6} xs={12}>
+          <TextField
+            fullWidth
+            id="end-date"
+            label="End Date"
+            name="endDate"
+            onChange={formik.handleChange}
+            value={formik.values.endDate}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <Divider sx={{ mt: 2 }} />
+          <Typography sx={{ mt: 1, mb: 1 }} variant="h6">
+            Timelines
           </Typography>
         </Grid>
         <Grid item xs={12}>

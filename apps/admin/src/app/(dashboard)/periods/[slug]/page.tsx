@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { ContentEditor } from '../../../../components';
-import { PeriodForm } from '../../../../forms';
 import { insert, queryBySlug, update } from '../actions';
 import { queryAll as queryAllTimelines } from '../../timelines/actions';
+import PeriodForm from '../form';
 
 interface PageProps {
   params: {

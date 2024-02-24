@@ -1,7 +1,7 @@
 import { ContentEditor } from '../../../../components';
-import { TimelineForm } from '../../../../forms';
 import { insert, update } from '../actions';
 import { queryAll as queryAllEvents } from '../../events/actions';
+import TimelineForm from '../form';
 
 export default async function Page(): Promise<JSX.Element> {
   const events = await queryAllEvents();

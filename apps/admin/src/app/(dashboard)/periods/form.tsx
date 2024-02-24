@@ -18,12 +18,12 @@ import {
   Form,
 } from 'ui';
 import type {
-  HistoricalEvent,
+  Period,
   Timeline,
 } from 'service';
-import { TransferList } from '../components/transfer-list';
+import { TransferList } from '../../../components/transfer-list';
 
-const debug = debugFactory('admin:timeline-form');
+const debug = debugFactory('admin:period-form');
 
 const validationSchema = yup.object({
   title: yup
@@ -35,59 +35,50 @@ const validationSchema = yup.object({
     .required('Slug is required'),
   summary: yup
     .string(),
-  scale: yup
-    .string(),
   beginDate: yup
     .string()
     .required('Begin date is required.'),
   endDate: yup
-    .string(),
-  periods: yup
+    .string()
+    .required('End date is required'),
+  timelines: yup
     .array(),
 });
 
-interface TimelineFormProps {
+interface PeriodFormProps {
   mode: 'create' | 'edit';
-  timeline?: Timeline;
-  events?: readonly HistoricalEvent[];
-  create: (timeline: Timeline) => Promise<void>;
-  update: (timeline: Timeline) => Promise<void>;
+  period?: Period;
+  timelines?: readonly Timeline[];
+  create: (period: Period) => Promise<void>;
+  update: (period: Period) => Promise<void>;
 }
 
-export function TimelineForm({ mode, timeline, events, create, update }: TimelineFormProps): JSX.Element {
+export default function PeriodForm({ mode, period, timelines, create, update }: PeriodFormProps): JSX.Element {
   const router = useRouter();
 
-  debug({
-    mode,
-    timeline,
-    events,
-  });
-
-  const initialValues: Timeline = (mode === 'edit' && timeline) ? {
-    userId: timeline.userId ?? '',
-    title: timeline.title,
-    slug: timeline.slug,
-    summary: timeline.summary ?? '',
-    scale: timeline.scale ?? '',
-    beginDate: timeline.beginDate,
-    endDate: timeline.endDate,
-    events: timeline.events,
+  const initialValues: Period = (mode === 'edit' && period) ? {
+    userId: period.userId ?? '',
+    title: period.title,
+    slug: period.slug,
+    summary: period.summary ?? '',
+    beginDate: period.beginDate,
+    endDate: period.endDate,
+    timelines: period.timelines,
   } : {
     userId: '',
     title: '',
     slug: '',
     summary: '',
-    scale: '',
     beginDate: '',
     endDate: '',
-    events: [],
+    timelines: [],
   };
 
   const formik = useFormik({
     initialValues,
     validationSchema,
     onSubmit: async (values) => {
-      debug('timeline-form.onSubmit', { mode, values });
+      debug('period-form.onSubmit', {mode, values});
       mode === 'create' ? await create(values) : await update(values);
     },
   });
@@ -98,7 +89,7 @@ export function TimelineForm({ mode, timeline, events, create, update }: Timelin
         <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
           <Grid display="flex" item xs={12}>
             <Typography color="text.secondary" sx={{ mb: '1em' }} variant="caption">
-              URL: {`/timelines/${formik.values.slug}`}
+              URL: {`/periods/${formik.values.slug}`}
             </Typography>
           </Grid>
           <Box sx={{ flex: '1 1 auto' }} />
@@ -144,17 +135,6 @@ export function TimelineForm({ mode, timeline, events, create, update }: Timelin
             value={formik.values.summary}
           />
         </Grid>
-        <Grid display="flex" item xs={12}>
-          <TextField
-            fullWidth
-            hidden
-            id="scale"
-            label="Scale"
-            name="scale"
-            onChange={formik.handleChange}
-            value={formik.values.scale}
-          />
-        </Grid>
         <Grid item xs={12}>
           <Divider sx={{ mt: 2 }} />
           <Typography sx={{ mt: 1, mb: 1 }} variant="h6">
@@ -189,8 +169,8 @@ export function TimelineForm({ mode, timeline, events, create, update }: Timelin
         </Grid>
         <Grid item xs={12}>
           <TransferList
-            available={events ?? []}
-            items={formik.values.events}
+            available={timelines ?? []}
+            items={formik.values.timelines}
             onChange={(_t) => { /* debug({ t }) */ }}
           />
         </Grid>

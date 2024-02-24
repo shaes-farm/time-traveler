@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { ContentEditor } from '../../../../components';
-import { TimelineForm } from '../../../../forms';
 import { insert, queryBySlug, update } from '../actions';
 import { queryAll as queryAllEvents } from '../../events/actions';
+import TimelineForm from '../form';
 
 interface PageProps {
   params: {
