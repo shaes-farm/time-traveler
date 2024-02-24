@@ -42,7 +42,7 @@ export async function queryAll(): Promise<Timeline[]> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     const timelines = data as PostgrestTimeline[] | null;
@@ -70,7 +70,7 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     const timeline = data[0] as PostgrestTimeline | null;
@@ -104,7 +104,7 @@ export async function insert(timeline: Timeline): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/timelines`, 'layout');
@@ -138,7 +138,7 @@ export async function update(timeline: Timeline): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/timelines`, 'layout');
@@ -163,7 +163,7 @@ export async function remove(slug: string): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/timelines`, 'layout');

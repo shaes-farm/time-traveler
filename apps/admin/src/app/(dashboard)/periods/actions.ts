@@ -42,7 +42,7 @@ export async function queryAll(): Promise<Period[]> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     const periods = data as PostgrestPeriod[] | null;
@@ -70,7 +70,7 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     const period = data[0] as PostgrestPeriod | null;
@@ -104,7 +104,7 @@ export async function insert(period: Period): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/periods`, 'layout');
@@ -138,7 +138,7 @@ export async function update(period: Period): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/periods`, 'layout');
@@ -163,7 +163,7 @@ export async function remove(slug: string): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/periods`, 'layout');

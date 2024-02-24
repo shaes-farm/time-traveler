@@ -1,12 +1,28 @@
+'use server';
+
 import debugFactory from 'debug';
+import getConfig from 'next/config';
+import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation';
 import type { FileUpload } from 'ui';
 import { SupabaseUpload, type Media, type UploadInfo } from 'service';
-import { createClient } from '../../../utils/supabase/client';
+import { createClient } from '../../../utils/supabase/server';
+import type { NextConfig } from '../../../types';
 
 const debug = debugFactory('admin:dashboard:actions');
 
+const {
+  publicRuntimeConfig: {
+    app: {
+      baseUrl: appBaseUrl,
+      basePath,
+    }
+  },
+} = getConfig() as NextConfig;
+
 export async function upload(fileUpload: FileUpload, setProgress: (percentage: number) => void, onSuccess: (info: UploadInfo) => void, onError: (error: Error) => void): Promise<void> {
-  const supabase = createClient();
+  const supabase = createClient(cookies());
 
   const supa = new SupabaseUpload(supabase);
 
@@ -25,32 +41,45 @@ export async function upload(fileUpload: FileUpload, setProgress: (percentage: n
 }
 
 export async function addMedia(media: Media): Promise<void> {
-  const supabase = createClient();
+  const supabase = createClient(cookies());
 
-  debug('addMedia', {media});
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
+
+  debug('addMedia', { media });
 
   const { data: items, error: lookupError } = await supabase
     .from('media')
     .select()
     .eq('slug', media.slug);
 
-  debug('addMedia', {lookupError, items});
+  debug('addMedia', { lookupError, items });
 
   if (!lookupError && items.length > 0) {
     const db = {
-      user_id: media.userId,
+      user_id: session.user.id,
       slug: media.slug,
       url: media.url,
       formats: media.formats,
     };
-    debug('addMedia->update', {db});
-    await supabase
+
+    debug('addMedia->update', { db });
+
+    const { error } = await supabase
       .from('media')
       .update(db)
       .eq('slug', media.slug);
+
+    if (error) {
+      debug({ error });
+      throw new Error(error.message);
+    }
   } else {
     const db = {
-      user_id: media.userId,
+      user_id: session.user.id,
       slug: media.slug,
       alternativetext: media.alternativeText,
       caption: media.caption,
@@ -59,9 +88,19 @@ export async function addMedia(media: Media): Promise<void> {
       height: media.height,
       formats: media.formats,
     };
-    debug('addMedia->insert', {db});
-    await supabase
+
+    debug('addMedia->insert', { db });
+
+    const { error } = await supabase
       .from('media')
       .insert(db);
+
+    if (error) {
+      debug({ error });
+      throw new Error(error.message);
+    }
   }
+
+  revalidatePath(`${appBaseUrl}${basePath}/periods`, 'layout');
+  redirect(`${appBaseUrl}${basePath}/periods`);
 }

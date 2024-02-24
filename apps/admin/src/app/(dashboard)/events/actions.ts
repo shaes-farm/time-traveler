@@ -42,7 +42,7 @@ export async function queryAll(): Promise<HistoricalEvent[]> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     const events = data as PostgrestHistoricalEvent[] | null;
@@ -70,7 +70,7 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     const event = data as unknown as PostgrestHistoricalEvent | null;
@@ -107,7 +107,7 @@ export async function insert(event: HistoricalEvent): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/events`, 'layout');
@@ -144,7 +144,7 @@ export async function update(event: HistoricalEvent): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/events`, 'layout');
@@ -169,7 +169,7 @@ export async function remove(slug: string): Promise<void> {
 
     if (error) {
         debug({error});
-        throw error;
+        throw new Error(error.message);
     }
 
     revalidatePath(`${appBaseUrl}${basePath}/events`, 'layout');
