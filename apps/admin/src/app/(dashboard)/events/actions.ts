@@ -64,7 +64,8 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
     const { error, data } = await supabase
         .from('historical_events')
         .select()
-        .eq('slug', slug);
+        .eq('slug', slug)
+        .maybeSingle();
 
     debug('query', {error, data});
 
@@ -73,7 +74,7 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
         throw new Error(error.message);
     }
 
-    const event = data as unknown as PostgrestHistoricalEvent | null;
+    const event = data as PostgrestHistoricalEvent | null;
 
     return event ? mapApiEventToModel(event) : null;
 }
@@ -93,14 +94,14 @@ export async function insert(event: HistoricalEvent): Promise<void> {
         .from('historical_events')
         .insert({
             user_id: session.user.id,
-            slug: event.slug.trim(),
-            title: event.title.trim(),
-            summary: event.summary?.trim() ? event.summary.trim() : null,
-            detail: event.detail?.trim() ? event.detail.trim() : null,
-            location: event.location?.trim() ? event.location.trim() : null,
+            slug: event.slug,
+            title: event.title,
+            summary: event.summary ? event.summary : null,
+            detail: event.detail ? event.detail : null,
+            location: event.location ? event.location : null,
             importance: event.importance,
             begin_date: event.beginDate,
-            end_date: event.endDate?.trim() ? event.endDate.trim() : null,
+            end_date: event.endDate ? event.endDate : null,
         });
       
     debug('insert', {error});
@@ -129,16 +130,16 @@ export async function update(event: HistoricalEvent): Promise<void> {
         .from('historical_events')
         .update({
             user_id: session.user.id,
-            slug: event.slug.trim(),
-            title: event.title.trim(),
-            summary: event.summary?.trim() ? event.summary.trim() : null,
-            detail: event.detail?.trim() ? event.detail.trim() : null,
-            location: event.location?.trim() ? event.location.trim() : null,
+            slug: event.slug,
+            title: event.title,
+            summary: event.summary ? event.summary : null,
+            detail: event.detail ? event.detail : null,
+            location: event.location ? event.location : null,
             importance: event.importance,
             begin_date: event.beginDate,
-            end_date: event.endDate?.trim() ? event.endDate.trim() : null,
+            end_date: event.endDate ? event.endDate : null,
         })
-        .eq('slug', event.slug.trim());
+        .eq('slug', event.slug);
 
     debug('update', {error, data});
 

@@ -64,7 +64,8 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
     const { error, data } = await supabase
         .from('timelines')
         .select()
-        .eq('slug', slug);
+        .eq('slug', slug)
+        .maybeSingle();
 
     debug('query', {error, data});
 
@@ -73,7 +74,7 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
         throw new Error(error.message);
     }
 
-    const timeline = data[0] as PostgrestTimeline | null;
+    const timeline = data as PostgrestTimeline | null;
 
     return timeline ? mapApiTimelineToModel(timeline) : null;
 }

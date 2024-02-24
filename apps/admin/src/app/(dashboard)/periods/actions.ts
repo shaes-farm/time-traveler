@@ -64,7 +64,8 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
     const { error, data } = await supabase
         .from('periods')
         .select()
-        .eq('slug', slug);
+        .eq('slug', slug)
+        .maybeSingle();
 
     debug('query', {error, data});
 
@@ -73,7 +74,7 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
         throw new Error(error.message);
     }
 
-    const period = data[0] as PostgrestPeriod | null;
+    const period = data as PostgrestPeriod | null;
 
     return period ? mapApiPeriodToModel(period) : null;
 }
