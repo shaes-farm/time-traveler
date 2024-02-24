@@ -1,6 +1,6 @@
 create table periods (
     id bigint primary key generated always as identity,
-    user_id uuid  not null,
+    user_id uuid not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     summary text,
@@ -48,7 +48,7 @@ create policy "Authenticated users can delete their own periods"
 
 create table timelines (
     id bigint primary key generated always as identity,
-    user_id uuid  not null,
+    user_id uuid not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     summary text,
@@ -97,7 +97,7 @@ create policy "Authenticated users can delete their own timelines"
 
 create table historical_events (
     id bigint primary key generated always as identity,
-    user_id uuid  not null,
+    user_id uuid not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     summary text,
@@ -149,7 +149,7 @@ create policy "Authenticated users can delete their own historical_events"
 
 create table categories (
     id bigint primary key generated always as identity,
-    user_id uuid  not null,
+    user_id uuid not null,
     slug varchar(100) not null,
     title varchar(2000) not null,
     created_at timestamptz default now(),
@@ -194,7 +194,7 @@ create policy "Authenticated users can delete their own categories"
 
 create table media (
     id bigint primary key generated always as identity,
-    user_id uuid  not null,
+    user_id uuid not null,
     slug varchar(100) not null,
     alternativetext text,
     caption text,
