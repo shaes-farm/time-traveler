@@ -126,7 +126,7 @@ export interface Database {
           begin_date: string
           created_at: string | null
           detail: string | null
-          end_date: string
+          end_date: string | null
           id: number
           importance: number
           location: string | null
@@ -141,7 +141,7 @@ export interface Database {
           begin_date: string
           created_at?: string | null
           detail?: string | null
-          end_date: string
+          end_date?: string | null
           id?: never
           importance: number
           location?: string | null
@@ -156,7 +156,7 @@ export interface Database {
           begin_date?: string
           created_at?: string | null
           detail?: string | null
-          end_date?: string
+          end_date?: string | null
           id?: never
           importance?: number
           location?: string | null

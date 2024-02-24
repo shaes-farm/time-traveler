@@ -105,7 +105,7 @@ create table historical_events (
     location varchar(2000),
     importance integer not null,
     begin_date varchar(1000) not null,
-    end_date varchar(1000) not null,
+    end_date varchar(1000),
     timeline_id bigint references timelines (id),
     created_at timestamptz default now(),
     updated_at timestamptz default now()
