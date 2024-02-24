@@ -1,18 +1,18 @@
 'use client';
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
-import {AppBar} from '../components/app-bar';
-import {Drawer} from '../components/drawer';
-import type { NavRoute, NavRouter, NavRoutes} from '../components/nav';
-import {Nav} from '../components/nav';
-import {SearchInput} from '../components/search-input';
-import {useProfile} from '../providers/profile';
-import {ProfileButton} from '../components/profile-button';
+import { AppBar } from '../components/app-bar';
+import { Drawer } from '../components/drawer';
+import type { NavRoute, NavRouter, NavRoutes } from '../components/nav';
+import { Nav } from '../components/nav';
+import { SearchInput } from '../components/search-input';
+import { useProfile } from '../providers/profile';
+import { ProfileButton } from '../components/profile-button';
 
 export interface DashboardProps {
   /**
@@ -44,9 +44,9 @@ export interface DashboardProps {
  * The Dashboard component provides an AppBar containing a Toolbar across the
  * top of the window, and a collapsible drawer containing a navigation sidebar.
  */
-export function Dashboard({toolbar, routes, router, drawerOpen = true, children}: DashboardProps): JSX.Element {
+export function Dashboard({ toolbar, routes, router, drawerOpen = true, children }: DashboardProps): JSX.Element {
   const [open, setOpen] = useState<boolean>(drawerOpen);
-  const {profile} = useProfile();
+  const { profile } = useProfile();
 
   const toggleDrawer = (): void => {
     setOpen(!open);
@@ -77,7 +77,7 @@ export function Dashboard({toolbar, routes, router, drawerOpen = true, children}
           <Box sx={{ flexGrow: 1 }} />
           {/* Toolbar Icons / Routes */}
           {toolbar.primary.map((route: NavRoute) =>
-            <IconButton color="inherit" data-testid={`${route.slug}-icon`} key={route.slug} onClick={() => {router(route)}}>
+            <IconButton color="inherit" data-testid={`${route.slug}-icon`} key={route.slug} onClick={() => { router(route) }}>
               {route.icon}
             </IconButton>
           )}
@@ -104,16 +104,18 @@ export function Dashboard({toolbar, routes, router, drawerOpen = true, children}
         component="main"
         sx={{
           backgroundColor: (theme) =>
-            theme.palette.mode === 'light'
-              ? theme.palette.grey[100]
-              : theme.palette.grey[900],
+            theme.palette.mode === 'dark'
+              ? theme.palette.grey[900]
+              : theme.palette.grey[100],
           flexGrow: 1,
           height: '100vh',
           overflow: 'auto',
         }}
       >
         <Toolbar />
-        {children}
+        <Box sx={{pt: '24px'}}>
+          {children}
+        </Box>
       </Box>
     </Box>
   );
