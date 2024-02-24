@@ -1,19 +1,9 @@
-import getConfig from 'next/config';
+import debugFactory from 'debug';
 import { notFound } from 'next/navigation';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../../../types';
-import { ContentEditor } from '../../../../../components';
+import { queryBySlug } from '../../actions';
+import TimelineDeleteView from './view';
 
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+const debug = debugFactory('admin:timelines:delete:page');
 
 interface PageProps {
   params: {
@@ -23,16 +13,16 @@ interface PageProps {
 
 export default async function Page(props: PageProps): Promise<JSX.Element> {
   const { params: { slug } } = props;
-  const timeline = await f.getTimeline(slug);
 
+  debug({slug});
+
+  const timeline = await queryBySlug(slug);
+
+  debug({timeline});
+  
   if (!timeline) {
     notFound();
   }
 
-  return (
-    <ContentEditor title="Delete a Timeline">
-      <h2>Are you sure you want to delete this timeline?</h2>
-      <p>{timeline.title}</p>
-    </ContentEditor>
-  );
+  return <TimelineDeleteView timeline={timeline} />;
 }

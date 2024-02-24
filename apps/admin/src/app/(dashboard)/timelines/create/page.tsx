@@ -1,27 +1,18 @@
-import getConfig from 'next/config';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../../types';
 import { ContentEditor } from '../../../../components';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+import { TimelineForm } from '../../../../forms';
+import { insert, update } from '../actions';
+import { queryAll as queryAllEvents } from '../../events/actions';
 
 export default async function Page(): Promise<JSX.Element> {
-  const periods = await f.getPeriods();
-
+  const events = await queryAllEvents();
   return (
     <ContentEditor title="Create a Timeline">
-      <pre>
-        {JSON.stringify({periods}, null, 2)}
-      </pre>
+      <TimelineForm
+        create={insert}
+        events={events}
+        mode="create"
+        update={update}
+      />
     </ContentEditor>
   );
 }

@@ -36,7 +36,7 @@ export async function queryAll(): Promise<Timeline[]> {
         .from('timelines')
         .select()
         .eq('user_id', session.user.id)
-        .order('begin_date');
+        .order('begin_date, end_date');
 
     debug('queryAll', {error, data});
 
@@ -49,7 +49,7 @@ export async function queryAll(): Promise<Timeline[]> {
 
     debug('queryAll', {timelines});
 
-    return timelines ? timelines.map((period) => mapApiTimelineToModel(period)) : [];
+    return timelines ? timelines.map((timeline) => mapApiTimelineToModel(timeline)) : [];
 }
 
 export async function queryBySlug(slug: string): Promise<Timeline | null> {
@@ -73,12 +73,12 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
         throw error;
     }
 
-    const period = data as unknown as PostgrestTimeline | null;
+    const timeline = data[0] as PostgrestTimeline | null;
 
-    return period ? mapApiTimelineToModel(period) : null;
+    return timeline ? mapApiTimelineToModel(timeline) : null;
 }
 
-export async function insert(period: Timeline): Promise<void> {
+export async function insert(timeline: Timeline): Promise<void> {
     const supabase = createClient(cookies());
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -87,17 +87,17 @@ export async function insert(period: Timeline): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', {period});
+    debug('insert', {timeline});
 
     const { error } = await supabase
         .from('timelines')
         .insert({
             user_id: session.user.id,
-            slug: period.slug,
-            title: period.title,
-            summary: period.summary,
-            begin_date: period.beginDate,
-            end_date: period.endDate,
+            slug: timeline.slug,
+            title: timeline.title,
+            summary: timeline.summary,
+            begin_date: timeline.beginDate,
+            end_date: timeline.endDate,
         });
 
     debug('insert', {error});
@@ -111,7 +111,7 @@ export async function insert(period: Timeline): Promise<void> {
     redirect(`${appBaseUrl}${basePath}/timelines`);
 }
 
-export async function update(period: Timeline): Promise<void> {
+export async function update(timeline: Timeline): Promise<void> {
     const supabase = createClient(cookies());
 
     const { data: { session } } = await supabase.auth.getSession();
@@ -120,19 +120,19 @@ export async function update(period: Timeline): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', {period});
+    debug('update', {timeline});
 
     const { error, data } = await supabase
         .from('timelines')
         .update({
             user_id: session.user.id,
-            slug: period.slug,
-            title: period.title,
-            summary: period.summary ?? undefined,
-            begin_date: period.beginDate,
-            end_date: period.endDate,
+            slug: timeline.slug,
+            title: timeline.title,
+            summary: timeline.summary ?? undefined,
+            begin_date: timeline.beginDate,
+            end_date: timeline.endDate,
         })
-        .eq('slug', period.slug);
+        .eq('slug', timeline.slug);
 
     debug('update', {error, data});
 
