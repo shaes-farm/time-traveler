@@ -64,6 +64,7 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
     const { error, data } = await supabase
         .from('timelines')
         .select()
+        .eq('user_id', session.user.id)
         .eq('slug', slug)
         .maybeSingle();
 
@@ -133,6 +134,7 @@ export async function update(timeline: Timeline): Promise<void> {
             begin_date: timeline.beginDate,
             end_date: timeline.endDate,
         })
+        .eq('user_id', session.user.id)
         .eq('slug', timeline.slug);
 
     debug('update', {error, data});
@@ -160,6 +162,7 @@ export async function remove(slug: string): Promise<void> {
     const { error } = await supabase
         .from('timelines')
         .delete()
+        .eq('user_id', session.user.id)
         .eq('slug', slug);
 
     if (error) {

@@ -64,6 +64,7 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
     const { error, data } = await supabase
         .from('historical_events')
         .select()
+        .eq('user_id', session.user.id)
         .eq('slug', slug)
         .maybeSingle();
 
@@ -139,6 +140,7 @@ export async function update(event: HistoricalEvent): Promise<void> {
             begin_date: event.beginDate,
             end_date: event.endDate ? event.endDate : null,
         })
+        .eq('user_id', session.user.id)
         .eq('slug', event.slug);
 
     debug('update', {error, data});
@@ -166,6 +168,7 @@ export async function remove(slug: string): Promise<void> {
     const { error } = await supabase
         .from('historical_events')
         .delete()
+        .eq('user_id', session.user.id)
         .eq('slug', slug);
 
     if (error) {

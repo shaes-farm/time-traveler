@@ -64,6 +64,7 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
     const { error, data } = await supabase
         .from('periods')
         .select()
+        .eq('user_id', session.user.id)
         .eq('slug', slug)
         .maybeSingle();
 
@@ -133,6 +134,7 @@ export async function update(period: Period): Promise<void> {
             begin_date: period.beginDate,
             end_date: period.endDate,
         })
+        .eq('user_id', session.user.id)
         .eq('slug', period.slug);
 
     debug('update', {error, data});
@@ -160,6 +162,7 @@ export async function remove(slug: string): Promise<void> {
     const { error } = await supabase
         .from('periods')
         .delete()
+        .eq('user_id', session.user.id)
         .eq('slug', slug);
 
     if (error) {

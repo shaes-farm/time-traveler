@@ -64,6 +64,7 @@ export async function queryBySlug(slug: string): Promise<Media | null> {
     const { error, data } = await supabase
         .from('media')
         .select()
+        .eq('user_id', session.user.id)
         .eq('slug', slug)
         .maybeSingle();
 
@@ -137,6 +138,7 @@ export async function update(media: Media): Promise<void> {
             height: media.height,
             formats: media.formats,
         })
+        .eq('user_id', session.user.id)
         .eq('slug', media.slug);
 
     debug('update', { error, data });
@@ -164,6 +166,7 @@ export async function remove(slug: string): Promise<void> {
     const { error } = await supabase
         .from('media')
         .delete()
+        .eq('user_id', session.user.id)
         .eq('slug', slug);
 
     if (error) {
