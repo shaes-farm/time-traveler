@@ -1,7 +1,7 @@
 import debugFactory from 'debug';
 import { notFound } from 'next/navigation';
 import { queryBySlug } from '../../actions';
-import { PeriodDeleteView } from './period-delete-view';
+import PeriodDeleteView from './view';
 
 const debug = debugFactory('admin:periods:delete:page');
 
@@ -11,9 +11,7 @@ interface PageProps {
   }
 }
 
-export default async function Page(props: PageProps): Promise<JSX.Element> {
-  const { params: { slug } } = props;
-
+export default async function Page({ params: { slug } }: PageProps): Promise<JSX.Element> {
   debug({slug});
 
   const period = await queryBySlug(slug);

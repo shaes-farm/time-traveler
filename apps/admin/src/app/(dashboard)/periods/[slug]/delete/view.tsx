@@ -10,11 +10,11 @@ import { remove } from '../../actions';
 
 const debug = debugFactory('admin:periods:delete:view');
 
-interface PeriodDeleteViewProps {
+interface ViewProps {
     period: Period;
 }
 
-export function PeriodDeleteView({period}: PeriodDeleteViewProps): JSX.Element {
+export default function View({period}: ViewProps): JSX.Element {
   const router = useRouter();
 
   debug({period});
