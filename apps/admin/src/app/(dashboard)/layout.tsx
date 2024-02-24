@@ -1,10 +1,10 @@
 import getConfig from 'next/config';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import { fetchFactory } from 'service';
 import type { NextConfig } from '../../types';
 import { DashboardLayout } from '../../layouts';
 import { createClient } from '../../utils/supabase/server';
+import { queryUserProfile } from './actions';
 
 const {
   publicRuntimeConfig: {
@@ -18,15 +18,7 @@ const {
       basePath,
     },
   },
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  },
 } = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
 
 export default async function Layout({
   children,
@@ -41,7 +33,7 @@ export default async function Layout({
     redirect(`${appBaseUrl}${basePath}/signin`);
   }
 
-  const profile = await f.getProfile(user.id);
+  const profile = await queryUserProfile(user.id);
 
   if (!profile) {
     redirect(`${appBaseUrl}${basePath}/signin`);
