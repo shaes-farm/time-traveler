@@ -63,7 +63,7 @@ export function GridList({ columns, rows, deleteLink, editLink }: GridListProps)
   }]);
 
   return (
-    <Box sx={{ mt: '3em', height: 400, width: '100%' }}>
+    <Box sx={{ mt: '3em', width: '100%' }}>
       <DataGrid
         columns={columnDef}
         getRowId={(row: GridListRow) => row.slug}
