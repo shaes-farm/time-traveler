@@ -10,9 +10,12 @@ import { MediaListView } from './media-list-view';
 
 interface MediaTabViewProps {
     media: Media[];
-}
+    createLink: string;
+    deleteLink: string;
+    editLink: string;
+  }
 
-export function MediaTabView({ media }: MediaTabViewProps): JSX.Element {
+export function MediaTabView({ media, createLink, deleteLink, editLink }: MediaTabViewProps): JSX.Element {
     const [value, setValue] = useState(0);
 
     const handleChange = (event: React.SyntheticEvent, newValue: number): void => {
@@ -22,7 +25,7 @@ export function MediaTabView({ media }: MediaTabViewProps): JSX.Element {
     return (
         <ContentViewer
             count={media.length}
-            createLink="/media/create"
+            createLink={createLink}
             title="Media"
         >
             <Box sx={{ width: '100%' }}>
@@ -37,16 +40,16 @@ export function MediaTabView({ media }: MediaTabViewProps): JSX.Element {
                 </Tabs>
                 {value === 0 ?
                     <MediaListView
-                        createLink="/media/create"
-                        deleteLink="/media/[slug]/delete"
-                        editLink="/media/[slug]"
+                        createLink={createLink}
+                        deleteLink={deleteLink}
+                        editLink={editLink}
                         media={media}
                     /> : null}
                 {value === 1 ?
                     <MediaImageView
-                        createLink="/media/create"
-                        deleteLink="/media/[slug]/delete"
-                        editLink="/media/[slug]"
+                        createLink={createLink}
+                        deleteLink={deleteLink}
+                        editLink={editLink}
                         media={media}
                     /> : null}
             </Box>
