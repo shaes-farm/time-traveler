@@ -14,6 +14,7 @@ export function createClient(cookieStore: ReturnType<typeof cookies>): SupabaseC
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- ignore please
             cookieStore.set({ name, value, ...options })
           } catch (error) {
             // The `set` method was called from a Server Component.
@@ -23,6 +24,7 @@ export function createClient(cookieStore: ReturnType<typeof cookies>): SupabaseC
         },
         remove(name: string, options: CookieOptions) {
           try {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- ignore please
             cookieStore.set({ name, value: '', ...options })
           } catch (error) {
             // The `delete` method was called from a Server Component.
