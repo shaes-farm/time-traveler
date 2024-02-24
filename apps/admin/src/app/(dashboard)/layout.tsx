@@ -14,6 +14,8 @@ const {
         url,
         year,
       },
+      baseUrl: appBaseUrl,
+      basePath,
     },
   },
   serverRuntimeConfig: {
@@ -34,10 +36,16 @@ export default async function Layout({
   const supabase = createClient(cookies());
 
   const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect('/signin');
+
+  if (error || !user) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
 
   const profile = await f.getProfile(user.id);
-  if (!profile) redirect('/signin');
+
+  if (!profile) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
 
   return (
     <DashboardLayout name={holder} url={url} userProfile={profile} year={year}>

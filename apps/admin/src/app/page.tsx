@@ -1,20 +1,30 @@
 import debugFactory from 'debug';
+import getConfig from 'next/config';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '../utils/supabase/server'
+import type {NextConfig} from '../types';
+
+const { 
+  publicRuntimeConfig: {
+    app: {
+      baseUrl: appBaseUrl,
+      basePath,
+    },
+  },
+} = getConfig() as NextConfig;
 
 const debug = debugFactory('admin:app:error');
 
 export default async function Page(): Promise<JSX.Element | null> {
   const supabase = createClient(cookies());
-  const { data, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
 
-  debug({data});
+  debug({error, user});
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- test data
-  if (error || !data?.user) {
-    redirect('/signin')
+  if (error || !user) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
   } else {
-    redirect('/dashboard');
+    redirect(`${appBaseUrl}${basePath}/dashboard`);
   }
 }
