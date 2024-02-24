@@ -1,19 +1,8 @@
-import getConfig from 'next/config';
-import {notFound} from 'next/navigation';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../../types';
+import { notFound } from 'next/navigation';
 import { ContentEditor } from '../../../../components';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+import { CategoryForm } from '../../../../forms';
+import { insert, queryBySlug, update } from '../actions';
+import { queryAll as queryAllEvents } from '../../events/actions';
 
 interface PageProps {
   params: {
@@ -21,21 +10,24 @@ interface PageProps {
   }
 }
 
-export default async function Page(props: PageProps): Promise<JSX.Element> {
-  const { params: { slug } } = props;
-  const category = await f.getCategory(slug);
+export default async function Page({ params: { slug } }: PageProps): Promise<JSX.Element> {
+  const category = await queryBySlug(slug);
 
   if (!category) {
     notFound();
   }
 
-  const events = await f.getEvents();
+  const events = await queryAllEvents();
 
   return (
     <ContentEditor title="Edit a Category">
-      <pre>
-        {JSON.stringify({category, events}, null, 2)}
-      </pre>
+      <CategoryForm
+        category={category}
+        create={insert}
+        events={events}
+        mode="edit"
+        update={update}
+      />
     </ContentEditor>
   );
 }

@@ -11,9 +11,7 @@ interface PageProps {
   }
 }
 
-export default async function Page(props: PageProps): Promise<JSX.Element> {
-  const { params: { slug } } = props;
-
+export default async function Page({ params: { slug } }: PageProps): Promise<JSX.Element> {
   debug({slug});
 
   const timeline = await queryBySlug(slug);

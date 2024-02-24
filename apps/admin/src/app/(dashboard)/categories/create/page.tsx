@@ -1,28 +1,18 @@
-import getConfig from 'next/config';
-import { fetchFactory } from 'service';
-import type { NextConfig } from '../../../../types';
 import { ContentEditor } from '../../../../components';
-
-const {
-  serverRuntimeConfig: {
-    api: {
-      backend,
-      baseUrl,
-    }
-  }
-} = getConfig() as NextConfig;
-
-const f = fetchFactory(backend, baseUrl);
+import { CategoryForm } from '../../../../forms';
+import { insert, update } from '../actions';
+import { queryAll as queryAllEvents } from '../../events/actions';
 
 export default async function Page(): Promise<JSX.Element> {
-  const categories = await f.getCategories();
-  const timelines = await f.getTimelines();
-
+  const events = await queryAllEvents();
   return (
     <ContentEditor title="Create a Category">
-      <pre>
-        {JSON.stringify({categories, timelines}, null, 2)}
-      </pre>
+      <CategoryForm
+        create={insert}
+        events={events}
+        mode="create"
+        update={update}
+      />
     </ContentEditor>
   );
 }

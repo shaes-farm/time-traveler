@@ -17,7 +17,7 @@ export default async function Page({ params: { slug } }: PageProps): Promise<JSX
   const period = await queryBySlug(slug);
 
   debug({period});
-  
+
   if (!period) {
     notFound();
   }
