@@ -1,6 +1,5 @@
 'use client';
 import React from 'react';
-import {useRouter} from 'next/navigation';
 import {
   Box,
   Typography,
@@ -9,12 +8,10 @@ import {
 
 interface ContentEditorProps {
   title: string;
-  backLink?: string;
   children: React.ReactNode;
 }
 
-export function ContentEditor({ title, backLink, children }: ContentEditorProps): JSX.Element {
-  const router = useRouter();
+export function ContentEditor({ title, children }: ContentEditorProps): JSX.Element {
   return (
     <Box sx={{ p: '1em', mt: '3em', width: '100%' }}>
       <Grid2 container mb="1em">
