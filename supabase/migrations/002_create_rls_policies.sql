@@ -1,20 +1,42 @@
-create table periods (
-    id bigint primary key generated always as identity,
-    user_id uuid not null,
-    slug varchar(100) not null,
-    title varchar(2000) not null,
-    summary text,
-    begin_date varchar(1000) not null,
-    end_date varchar(1000) not null,
-    created_at timestamptz default now(),
-    updated_at timestamptz default now()
-);
+-- Turn on security for stories
+alter table stories
+    enable row level security;
 
--- Turn on security
+create policy "Allow anonymous access to stories"
+    on stories
+    for select
+    to anon
+    using (true);
+
+create policy "Allow unrestricted authenticated access to stories"
+    on stories
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create stories"
+    on stories
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own stories"
+    on stories
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own stories"
+    on stories
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
+
+-- Turn on security for periods
 alter table periods
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to periods"
     on periods
     for select
@@ -46,24 +68,10 @@ create policy "Authenticated users can delete their own periods"
     to authenticated
     using ((select auth.uid()) = user_id);
 
-create table timelines (
-    id bigint primary key generated always as identity,
-    user_id uuid not null,
-    slug varchar(100) not null,
-    title varchar(2000) not null,
-    summary text,
-    scale varchar(2000),
-    begin_date varchar(1000) not null,
-    end_date varchar(1000) not null,
-    created_at timestamptz default now(),
-    updated_at timestamptz default now()
-);
-
--- Turn on security
+-- Turn on security for timelines
 alter table timelines
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to timelines"
     on timelines
     for select
@@ -95,27 +103,10 @@ create policy "Authenticated users can delete their own timelines"
     to authenticated
     using ((select auth.uid()) = user_id);
 
-create table historical_events (
-    id bigint primary key generated always as identity,
-    user_id uuid not null,
-    slug varchar(100) not null,
-    title varchar(2000) not null,
-    summary text,
-    detail text,
-    location varchar(2000),
-    importance integer not null,
-    begin_date varchar(1000) not null,
-    end_date varchar(1000),
-    timeline_id bigint references timelines (id),
-    created_at timestamptz default now(),
-    updated_at timestamptz default now()
-);
-
--- Turn on security
+-- Turn on security for historical events
 alter table historical_events
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to historical_events"
     on historical_events
     for select
@@ -147,20 +138,10 @@ create policy "Authenticated users can delete their own historical_events"
     to authenticated
     using ((select auth.uid()) = user_id);
 
-create table categories (
-    id bigint primary key generated always as identity,
-    user_id uuid not null,
-    slug varchar(100) not null,
-    title varchar(2000) not null,
-    created_at timestamptz default now(),
-    updated_at timestamptz default now()
-);
-
--- Turn on security
+-- Turn on security categories
 alter table categories
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to categories"
     on categories
     for select
@@ -192,25 +173,10 @@ create policy "Authenticated users can delete their own categories"
     to authenticated
     using ((select auth.uid()) = user_id);
 
-create table media (
-    id bigint primary key generated always as identity,
-    user_id uuid not null,
-    slug varchar(100) not null,
-    alternativetext text,
-    caption text,
-    url varchar(2000) not null,
-    width integer,
-    height integer,
-    formats text,
-    created_at timestamptz default now(),
-    updated_at timestamptz default now()
-);
-
--- Turn on security
+-- Turn on security for media
 alter table media
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to media"
     on media
     for select
@@ -242,70 +208,77 @@ create policy "Authenticated users can delete their own media"
     to authenticated
     using ( (select auth.uid()) = user_id );
 
-create table event_categories (
-    historical_event_id bigint references historical_events,
-    category_id bigint references categories,
-    primary key (historical_event_id, category_id)
-);
-
--- Turn on security
+-- Turn on security for event categories
 alter table event_categories
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to event_categories"
     on event_categories
     for select
     to anon
     using (true);
 
-create table event_media (
-    historical_event_id bigint references historical_events,
-    media_id bigint references media,
-    primary key (historical_event_id, media_id)
-);
-
--- Turn on security
+-- Turn on security for event media
 alter table event_media
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to event_media"
     on event_media
     for select
     to anon
     using (true);
 
-create table timeline_events (
-    timeline_id bigint references timelines,
-    historical_event_id bigint references historical_events,
-    primary key (timeline_id, historical_event_id)
-);
-
--- Turn on security
+-- Turn on security for timeline events
 alter table timeline_events
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to timeline_events"
     on timeline_events
     for select
     to anon
     using (true);
 
-create table period_timelines (
-    period_id bigint references periods,
-    timeline_id bigint references timelines,
-    primary key (period_id, timeline_id)
-);
-
--- Turn on security
+-- Turn on security for period timelines
 alter table period_timelines
     enable row level security;
 
--- Allow anonymous access
 create policy "Allow anonymous access to period_timelines"
     on period_timelines
     for select
     to anon
     using (true);
+
+-- Turn on security for story periods
+alter table story_periods
+    enable row level security;
+
+create policy "Allow anonymous access to story_periods"
+    on story_periods
+    for select
+    to anon
+    using (true);
+
+create policy "Allow unrestricted authenticated access to story_periods"
+    on story_periods
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create story_periods"
+    on story_periods
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own story_periods"
+    on story_periods
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own story_periods"
+    on story_periods
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
