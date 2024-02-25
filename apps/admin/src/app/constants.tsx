@@ -1,6 +1,7 @@
 import React from 'react';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import AccountBoxOutlinedIcon from '@mui/icons-material/AccountBoxOutlined';
+import AutoStoriesIcon from '@mui/icons-material/AutoStories';
 import CategoryIcon from '@mui/icons-material/Category';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
@@ -21,6 +22,11 @@ export const MAIN_ROUTES: NavRoutes = {
     page: '/dashboard',
   }],
   secondary: [{
+    slug: 'stories',
+    icon: <AutoStoriesIcon />,
+    label: 'Stories',
+    page: '/stories',
+  },{
     slug: 'periods',
     icon: <AccessTimeIcon />,
     label: 'Periods',

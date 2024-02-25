@@ -67,3 +67,13 @@ export interface Period {
   endDate: string;
   timelines: Timeline[];
 }
+
+export interface Story {
+  userId?: string;
+  slug: string;
+  title: string;
+  subTitle: string | null;
+  summary: string | null;
+  detail: string | null;
+  periods: Period[];
+}

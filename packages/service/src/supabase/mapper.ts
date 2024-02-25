@@ -9,9 +9,29 @@ import type {
   PostgrestMedia,
   PostgrestPeriod,
   PostgrestProfile,
+  PostgrestStory,
   PostgrestTimeline,
+  Story,
   Timeline,
 } from '../models';
+
+export const mapApiStoryToModel = ({
+  user_id: userId,
+  slug,
+  title,
+  sub_title: subTitle,
+  summary,
+  detail,
+  periods,
+}: PostgrestStory): Story => ({
+  userId,
+  slug,
+  title,
+  subTitle: subTitle ?? null,
+  summary: summary ?? null,
+  detail: detail ?? null,
+  periods: periods?.map((p) => mapApiPeriodToModel(p)) ?? [],
+});
 
 export const mapApiPeriodToModel = ({
   user_id: userId,

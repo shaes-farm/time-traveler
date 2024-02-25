@@ -1,6 +1,16 @@
 import type {PostgrestSingleResponse} from '@supabase/postgrest-js';
 import type {Database} from './supabase-model';
 
+export interface PostgrestStory {
+  user_id?: string;
+  slug: string;
+  title: string;
+  sub_title?: string;
+  summary?: string;
+  detail?: string;
+  periods?: PostgrestPeriod[];
+}
+
 export interface PostgrestPeriod {
   user_id?: string;
   slug: string;
