@@ -32,7 +32,9 @@ export function AuthLayout({ name, url, year, children }: AuthLayoutProps): JSX.
           backgroundImage: 'url(https://source.unsplash.com/random?history)',
           backgroundRepeat: 'no-repeat',
           backgroundColor: (t) =>
-            t.palette.mode === 'dark' ? t.palette.grey[900] : t.palette.grey[50],
+            t.palette.mode === 'dark' ?
+              t.palette.grey[900] : 
+              t.palette.grey[50],
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
