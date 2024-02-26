@@ -7,7 +7,6 @@ import DashboardIcon from '@mui/icons-material/Dashboard';
 import DisplaySettingsIcon from '@mui/icons-material/DisplaySettings';
 import EventIcon from '@mui/icons-material/Event';
 import HelpIcon from '@mui/icons-material/Help';
-import PeopleIcon from '@mui/icons-material/People';
 import PermMediaIcon from '@mui/icons-material/PermMedia';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -53,11 +52,6 @@ export const MAIN_ROUTES: NavRoutes = {
     page: '/media',
   }],
   tertiary: [{
-    slug: 'users',
-    icon: <PeopleIcon />,
-    label: 'Users',
-    page: '/users',
-  },{
     slug: 'settings',
     icon: <SettingsIcon />,
     label: 'Settings',
@@ -71,7 +65,7 @@ export const TOOLBAR_ROUTES: NavRoutes = {
     slug: 'profile',
     icon: <AccountBoxOutlinedIcon fontSize='small' />,
     label: 'Profile',
-    page: '/account',
+    page: '/profile',
   },{
     slug: 'preferences',
     icon: <DisplaySettingsIcon fontSize='small' />,
@@ -81,7 +75,7 @@ export const TOOLBAR_ROUTES: NavRoutes = {
     slug: 'help',
     icon: <HelpIcon fontSize='small' />,
     label: 'Help',
-    page: '#',
+    page: '/help',
   },{
     slug: 'div',
     icon: null,
