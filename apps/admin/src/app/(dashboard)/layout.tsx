@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import type { NextConfig } from '../../types';
 import { DashboardLayout } from '../../layouts';
 import { createClient } from '../../utils/supabase/server';
-import { queryUserProfile } from './actions';
+import { queryById } from './profile/actions';
 
 const {
   publicRuntimeConfig: {
@@ -33,7 +33,7 @@ export default async function Layout({
     redirect(`${appBaseUrl}${basePath}/signin`);
   }
 
-  const profile = await queryUserProfile(user.id);
+  const profile = await queryById(user.id);
 
   if (!profile) {
     redirect(`${appBaseUrl}${basePath}/signin`);
