@@ -19,8 +19,23 @@ export const lightTheme = createTheme({
 export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
+    background: {
+      default: '#000000',
+    },
+    text: {
+      primary: '#ffffff',
+    }
   },
   typography: {
     fontFamily: font.style.fontFamily,
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          border: '1px solid #333',
+        },
+      },
+    },
   },
 });

@@ -31,16 +31,12 @@ export function AuthLayout({ name, url, year, children }: AuthLayoutProps): JSX.
         sx={{
           backgroundImage: 'url(https://source.unsplash.com/random?history)',
           backgroundRepeat: 'no-repeat',
-          backgroundColor: (t) =>
-            t.palette.mode === 'dark' ?
-              t.palette.grey[900] : 
-              t.palette.grey[50],
           backgroundSize: 'cover',
           backgroundPosition: 'center',
         }}
         xs={false}
       />
-      <Grid component={Paper} elevation={6} item md={5} sm={8} square xs={12}>
+      <Grid component={Paper} elevation={0} item md={5} sm={8} square xs={12}>
         {children}
         <Copyright holder={name} sx={{ mt: 5 }} url={url} year={year} />
       </Grid>
