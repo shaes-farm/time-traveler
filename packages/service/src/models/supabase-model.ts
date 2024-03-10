@@ -353,7 +353,13 @@ export interface Database {
           first_name: string
           id: string
           last_name: string
+          social_facebook: string | null
+          social_instagram: string | null
+          social_pinterest: string | null
+          social_x: string | null
+          social_youtube: string | null
           updated_at: string | null
+          username: string | null
           website: string | null
         }
         Insert: {
@@ -362,7 +368,13 @@ export interface Database {
           first_name: string
           id: string
           last_name: string
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_pinterest?: string | null
+          social_x?: string | null
+          social_youtube?: string | null
           updated_at?: string | null
+          username?: string | null
           website?: string | null
         }
         Update: {
@@ -371,7 +383,13 @@ export interface Database {
           first_name?: string
           id?: string
           last_name?: string
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_pinterest?: string | null
+          social_x?: string | null
+          social_youtube?: string | null
           updated_at?: string | null
+          username?: string | null
           website?: string | null
         }
         Relationships: [

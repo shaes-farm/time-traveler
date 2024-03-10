@@ -70,9 +70,15 @@ export interface PostgrestProfile {
   id: string;
   first_name: string;
   last_name: string;
+  username: string;
   bio?: string;
   website?: string;
   avatar_url?: string;
+  social_x?: string;
+  social_facebook?: string;
+  social_instagram?: string;
+  social_pinterest?: string;
+  social_youtube?: string;
 }
 
 export interface ModelResult<Type> {
