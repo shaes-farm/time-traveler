@@ -44,37 +44,142 @@ export async function queryById(id: string): Promise<Profile | null> {
     return profile ? mapApiProfileToModel(profile) : null;
 }
 
-export async function update(profile: Profile): Promise<void> {
+export interface ActionResult {
+    message: string;
+    success: boolean;
+}
+
+export async function update(profile: Profile): Promise<ActionResult> {
     const supabase = createClient(cookies());
 
     const { data: { session } } = await supabase.auth.getSession();
+
+    debug('update', { session });
 
     if (!session) {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', {profile});
+    debug('update', { profile });
 
     const { error, data } = await supabase
         .from('profiles')
         .update({
-            // id: session.user.id,
             first_name: profile.firstName,
             last_name: profile.lastName,
             bio: profile.bio,
-            avatarUrl: profile.avatarUrl,
+            avatar_url: profile.avatarUrl,
+            username: profile.userName,
             website: profile.website,
+            social_x: profile.socialX,
+            social_facebook: profile.socialFacebook,
+            social_instagram: profile.socialInstagram,
+            social_pinterest: profile.socialPinterest,
+            social_youtube: profile.socialYouTube,
             updated_at: new Date().toISOString(),
         })
         .eq('id', session.user.id);
 
-    debug('update', {error, data});
+    debug('update', { error, data });
 
     if (error) {
-        debug({error});
-        throw new Error(error.message);
+        return ({
+            message: 'Could not update profile.',
+            success: false,
+        });
     }
 
-    revalidatePath(`${appBaseUrl}${basePath}/profile`, 'layout');
-    redirect(`${appBaseUrl}${basePath}/profile`);
+    revalidatePath(`${appBaseUrl}${basePath}/profile`, 'page');
+
+    return ({
+        message: 'Profile updated successfully!',
+        success: true,
+    })
+}
+
+export async function updateEmail(email: string): Promise<ActionResult> {
+    const supabase = createClient(cookies());
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    debug('updateEmail', { session });
+
+    if (!session) {
+        redirect(`${appBaseUrl}${basePath}/signin`);
+    }
+
+    debug('updateEmail', { email });
+
+    const { data, error } = await supabase.auth.updateUser({ email });
+
+    debug('updateEmail', { error, data });
+
+    if (error) {
+        return ({
+            message: 'Could not update email.',
+            success: false,
+        });
+    }
+
+    revalidatePath(`${appBaseUrl}${basePath}/profile`, 'page');
+
+    return ({
+        message: 'Email updated successfully!',
+        success: true,
+    })
+}
+
+export async function updatePassword(password: string, newPassword: string): Promise<ActionResult> {
+    const supabase = createClient(cookies());
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    debug('updatePassword', { session });
+
+    if (!session) {
+        redirect(`${appBaseUrl}${basePath}/signin`);
+    }
+
+    debug('updatePassword', { password, newPassword });
+
+    if (password === newPassword) {
+        return ({
+            message: 'Passwords are the same.',
+            success: false,
+        });
+    }
+
+    const credentials = {
+        email: session.user.email ?? '',
+        password,
+    };
+
+    const { error: signinError } = await supabase.auth.signInWithPassword(credentials);
+
+    if (signinError) {
+        return ({
+            message: 'Invalid credentials.',
+            success: false,
+        });
+    }
+
+    const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+    });
+
+    debug('updatePassword', { error, data });
+
+    if (error) {
+        return ({
+            message: 'Could not update password.',
+            success: false,
+        });
+    }
+
+    revalidatePath(`${appBaseUrl}${basePath}/profile`, 'page');
+
+    return ({
+        message: 'Password updated successfully!',
+        success: true,
+    })
 }
