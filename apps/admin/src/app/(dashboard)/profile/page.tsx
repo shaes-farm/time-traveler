@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import type { NextConfig } from '../../../types';
 import { createClient } from '../../../utils/supabase/server';
 import ProfileForm from './form';
-import { update, queryById } from './actions';
+import { queryById } from './actions';
 
 const {
   publicRuntimeConfig: {
@@ -30,5 +30,5 @@ export default async function Page(): Promise<JSX.Element> {
     redirect(`${appBaseUrl}${basePath}/signin`);
   }
 
-  return <ProfileForm profile={profile} update={update} user={session.user} />;
+  return <ProfileForm profile={profile} user={session.user} />;
 }
