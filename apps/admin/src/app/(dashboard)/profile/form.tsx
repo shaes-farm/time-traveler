@@ -61,11 +61,11 @@ const validationSchema = yup.object({
     .string(),
   email: yup
     .string()
-    .email()
-    .required(),
+    .email('Must be a valid email address.')
+    .required('Email is required.'),
   website: yup
     .string()
-    .url(),
+    .url('Must be a valid URL.'),
   socialX: yup
     .string(),
   socialFacebook: yup
