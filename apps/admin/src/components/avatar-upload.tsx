@@ -1,15 +1,16 @@
 'use client';
 
+import debugLogger from 'debug';
 import React, { useEffect, useState } from 'react'
 import Avatar from '@mui/material/Avatar';
 import Grid from '@mui/material/Grid';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
-import type {SupabaseClient} from '@supabase/supabase-js';
-import type {Database} from 'service';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from 'service';
 import { createClient } from '../utils/supabase/client';
 
-const {log} = console;
+const debug = debugLogger('admin:avatar-upload');
 
 async function downloadAvatar(supabase: SupabaseClient<Database>, path: string): Promise<string | null> {
   let url: string | null = null;
@@ -19,13 +20,17 @@ async function downloadAvatar(supabase: SupabaseClient<Database>, path: string):
       .from('avatars')
       .download(path);
 
+    debug('downloadAvatar', { data, error });
+
     if (error) {
       throw error;
     }
 
     url = URL.createObjectURL(data);
+
+    debug('downloadAvatar', { url });
   } catch (error: unknown) {
-    log({error});
+    debug('downloadAvatar', { error });
   }
 
   return url;
@@ -41,12 +46,13 @@ interface AvatarUploadProps {
 
 export function AvatarUpload(props: AvatarUploadProps): JSX.Element {
   const { id, url, size, onUpload, onError } = props;
-  const [avatarUrl, setAvatarUrl] = useState<string|null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const supabase = createClient();
-  
+
   useEffect(() => {
     async function download(): Promise<void> {
+      debug('download', { url });
       if (url) {
         const blobUrl = await downloadAvatar(supabase, url)
         setAvatarUrl(blobUrl);
@@ -58,8 +64,8 @@ export function AvatarUpload(props: AvatarUploadProps): JSX.Element {
   const uploadAvatar: React.ChangeEventHandler<HTMLInputElement> = (event) => {
     const upload = async (): Promise<void> => {
       setUploading(true)
-      try {
 
+      try {
         if (!event.target.files || event.target.files.length === 0) {
           throw new Error('You must select an image to upload.')
         }
@@ -68,19 +74,23 @@ export function AvatarUpload(props: AvatarUploadProps): JSX.Element {
         const fileExt = file.name.split('.').pop();
         const filePath = `${id}.${fileExt}`;
 
-        log(`Uploading ${file.name} to ${filePath} as ${file.type}`);
+        debug('uploadAvatar', `Uploading ${file.name} to ${filePath} as ${file.type}`);
 
         const { error } = await supabase.storage
           .from('avatars')
           .upload(filePath, file, { upsert: true });
 
         if (error) {
+          debug('uploadAvatar', { error });
           throw error;
         }
 
+        const blobUrl = await downloadAvatar(supabase, url)
+        setAvatarUrl(blobUrl);
+
         onUpload(filePath);
       } catch (uploadError: unknown) {
-        log({uploadError})
+        debug('uploadAvatar', { uploadError })
         onError((uploadError as Error).message);
       } finally {
         setUploading(false)
@@ -88,6 +98,8 @@ export function AvatarUpload(props: AvatarUploadProps): JSX.Element {
     };
     void upload();
   }
+
+  debug('AvatarUpload', { id, url, size, avatarUrl, uploading });
 
   return (
     <Grid container spacing={0} sx={{ width: "100%", mx: "auto" }}>
