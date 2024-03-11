@@ -33,19 +33,19 @@ export function DashboardLayout({ name, url, year, userProfile, children }: Dash
       if (event === 'SIGNED_OUT') {
         debug(event, session)
 
-        // const storageList = [
-        //   window.localStorage,
-        //   window.sessionStorage,
-        // ];
+        const storageList = [
+          // window.localStorage,
+          window.sessionStorage,
+        ];
 
-        // // clear local and session storage
-        // storageList.forEach((storage) => {
-        //   Object.entries(storage).forEach(([key]) => {
-        //     if (key.endsWith('auth-token')) {
-        //       storage.removeItem(key)
-        //     }
-        //   })
-        // });
+        // clear session data on signout
+        storageList.forEach((storage) => {
+          Object.entries(storage).forEach(([key]) => {
+            if (key.endsWith('auth-token')) {
+              storage.removeItem(key)
+            }
+          })
+        });
 
         setTimeout(() => { nextRouter.push('/signin') });
       } else if (event === 'PASSWORD_RECOVERY') {
