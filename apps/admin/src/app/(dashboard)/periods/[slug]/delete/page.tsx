@@ -1,9 +1,9 @@
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { notFound } from 'next/navigation';
 import { queryBySlug } from '../../actions';
 import PeriodDeleteView from './view';
 
-const debug = debugFactory('admin:periods:delete:page');
+const debug = debugLogger('admin:periods:delete:page');
 
 interface PageProps {
   params: {

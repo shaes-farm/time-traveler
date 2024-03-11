@@ -1,6 +1,6 @@
 'use client';
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image'
 import Button from '@mui/material/Button';
@@ -11,7 +11,7 @@ import type { Media } from 'service';
 import { ContentEditor } from '../../../../../components';
 import { remove } from '../../actions';
 
-const debug = debugFactory('admin:media:delete:view');
+const debug = debugLogger('admin:media:delete:view');
 
 interface ViewProps {
   media: Media;

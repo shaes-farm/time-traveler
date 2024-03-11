@@ -1,4 +1,4 @@
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import getConfig from 'next/config';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -14,7 +14,7 @@ const {
   },
 } = getConfig() as NextConfig;
 
-const debug = debugFactory('admin:app:error');
+const debug = debugLogger('admin:app:error');
 
 export default async function Page(): Promise<JSX.Element | null> {
   const supabase = createClient(cookies());

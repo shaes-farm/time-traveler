@@ -1,5 +1,5 @@
 'use client'
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 // import React from 'react';
 // import Image from 'next/image';
 import {Card, CardActions, CardContent, CardHeader, Grid, Typography} from '@mui/material';
@@ -29,7 +29,7 @@ import {CardButtons, MenuButton} from '../components';
 //   );
 // }
 
-const debug = debugFactory('ui:views:historical-event-card');
+const debug = debugLogger('ui:views:historical-event-card');
 
 export interface HistoricalEventCardProps {
   event: HistoricalEvent;

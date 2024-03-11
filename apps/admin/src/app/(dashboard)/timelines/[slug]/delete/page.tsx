@@ -1,9 +1,9 @@
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { notFound } from 'next/navigation';
 import { queryBySlug } from '../../actions';
 import TimelineDeleteView from './view';
 
-const debug = debugFactory('admin:timelines:delete:page');
+const debug = debugLogger('admin:timelines:delete:page');
 
 interface PageProps {
   params: {

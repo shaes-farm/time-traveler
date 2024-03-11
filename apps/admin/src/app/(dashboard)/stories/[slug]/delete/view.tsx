@@ -1,6 +1,6 @@
 'use client';
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
@@ -10,7 +10,7 @@ import type { Story } from 'service';
 import { ContentEditor } from '../../../../../components';
 import { remove } from '../../actions';
 
-const debug = debugFactory('admin:stories:delete:view');
+const debug = debugLogger('admin:stories:delete:view');
 
 interface ViewProps {
   story: Story;

@@ -1,6 +1,6 @@
 'use client';
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { User } from '@supabase/supabase-js';
@@ -41,7 +41,7 @@ import { AvatarUpload } from '../../../components/avatar-upload';
 import { update, updateEmail, type ActionResult } from './actions';
 import { PasswordDialog } from './password-dialog';
 
-const debug = debugFactory('admin:profile-form');
+const debug = debugLogger('admin:profile-form');
 
 const validationSchema = yup.object({
   firstName: yup
@@ -53,10 +53,10 @@ const validationSchema = yup.object({
     .min(3, 'Last name should be a minimum of 3 characters long')
     .required('Last name is required'),
   userName: yup
-    .string(),
-  avatarUrl: yup
     .string()
-    .url(),
+    .min(3, 'User name should be a  minimum of 3 characters long'),
+  avatarUrl: yup
+    .string(),
   bio: yup
     .string(),
   email: yup
@@ -83,10 +83,7 @@ interface ProfileFormProps {
   user: User;
 }
 
-export default function ProfileForm({
-  user,
-  profile,
-}: ProfileFormProps): JSX.Element {
+export default function ProfileForm({user, profile}: ProfileFormProps): JSX.Element {
   const [changePassword, setChangePassword] = useState<boolean>(false);
   const [actionResult, setActionResult] = useState<ActionResult>({ message: '', success: true });
   const clearActionResult = (): void => { setActionResult({ message: '', success: true }) };
@@ -101,7 +98,7 @@ export default function ProfileForm({
       firstName: profile.firstName,
       lastName: profile.lastName,
       userName: profile.userName ?? '',
-      avatarUrl: profile.avatarUrl ?? '',
+      avatarUrl: profile.avatarUrl ?? `${profile.id}.jpg`,
       bio: profile.bio ?? '',
       website: profile.website ?? '',
       socialX: profile.socialX ?? '',
@@ -128,6 +125,8 @@ export default function ProfileForm({
       }
     },
   });
+
+  debug('form', { initialValues: formik.initialValues });
 
   return (
     <>

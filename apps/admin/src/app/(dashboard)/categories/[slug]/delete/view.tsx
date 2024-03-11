@@ -1,6 +1,6 @@
 'use client';
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
@@ -10,7 +10,7 @@ import type { Category } from 'service';
 import { ContentEditor } from '../../../../../components';
 import { remove } from '../../actions';
 
-const debug = debugFactory('admin:categories:delete:view');
+const debug = debugLogger('admin:categories:delete:view');
 
 interface ViewProps {
   category: Category;

@@ -1,12 +1,12 @@
 'use client';
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import slugify from 'slugify';
 import { DragAndDropUpload } from 'ui';
 import type { Media, UploadInfo } from 'service';
 import { addMedia, upload } from './actions';
 
-const debug = debugFactory('admin:app:media:upload');
+const debug = debugLogger('admin:app:media:upload');
 
 export function Upload(): JSX.Element {
     function onSuccess(info: UploadInfo): void {

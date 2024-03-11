@@ -1,6 +1,6 @@
 'use client';
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { useRouter } from 'next/navigation';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
@@ -10,7 +10,7 @@ import type { Timeline } from 'service';
 import { ContentEditor } from '../../../../../components';
 import { remove } from '../../actions';
 
-const debug = debugFactory('admin:timelines:delete:view');
+const debug = debugLogger('admin:timelines:delete:view');
 
 interface ViewProps {
   timeline: Timeline;

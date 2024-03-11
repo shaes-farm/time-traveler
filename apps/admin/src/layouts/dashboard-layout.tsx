@@ -1,5 +1,5 @@
 'use client';
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container, Paper, Stack } from '@mui/material';
@@ -13,7 +13,7 @@ import {
 import { MAIN_ROUTES, TOOLBAR_ROUTES } from '../app/constants';
 import { createClient } from '../utils/supabase/client';
 
-const debug = debugFactory('admin:layouts:dashboard-layout');
+const debug = debugLogger('admin:layouts:dashboard-layout');
 
 interface DashboardLayoutProps {
   userProfile: Profile;

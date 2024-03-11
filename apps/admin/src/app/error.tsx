@@ -1,10 +1,10 @@
 'use client'
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import {useEffect} from 'react'
 import {CustomError} from 'ui';
 
-const debug = debugFactory('admin:app:error');
+const debug = debugLogger('admin:app:error');
 
 export default function Error({
   error,

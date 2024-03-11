@@ -1,6 +1,6 @@
 'use client';
 
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormik } from 'formik';
@@ -23,7 +23,7 @@ import type {
 } from 'service';
 import { TransferList } from '../../../components/transfer-list';
 
-const debug = debugFactory('admin:event-form');
+const debug = debugLogger('admin:event-form');
 
 const validationSchema = yup.object({
   title: yup

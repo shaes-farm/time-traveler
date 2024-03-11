@@ -1,4 +1,4 @@
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import React from 'react';
 // import Paper from '@mui/material/Paper';
 import InputBase from '@mui/material/InputBase';
@@ -9,7 +9,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import type { NavRoute } from './nav';
 import {Form} from './form';
 
-const debug = debugFactory('admin:ui:search-input');
+const debug = debugLogger('admin:ui:search-input');
 
 export interface SearchInputProps {
   /**

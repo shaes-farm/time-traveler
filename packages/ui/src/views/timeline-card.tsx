@@ -1,11 +1,11 @@
 'use client'
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import {Card, CardActions, CardContent, CardHeader, Typography} from '@mui/material';
 import type {Timeline} from 'service';
 import {CardButtons, MenuButton} from '../components';
 import {EventTimeline, type EventTimelineProps} from './event-timeline';
 
-const debug = debugFactory('ui:views:timeline-card');
+const debug = debugLogger('ui:views:timeline-card');
 
 export interface TimelineCardProps extends Omit<EventTimelineProps, 'events'> {
   timeline: Timeline;

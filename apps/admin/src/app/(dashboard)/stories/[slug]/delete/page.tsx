@@ -1,9 +1,9 @@
-import debugFactory from 'debug';
+import debugLogger from 'debug';
 import { notFound } from 'next/navigation';
 import { queryBySlug } from '../../actions';
 import StoryDeleteView from './view';
 
-const debug = debugFactory('admin:stories:delete:page');
+const debug = debugLogger('admin:stories:delete:page');
 
 interface PageProps {
   params: {
