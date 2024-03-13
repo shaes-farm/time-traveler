@@ -6,35 +6,9 @@ import Avatar from '@mui/material/Avatar';
 import Grid from '@mui/material/Grid';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined';
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from 'service';
 import { createClient } from '../utils/supabase/client';
 
 const debug = debugLogger('admin:avatar-upload');
-
-async function downloadAvatar(supabase: SupabaseClient<Database>, path: string): Promise<string | null> {
-  let url: string | null = null;
-
-  try {
-    const { data, error } = await supabase.storage
-      .from('avatars')
-      .download(path);
-
-    debug('downloadAvatar', { data, error });
-
-    if (error) {
-      throw error;
-    }
-
-    url = URL.createObjectURL(data);
-
-    debug('downloadAvatar', { url });
-  } catch (error: unknown) {
-    debug('downloadAvatar', { error });
-  }
-
-  return url;
-}
 
 interface AvatarUploadProps {
   id: string
@@ -51,14 +25,21 @@ export function AvatarUpload(props: AvatarUploadProps): JSX.Element {
   const supabase = createClient();
 
   useEffect(() => {
-    async function download(): Promise<void> {
-      debug('download', { url });
-      if (url) {
-        const blobUrl = await downloadAvatar(supabase, url)
-        setAvatarUrl(blobUrl);
-      }
+    async function createAvatarUrl(): Promise<void> {
+      const { data, error } = await supabase.storage.from('avatars').createSignedUrl(url, 60000, {
+        transform: {
+          quality: 100,
+        }
+      });
+      debug('createAvatarUrl', {signedUrl: data?.signedUrl, error});
+      setAvatarUrl(data?.signedUrl ?? null);
     }
-    void download();
+    if (url && !url.startsWith('http')) {
+      debug('avatarUpload', {url});
+      void createAvatarUrl();
+    } else {
+      setAvatarUrl(url.length ? url : null);
+    }
   }, [url, supabase]);
 
   const uploadAvatar: React.ChangeEventHandler<HTMLInputElement> = (event) => {
@@ -84,9 +65,6 @@ export function AvatarUpload(props: AvatarUploadProps): JSX.Element {
           debug('uploadAvatar', { error });
           throw error;
         }
-
-        const blobUrl = await downloadAvatar(supabase, url)
-        setAvatarUrl(blobUrl);
 
         onUpload(filePath);
       } catch (uploadError: unknown) {
