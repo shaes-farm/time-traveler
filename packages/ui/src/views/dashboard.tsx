@@ -108,8 +108,8 @@ export function Dashboard({ toolbar, routes, router, drawerOpen = true, children
           overflow: 'auto',
         }}
       >
-        <Toolbar />
-        <Box sx={{pt: '24px'}}>
+        <Toolbar sx={{ mb: '2rem' }} />
+        <Box>
           {children}
         </Box>
       </Box>
