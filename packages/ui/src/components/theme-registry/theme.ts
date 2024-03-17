@@ -21,19 +21,47 @@ export const darkTheme = createTheme({
     mode: 'dark',
     background: {
       default: '#000000',
+      paper: '#0a0a0a',
     },
     text: {
-      primary: '#ffffff',
-    }
+      primary: '#ededed',
+      secondary: '#dddddd',
+      disabled: '#7f7f7f',
+    },
+    primary: {
+      main: '#ededed',
+      light: '#f0f0f0',
+      dark: '#c0c0c0',
+      contrastText: 'rgba(0, 0, 0, 0.87)',
+    },
+    divider: 'rgba(255, 255, 255, 0.16)',
   },
   typography: {
     fontFamily: font.style.fontFamily,
+    h1: {
+      fontSize: '3rem',
+    },
+    h2: {
+      fontSize: '2rem',
+    },
+    h3: {
+      fontSize: '1.5rem',
+    },
+    h4: {
+      fontSize: '1.25rem',
+    },
+    h5: {
+      fontSize: '1.0rem',
+    },
+    h6: {
+      fontSize: '0.75rem',
+    }
   },
   components: {
     MuiPaper: {
       styleOverrides: {
         root: {
-          border: '1px solid #333',
+          border: '1px solid #242424',
         },
       },
     },
