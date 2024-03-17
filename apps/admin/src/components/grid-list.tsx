@@ -14,7 +14,7 @@ import {
 } from '@mui/x-data-grid';
 
 interface GridListRow {
-    slug: string;
+  slug: string;
 }
 
 interface GridListProps {
@@ -63,7 +63,7 @@ export function GridList({ columns, rows, deleteLink, editLink }: GridListProps)
   }]);
 
   return (
-    <Box sx={{ mt: '3em', width: '100%' }}>
+    <Box m="1rem">
       <DataGrid
         columns={columnDef}
         getRowId={(row: GridListRow) => row.slug}
