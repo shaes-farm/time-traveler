@@ -2,9 +2,10 @@ INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, e
 INSERT INTO auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at, id) VALUES ('cb1d95e6-076d-4328-856e-912fa4227fb0', 'cb1d95e6-076d-4328-856e-912fa4227fb0', '{"sub": "cb1d95e6-076d-4328-856e-912fa4227fb0", "email": "time.traveler@shaes.farm", "email_verified": false, "phone_verified": false}', 'email', '2024-02-22 00:50:04.70976+00', '2024-02-22 00:50:04.709789+00', '2024-02-22 00:50:04.709789+00', '80818804-a670-4b34-a83e-86be2696e495');
 
 insert into public.stories
-    (user_id, slug, title, summary, detail)
+    (user_id, slug, title, sub_title, summary, detail)
 values
-    ('cb1d95e6-076d-4328-856e-912fa4227fb0', 'the-first-story', 'The First Story', 'The first story summary.', '## The First Story
+    ('cb1d95e6-076d-4328-856e-912fa4227fb0', 'the-first-story', 'The First Story', 'The beginning of it all', 'The first story summary.', '## The First Story
+
 Nihil **possimus** sit <u>rerum rerum</u>. Nostrum eum sint sed illum deserunt nesciunt aut. Soluta quae et excepturi autem expedita minus numquam sapiente. Sint et suscipit ducimus nihil voluptas et.
 
 ## Aliquid Sequi Et Fuga
