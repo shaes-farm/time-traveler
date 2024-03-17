@@ -3,7 +3,8 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { NextConfig } from '../../../types';
 import { createClient } from '../../../utils/supabase/server';
-import ProfileForm from './form';
+// import ProfileForm from './form';
+import ProfileEditView from './edit-view';
 import { queryById } from './actions';
 
 const {
@@ -27,8 +28,9 @@ export default async function Page(): Promise<JSX.Element> {
   const profile = await queryById(session.user.id);
 
   if (!profile) {
+    // SHOULD SIGN OUT FIRST
     redirect(`${appBaseUrl}${basePath}/signin`);
   }
 
-  return <ProfileForm profile={profile} user={session.user} />;
+  return <ProfileEditView profile={profile} user={session.user} />;
 }
