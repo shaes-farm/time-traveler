@@ -2,7 +2,7 @@
 import debugLogger from 'debug';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Container, Paper, Stack } from '@mui/material';
+import { Container, Stack } from '@mui/material';
 import type { Profile } from 'service';
 import type { NavRoute, NavRouter } from 'ui';
 import {
@@ -84,9 +84,7 @@ export function DashboardLayout({ name, url, year, userProfile, children }: Dash
             justifyContent="flex-end"
             useFlexGap
           >
-            <Paper elevation={0}>
-              {children}
-            </Paper>
+            {children}
             <Copyright
               holder={name}
               sx={{ marginTop: 'auto', pt: 4 }}
