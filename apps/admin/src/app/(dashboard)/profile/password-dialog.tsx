@@ -66,7 +66,7 @@ export function PasswordDialog({ open, setOpen, setResult }: PasswordDialogProps
             <ul>
               <li>Is at least eight (8) characters long.</li>
               <li>Contains upper and lower case letters, digits, and symbols.</li>
-              <li><em>Is not</em> the same as your user name.</li>
+              <li><em>Is not</em> the same as your old password.</li>
             </ul>
           </Grid>
           <Grid display="flex" xs={12}>
