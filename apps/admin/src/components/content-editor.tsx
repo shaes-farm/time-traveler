@@ -3,7 +3,7 @@ import React from 'react';
 import {
   Box,
   Typography,
-  Unstable_Grid2 as Grid2
+  Unstable_Grid2 as Grid
 } from '@mui/material';
 
 interface ContentEditorProps {
@@ -13,15 +13,17 @@ interface ContentEditorProps {
 
 export function ContentEditor({ title, children }: ContentEditorProps): JSX.Element {
   return (
-    <Box sx={{ p: '1em', mt: '3em', width: '100%' }}>
-      <Grid2 container mb="1em">
-        <Grid2 xs={12}>
-          <Typography color="text.primary" variant="h2">
+    <Box width="100%">
+      <Grid container>
+        <Grid mb="1em" xs={12}>
+          <Typography variant="h1">
             {title}
           </Typography>
-        </Grid2>
-      </Grid2>
-      {children}
+        </Grid>
+        <Grid>
+          {children}
+        </Grid>
+      </Grid>
     </Box>
   );
 }
