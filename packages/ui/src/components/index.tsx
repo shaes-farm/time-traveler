@@ -21,6 +21,7 @@ export * from './nav';
 export * from './new-items-menu-button';
 export * from './notifications';
 export * from './profile-button';
+export * from './rich-text-editor';
 export * from './search-input';
 export * from './snack-bar-alert';
 export * from './social-icon-button';
