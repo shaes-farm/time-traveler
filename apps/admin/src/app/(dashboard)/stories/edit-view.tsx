@@ -1,7 +1,7 @@
 'use client';
 
 import debugLogger from 'debug';
-import React, { useRef, useState } from 'react';
+import React, { /* useRef, */ useState } from 'react';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import slugify from 'slugify';
@@ -16,24 +16,17 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import StarterKit from "@tiptap/starter-kit";
-import {
-  MenuButtonBold,
-  MenuButtonItalic,
-  MenuControlsContainer,
-  MenuDivider,
-  MenuSelectHeading,
-  RichTextEditor,
-  type RichTextEditorRef,
-} from "mui-tiptap";
 import type {
   Story,
   Period,
 } from 'service';
 import {
+  RichTextEditor,
+} from 'ui';
+import {
   ContentEditor,
   Editor,
-  TransferList,
+  ItemList,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -68,7 +61,6 @@ interface StoryEditViewProps {
 
 export default function StoryEditView({ mode, story, periods }: StoryEditViewProps): JSX.Element {
   const [tabIndex, setTabIndex] = useState<string>('1');
-  const rteRef = useRef<RichTextEditorRef>(null);
 
   const initialValues: Story = (mode === 'edit' && story) ? {
     userId: story.userId ?? '',
@@ -103,7 +95,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
 
   return (
     <ContentEditor title="Stories">
-      <Editor onSubmit={formik.handleSubmit} title={`${mode === 'create' ? 'Create' : 'Edit'} Story`} url={`/stories/${formik.values.slug.length ? formik.values.slug : '(unnamed)'}`}>
+      <Editor onSubmit={formik.handleSubmit} title={`${mode === 'create' ? 'Create' : 'Edit'} Story`} url={formik.values.slug.length ? `/stories/${formik.values.slug}` : undefined}>
         <Grid container spacing={2}>
           <Grid md={8} sm={12}>
             <Grid mb={2} sm={12}>
@@ -114,7 +106,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 name="title"
                 onBlur={(e: unknown) => {
                   if (formik.values.slug.length === 0) {
-                    void formik.setFieldValue('slug', slugify(formik.values.title));
+                    void formik.setFieldValue('slug', slugify(formik.values.title, {lower: true}));
                   }
                   formik.handleBlur(e);
                 }}
@@ -136,26 +128,15 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
             <Grid border={1} borderColor="divider" borderRadius={1}>
               <TabContext value={tabIndex}>
                 <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                  <TabList onChange={handleTabChange} aria-label="story detail editor">
-                    <Tab label="Editor" value="1" />
+                  <TabList aria-label="story detail editor tabs" onChange={handleTabChange}>
+                    <Tab label="Edit" value="1" />
                     <Tab label="Raw" value="2" />
                   </TabList>
                 </Box>
                 <TabPanel value="1">
                   <RichTextEditor
                     content={formik.values.detail}
-                    extensions={[StarterKit]} // Or any Tiptap extensions you wish!
-                    ref={rteRef}
-                    // Optionally include `renderControls` for a menu-bar atop the editor:
-                    renderControls={() => (
-                      <MenuControlsContainer>
-                        <MenuSelectHeading />
-                        <MenuDivider />
-                        <MenuButtonBold />
-                        <MenuButtonItalic />
-                        {/* Add more controls of your choosing here */}
-                      </MenuControlsContainer>
-                    )}
+                    onUpdate={(doc: object) => {void formik.setFieldValue('detail', doc)}}
                   />
                 </TabPanel>
                 <TabPanel value="2">
@@ -182,6 +163,11 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 label="Slug"
                 name="slug"
                 onChange={formik.handleChange}
+                onFocus={() => {
+                  if (formik.values.slug.length === 0) {
+                    void formik.setFieldValue('slug', slugify(formik.values.title, {lower: true}));
+                  }
+                }}
                 required
                 value={formik.values.slug}
               />
@@ -199,13 +185,15 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
               />
             </Grid>
             <Divider sx={{ mt: 2 }} />
-            <Typography sx={{ mt: 1, mb: 1 }} variant="h6">
+            <Typography sx={{ my: 1 }} variant="h3">
               Periods
             </Typography>
-            <TransferList
+            <ItemList
               available={periods ?? []}
+              itemNames={{singular: 'period', plural: 'periods'}}
               items={formik.values.periods}
-              onChange={(_t) => { /* debug({ t }) */ }}
+              onChange={(items) => { debug({ items }) }}
+              value=""
             />
           </Grid>
         </Grid>
