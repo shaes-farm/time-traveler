@@ -1,8 +1,8 @@
-import Skeleton from '@mui/material/Skeleton';
 import AddIcon from '@mui/icons-material/Add';
 import {
   Box,
   Button,
+  Skeleton,
   Typography,
   Unstable_Grid2 as Grid2
 } from '@mui/material';
