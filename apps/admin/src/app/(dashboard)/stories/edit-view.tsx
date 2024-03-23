@@ -10,23 +10,21 @@ import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 import {
   Box,
-  Divider,
   Unstable_Grid2 as Grid,
   Tab,
   TextField,
-  Typography,
 } from '@mui/material';
 import type {
   Story,
   Period,
 } from 'service';
 import {
+  ItemList,
   RichTextEditor,
 } from 'ui';
 import {
   ContentEditor,
   Editor,
-  ItemList,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -106,7 +104,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 name="title"
                 onBlur={(e: unknown) => {
                   if (formik.values.slug.length === 0) {
-                    void formik.setFieldValue('slug', slugify(formik.values.title, {lower: true}));
+                    void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true }));
                   }
                   formik.handleBlur(e);
                 }}
@@ -136,7 +134,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 <TabPanel value="1">
                   <RichTextEditor
                     content={formik.values.detail}
-                    onUpdate={(doc: object) => {void formik.setFieldValue('detail', doc)}}
+                    onUpdate={(doc: object) => { void formik.setFieldValue('detail', doc) }}
                   />
                 </TabPanel>
                 <TabPanel value="2">
@@ -165,7 +163,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 onChange={formik.handleChange}
                 onFocus={() => {
                   if (formik.values.slug.length === 0) {
-                    void formik.setFieldValue('slug', slugify(formik.values.title, {lower: true}));
+                    void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true }));
                   }
                 }}
                 required
@@ -184,15 +182,14 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 value={formik.values.summary}
               />
             </Grid>
-            <Divider sx={{ mt: 2 }} />
-            <Typography sx={{ my: 1 }} variant="h3">
-              Periods
-            </Typography>
             <ItemList
               available={periods ?? []}
-              itemNames={{singular: 'period', plural: 'periods'}}
+              itemNames={{ singular: 'period', plural: 'periods' }}
               items={formik.values.periods}
-              onChange={(items) => { debug({ items }) }}
+              onChange={(items) => {
+                void formik.setFieldValue('periods', items)
+              }}
+              title="Periods"
               value=""
             />
           </Grid>
