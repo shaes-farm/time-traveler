@@ -101,7 +101,6 @@ export function Dashboard({ toolbar, routes, router, drawerOpen = true, children
         <Nav router={router} routes={routes} />
       </Drawer>
       <Box
-        component="main"
         sx={{
           flexGrow: 1,
           height: '100vh',
