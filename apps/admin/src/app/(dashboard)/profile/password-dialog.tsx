@@ -98,7 +98,7 @@ export function PasswordDialog({ open, setOpen, setResult }: PasswordDialogProps
                   </InputAdornment>
                 }
                 id="newPassword"
-                label="Password"
+                label="New Password"
                 name="newPassword"
                 required
                 type={showPassword ? 'text' : 'password'}
