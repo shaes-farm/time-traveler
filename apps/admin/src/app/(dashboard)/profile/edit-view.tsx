@@ -280,6 +280,7 @@ export default function ProfileEditView({ profile, user }: ProfileEditViewProps)
                       <Button
                         fullWidth
                         onClick={() => { setChangePassword(true) }}
+                        size="large"
                         startIcon={<LockIcon />}
                         sx={{ px: 4 }}
                         type="button"
