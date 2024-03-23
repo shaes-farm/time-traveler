@@ -13,6 +13,7 @@ export * from './footer';
 export * from './form';
 export * from './header';
 export * from './horizontal-stepper';
+export * from './item-list';
 export * from './link-icon-button';
 export * from './menu-button';
 export * from './menu';

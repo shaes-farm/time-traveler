@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
@@ -12,6 +12,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { type SelectChangeEvent } from '@mui/material/Select';
+import Typography from '@mui/material/Typography';
 
 interface Item {
   slug: string;
@@ -36,6 +37,10 @@ function deduplicate(a: readonly Item[], b: readonly Item[]): Item[] {
   return a.filter((left) => !b.find((right) => left.slug === right.slug));
 }
 
+function find(slug: string, a: readonly Item[]): Item | undefined {
+  return a.find((item) => item.slug === slug);
+}
+
 const compare = (a: Item, b: Item): number => {
   if (Number.isSafeInteger(a.beginDate) || Number.isSafeInteger(b.beginDate)) {
     const ab = Number.parseFloat(a.beginDate);
@@ -58,43 +63,47 @@ interface ItemListProps {
   available: readonly Item[];
   items: readonly Item[];
   onChange: (items: readonly Item[]) => void;
+  title: string;
   value: string;
 }
 
-export function ItemList({ itemNames, items, available, onChange, value }: ItemListProps): JSX.Element {
+export function ItemList({ itemNames, items, available, onChange, title, value }: ItemListProps): JSX.Element {
   const [left, setLeft] = useState<readonly Item[]>(deduplicate(available, items));
   const [right, setRight] = useState<readonly Item[]>(items);
 
   const handleSelectChange = (event: SelectChangeEvent): void => {
-    const slug = event.target.value;
-    console.log({ slug });
-    const found = left.find((item) => item.slug === slug)
-    console.log({ found });
+    const found = find(event.target.value, left);
     if (found) {
-      setRight(right.concat([found]).sort(compare));
       setLeft(not(left, [found]).sort(compare));
+      const newRight = right.concat([found]).sort(compare);
+      setRight(newRight);
+      onChange(newRight);
     }
   };
 
   const handleDelete = (slug: string): void => {
-    console.log({ slug });
-    const found = right.find((item) => item.slug === slug);
-    console.log({ found });
+    const found = find(slug, right);
     if (found) {
       setLeft(left.concat([found]).sort(compare));
-      setRight(not(right, [found]).sort(compare));
+      const newRight = not(right, [found]).sort(compare);
+      setRight(newRight);
+      onChange(newRight);
     }
   };
-
-  useEffect(() => {
-    onChange(right);
-  }, [onChange, right]);
 
   return (
     <Card variant="outlined">
       <CardHeader
         sx={{ px: 2, py: 1 }}
-        title={<FormControl fullWidth>
+        title={
+          <Typography sx={{ my: 1 }} variant="h3">
+            {title}
+          </Typography>
+        }
+      />
+      <Divider />
+      <CardContent>
+        <FormControl fullWidth>
           <Select
             displayEmpty
             id="available-item-select"
@@ -109,16 +118,11 @@ export function ItemList({ itemNames, items, available, onChange, value }: ItemL
             ))}
           </Select>
         </FormControl>
-        }
-      />
-      <Divider />
-      <CardContent>
         <List
           component="div"
           dense
           role="list"
           sx={{
-            // width: '100%',
             maxHeight: '25em',
             overflow: 'auto',
           }}
