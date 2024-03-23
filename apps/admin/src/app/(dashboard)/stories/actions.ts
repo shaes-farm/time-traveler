@@ -30,7 +30,7 @@ export async function queryAll(): Promise<Story[]> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('user.id', session.user.id);
+    debug('queryAll', {userId: session.user.id});
 
     const { error, data } = await supabase
         .from('stories')
@@ -38,16 +38,16 @@ export async function queryAll(): Promise<Story[]> {
         .eq('user_id', session.user.id)
         .order('title');
 
-    debug('queryAll', {error, data});
+    debug('queryAll', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
     const stories = data as PostgrestStory[] | null;
 
-    debug('queryAll', {stories});
+    debug('queryAll', { stories });
 
     return stories ? stories.map((story) => mapApiStoryToModel(story)) : [];
 }
@@ -63,15 +63,27 @@ export async function queryBySlug(slug: string): Promise<Story | null> {
 
     const { error, data } = await supabase
         .from('stories')
-        .select()
+        .select(`
+            slug,
+            title,
+            sub_title,
+            summary,
+            detail,
+            periods!story_periods (
+                slug,
+                title,
+                begin_date,
+                end_date
+            )
+        `)
         .eq('user_id', session.user.id)
         .eq('slug', slug)
         .maybeSingle();
 
-    debug('query', {error, data});
+    debug('query', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -89,7 +101,7 @@ export async function insert(story: Story): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', {story});
+    debug('insert', { story });
 
     const { error } = await supabase
         .from('stories')
@@ -102,10 +114,10 @@ export async function insert(story: Story): Promise<void> {
             detail: story.detail,
         });
 
-    debug('insert', {error});
+    debug('insert', { error });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -122,7 +134,7 @@ export async function update(story: Story): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', {story});
+    debug('update', { story });
 
     const { error, data } = await supabase
         .from('stories')
@@ -137,10 +149,10 @@ export async function update(story: Story): Promise<void> {
         .eq('user_id', session.user.id)
         .eq('slug', story.slug);
 
-    debug('update', {error, data});
+    debug('update', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -157,7 +169,7 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', {slug});
+    debug('remove', { slug });
 
     const { error } = await supabase
         .from('stories')
@@ -166,7 +178,7 @@ export async function remove(slug: string): Promise<void> {
         .eq('slug', slug);
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
