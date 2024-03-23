@@ -1,19 +1,22 @@
 'use server';
 
-import * as winston from 'winston';
 import type { Logger } from 'winston';
+import {createLogger, format, transports} from 'winston';
 
-const log: Logger =  winston.createLogger({
+const {combine, timestamp, json} = format;
+
+const log: Logger =  createLogger({
     level: 'info',
-    format: winston.format.json(),
-    defaultMeta: { service: 'user-service' },
+    format: combine(
+        timestamp(),
+        json(),
+    ),
+    defaultMeta: { service: 'admin' },
     transports: [
-        new winston.transports.Console({
-            format: winston.format.json(),
-        })
+        new transports.Console(),
     ],
 });
 
-export function logger(): Logger {
-    return log;
+export async function logger(): Promise<Logger> {
+    return new Promise(resolve => {resolve(log)});
 }

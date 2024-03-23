@@ -1,8 +1,8 @@
 'use client'
 
-import {useEffect} from 'react'
-import {CustomError} from 'ui';
-import {logger} from './actions';
+import { useEffect } from 'react'
+import { CustomError } from 'ui';
+import { logger } from './actions';
 
 export default function Error({
   error,
@@ -12,9 +12,14 @@ export default function Error({
   _reset: () => void
 }): JSX.Element {
   useEffect(() => {
-    logger().error(error.message, {error});
+    const logIt = async (): Promise<void> => {
+      const log = await logger();
+      log.error(error.message, { error });
+    };
+
+    void logIt();
   }, [error]);
- 
+
   return (
     <CustomError dump={error} message={error.message} status={error.status} />
   );
