@@ -1,16 +1,16 @@
 'use client';
 
-import Lock from "@mui/icons-material/Lock";
-import LockOpen from "@mui/icons-material/LockOpen";
-import TextFields from "@mui/icons-material/TextFields";
-import { Box, Button, Stack, Typography } from "@mui/material";
+// import Lock from "@mui/icons-material/Lock";
+// import LockOpen from "@mui/icons-material/LockOpen";
+// import TextFields from "@mui/icons-material/TextFields";
+import { Box/* , Button, Stack, Typography */ } from "@mui/material";
 import type { EditorOptions } from "@tiptap/core";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef/* , useState */ } from "react";
 import {
   LinkBubbleMenu,
-  MenuButton,
+  // MenuButton,
   RichTextEditor,
-  RichTextReadOnly,
+  // RichTextReadOnly,
   TableBubbleMenu,
   insertImages,
   type RichTextEditorRef,
@@ -31,15 +31,16 @@ function fileListToImageFiles(fileList: FileList): File[] {
 interface EditorProps {
   content?: string | null;
   onUpdate?: (doc: object) => void;
+  placeHolder?: string;
 }
 
-export default function Editor({ content, onUpdate }: EditorProps): JSX.Element {
+export default function Editor({ content, onUpdate, placeHolder }: EditorProps): JSX.Element {
   const extensions = useExtensions({
-    placeholder: "Add your own content here...",
+    placeholder: placeHolder ? placeHolder : 'Add your own content here...',
   });
   const rteRef = useRef<RichTextEditorRef>(null);
-  const [isEditable, setIsEditable] = useState(true);
-  const [showMenuBar, setShowMenuBar] = useState(true);
+  // const [isEditable, setIsEditable] = useState(true);
+  // const [showMenuBar, setShowMenuBar] = useState(true);
 
   const handleNewImageFiles = useCallback(
     (files: File[], insertPosition?: number): void => {
@@ -125,7 +126,7 @@ export default function Editor({ content, onUpdate }: EditorProps): JSX.Element 
       [handleNewImageFiles]
     );
 
-  const [submittedContent, setSubmittedContent] = useState("");
+  // const [submittedContent, setSubmittedContent] = useState("");
 
   return (
     <>
@@ -138,7 +139,7 @@ export default function Editor({ content, onUpdate }: EditorProps): JSX.Element 
           // bar on your site).
           "& .ProseMirror": {
             "& h1, & h2, & h3, & h4, & h5, & h6": {
-              scrollMarginTop: showMenuBar ? 50 : 0,
+              scrollMarginTop: 50 /* showMenuBar ? 50 : 0 */,
             },
           },
         }}
@@ -150,7 +151,7 @@ export default function Editor({ content, onUpdate }: EditorProps): JSX.Element 
             // field border from the editor
             variant: "outlined",
             MenuBarProps: {
-              hide: !showMenuBar,
+              hide: false /* !showMenuBar */,
             },
             // Below is an example of adding a toggle within the outlined field
             // for showing/hiding the editor menu bar, and a "submit" button for
@@ -210,7 +211,7 @@ export default function Editor({ content, onUpdate }: EditorProps): JSX.Element 
             ), */
           }}
           content={content}
-          editable={isEditable}
+          editable /* ={isEditable} */
           editorProps={{
             handleDrop,
             handlePaste,
@@ -218,6 +219,7 @@ export default function Editor({ content, onUpdate }: EditorProps): JSX.Element 
           extensions={extensions}
           onUpdate={({editor}) => {
             // onUpdate?.(editor.getJSON());
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call -- fix it
             onUpdate?.(editor.storage.markdown?.getMarkdown() ?? "");
           }}
           ref={rteRef}
