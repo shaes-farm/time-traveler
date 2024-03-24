@@ -29,7 +29,7 @@ import {
 } from '../../../components';
 import { insert, update } from './actions';
 
-const debug = debugLogger('admin:story-edit-view');
+const debug = debugLogger('admin:stories:edit-view');
 
 const validationSchema = yup.object({
   slug: yup

@@ -28,7 +28,7 @@ import {
 } from '../../../components';
 import { insert, update } from './actions';
 
-const debug = debugLogger('admin:period-edit-view');
+const debug = debugLogger('admin:periods:edit-view');
 
 const validationSchema = yup.object({
   title: yup
@@ -40,6 +40,9 @@ const validationSchema = yup.object({
     .required('Slug is required'),
   summary: yup
     .string(),
+  detail: yup
+    .string()
+    .min(3, 'Detail should be a minimum of 3 characters long'),
   beginDate: yup
     .string()
     .required('Begin date is required.'),
