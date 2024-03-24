@@ -76,8 +76,10 @@ export async function queryBySlug(slug: string): Promise<Story | null> {
                 end_date
             )
         `)
-        .eq('user_id', session.user.id)
-        .eq('slug', slug)
+        .match({
+            user_id: session.user.id,
+            slug,
+        })
         .maybeSingle();
 
     debug('query', { error, data });
@@ -146,8 +148,10 @@ export async function update(story: Story): Promise<void> {
             summary: story.summary ?? undefined,
             detail: story.detail ?? undefined,
         })
-        .eq('user_id', session.user.id)
-        .eq('slug', story.slug);
+        .match({
+            user_id: session.user.id,
+            slug: story.slug,
+        });
 
     debug('update', { error, data });
 
@@ -174,8 +178,10 @@ export async function remove(slug: string): Promise<void> {
     const { error } = await supabase
         .from('stories')
         .delete()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug);
+        .match({
+            user_id: session.user.id,
+            slug,
+        });
 
     if (error) {
         debug({ error });
