@@ -11,3 +11,7 @@ Imported packages used to advance code development.
 - [Tiptap](https://tiptap.dev/)
 - [mui-tiptap](https://github.com/sjdemartini/mui-tiptap?tab=readme-ov-file)
 - [tiptap-markdown](https://github.com/aguingand/tiptap-markdown?tab=readme-ov-file)
+
+### Data Tables
+
+- [MUI-Datatables](https://www.npmjs.com/package//mui-datatables)
