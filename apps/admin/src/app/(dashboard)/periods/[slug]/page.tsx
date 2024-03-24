@@ -1,8 +1,7 @@
 import { notFound } from 'next/navigation';
-import { ContentEditor } from '../../../../components';
-import { insert, queryBySlug, update } from '../actions';
+import { queryBySlug } from '../actions';
 import { queryAll as queryAllTimelines } from '../../timelines/actions';
-import PeriodForm from '../form';
+import PeriodEditView from '../edit-view';
 
 interface PageProps {
   params: {
@@ -20,14 +19,10 @@ export default async function Page({ params: { slug } }: PageProps): Promise<JSX
   const timelines = await queryAllTimelines();
 
   return (
-    <ContentEditor title="Edit a Period">
-      <PeriodForm
-        create={insert}
-        mode="edit"
-        period={period}
-        timelines={timelines}
-        update={update}
-      />
-    </ContentEditor>
+    <PeriodEditView
+      mode="edit"
+      period={period}
+      timelines={timelines}
+    />
   );
 }
