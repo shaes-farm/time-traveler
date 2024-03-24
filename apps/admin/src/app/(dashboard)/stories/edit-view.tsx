@@ -1,18 +1,22 @@
 'use client';
 
 import debugLogger from 'debug';
-import React, { /* useRef, */ useState } from 'react';
+import React, { useState } from 'react';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import slugify from 'slugify';
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
   Box,
   Unstable_Grid2 as Grid,
+  IconButton,
+  InputAdornment,
   Tab,
   TextField,
+  Tooltip,
 } from '@mui/material';
 import type {
   Story,
@@ -93,7 +97,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
 
   return (
     <ContentEditor title="Stories">
-      <Editor onSubmit={formik.handleSubmit} title={`${mode === 'create' ? 'Create' : 'Edit'} Story`} url={formik.values.slug.length ? `/stories/${formik.values.slug}` : undefined}>
+      <Editor onSubmit={formik.handleSubmit} title={`${mode === 'create' ? 'Create' : 'Edit'} Story`}>
         <Grid container spacing={2}>
           <Grid md={8} sm={12}>
             <Grid mb={2} sm={12}>
@@ -155,8 +159,33 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
           <Grid md={4} sm={12}>
             <Grid mb={2} sm={12}>
               <TextField
+                InputProps={{
+                  endAdornment:
+                    <InputAdornment position="end" >
+                      <Tooltip placement="top" title="Visit site">
+                        <IconButton
+                          aria-label="visit site"
+                          edge="end"
+                          onClick={() => { window.open(`/stories/${formik.values.slug}`) }}
+                          size="small"
+                        >
+                          <OpenInNewIcon sx={{ height: '0.75em', width: '0.75em' }} />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                }}
+                disabled
                 fullWidth
-                hidden
+                id="url"
+                label="Permalink"
+                name="url"
+                value={formik.values.slug.length ? `/stories/${formik.values.slug}` : ''}
+                variant="standard"
+              />
+            </Grid>
+            <Grid mb={2} sm={12}>
+              <TextField
+                fullWidth
                 id="slug"
                 label="Slug"
                 name="slug"
@@ -182,19 +211,21 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 value={formik.values.summary}
               />
             </Grid>
-            <ItemList
-              available={periods ?? []}
-              itemNames={{ singular: 'period', plural: 'periods' }}
-              items={formik.values.periods}
-              onChange={(items) => {
-                void formik.setFieldValue('periods', items)
-              }}
-              title="Periods"
-              value=""
-            />
+            <Grid mb={2} sm={12}>
+              <ItemList
+                available={periods ?? []}
+                itemNames={{ singular: 'period', plural: 'periods' }}
+                items={formik.values.periods}
+                onChange={(items) => {
+                  void formik.setFieldValue('periods', items)
+                }}
+                title="Periods"
+                value=""
+              />
+            </Grid>
           </Grid>
         </Grid>
       </Editor>
-    </ContentEditor>
+    </ContentEditor >
   );
 }
