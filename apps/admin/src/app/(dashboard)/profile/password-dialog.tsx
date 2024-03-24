@@ -29,7 +29,7 @@ export function PasswordDialog({ open, setOpen, setResult }: PasswordDialogProps
 
   const handleClickShowPassword = (): void => { setShowPassword((show) => !show) };
 
-  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>): void => {
     event.preventDefault();
   };
 
