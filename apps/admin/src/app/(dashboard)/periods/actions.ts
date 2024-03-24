@@ -23,7 +23,7 @@ const {
 
 export async function queryAll(): Promise<Period[]> {
     const supabase = createClient(cookies());
-    
+
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -38,16 +38,16 @@ export async function queryAll(): Promise<Period[]> {
         .eq('user_id', session.user.id)
         .order('begin_date');
 
-    debug('queryAll', {error, data});
+    debug('queryAll', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
     const periods = data as PostgrestPeriod[] | null;
 
-    debug('queryAll', {periods});
+    debug('queryAll', { periods });
 
     return periods ? periods.map((period) => mapApiPeriodToModel(period)) : [];
 }
@@ -63,15 +63,27 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
 
     const { error, data } = await supabase
         .from('periods')
-        .select()
+        .select(`
+            slug,
+            title,
+            summary,
+            begin_date,
+            end_date,
+            timelines!period_timelines (
+                slug,
+                title,
+                begin_date,
+                end_date
+            )
+        `)
         .eq('user_id', session.user.id)
         .eq('slug', slug)
         .maybeSingle();
 
-    debug('query', {error, data});
+    debug('query', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -89,7 +101,7 @@ export async function insert(period: Period): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', {period});
+    debug('insert', { period });
 
     const { error } = await supabase
         .from('periods')
@@ -102,10 +114,10 @@ export async function insert(period: Period): Promise<void> {
             end_date: period.endDate,
         });
 
-    debug('insert', {error});
+    debug('insert', { error });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -122,7 +134,7 @@ export async function update(period: Period): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', {period});
+    debug('update', { period });
 
     const { error, data } = await supabase
         .from('periods')
@@ -137,10 +149,10 @@ export async function update(period: Period): Promise<void> {
         .eq('user_id', session.user.id)
         .eq('slug', period.slug);
 
-    debug('update', {error, data});
+    debug('update', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -157,7 +169,7 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', {slug});
+    debug('remove', { slug });
 
     const { error } = await supabase
         .from('periods')
@@ -166,7 +178,7 @@ export async function remove(slug: string): Promise<void> {
         .eq('slug', slug);
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
