@@ -33,10 +33,12 @@ export function DashboardLayout({ name, url, year, userProfile, children }: Dash
       if (event === 'SIGNED_OUT') {
         debug(event, session)
 
-        const storageList = [
-          // window.localStorage,
-          window.sessionStorage,
-        ];
+        const storageList: Storage[] = [];
+
+        if (typeof window !== 'undefined') {
+          // storageList.push(window.localStorage);
+          storageList.push(window.sessionStorage);
+        }
 
         // clear session data on signout
         storageList.forEach((storage) => {
