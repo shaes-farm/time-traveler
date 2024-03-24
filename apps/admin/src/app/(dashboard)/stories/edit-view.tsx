@@ -8,15 +8,11 @@ import slugify from 'slugify';
 import TabContext from '@mui/lab/TabContext';
 import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import {
   Box,
   Unstable_Grid2 as Grid,
-  IconButton,
-  InputAdornment,
   Tab,
   TextField,
-  Tooltip,
 } from '@mui/material';
 import type {
   Story,
@@ -29,6 +25,7 @@ import {
 import {
   ContentEditor,
   Editor,
+  Permalink,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -144,7 +141,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 <TabPanel value="2">
                   <TextField
                     fullWidth
-                    id="detail"
+
                     label="Detail"
                     multiline
                     name="detail"
@@ -158,30 +155,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
           </Grid>
           <Grid md={4} sm={12}>
             <Grid mb={2} sm={12}>
-              <TextField
-                InputProps={{
-                  endAdornment:
-                    <InputAdornment position="end" >
-                      <Tooltip placement="top" title="Visit site">
-                        <IconButton
-                          aria-label="visit site"
-                          edge="end"
-                          onClick={() => { window.open(`/stories/${formik.values.slug}`) }}
-                          size="small"
-                        >
-                          <OpenInNewIcon sx={{ height: '0.75em', width: '0.75em' }} />
-                        </IconButton>
-                      </Tooltip>
-                    </InputAdornment>
-                }}
-                disabled
-                fullWidth
-                id="url"
-                label="Permalink"
-                name="url"
-                value={formik.values.slug.length ? `/stories/${formik.values.slug}` : ''}
-                variant="standard"
-              />
+              <Permalink url={formik.values.slug.length ? `/stories/${formik.values.slug}` : ''} />
             </Grid>
             <Grid mb={2} sm={12}>
               <TextField
