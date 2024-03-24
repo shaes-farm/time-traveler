@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-// import Link from 'next/link';
 import SaveIcon from '@mui/icons-material/Save';
 import BackIcon from '@mui/icons-material/ArrowBackIos';
 import {
@@ -10,7 +9,6 @@ import {
   Button,
   Divider,
   Grid,
-  Link,
   Paper,
   Typography,
 } from '@mui/material';
@@ -20,12 +18,11 @@ import {
 
 interface EditorProps {
   title: string;
-  url?: string;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   children: React.ReactNode;
 }
 
-export function Editor({ url, title, onSubmit, children }: EditorProps): JSX.Element {
+export function Editor({ title, onSubmit, children }: EditorProps): JSX.Element {
   const router = useRouter();
 
   return (
@@ -48,14 +45,6 @@ export function Editor({ url, title, onSubmit, children }: EditorProps): JSX.Ele
         </Grid>
         <Divider sx={{ my: '1rem' }} />
         <Grid container spacing={2}>
-          <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
-            <Box sx={{ flex: '1 1 auto' }} />
-            <Box alignSelf="center">
-              <Typography color="text.secondary" variant="subtitle2">
-                URL: {url ? <Link href={url}>{url}</Link> : '(none set)'}
-              </Typography>
-            </Box>
-          </Grid>
           <Grid item xs={12}>
             {children}
           </Grid>
