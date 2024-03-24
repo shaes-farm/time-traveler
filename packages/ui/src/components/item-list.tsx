@@ -18,7 +18,7 @@ interface Item {
   slug: string;
   title: string;
   beginDate: string;
-  endDate: string;
+  endDate: string | null;
 }
 
 function not(a: readonly Item[], b: readonly Item[]): Item[] {
@@ -45,14 +45,14 @@ const compare = (a: Item, b: Item): number => {
   if (Number.isSafeInteger(a.beginDate) || Number.isSafeInteger(b.beginDate)) {
     const ab = Number.parseFloat(a.beginDate);
     const bb = Number.parseFloat(b.beginDate);
-    const ae = Number.parseFloat(a.endDate);
-    const be = Number.parseFloat(b.endDate);
+    const ae = Number.parseFloat(a.endDate ?? '');
+    const be = Number.parseFloat(b.endDate ?? '');
     return (ab !== bb ? ab - bb : ae - be);
   }
 
   return a.beginDate !== b.beginDate ?
     a.beginDate.localeCompare(b.beginDate) :
-    a.endDate.localeCompare(b.endDate);
+    (a.endDate?.localeCompare(b.endDate ?? '') ?? 0);
 };
 
 interface ItemListProps {
