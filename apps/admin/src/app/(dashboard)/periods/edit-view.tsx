@@ -1,6 +1,6 @@
 'use client';
 import debugLogger from 'debug';
-import {useState} from 'react';
+import { useState } from 'react';
 import { useFormik } from 'formik';
 import * as yup from 'yup';
 import slugify from 'slugify';
@@ -24,6 +24,7 @@ import {
 import {
   ContentEditor,
   Editor,
+  Permalink,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -96,7 +97,6 @@ export default function PeriodEditView({ mode, period, timelines }: PeriodEditVi
       <Editor
         onSubmit={formik.handleSubmit}
         title={`${mode === 'create' ? 'Create' : 'Edit'} Period`}
-        // url={formik.values.slug.length ? `/periods/${formik.values.slug}` : undefined}
       >
         <Grid container spacing={2}>
           <Grid md={8} sm={12}>
@@ -148,6 +148,9 @@ export default function PeriodEditView({ mode, period, timelines }: PeriodEditVi
             </Grid>
           </Grid>
           <Grid md={4} sm={12}>
+            <Grid mb={2} sm={12}>
+              <Permalink url={formik.values.slug.length ? `/periods/${formik.values.slug}` : ''} />
+            </Grid>
             <Grid mb={2} sm={12}>
               <TextField
                 fullWidth
