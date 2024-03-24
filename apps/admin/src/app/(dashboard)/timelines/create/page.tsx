@@ -1,18 +1,12 @@
-import { ContentEditor } from '../../../../components';
-import { insert, update } from '../actions';
 import { queryAll as queryAllEvents } from '../../events/actions';
-import TimelineForm from '../form';
+import TimelineEditView from '../edit-view';
 
 export default async function Page(): Promise<JSX.Element> {
   const events = await queryAllEvents();
   return (
-    <ContentEditor title="Create a Timeline">
-      <TimelineForm
-        create={insert}
-        events={events}
-        mode="create"
-        update={update}
-      />
-    </ContentEditor>
+    <TimelineEditView
+      events={events}
+      mode="create"
+    />
   );
 }
