@@ -16,6 +16,7 @@ export interface PostgrestPeriod {
   slug: string;
   title: string;
   summary?: string;
+  detail?: string;
   begin_date: string;
   end_date: string;
   timelines?: PostgrestTimeline[];
@@ -26,6 +27,7 @@ export interface PostgrestTimeline {
   slug: string;
   title: string;
   summary?: string;
+  detail?: string;
   scale?: string;
   begin_date: string;
   end_date: string;

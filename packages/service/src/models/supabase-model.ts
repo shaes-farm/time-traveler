@@ -306,6 +306,7 @@ export interface Database {
         Row: {
           begin_date: string
           created_at: string | null
+          detail: string | null
           end_date: string
           id: number
           slug: string
@@ -317,6 +318,7 @@ export interface Database {
         Insert: {
           begin_date: string
           created_at?: string | null
+          detail?: string | null
           end_date: string
           id?: never
           slug: string
@@ -328,6 +330,7 @@ export interface Database {
         Update: {
           begin_date?: string
           created_at?: string | null
+          detail?: string | null
           end_date?: string
           id?: never
           slug?: string
@@ -530,6 +533,7 @@ export interface Database {
         Row: {
           begin_date: string
           created_at: string | null
+          detail: string | null
           end_date: string
           id: number
           scale: string | null
@@ -542,6 +546,7 @@ export interface Database {
         Insert: {
           begin_date: string
           created_at?: string | null
+          detail?: string | null
           end_date: string
           id?: never
           scale?: string | null
@@ -554,6 +559,7 @@ export interface Database {
         Update: {
           begin_date?: string
           created_at?: string | null
+          detail?: string | null
           end_date?: string
           id?: never
           scale?: string | null

@@ -51,6 +51,7 @@ export interface Timeline {
   slug: string;
   title: string;
   summary: string | null;
+  detail: string | null;
   scale: string | null;
   beginDate: string;
   endDate: string;
@@ -63,6 +64,7 @@ export interface Period {
   slug: string;
   title: string;
   summary: string | null;
+  detail: string | null;
   beginDate: string;
   endDate: string;
   timelines: Timeline[];
