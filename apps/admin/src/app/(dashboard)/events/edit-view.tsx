@@ -12,6 +12,8 @@ import {
   Box,
   Divider,
   Unstable_Grid2 as Grid,
+  List,
+  ListItem,
   Slider,
   Tab,
   TextField,
@@ -215,7 +217,7 @@ export default function HistoricalEventEditView({ mode, event, media }: Historic
             </Grid>
             <Grid mb={2} sm={12}>
               <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: '100%', pt: 2, px: 2 }}>
-                <Typography gutterBottom id="importance-slider" sx={{ mt: '-1.75em'}}>
+                <Typography gutterBottom id="importance-slider" sx={{ mt: '-1.75em' }}>
                   Importance
                 </Typography>
                 <Slider
@@ -260,8 +262,18 @@ export default function HistoricalEventEditView({ mode, event, media }: Historic
                 value={formik.values.endDate}
               />
             </Grid>
-            {/* <Grid mb={2} sm={12}>
-              <ItemList
+            {media?.length ? <Grid mb={2} sm={12}>
+              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: '100%', pt: 2, px: 2 }}>
+                <Typography gutterBottom id="media-list" sx={{ mt: '-1.75em' }}>
+                  Media
+                </Typography>
+                <List>
+                  {media.map((m, index) => (
+                    <ListItem key={Symbol(index).toString()}>{m.alternativeText}</ListItem>
+                  ))}
+                </List>
+              </Box>
+              {/* <ItemList
                 available={media ?? []}
                 itemNames={{ singular: 'media', plural: 'media' }}
                 items={formik.values.media}
@@ -270,8 +282,8 @@ export default function HistoricalEventEditView({ mode, event, media }: Historic
                 }}
                 title="Medias"
                 value=""
-              />
-            </Grid> */}
+              /> */}
+            </Grid> : null}
           </Grid>
         </Grid>
       </Editor>
