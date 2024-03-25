@@ -67,6 +67,7 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
             slug,
             title,
             summary,
+            detail,
             begin_date,
             end_date,
             timelines!period_timelines (
@@ -76,8 +77,10 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
                 end_date
             )
         `)
-        .eq('user_id', session.user.id)
-        .eq('slug', slug)
+        .match({
+            slug,
+            user_id: session.user.id,
+        })
         .maybeSingle();
 
     debug('query', { error, data });
@@ -146,8 +149,10 @@ export async function update(period: Period): Promise<void> {
             begin_date: period.beginDate,
             end_date: period.endDate,
         })
-        .eq('user_id', session.user.id)
-        .eq('slug', period.slug);
+        .match({
+            slug: period.slug,
+            user_id: session.user.id,
+        });
 
     debug('update', { error, data });
 
@@ -174,8 +179,10 @@ export async function remove(slug: string): Promise<void> {
     const { error } = await supabase
         .from('periods')
         .delete()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug);
+        .match({
+            slug,
+            user_id: session.user.id,
+        });
 
     if (error) {
         debug({ error });
