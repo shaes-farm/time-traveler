@@ -5,7 +5,7 @@ import Tooltip from '@mui/material/Tooltip';
 import NotificationsNoneOutlinedIcon from '@mui/icons-material/NotificationsNoneOutlined';
 import type {NavRoute, NavRouter} from './nav';
 
-export interface NotificationsProps {
+interface NotificationsProps {
   /**
    * Badge color.
    */

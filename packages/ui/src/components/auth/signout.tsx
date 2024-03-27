@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-export interface SignOutProps {
+interface SignOutProps {
   homeUrl: string
   signOut: () => void
 }

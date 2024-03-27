@@ -13,7 +13,7 @@ import PersonOutlineOutlinedIcon from '@mui/icons-material/PersonOutlineOutlined
 import { Form } from '../form';
 import { SnackBarAlert } from '../snack-bar-alert';
 
-export interface SignUpFormProps {
+interface SignUpFormProps {
   icon?: React.ReactNode;
   title?: React.ReactNode | string;
   subTitle?: React.ReactNode | string;

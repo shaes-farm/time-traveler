@@ -77,7 +77,7 @@ export interface FormProps {
   onSubmit?: (event: React.FormEvent<HTMLFormElement>) => void
 }
 
-export function FormBase({children, ...formProps}: FormProps): JSX.Element {
+function FormBase({children, ...formProps}: FormProps): JSX.Element {
   return (
     <form {...formProps}>
       {children}

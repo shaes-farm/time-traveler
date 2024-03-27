@@ -1,4 +1,4 @@
-import React from 'react';
+'use client';
 import type {ListProps} from '@mui/material/List';
 import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -8,7 +8,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Divider from '@mui/material/Divider';
 import type {NavRoute, NavRoutes, NavRouter} from './_types';
 
-export interface NavProps extends ListProps {
+interface NavProps extends ListProps {
   /**
    * An array of routes rendered as a nav element.
    */

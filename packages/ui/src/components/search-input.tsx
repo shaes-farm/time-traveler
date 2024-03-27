@@ -11,7 +11,7 @@ import {Form} from './form';
 
 const debug = debugLogger('admin:ui:search-input');
 
-export interface SearchInputProps {
+interface SearchInputProps {
   /**
    * The route to navigate to when search icon is clicked or enter is pressed.
    */

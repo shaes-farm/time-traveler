@@ -42,7 +42,7 @@ export interface WorldMapAnnotation {
   labelY?: number;
 }
 
-export interface WorldMapProps {
+interface WorldMapProps {
   annotations?: WorldMapAnnotation[];
   center?: [number, number];
   geoUrl?: string | URL;

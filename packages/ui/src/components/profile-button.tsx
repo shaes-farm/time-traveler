@@ -15,7 +15,7 @@ import MenuItem from '@mui/material/MenuItem';
 import type { Profile } from 'service';
 import type { NavRoute, NavRouter } from './nav';
 
-export interface ProfileButtonProps extends Partial<MenuProps> {
+interface ProfileButtonProps extends Partial<MenuProps> {
   routes: NavRoute[];
   router: NavRouter;
   profile: Profile;

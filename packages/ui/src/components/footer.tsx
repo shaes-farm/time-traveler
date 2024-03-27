@@ -2,7 +2,7 @@
 import {Box, Divider, Link, Typography} from '@mui/material';
 import {type LabeledRoute, Menu} from './menu';
 
-export interface FooterProps {
+interface FooterProps {
   year: number;
   url: string;
   holder: string;

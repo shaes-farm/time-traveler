@@ -3,7 +3,7 @@ import type { AlertColor } from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import {Alert} from './alert';
 
-export interface SnackBarAlertProps {
+interface SnackBarAlertProps {
   message: string
   severity?: AlertColor
   clear: () => void

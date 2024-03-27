@@ -3,7 +3,7 @@ import React, {useState} from 'react';
 import {IconButton, Menu, MenuItem, Tooltip} from '@mui/material';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
-export interface MenuButtonProps {
+interface MenuButtonProps {
   onPrint: () => void;
   onDownload: () => void;
   onShare: () => void;

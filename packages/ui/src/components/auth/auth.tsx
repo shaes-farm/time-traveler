@@ -1,11 +1,10 @@
 import React from 'react';
 import type {FormProps} from '../form';
-// import type {Credentials, SignUpInfo, RecoverPasswordInfo} from './_types';
 import {PasswordForm} from './password-form';
 import {RecoverPasswordForm} from './recover-form';
 import {SignUpForm} from './signup-form';
 
-export interface AuthProps extends FormProps {
+interface AuthProps extends FormProps {
   type: 'password' | 'signup' | 'recover';
   icon?: React.ReactNode;
   title?: React.ReactNode;

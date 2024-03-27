@@ -1,6 +1,6 @@
-export * from './_types';
-export * from './auth';
-export * from './password-form';
-export * from './recover-form';
-export * from './signout';
-export * from './signup-form';
+export type {Credentials, RecoverPasswordInfo, SignUpInfo} from './_types';
+export {Auth} from './auth';
+export {PasswordForm} from './password-form';
+export {RecoverPasswordForm} from './recover-form';
+export {SignOut} from './signout';
+export {SignUpForm} from './signup-form';

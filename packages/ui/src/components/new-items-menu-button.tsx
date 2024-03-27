@@ -14,7 +14,7 @@ import ArrowDropDownOutlinedIcon from '@mui/icons-material/ArrowDropDownOutlined
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import type { NavRoute, NavRouter } from './nav';
 
-export interface NewItemsMenuButtonProps extends Partial<MenuProps> {
+interface NewItemsMenuButtonProps extends Partial<MenuProps> {
   /**
    * An array of routes rendered as a Menu component.
    * @see https://mui.com/material-ui/react-menu/

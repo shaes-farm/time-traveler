@@ -4,14 +4,17 @@ import React from 'react';
 import {ThemeProvider} from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import {NextAppDirEmotionCacheProvider} from './emotion-cache';
-import {darkTheme/* , lightTheme */} from './theme';
+import {darkTheme, lightTheme} from './theme';
 
-export function ThemeRegistry({ children }: { children: React.ReactNode }): JSX.Element {
-  // Next.js SSR errors here, despite use client above
-  // const {theme} = window ? window.localStorage : {};
+interface ThemeRegistryProps {
+  theme?: 'dark' | 'light';
+  children: React.ReactNode;
+}
+
+export function ThemeRegistry({ theme = 'dark', children }: ThemeRegistryProps): JSX.Element {
   return (
     <NextAppDirEmotionCacheProvider options={{ key: 'mui' }}>
-      <ThemeProvider theme={darkTheme /* theme === 'light' ? lightTheme : darkTheme */}>
+      <ThemeProvider theme={theme === 'dark' ? darkTheme : lightTheme}>
         <CssBaseline />
         {children}
       </ThemeProvider>

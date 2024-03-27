@@ -4,7 +4,7 @@ import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MuiAppBar from '@mui/material/AppBar';
 import { DRAWER_WIDTH } from './drawer';
 
-export interface AppBarProps extends MuiAppBarProps {
+interface AppBarProps extends MuiAppBarProps {
   /**
    * Set to true to open the AppBar, false to close it.
    */

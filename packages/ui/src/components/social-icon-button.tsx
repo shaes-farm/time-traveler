@@ -21,7 +21,7 @@ const ICONS = {
   website: <PublicIcon />,
 };
 
-export interface SocialIconButtonProps {
+interface SocialIconButtonProps {
   /**
    * The type of link.
    */

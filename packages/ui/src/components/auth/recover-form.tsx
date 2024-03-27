@@ -13,7 +13,7 @@ import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
 import { Form } from '../form';
 import { SnackBarAlert } from '../snack-bar-alert';
 
-export interface RecoverPasswordFormProps {
+interface RecoverPasswordFormProps {
   icon?: ReactNode;
   title?: ReactNode;
   subTitle?: ReactNode;

@@ -11,7 +11,7 @@ import {
   Stack,
   Typography
 } from '@mui/material';
-import type { FileUpload } from './types';
+import type { FileUpload } from './_types';
 
 function LinearProgressWithLabel(props: LinearProgressProps & { value: number }): JSX.Element {
   return <Box sx={{ display: 'flex', alignItems: 'center' }}>

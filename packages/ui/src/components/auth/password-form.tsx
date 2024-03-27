@@ -15,7 +15,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { Form } from '../form';
 import { SnackBarAlert } from '../snack-bar-alert';
 
-export interface PasswordFormProps {
+interface PasswordFormProps {
   icon?: ReactNode;
   title?: ReactNode;
   subTitle?: ReactNode;

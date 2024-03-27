@@ -5,7 +5,7 @@ import Tooltip from '@mui/material/Tooltip';
 import MailOutlinedIcon from '@mui/icons-material/MailOutlined';
 import type {NavRoute, NavRouter} from './nav';
 
-export interface MessagesProps {
+interface MessagesProps {
   /**
    * Badge color.
    */

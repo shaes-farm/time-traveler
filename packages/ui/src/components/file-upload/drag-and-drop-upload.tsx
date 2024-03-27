@@ -7,7 +7,7 @@ import {
   Button,
   Typography
 } from '@mui/material';
-import type { FileUpload } from './types';
+import type { FileUpload } from './_types';
 import { FileUploadList } from './file-upload-list';
 
 const VisuallyHiddenInput = styled('input')({

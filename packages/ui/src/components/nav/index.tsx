@@ -1,2 +1,2 @@
-export * from './_types';
-export * from './nav';
+export type {NavRoute, NavRoutes, NavRouter} from './_types';
+export {Nav} from './nav';
