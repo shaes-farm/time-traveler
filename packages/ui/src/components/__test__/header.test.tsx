@@ -5,7 +5,10 @@ import '@testing-library/jest-dom';
 import {config} from '../../stories/config';
 import {Header} from '../header';
 
-const {app} = config;
+const {app: {
+  title,
+  description,
+}} = config;
 
 const menu = [{
   label: 'home',
@@ -20,7 +23,13 @@ const menu = [{
 
 describe('Header component', () => {
   test('displays the header', () => {
-    render(<Header app={app} menu={menu} />);
+    render(
+      <Header
+        description={description}
+        menu={menu}
+        title={title}
+      />
+    );
   
     // await userEvent.click(screen.getByText('home'))
     // await screen.findByRole('heading')

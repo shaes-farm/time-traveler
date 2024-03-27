@@ -1,0 +1,26 @@
+{
+  "extends": "tsconfig/nextjs.json",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "strictNullChecks": true,
+    "types": [
+      "cypress",
+      "@testing-library/cypress"
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "cypress/support/index.d.ts",
+    "@testing-library/cypress"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

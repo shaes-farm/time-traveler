@@ -1,17 +1,12 @@
 'use client';
-import React from 'react';
 import {Link} from '@mui/material';
 import type {LabeledRoute} from '../models';
 
-export interface MenuProps {
+interface MenuProps {
   menu: LabeledRoute[];
 }
 
-export function Menu(props: MenuProps): JSX.Element {
-  const {
-    menu,
-  } = props;
-
+export function Menu({menu}: MenuProps): JSX.Element {
   return (
     <nav>
       {menu.map((item, index) => (

@@ -1,10 +1,12 @@
 export interface Media {
+  userId?: string;
+  slug: string;
   alternativeText?: string;
   caption?: string;
-  url?:string;
+  url:string;
   width?: number;
   height?: number;
-  formats?: object;
+  formats?: string;
 }
 
 export enum Importance {
@@ -22,6 +24,7 @@ export enum Importance {
 }
 
 export interface HistoricalEvent {
+  userId?: string;
   slug: string;
   title: string;
   summary: string | null;
@@ -37,15 +40,18 @@ export interface HistoricalEvent {
 }
 
 export interface Category {
+  userId?: string;
   slug: string;
   title: string;
   events: HistoricalEvent[];
 }
 
 export interface Timeline {
+  userId?: string;
   slug: string;
   title: string;
   summary: string | null;
+  detail: string | null;
   scale: string | null;
   beginDate: string;
   endDate: string;
@@ -54,10 +60,22 @@ export interface Timeline {
 }
 
 export interface Period {
+  userId?: string;
   slug: string;
   title: string;
   summary: string | null;
+  detail: string | null;
   beginDate: string;
   endDate: string;
   timelines: Timeline[];
+}
+
+export interface Story {
+  userId?: string;
+  slug: string;
+  title: string;
+  subTitle: string | null;
+  summary: string | null;
+  detail: string | null;
+  periods: Period[];
 }

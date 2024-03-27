@@ -1,6 +1,9 @@
 import type {
+  Category,
   HistoricalEvent,
+  Media,
   Period,
+  Profile,
   Timeline,
 } from '../models';
 
@@ -47,4 +50,40 @@ export interface Fetch {
    * @returns An event object if found, otherwise null.
    */
   getEvent: (slug: string) => Promise<HistoricalEvent | null>;
+
+  /**
+   * Fetch all categories from the CMS.
+   *
+   * @returns An array of category objects.
+   */
+  getCategories: () => Promise<Category[]>;
+
+  /**
+   * Fetch a category by slug.
+   * 
+   * @returns An category object if found, otherwise null.
+   */
+  getCategory: (slug: string) => Promise<Category | null>;
+
+  /**
+   * Fetch all media from the CMS.
+   *
+   * @returns An array of media objects.
+   */
+  getMedia: () => Promise<Media[]>;
+
+  /**
+   * Fetch a media item by slug.
+   * 
+   * @returns An media object if found, otherwise null.
+   */
+  getMediaItem: (slug: string) => Promise<Media | null>;
+
+  /**
+   * Fetch a user profile by user id.
+   * 
+   * @returns An profile object if found, otherwise null.
+   */
+  getProfile: (id: string) => Promise<Profile | null>;
+  
 }

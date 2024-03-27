@@ -1,0 +1,23 @@
+{
+  "app": {
+    "title": "Time Traveler",
+    "description": "Administration",
+    "version": "1.0.0",
+    "baseUrl": "http://localhost:3000",
+    "basePath": "/",
+    "icon": "",
+    "logo": {
+      "main": "",
+      "contrast": ""
+    },
+    "copyright": {
+      "holder": "SHAES Farm",
+      "year": 2023,
+      "url": "https://shaes.farm"
+    }
+  },
+  "api": {
+    "backend": "supabase",
+    "baseUrl": "http://127.0.0.1:54321"
+  }
+}

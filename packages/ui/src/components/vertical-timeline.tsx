@@ -27,7 +27,7 @@ export interface TimelineMarker {
   endDate: string | null;
 }
 
-export interface VerticalTimelineProps {
+interface VerticalTimelineProps {
   markers: TimelineMarker[];
   alternate?: boolean;
   colored?: boolean;

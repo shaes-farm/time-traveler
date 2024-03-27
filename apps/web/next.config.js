@@ -1,5 +1,5 @@
 const config = require('config');
-const debug = require('debug')('time:next:config');
+const debug = require('debug')('web:next:config');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

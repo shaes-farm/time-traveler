@@ -1,0 +1,60 @@
+import type { Meta, StoryObj } from '@storybook/react';
+import { SnackBarAlert } from '../components/snack-bar-alert';
+
+// More on how to set up stories at: https://storybook.js.org/docs/react/writing-stories/introduction
+const meta: Meta<typeof SnackBarAlert> = {
+  title: 'Components/SnackBarAlert',
+  component: SnackBarAlert,
+  decorators: [(Story) => <div style={{ padding: '3em' }}><Story /></div>],
+  tags: ['autodocs'],
+  parameters: {
+    // More on how to position stories at: https://storybook.js.org/docs/react/configure/story-layout
+    layout: 'fullscreen',
+  },
+};
+
+export default meta;
+type Story = StoryObj<typeof SnackBarAlert>;
+
+// eslint-disable-next-line @typescript-eslint/no-empty-function -- ignore
+const clear = (): void => {};
+
+// More on writing stories with args: https://storybook.js.org/docs/react/writing-stories/args
+export const Default: Story = {
+  args: {
+    message: 'Default SnackBarAlert',
+    clear,
+  },
+};
+
+export const Info: Story = {
+  args: {
+    severity: 'info',
+    message: 'Info SnackBarAlert',
+    clear,
+  },
+};
+
+export const Success: Story = {
+  args: {
+    severity: 'success',
+    message: 'Success SnackBarAlert',
+    clear,
+  },
+};
+
+export const Warning: Story = {
+  args: {
+    severity: 'warning',
+    message: 'Warning SnackBarAlert',
+    clear,
+  },
+};
+
+export const Error: Story = {
+  args: {
+    severity: 'error',
+    message: 'Error SnackBarAlert',
+    clear,
+  },
+};

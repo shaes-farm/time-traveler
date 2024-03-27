@@ -3,9 +3,20 @@ import {Footer} from '../components/footer';
 import {Header} from '../components/header';
 import {WorldMap} from '../components/world-map';
 import {HorizontalStepper} from '../components/horizontal-stepper';
+import type {LabeledClickable} from '../models';
 import {config} from './config';
 
-const {baseUrl} = config.app;
+const {
+  app: {
+    title,
+    description,
+    copyright: {
+      holder,
+      url,
+      year
+    }
+  }
+} = config;
 
 const headerMenu = [{
   label: 'home',
@@ -29,27 +40,27 @@ const footerMenu = [{
   route: '/terms',
 }];
 
-const periods = [{
+const periods: LabeledClickable[] = [{
   label: 'The First Age',
-  route: `${baseUrl}/timelines/the-first-age`,
+  onClick: () => {/*`${baseUrl}/timelines/the-first-age`*/},
 },{
   label: 'The Second Age',
-  route: `${baseUrl}/timelines/the-second-age`,
+  onClick: () => {/*`${baseUrl}/timelines/the-second-age`*/},
 },{
   label: 'The Third Age',
-  route: `${baseUrl}/timelines/the-third-age`,
+  onClick: () => {/*`${baseUrl}/timelines/the-third-age`*/},
 },{
   label: 'The Fourth Age',
-  route: `${baseUrl}/timelines/the-fourth-age`,
+  onClick: () => {/*`${baseUrl}/timelines/the-fourth-age`*/},
 },{
   label: 'The Fifth Age',
-  route: `${baseUrl}/timelines/the-fifth-age`,
+  onClick: () => {/*`${baseUrl}/timelines/the-fifth-age`*/},
 }];
 
 export function Page(): JSX.Element {
   return (
     <Container maxWidth="lg" sx={{ m: 'auto' }}>
-      <Header app={config.app} menu={headerMenu} />
+      <Header description={description} menu={headerMenu} title={title} />
       <main>
         <Paper>
           <Box sx={{py: '3em'}}>
@@ -85,7 +96,7 @@ export function Page(): JSX.Element {
           </Box>
         </Paper>
       </main>
-      <Footer app={config.app} menu={footerMenu} />
+      <Footer holder={holder} menu={footerMenu} url={url} year={year} />
     </Container>
   );
 };
