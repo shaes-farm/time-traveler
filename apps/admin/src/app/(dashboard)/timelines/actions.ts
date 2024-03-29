@@ -38,16 +38,15 @@ export async function queryAll(): Promise<Timeline[]> {
         .eq('user_id', session.user.id)
         .order('begin_date, end_date');
 
-    debug('queryAll', {error, data});
+    debug('queryAll', { error, data });
 
     if (error) {
-        debug({error});
         throw new Error(error.message);
     }
 
     const timelines = data as PostgrestTimeline[] | null;
 
-    debug('queryAll', {timelines});
+    debug('queryAll', { timelines });
 
     return timelines ? timelines.map((timeline) => mapApiTimelineToModel(timeline)) : [];
 }
@@ -63,15 +62,29 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
 
     const { error, data } = await supabase
         .from('timelines')
-        .select()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug)
+        .select(`
+            slug,
+            title,
+            summary,
+            scale,
+            begin_date,
+            end_date,
+            historical_events!timeline_events (
+                slug,
+                title,
+                begin_date,
+                end_date
+            )
+        `)
+        .match({
+            slug,
+            user_id: session.user.id,
+        })
         .maybeSingle();
 
-    debug('query', {error, data});
+    debug('queryBySlug', { slug, error, data });
 
     if (error) {
-        debug({error});
         throw new Error(error.message);
     }
 
@@ -89,9 +102,9 @@ export async function insert(timeline: Timeline): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', {timeline});
+    debug('insert', { timeline });
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('timelines')
         .insert({
             user_id: session.user.id,
@@ -100,14 +113,26 @@ export async function insert(timeline: Timeline): Promise<void> {
             summary: timeline.summary,
             begin_date: timeline.beginDate,
             end_date: timeline.endDate,
-        });
+        })
+        .select();
 
-    debug('insert', {error});
+    debug('insert', { data, error });
 
     if (error) {
-        debug({error});
         throw new Error(error.message);
     }
+
+    // await Promise.all(timeline.events.map(async (event): Promise<void> => {
+    //     debug({ event });
+    //     const { error: eventError } = await supabase
+    //         .from('timeline_events')
+    //         .insert({
+    //             historical_event_id: eventd.id,
+    //             timeline_id: data.id,
+    //             user_id: session.user.id,
+    //         });
+    //     debug({error: eventError});
+    // }));
 
     revalidatePath(`${appBaseUrl}${basePath}/timelines`, 'layout');
     redirect(`${appBaseUrl}${basePath}/timelines`);
@@ -122,7 +147,7 @@ export async function update(timeline: Timeline): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', {timeline});
+    debug('update', { timeline });
 
     const { error, data } = await supabase
         .from('timelines')
@@ -134,13 +159,14 @@ export async function update(timeline: Timeline): Promise<void> {
             begin_date: timeline.beginDate,
             end_date: timeline.endDate,
         })
-        .eq('user_id', session.user.id)
-        .eq('slug', timeline.slug);
+        .match({
+            slug: timeline.slug,
+            user_id: session.user.id,
+        });
 
-    debug('update', {error, data});
+    debug('update', { error, data });
 
     if (error) {
-        debug({error});
         throw new Error(error.message);
     }
 
@@ -157,16 +183,20 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', {slug});
+    debug('remove', { slug });
 
-    const { error } = await supabase
+    const { error, data } = await supabase
         .from('timelines')
         .delete()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug);
+        .match({
+            slug,
+            user_id: session.user.id,
+        })
+        .select();
+
+    debug('remove', { error, data });
 
     if (error) {
-        debug({error});
         throw new Error(error.message);
     }
 
