@@ -3,14 +3,23 @@ create table profiles (
   id uuid references auth.users on delete cascade not null primary key,
   first_name text not null,
   last_name text not null,
+  username varchar(100),
   bio text,
   avatar_url text,
   website text,
+  social_x varchar(200),
+  social_facebook varchar(200),
+  social_instagram varchar(200),
+  social_pinterest varchar(200),
+  social_youtube varchar(200),
   updated_at timestamp with time zone,
 
   constraint first_name_length check (char_length(first_name) > 1),
-  constraint last_name_length check (char_length(last_name) > 1)
+  constraint last_name_length check (char_length(last_name) > 1),
+  constraint username_length check (char_length(username) >= 3)
 );
+
+CREATE UNIQUE INDEX profiles_username_idx ON profiles (username);
 
 -- Set up Row Level Security (RLS)
 -- See https://supabase.com/docs/guides/auth/row-level-security for more details.
