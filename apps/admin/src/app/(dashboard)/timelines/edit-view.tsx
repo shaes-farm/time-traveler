@@ -9,9 +9,11 @@ import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 import {
   Box,
+  Divider,
   Unstable_Grid2 as Grid,
   Tab,
   TextField,
+  Typography,
 } from '@mui/material';
 import type {
   Timeline,
@@ -178,6 +180,18 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
             <Grid mb={2} sm={12}>
               <TextField
                 fullWidth
+                id="summary"
+                label="Summary"
+                multiline
+                name="summary"
+                onChange={formik.handleChange}
+                rows={4}
+                value={formik.values.summary}
+              />
+            </Grid>
+            <Grid mb={2} sm={12}>
+              <TextField
+                fullWidth
                 hidden
                 id="scale"
                 label="Scale"
@@ -187,15 +201,30 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
               />
             </Grid>
             <Grid mb={2} sm={12}>
+              <Divider sx={{ mt: 2 }} />
+              <Typography sx={{ mt: 1, mb: 1 }} variant="h3">
+                Date Range
+              </Typography>
+            </Grid>
+            <Grid mb={2} sm={12}>
               <TextField
                 fullWidth
-                id="summary"
-                label="Summary"
-                multiline
-                name="summary"
+                id="begin-date"
+                label="Begin Date"
+                name="beginDate"
                 onChange={formik.handleChange}
-                rows={4}
-                value={formik.values.summary}
+                required
+                value={formik.values.beginDate}
+              />
+            </Grid>
+            <Grid mb={2} sm={12}>
+              <TextField
+                fullWidth
+                id="end-date"
+                label="End Date"
+                name="endDate"
+                onChange={formik.handleChange}
+                value={formik.values.endDate}
               />
             </Grid>
             <Grid mb={2} sm={12}>

@@ -9,9 +9,11 @@ import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 import {
   Box,
+  Divider,
   Unstable_Grid2 as Grid,
   Tab,
   TextField,
+  Typography,
 } from '@mui/material';
 import type {
   Period,
@@ -56,7 +58,7 @@ const validationSchema = yup.object({
 interface PeriodEditViewProps {
   mode: 'create' | 'edit';
   period?: Period;
-  timelines?: readonly Timeline[];
+  timelines: readonly Timeline[];
 }
 
 export default function PeriodEditView({ mode, period, timelines }: PeriodEditViewProps): JSX.Element {
@@ -94,6 +96,12 @@ export default function PeriodEditView({ mode, period, timelines }: PeriodEditVi
       mode === 'create' ? await insert(values) : await update(values);
     },
   });
+
+  debug({
+    mode,
+    period,
+    timelines,
+  })
 
   return (
     <ContentEditor title="Periods">
@@ -184,8 +192,35 @@ export default function PeriodEditView({ mode, period, timelines }: PeriodEditVi
               />
             </Grid>
             <Grid mb={2} sm={12}>
+              <Divider sx={{ mt: 2 }} />
+              <Typography sx={{ mt: 1, mb: 1 }} variant="h3">
+                Date Range
+              </Typography>
+            </Grid>
+            <Grid mb={2} sm={12}>
+              <TextField
+                fullWidth
+                id="begin-date"
+                label="Begin Date"
+                name="beginDate"
+                onChange={formik.handleChange}
+                required
+                value={formik.values.beginDate}
+              />
+            </Grid>
+            <Grid mb={2} sm={12}>
+              <TextField
+                fullWidth
+                id="end-date"
+                label="End Date"
+                name="endDate"
+                onChange={formik.handleChange}
+                value={formik.values.endDate}
+              />
+            </Grid>
+            <Grid mb={2} sm={12}>
               <ItemList
-                available={timelines ?? []}
+                available={timelines}
                 itemNames={{ singular: 'timeline', plural: 'timelines' }}
                 items={formik.values.timelines}
                 onChange={(items) => {
