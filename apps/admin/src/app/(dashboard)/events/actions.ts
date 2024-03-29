@@ -63,9 +63,35 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
 
     const { error, data } = await supabase
         .from('historical_events')
-        .select()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug)
+        .select(`
+            slug,
+            title,
+            summary,
+            detail,
+            location,
+            importance,
+            begin_date,
+            end_date,
+            timelines!timeline_events (
+                slug,
+                title,
+                begin_date,
+                end_date
+            ),
+            media!event_media (
+                slug,
+                alternativetext,
+                caption
+            ),
+            categories!event_categories (
+                slug,
+                title
+            )
+        `)
+        .match({
+            user_id: session.user.id,
+            slug,
+        })
         .maybeSingle();
 
     debug('query', {error, data});
@@ -140,8 +166,10 @@ export async function update(event: HistoricalEvent): Promise<void> {
             begin_date: event.beginDate,
             end_date: event.endDate ? event.endDate : null,
         })
-        .eq('user_id', session.user.id)
-        .eq('slug', event.slug);
+        .match({
+            user_id: session.user.id,
+            slug: event.slug,
+        });
 
     debug('update', {error, data});
 
@@ -168,8 +196,10 @@ export async function remove(slug: string): Promise<void> {
     const { error } = await supabase
         .from('historical_events')
         .delete()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug);
+        .match({
+            user_id: session.user.id,
+            slug,
+        });
 
     if (error) {
         debug({error});
