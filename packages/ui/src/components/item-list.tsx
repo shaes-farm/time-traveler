@@ -17,8 +17,8 @@ import Typography from '@mui/material/Typography';
 interface Item {
   slug: string;
   title: string;
-  beginDate: string;
-  endDate: string | null;
+  beginDate?: string;
+  endDate?: string | null;
 }
 
 function not(a: readonly Item[], b: readonly Item[]): Item[] {
@@ -43,16 +43,20 @@ function find(slug: string, a: readonly Item[]): Item | undefined {
 
 const compare = (a: Item, b: Item): number => {
   if (Number.isSafeInteger(a.beginDate) || Number.isSafeInteger(b.beginDate)) {
-    const ab = Number.parseFloat(a.beginDate);
-    const bb = Number.parseFloat(b.beginDate);
-    const ae = Number.parseFloat(a.endDate ?? '');
-    const be = Number.parseFloat(b.endDate ?? '');
+    const ab = Number.parseFloat(a.beginDate ?? '0');
+    const bb = Number.parseFloat(b.beginDate ?? '0');
+    const ae = Number.parseFloat(a.endDate ?? '0');
+    const be = Number.parseFloat(b.endDate ?? '0');
     return (ab !== bb ? ab - bb : ae - be);
   }
 
-  return a.beginDate !== b.beginDate ?
-    a.beginDate.localeCompare(b.beginDate) :
-    (a.endDate?.localeCompare(b.endDate ?? '') ?? 0);
+  if (a.beginDate && b.beginDate) {
+    return a.beginDate !== b.beginDate ?
+      (a.beginDate.localeCompare(b.beginDate)) :
+      (a.endDate?.localeCompare(b.endDate ?? '') ?? 0);
+  }
+
+  return a.title.localeCompare(b.title);
 };
 
 interface ItemListProps {
