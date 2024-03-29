@@ -61,6 +61,8 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
+    debug('queryBySlug', { slug, user: session.user });
+
     const { error, data } = await supabase
         .from('periods')
         .select(`
@@ -83,7 +85,7 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
         })
         .maybeSingle();
 
-    debug('query', { error, data });
+    debug('queryBySlug', { error, data });
 
     if (error) {
         debug({ error });
