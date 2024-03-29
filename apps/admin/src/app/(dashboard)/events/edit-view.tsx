@@ -12,20 +12,21 @@ import {
   Box,
   Divider,
   Unstable_Grid2 as Grid,
-  List,
-  ListItem,
+  // List,
+  // ListItem,
   Slider,
   Tab,
   TextField,
   Typography,
 } from '@mui/material';
 import type {
+  Category,
   HistoricalEvent,
   Media,
   Timeline,
 } from 'service';
 import {
-  // ItemList,
+  ItemList,
   RichTextEditor,
 } from 'ui';
 import {
@@ -71,11 +72,12 @@ const validationSchema = yup.object({
 interface HistoricalEventEditViewProps {
   mode: 'create' | 'edit';
   event?: HistoricalEvent;
+  categories?: readonly Category[];
   media?: readonly Media[];
   timelines?: readonly Timeline[];
 }
 
-export default function HistoricalEventEditView({ mode, event, media }: HistoricalEventEditViewProps): JSX.Element {
+export default function HistoricalEventEditView({ mode, event, categories }: HistoricalEventEditViewProps): JSX.Element {
   const [tabIndex, setTabIndex] = useState<string>('1');
 
   const initialValues: HistoricalEvent = (mode === 'edit' && event) ? {
@@ -262,28 +264,28 @@ export default function HistoricalEventEditView({ mode, event, media }: Historic
                 value={formik.values.endDate}
               />
             </Grid>
-            {media?.length ? <Grid mb={2} sm={12}>
-              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: '100%', pt: 2, px: 2 }}>
+            <Grid mb={2} sm={12}>
+              {/* <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: '100%', pt: 2, px: 2 }}>
                 <Typography gutterBottom id="media-list" sx={{ mt: '-1.75em' }}>
-                  Media
+                  Categories
                 </Typography>
                 <List>
                   {media.map((m, index) => (
                     <ListItem key={Symbol(index).toString()}>{m.alternativeText}</ListItem>
                   ))}
                 </List>
-              </Box>
-              {/* <ItemList
-                available={media ?? []}
-                itemNames={{ singular: 'media', plural: 'media' }}
-                items={formik.values.media}
+              </Box> */}
+              <ItemList
+                available={categories ?? []}
+                itemNames={{ singular: 'category', plural: 'categories' }}
+                items={formik.values.categories}
                 onChange={(items) => {
-                  void formik.setFieldValue('media', items)
+                  void formik.setFieldValue('categories', items)
                 }}
-                title="Medias"
+                title="Categories"
                 value=""
-              /> */}
-            </Grid> : null}
+              />
+            </Grid>
           </Grid>
         </Grid>
       </Editor>
