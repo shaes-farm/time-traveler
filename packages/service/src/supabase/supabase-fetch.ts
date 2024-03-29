@@ -112,7 +112,8 @@ export class SupabaseFetch implements Fetch {
         scale,
         begin_date,
         end_date
-      `);
+      `)
+      .order('begin_date');
     if (error) throw error;
     const timelines = data as PostgrestTimeline[];
     debug({ timelines: JSON.stringify(timelines, null, 2) });
@@ -151,7 +152,6 @@ export class SupabaseFetch implements Fetch {
         )
       `)
       .eq('slug', slug)
-      .order('begin_date')
       .maybeSingle();
 
     const { data, error } = await timelineQuery;
