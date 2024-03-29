@@ -218,6 +218,31 @@ create policy "Allow anonymous access to event_categories"
     to anon
     using (true);
 
+create policy "Allow unrestricted authenticated access to event_categories"
+    on event_categories
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create event_categories"
+    on event_categories
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own event_categories"
+    on event_categories
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own event_categories"
+    on event_categories
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
+
 -- Turn on security for event media
 alter table event_media
     enable row level security;
@@ -227,6 +252,31 @@ create policy "Allow anonymous access to event_media"
     for select
     to anon
     using (true);
+
+create policy "Allow unrestricted authenticated access to event_media"
+    on event_media
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create event_media"
+    on event_media
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own event_media"
+    on event_media
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own event_media"
+    on event_media
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
 
 -- Turn on security for timeline events
 alter table timeline_events
@@ -238,6 +288,31 @@ create policy "Allow anonymous access to timeline_events"
     to anon
     using (true);
 
+create policy "Allow unrestricted authenticated access to timeline_events"
+    on timeline_events
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create timeline_events"
+    on timeline_events
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own timeline_events"
+    on timeline_events
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own timeline_events"
+    on timeline_events
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
+
 -- Turn on security for period timelines
 alter table period_timelines
     enable row level security;
@@ -247,6 +322,31 @@ create policy "Allow anonymous access to period_timelines"
     for select
     to anon
     using (true);
+
+create policy "Allow unrestricted authenticated access to period_timelines"
+    on period_timelines
+    for select
+    to authenticated
+    using (true);
+
+create policy "Authenticated users can create period_timelines"
+    on period_timelines
+    for insert
+    to authenticated
+    with check ((select auth.uid()) = user_id);
+
+create policy "Authenticated users can update their own period_timelines"
+    on period_timelines
+    for update
+    to authenticated
+    using ((select auth.uid()) = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "Authenticated users can delete their own period_timelines"
+    on period_timelines
+    for delete
+    to authenticated
+    using ((select auth.uid()) = user_id);
 
 -- Turn on security for story periods
 alter table story_periods
