@@ -2,7 +2,7 @@
 import { styled } from '@mui/material/styles';
 import type { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import MuiAppBar from '@mui/material/AppBar';
-import { DRAWER_WIDTH } from './drawer';
+import { MAX_DRAWER_WIDTH } from './drawer';
 
 interface AppBarProps extends MuiAppBarProps {
   /**
@@ -23,8 +23,8 @@ export const AppBar = styled(MuiAppBar, {
     duration: theme.transitions.duration.leavingScreen,
   }),
   ...(open && {
-    marginLeft: DRAWER_WIDTH,
-    width: `calc(100% - ${DRAWER_WIDTH}px)`,
+    marginLeft: MAX_DRAWER_WIDTH,
+    width: `calc(100% - ${MAX_DRAWER_WIDTH}px)`,
     transition: theme.transitions.create(['width', 'margin'], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
