@@ -10,10 +10,7 @@ import TabList from '@mui/lab/TabList';
 import TabPanel from '@mui/lab/TabPanel';
 import {
   Box,
-  Divider,
   Unstable_Grid2 as Grid,
-  // List,
-  // ListItem,
   Slider,
   Tab,
   TextField,
@@ -26,6 +23,7 @@ import type {
   Timeline,
 } from 'service';
 import {
+  DateRangePicker,
   ItemList,
   RichTextEditor,
 } from 'ui';
@@ -238,30 +236,15 @@ export default function HistoricalEventEditView({ mode, event, categories }: His
               </Box>
             </Grid>
             <Grid mb={2} sm={12}>
-              <Divider sx={{ mt: 2 }} />
-              <Typography sx={{ mt: 1, mb: 1 }} variant="h3">
-                Date Range
-              </Typography>
-            </Grid>
-            <Grid mb={2} sm={12}>
-              <TextField
-                fullWidth
-                id="begin-date"
-                label="Begin Date"
-                name="beginDate"
-                onChange={formik.handleChange}
-                required
-                value={formik.values.beginDate}
-              />
-            </Grid>
-            <Grid mb={2} sm={12}>
-              <TextField
-                fullWidth
-                id="end-date"
-                label="End Date"
-                name="endDate"
-                onChange={formik.handleChange}
-                value={formik.values.endDate}
+              <DateRangePicker
+                beginDate={formik.values.beginDate}
+                endDate={formik.values.endDate ?? ''}
+                onChangeBeginDate={(beginDate): void => {
+                  void formik.setFieldValue('beginDate', beginDate);
+                }}
+                onChangeEndDate={(endDate): void => {
+                  void formik.setFieldValue('endDate', endDate);
+                }}
               />
             </Grid>
             <Grid mb={2} sm={12}>
