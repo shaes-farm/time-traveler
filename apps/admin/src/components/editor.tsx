@@ -1,9 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, {useState} from 'react';
 import { useRouter } from 'next/navigation';
 import SaveIcon from '@mui/icons-material/Save';
 import BackIcon from '@mui/icons-material/ArrowBackIos';
+import LoadingButton from '@mui/lab/LoadingButton';
 import {
   Box,
   Button,
@@ -12,9 +13,6 @@ import {
   Paper,
   Typography,
 } from '@mui/material';
-import {
-  Form,
-} from 'ui';
 
 interface EditorProps {
   title: string;
@@ -23,24 +21,38 @@ interface EditorProps {
 }
 
 export function Editor({ title, onSubmit, children }: EditorProps): JSX.Element {
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
 
   return (
     <Paper elevation={0} sx={{ p: '1rem' }}>
-      <Form onSubmit={onSubmit}>
+      <form
+        onSubmit={
+          (event: React.FormEvent<HTMLFormElement>): void => {
+            setLoading(true);
+            onSubmit(event);
+          }
+        }
+      >
         <Grid container spacing={2}>
           <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
             <Typography variant="h2">
               {title}
             </Typography>
             <Box sx={{ flex: '1 1 auto' }} />
-            <Button onClick={() => { router.back() }} startIcon={<BackIcon />} sx={{ px: 4 }} variant='outlined'>
+            <Button disabled={loading} onClick={() => { router.back() }} startIcon={<BackIcon />} sx={{ px: 4 }} variant='outlined'>
               Back
             </Button>
             <Box sx={{ mx: 0.5 }} />
-            <Button startIcon={<SaveIcon />} sx={{ px: 4 }} type="submit" variant='contained'>
+            <LoadingButton
+              loading={loading}
+              startIcon={<SaveIcon />}
+              sx={{ px: 4 }}
+              type="submit"
+              variant='contained'
+            >
               Save
-            </Button>
+            </LoadingButton>
           </Grid>
         </Grid>
         <Divider sx={{ my: '1rem' }} />
@@ -49,7 +61,7 @@ export function Editor({ title, onSubmit, children }: EditorProps): JSX.Element 
             {children}
           </Grid>
         </Grid>
-      </Form>
+      </form>
     </Paper>
   );
 }
