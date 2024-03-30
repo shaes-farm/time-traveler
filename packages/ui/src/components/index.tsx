@@ -12,6 +12,7 @@ export { Breadcrumbs, type Crumb } from './breadcrumbs';
 export { CardButtons } from './card-buttons';
 export { Copyright } from './copyright';
 export { CustomError } from './custom-error';
+export { DateRangePicker } from './date-range-picker';
 export { Drawer, MAX_DRAWER_WIDTH } from './drawer';
 export { ErrorCard } from './error-card';
 export { DragAndDropUpload } from './file-upload/drag-and-drop-upload';
