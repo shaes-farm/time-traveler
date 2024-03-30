@@ -11,10 +11,8 @@ import TabPanel from '@mui/lab/TabPanel';
 import {
   Box,
   Unstable_Grid2 as Grid,
-  Slider,
   Tab,
   TextField,
-  Typography,
 } from '@mui/material';
 import type {
   Category,
@@ -24,6 +22,7 @@ import type {
 } from 'service';
 import {
   DateRangePicker,
+  ImportanceMeter,
   ItemList,
   RichTextEditor,
 } from 'ui';
@@ -105,10 +104,6 @@ export default function HistoricalEventEditView({ mode, event, categories }: His
     timelines: [],
     media: [],
   };
-
-  const valuetext = (value: number): string => {
-    return `${value}`;
-  }
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: string): void => {
     setTabIndex(newValue);
@@ -216,24 +211,10 @@ export default function HistoricalEventEditView({ mode, event, categories }: His
               />
             </Grid>
             <Grid mb={2} sm={12}>
-              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: '100%', pt: 2, px: 2 }}>
-                <Typography gutterBottom id="importance-slider" sx={{ mt: '-1.75em' }}>
-                  Importance
-                </Typography>
-                <Slider
-                  aria-labelledby="importance-slider"
-                  getAriaValueText={valuetext}
-                  marks
-                  max={10}
-                  min={1}
-                  onChange={(_event, value) => {
-                    void formik.setFieldValue('important', value);
-                  }}
-                  step={1}
-                  value={formik.values.importance}
-                  valueLabelDisplay="auto"
-                />
-              </Box>
+              <ImportanceMeter
+                importance={formik.values.importance}
+                onChange={(importance) => {void formik.setFieldValue('importance', importance)}}
+              />
             </Grid>
             <Grid mb={2} sm={12}>
               <DateRangePicker
@@ -248,16 +229,6 @@ export default function HistoricalEventEditView({ mode, event, categories }: His
               />
             </Grid>
             <Grid mb={2} sm={12}>
-              {/* <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, width: '100%', pt: 2, px: 2 }}>
-                <Typography gutterBottom id="media-list" sx={{ mt: '-1.75em' }}>
-                  Categories
-                </Typography>
-                <List>
-                  {media.map((m, index) => (
-                    <ListItem key={Symbol(index).toString()}>{m.alternativeText}</ListItem>
-                  ))}
-                </List>
-              </Box> */}
               <ItemList
                 available={categories ?? []}
                 itemNames={{ singular: 'category', plural: 'categories' }}
