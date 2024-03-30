@@ -21,6 +21,7 @@ export { Footer } from './footer';
 export { Form } from './form';
 export { Header } from './header';
 export { HorizontalStepper } from './horizontal-stepper';
+export { ImportanceMeter } from './importance-meter';
 export { ItemList } from './item-list';
 export { LinkIconButton } from './link-icon-button';
 export { MenuButton } from './menu-button';
