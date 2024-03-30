@@ -50,6 +50,12 @@ export function ImportanceMeter({ importance, onChange }: ImportanceMeterProps):
             <Divider />
             <CardContent>
                 <Grid container spacing={0}>
+                    <Grid textAlign="center" xs={12}>
+                        <Typography variant="caption">
+                            {/* select a value between 1 and 10 */}
+                            {getValueText(importance)}
+                        </Typography>
+                    </Grid>
                     <Grid xs={12}>
                         <Slider
                             aria-labelledby="importance-slider"
@@ -62,12 +68,6 @@ export function ImportanceMeter({ importance, onChange }: ImportanceMeterProps):
                             value={importance}
                             valueLabelDisplay="auto"
                         />
-                    </Grid>
-                    <Grid textAlign="center" xs={12}>
-                        <Typography variant="caption">
-                            {/* select a value between 1 and 10 */}
-                            {getValueText(importance)}
-                        </Typography>
                     </Grid>
                     <Grid textAlign="center" xs={12}>
                         <Typography variant="caption">
