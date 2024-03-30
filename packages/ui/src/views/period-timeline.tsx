@@ -1,6 +1,6 @@
 'use client'
 import type {Period} from 'service';
-import {VerticalTimeline, type VerticalTimelineProps} from '../components';
+import {VerticalTimeline, type VerticalTimelineProps} from '../components/vertical-timeline';
 
 export interface PeriodTimelineProps extends Omit<VerticalTimelineProps, 'markers'>{
   period: Period;
