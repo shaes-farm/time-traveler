@@ -1,18 +1,26 @@
 'use client';
-import type { GridColDef } from '@mui/x-data-grid';
+// import type { GridColDef } from '@mui/x-data-grid';
 import type { Category } from 'service';
-import { ContentViewer, GridList } from '../../../components';
+import { ContentViewer, type ItemTableCol, ItemTable } from '../../../components';
 
-const columns: GridColDef[] = [
+const columns: ItemTableCol[] = [
   {
-    field: 'slug',
-    headerName: 'Slug',
-    width: 300,
+    name: 'slug',
+    label: 'Slug',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'title',
-    headerName: 'Title',
-    width: 300,
+    name: 'title',
+    label: 'Title',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
 ];
 
@@ -30,11 +38,12 @@ export default function GridView({ categories, createLink, deleteLink, editLink 
       createLink={createLink}
       title="Categories"
     >
-      <GridList
+      <ItemTable
         columns={columns}
         deleteLink={deleteLink}
         editLink={editLink}
         rows={categories}
+        title="All Categories"
       />
     </ContentViewer>
   );

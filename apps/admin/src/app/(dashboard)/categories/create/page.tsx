@@ -1,18 +1,12 @@
-import { ContentEditor } from '../../../../components';
-import { insert, update } from '../actions';
 import { queryAll as queryAllEvents } from '../../events/actions';
-import CategoryForm from '../form';
+import CategoryEditView from '../edit-view';
 
 export default async function Page(): Promise<JSX.Element> {
   const events = await queryAllEvents();
   return (
-    <ContentEditor title="Create a Category">
-      <CategoryForm
-        create={insert}
+      <CategoryEditView
         events={events}
         mode="create"
-        update={update}
       />
-    </ContentEditor>
   );
 }

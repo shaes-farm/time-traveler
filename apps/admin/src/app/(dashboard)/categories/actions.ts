@@ -38,16 +38,16 @@ export async function queryAll(): Promise<Category[]> {
         .eq('user_id', session.user.id)
         .order('title');
 
-    debug('queryAll', {error, data});
+    debug('queryAll', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
     const categories = data as PostgrestCategory[] | null;
 
-    debug('queryAll', {categories});
+    debug('queryAll', { categories });
 
     return categories ? categories.map((category) => mapApiCategoryToModel(category)) : [];
 }
@@ -63,15 +63,24 @@ export async function queryBySlug(slug: string): Promise<Category | null> {
 
     const { error, data } = await supabase
         .from('categories')
-        .select()
+        .select(`
+            slug,
+            title,
+            historical_events!event_categories (
+                slug,
+                title,
+                begin_date,
+                end_date
+            )
+        `)
         .eq('user_id', session.user.id)
         .eq('slug', slug)
         .maybeSingle();
 
-    debug('query', {error, data});
+    debug('query', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -89,7 +98,7 @@ export async function insert(category: Category): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', {category});
+    debug('insert', { category });
 
     const { error } = await supabase
         .from('categories')
@@ -99,10 +108,10 @@ export async function insert(category: Category): Promise<void> {
             title: category.title,
         });
 
-    debug('insert', {error});
+    debug('insert', { error });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -119,7 +128,7 @@ export async function update(category: Category): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', {category});
+    debug('update', { category });
 
     const { error, data } = await supabase
         .from('categories')
@@ -131,10 +140,10 @@ export async function update(category: Category): Promise<void> {
         .eq('user_id', session.user.id)
         .eq('slug', category.slug);
 
-    debug('update', {error, data});
+    debug('update', { error, data });
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 
@@ -151,7 +160,7 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', {slug});
+    debug('remove', { slug });
 
     const { error } = await supabase
         .from('categories')
@@ -160,7 +169,7 @@ export async function remove(slug: string): Promise<void> {
         .eq('slug', slug);
 
     if (error) {
-        debug({error});
+        debug({ error });
         throw new Error(error.message);
     }
 

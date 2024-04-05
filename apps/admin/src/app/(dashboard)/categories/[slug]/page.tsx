@@ -1,8 +1,7 @@
 import { notFound } from 'next/navigation';
-import { ContentEditor } from '../../../../components';
-import { insert, queryBySlug, update } from '../actions';
+import { queryBySlug } from '../actions';
 import { queryAll as queryAllEvents } from '../../events/actions';
-import CategoryForm from '../form';
+import CategoryEditView from '../edit-view';
 
 interface PageProps {
   params: {
@@ -20,14 +19,10 @@ export default async function Page({ params: { slug } }: PageProps): Promise<JSX
   const events = await queryAllEvents();
 
   return (
-    <ContentEditor title="Edit a Category">
-      <CategoryForm
-        category={category}
-        create={insert}
-        events={events}
-        mode="edit"
-        update={update}
-      />
-    </ContentEditor>
+    <CategoryEditView
+      category={category}
+      events={events}
+      mode="edit"
+    />
   );
 }
