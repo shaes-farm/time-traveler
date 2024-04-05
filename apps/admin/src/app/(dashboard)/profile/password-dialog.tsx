@@ -82,7 +82,7 @@ export function PasswordDialog({ open, setOpen, setResult }: PasswordDialogProps
           </Grid>
           <Grid display="flex" xs={12}>
             <FormControl fullWidth variant="outlined">
-              <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
+              <InputLabel htmlFor="outlined-adornment-password">New Password</InputLabel>
               <OutlinedInput
                 autoComplete="new-password"
                 endAdornment={
@@ -98,7 +98,6 @@ export function PasswordDialog({ open, setOpen, setResult }: PasswordDialogProps
                   </InputAdornment>
                 }
                 id="newPassword"
-                label="New Password"
                 name="newPassword"
                 required
                 type={showPassword ? 'text' : 'password'}
