@@ -6,13 +6,13 @@ import { DragAndDropUpload } from 'ui';
 import type { Media, UploadInfo } from 'service';
 import { addMedia, upload } from './actions';
 
-const debug = debugLogger('admin:app:media:upload');
+const debug = debugLogger('admin:media:upload');
 
 export function Upload(): JSX.Element {
     function onSuccess(info: UploadInfo): void {
         const img = new Image();
         img.src = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${encodeURIComponent(info.fileName)}?quality=100`;
-        debug('upload', {img});
+        debug('upload', { img });
         setTimeout(() => {
             debug('height', img.naturalHeight);
             debug('width', img.naturalWidth);
