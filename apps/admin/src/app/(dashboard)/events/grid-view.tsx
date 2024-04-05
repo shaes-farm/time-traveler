@@ -1,38 +1,62 @@
 'use client';
-import type { GridColDef } from '@mui/x-data-grid';
+// import type { GridColDef } from '@mui/x-data-grid';
 import type { HistoricalEvent } from 'service';
-import {ContentViewer, GridList} from '../../../components';
+import { ContentViewer, type ItemTableCol, ItemTable } from '../../../components';
 
-const columns: GridColDef[] = [
+const columns: ItemTableCol[] = [
   {
-    field: 'slug',
-    headerName: 'Slug',
-    width: 150,
+    name: 'slug',
+    label: 'Slug',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'title',
-    headerName: 'Title',
-    width: 150,
+    name: 'title',
+    label: 'Title',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'summary',
-    headerName: 'Summary',
-    width: 150,
+    name: 'summary',
+    label: 'Summary',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'location',
-    headerName: 'Location',
-    width: 150,
+    name: 'location',
+    label: 'Location',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'beginDate',
-    headerName: 'Begin',
-    width: 75,
+    name: 'beginDate',
+    label: 'Begin Date',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'endDate',
-    headerName: 'End',
-    width: 75,
+    name: 'endDate',
+    label: 'End Date',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
 ];
 
@@ -50,11 +74,12 @@ export default function GridView({ events, createLink, deleteLink, editLink }: G
       createLink={createLink}
       title="Events"
     >
-      <GridList
+      <ItemTable
         columns={columns}
         deleteLink={deleteLink}
         editLink={editLink}
         rows={events}
+        title="All Events"
       />
     </ContentViewer>
   );

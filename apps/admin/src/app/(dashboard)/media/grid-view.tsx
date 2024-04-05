@@ -1,43 +1,71 @@
 'use client';
-import type { GridColDef } from '@mui/x-data-grid';
+// import type { GridColDef } from '@mui/x-data-grid';
 import type { Media } from 'service';
-import { GridList } from '../../../components';
+import {type ItemTableCol, ItemTable } from '../../../components';
 
-const columns: GridColDef[] = [
+const columns: ItemTableCol[] = [
   {
-    field: 'slug',
-    headerName: 'Slug',
-    width: 150,
+    name: 'slug',
+    label: 'Slug',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'alternativetext',
-    headerName: 'Alt Text',
-    width: 150,
+    name: 'alternativeText',
+    label: 'Title',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'caption',
-    headerName: 'Caption',
-    width: 150,
+    name: 'caption',
+    label: 'Caption',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'url',
-    headerName: 'Source',
-    width: 150,
+    name: 'url',
+    label: 'Source',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'width',
-    headerName: 'Width',
-    width: 75,
+    name: 'width',
+    label: 'Width',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'height',
-    headerName: 'Height',
-    width: 75,
+    name: 'height',
+    label: 'Height',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'formats',
-    headerName: 'Formats',
-    width: 100,
+    name: 'formats',
+    label: 'File Type',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
 ];
 
@@ -50,11 +78,12 @@ interface MediaListViewProps {
 
 export function MediaListView({ media, deleteLink, editLink }: MediaListViewProps): JSX.Element {
   return (
-    <GridList
+    <ItemTable
       columns={columns}
       deleteLink={deleteLink}
       editLink={editLink}
-      rows={media}
+      rows={media.map((item) => ({title: item.alternativeText ?? '', ...item}))}
+      title="All Media"
     />
   );
 }

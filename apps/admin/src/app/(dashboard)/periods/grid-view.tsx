@@ -1,33 +1,53 @@
 'use client';
-import type { GridColDef } from '@mui/x-data-grid';
+// import type { GridColDef } from '@mui/x-data-grid';
 import type { Period } from 'service';
-import {ContentViewer, GridList} from '../../../components';
+import { ContentViewer, type ItemTableCol, ItemTable } from '../../../components';
 
-const columns: GridColDef[] = [
+const columns: ItemTableCol[] = [
   {
-    field: 'slug',
-    headerName: 'Slug',
-    width: 150,
+    name: 'slug',
+    label: 'Slug',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'title',
-    headerName: 'Title',
-    width: 150,
+    name: 'title',
+    label: 'Title',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'summary',
-    headerName: 'Summary',
-    width: 150,
+    name: 'summary',
+    label: 'Summary',
+    options: {
+      display: false,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'beginDate',
-    headerName: 'Begin',
-    width: 75,
+    name: 'beginDate',
+    label: 'Begin Date',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
   {
-    field: 'endDate',
-    headerName: 'End',
-    width: 75,
+    name: 'endDate',
+    label: 'End Date',
+    options: {
+      display: true,
+      filter: true,
+      sort: true,
+    }
   },
 ];
 
@@ -45,11 +65,12 @@ export default function PeriodGridView({ periods, createLink, deleteLink, editLi
       createLink={createLink}
       title="Periods"
     >
-      <GridList
+      <ItemTable
         columns={columns}
         deleteLink={deleteLink}
         editLink={editLink}
         rows={periods}
+        title="All Periods"
       />
     </ContentViewer>
   );
