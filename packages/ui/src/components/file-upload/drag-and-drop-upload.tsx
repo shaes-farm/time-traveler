@@ -49,7 +49,7 @@ export function DragAndDropUpload({ upload }: DragAndDropUploadProps): JSX.Eleme
             p: '3em',
             width: '100%',
           }} {...getRootProps()}>
-            <Typography component="div" gutterBottom variant="h6">
+            <Typography component="div" gutterBottom variant="button">
               Drop files here to upload
             </Typography>
             <Typography gutterBottom sx={{ py: '1em' }} variant="body1">
