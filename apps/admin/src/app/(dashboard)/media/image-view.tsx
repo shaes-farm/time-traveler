@@ -1,4 +1,5 @@
 'use client';
+
 /* eslint-disable @next/next/no-img-element -- allow unoptimized img */
 import React from 'react';
 import Link from 'next/link';
@@ -6,6 +7,20 @@ import ImageList from '@mui/material/ImageList';
 import ImageListItem from '@mui/material/ImageListItem';
 import ImageListItemBar from '@mui/material/ImageListItemBar';
 import type { Media } from 'service';
+
+const WEB_IMAGE_FILE_TYPES = [
+    'image/apng',
+    'image/avif',
+    'image/gif',
+    'image/jpeg',
+    'image/png',
+    'image/svg+xml',
+    'image/webp',
+];
+
+function isCommonImageType(type: string | undefined): boolean {
+    return type ? WEB_IMAGE_FILE_TYPES.includes(type) : false;
+}
 
 interface MediaImageViewProps {
     media: Media[];
@@ -22,8 +37,8 @@ export function MediaImageView({ media }: MediaImageViewProps): JSX.Element {
                     <img
                         alt={item.alternativeText}
                         loading="lazy"
-                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${item.url}?quality=100`}
-                        srcSet={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${item.url}?quality=100`}
+                        src={isCommonImageType(item.formats) ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${item.url}?quality=100` : '/images/placeholder.svg'}
+                        srcSet={isCommonImageType(item.formats) ? `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${item.url}?quality=100` : '/images/placeholder.svg'}
                     />
                     <Link href={`/media/${item.slug}`}>
                         <ImageListItemBar
