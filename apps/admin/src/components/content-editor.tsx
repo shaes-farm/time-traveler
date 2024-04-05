@@ -20,7 +20,7 @@ export function ContentEditor({ title, children }: ContentEditorProps): JSX.Elem
             {title}
           </Typography>
         </Grid>
-        <Grid>
+        <Grid xs={12}>
           {children}
         </Grid>
       </Grid>
