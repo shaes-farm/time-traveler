@@ -1,38 +1,33 @@
+'use server';
+
 import debugFactory from 'debug';
+import getConfig from 'next/config';
 import { redirect } from 'next/navigation';
-import type { FileUpload } from 'ui';
-import { SupabaseUpload, type Media, type UploadInfo } from 'service';
-import { createClient } from '../../../../utils/supabase/client';
+import { cookies } from 'next/headers';
+import { revalidatePath } from 'next/cache'
+import type { Media } from 'service';
+import { createClient } from '../../../../utils/supabase/server';
+import type { NextConfig } from '../../../../types';
 
 const debug = debugFactory('admin:media:create:actions');
 
-export async function upload(fileUpload: FileUpload, setProgress: (percentage: number) => void, onSuccess: (info: UploadInfo) => void, onError: (error: Error) => void): Promise<void> {
-  const supabase = createClient();
-
-  const supa = new SupabaseUpload(supabase);
-
-  const onReset = (info: UploadInfo): void => {
-    fileUpload.progress = 100;
-    onSuccess(info);
-  };
-
-  await supa.resumableUpload(
-    'media',
-    fileUpload.file,
-    setProgress,
-    onReset,
-    onError,
-  );
-}
+const {
+  publicRuntimeConfig: {
+    app: {
+      baseUrl: appBaseUrl,
+      basePath,
+    }
+  },
+} = getConfig() as NextConfig;
 
 export async function addMedia(media: Media): Promise<void> {
-  const supabase = createClient();
+  const supabase = createClient(cookies());
 
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
-    redirect('/signin');
-  }
+    redirect(`${appBaseUrl}${basePath}/signin`);
+    }
 
   debug('addMedia', { media });
 
@@ -85,4 +80,6 @@ export async function addMedia(media: Media): Promise<void> {
       throw new Error(error.message);
     }
   }
+
+  revalidatePath(`${appBaseUrl}${basePath}/media`, 'page');
 }

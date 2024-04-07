@@ -13,8 +13,11 @@ import {
     Typography,
 } from '@mui/material';
 import { DragAndDropUpload } from 'ui';
+import type { FileUpload } from 'ui';
+import { SupabaseUpload } from 'service';
 import type { Media, UploadInfo } from 'service';
-import { addMedia, upload } from './actions';
+import { createClient } from '../../../../utils/supabase/client';
+import { addMedia } from './actions';
 
 const debug = debugLogger('admin:media:upload');
 
@@ -53,6 +56,25 @@ export function Upload({backUrl}: UploadProps): JSX.Element {
         }, 3);
     };
 
+    async function upload(fileUpload: FileUpload, setProgress: (percentage: number) => void, onError: (error: Error) => void): Promise<void> {
+        const supabase = createClient();
+      
+        const supa = new SupabaseUpload(supabase);
+      
+        const onReset = (info: UploadInfo): void => {
+          fileUpload.progress = 100;
+          onSuccess(info);
+        };
+      
+        await supa.resumableUpload(
+          'media',
+          fileUpload.file,
+          setProgress,
+          onReset,
+          onError,
+        );
+      }
+    
     return (
         <Paper elevation={0} sx={{ p: '1rem', width: '100%' }}>
             <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -68,7 +90,7 @@ export function Upload({backUrl}: UploadProps): JSX.Element {
             </Grid>
             <Divider sx={{ my: '1rem' }} />
             <DragAndDropUpload upload={(file, setProgress, onError) => {
-                void upload(file, setProgress, onSuccess, onError);
+                void upload(file, setProgress, onError);
             }} />
         </Paper>
     );
