@@ -24,6 +24,14 @@ const {
 export async function queryById(id: string): Promise<Profile | null> {
   const supabase = createClient(cookies());
 
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  } else if (session.user.id !== id) {
+    redirect(`${appBaseUrl}${basePath}/`);
+  }
+
   debug('queryById', { id });
 
   const { error, data } = await supabase
