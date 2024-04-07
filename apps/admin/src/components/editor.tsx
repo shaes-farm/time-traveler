@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import SaveIcon from '@mui/icons-material/Save';
 import BackIcon from '@mui/icons-material/ArrowBackIos';
@@ -24,16 +24,15 @@ export function Editor({ title, onSubmit, children }: EditorProps): JSX.Element 
   const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
 
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>): void => {
+    setLoading(true);
+    onSubmit(event);
+    setLoading(false);
+  }
+
   return (
     <Paper elevation={0} sx={{ p: '1rem' }}>
-      <form
-        onSubmit={
-          (event: React.FormEvent<HTMLFormElement>): void => {
-            setLoading(true);
-            onSubmit(event);
-          }
-        }
-      >
+      <form onSubmit={handleSubmit}>
         <Grid container spacing={2}>
           <Grid alignItems="right" display="flex" item justifyContent="right" xs={12}>
             <Typography variant="h2">
