@@ -115,6 +115,7 @@ export async function insert(period: Period): Promise<void> {
             slug: period.slug,
             title: period.title,
             summary: period.summary,
+            detail: period.detail,
             begin_date: period.beginDate,
             end_date: period.endDate,
         });
@@ -148,6 +149,7 @@ export async function update(period: Period): Promise<void> {
             slug: period.slug,
             title: period.title,
             summary: period.summary ?? undefined,
+            detail: period.detail ?? undefined,
             begin_date: period.beginDate,
             end_date: period.endDate,
         })

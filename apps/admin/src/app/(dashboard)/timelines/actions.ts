@@ -66,6 +66,7 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
             slug,
             title,
             summary,
+            detail,
             scale,
             begin_date,
             end_date,
@@ -111,6 +112,7 @@ export async function insert(timeline: Timeline): Promise<void> {
             slug: timeline.slug,
             title: timeline.title,
             summary: timeline.summary,
+            detail: timeline.detail,
             begin_date: timeline.beginDate,
             end_date: timeline.endDate,
         })
@@ -156,6 +158,7 @@ export async function update(timeline: Timeline): Promise<void> {
             slug: timeline.slug,
             title: timeline.title,
             summary: timeline.summary ?? undefined,
+            detail: timeline.detail ?? undefined,
             begin_date: timeline.beginDate,
             end_date: timeline.endDate,
         })
