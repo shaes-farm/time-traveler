@@ -275,8 +275,7 @@ export default function ProfileEditView({ profile, user }: ProfileEditViewProps)
                     />
                   </Grid>
                   <Grid alignItems="right" display="flex" justifyContent="right" sm={5} xs={12}>
-                    <Box sx={{ flex: '1 1 auto' }} />
-                    <Box alignSelf='center'>
+                    <Box alignSelf='center' width="100%">
                       <Button
                         fullWidth
                         onClick={() => { setChangePassword(true) }}
