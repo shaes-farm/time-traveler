@@ -12,7 +12,8 @@ CREATE TYPE historical_event_data AS (
     media text[]
 );
 
-CREATE OR REPLACE PROCEDURE create_event(data historical_event_data)
+CREATE OR REPLACE FUNCTION create_event(data historical_event_data)
+RETURNS BIGINT
 AS $$
 DECLARE
     event_id BIGINT;
@@ -32,6 +33,8 @@ BEGIN
         INSERT INTO event_media (user_id, event_id, media_id)
             VALUES (data.user_id::uuid, event_id, media_id);
     END LOOP;
+
+    RETURN event_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -42,7 +45,8 @@ CREATE TYPE category_data AS (
     historical_events text[]
 );
 
-CREATE OR REPLACE PROCEDURE create_category(data category_data)
+CREATE OR REPLACE FUNCTION create_category(data category_data)
+RETURNS BIGINT
 AS $$
 DECLARE
     event_slug TEXT;
@@ -62,6 +66,8 @@ BEGIN
         INSERT INTO category_events (user_id, category_id, event_id)
             VALUES (data.user_id::uuid, category_id, event_id);
     END LOOP;
+
+    RETURN category_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -77,7 +83,8 @@ CREATE TYPE timeline_data AS (
     historical_events text[]
 );
 
-CREATE OR REPLACE PROCEDURE create_timeline(data timeline_data)
+CREATE OR REPLACE FUNCTION create_timeline(data timeline_data)
+RETURNS BIGINT
 AS $$
 DECLARE
     event_slug TEXT;
@@ -97,6 +104,8 @@ BEGIN
         INSERT INTO timeline_events (user_id, timeline_id, event_id)
             VALUES (data.user_id::uuid, timeline_id, event_id);
     END LOOP;
+
+    RETURN timeline_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -111,7 +120,8 @@ CREATE TYPE period_data AS (
     timelines text[]
 );
 
-CREATE OR REPLACE PROCEDURE create_period(data period_data)
+CREATE OR REPLACE FUNCTION create_period(data period_data)
+RETURNS BIGINT
 AS $$
 DECLARE
     timeline_slug TEXT;
@@ -131,6 +141,8 @@ BEGIN
         INSERT INTO period_timelines (user_id, period_id, timeline_id)
             VALUES (data.user_id::uuid, period_id, timeline_id);
     END LOOP;
+    
+    RETURN period_id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -144,7 +156,8 @@ CREATE TYPE story_data AS (
     periods text[]
 );
 
-CREATE OR REPLACE PROCEDURE create_story(data story_data)
+CREATE OR REPLACE FUNCTION create_story(data story_data)
+RETURNS BIGINT
 AS $$
 DECLARE
     period_slug TEXT;
@@ -164,5 +177,7 @@ BEGIN
         INSERT INTO story_periods (user_id, story_id, period_id)
             VALUES (data.user_id::uuid, story_id, period_id);
     END LOOP;
+
+    RETURN story_id;
 END;
 $$ LANGUAGE plpgsql;
