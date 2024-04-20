@@ -36,7 +36,7 @@ export default function GridView({ categories, createLink, deleteLink, editLink 
     <ContentViewer
       count={categories.length}
       createLink={createLink}
-      title="Categories"
+      model={{plural: 'Categories', singular: 'Category'}}
     >
       <ItemTable
         columns={columns}

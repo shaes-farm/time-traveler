@@ -54,7 +54,7 @@ export default function StoryGridView({ stories, createLink, deleteLink, editLin
     <ContentViewer
       count={stories.length}
       createLink={createLink}
-      title="Stories"
+      model={{plural: 'Stories', singular: 'Story'}}
     >
       <ItemTable
         columns={columns}

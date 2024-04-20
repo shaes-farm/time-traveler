@@ -63,7 +63,7 @@ export default function PeriodGridView({ periods, createLink, deleteLink, editLi
     <ContentViewer
       count={periods.length}
       createLink={createLink}
-      title="Periods"
+      model={{plural: 'Periods', singular: 'Period'}}
     >
       <ItemTable
         columns={columns}

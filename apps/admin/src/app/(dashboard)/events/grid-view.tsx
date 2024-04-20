@@ -72,7 +72,7 @@ export default function GridView({ events, createLink, deleteLink, editLink }: G
     <ContentViewer
       count={events.length}
       createLink={createLink}
-      title="Events"
+      model={{plural: 'Events', singular: 'Event'}}
     >
       <ItemTable
         columns={columns}

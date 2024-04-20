@@ -11,21 +11,24 @@ import {
 } from '@mui/material';
 
 interface ContentViewerProps {
-  title: string;
+  model?: {
+    singular?: string;
+    plural?: string;
+  }
   count?: number;
   createLink: string;
   children: React.ReactNode;
 }
 
-export function ContentViewer({ title, count, createLink, children }: ContentViewerProps): JSX.Element {
+export function ContentViewer({ model, count, createLink, children }: ContentViewerProps): JSX.Element {
   const router = useRouter();
   return (
     <Box sx={{ width: '100%' }}>
       <Grid container mb="1rem">
         <Grid md={6} sm={12}>
-          <Typography variant="h1">
-            {title}
-          </Typography>
+          {model?.plural ? <Typography variant="h1">
+            {model.plural}
+          </Typography> : null}
           <Typography color="text.secondary" variant="subtitle2">
             {`${count ? count : 'No'} entr${count === 1 ? 'y' : 'ies'} found`}
           </Typography>
@@ -33,7 +36,7 @@ export function ContentViewer({ title, count, createLink, children }: ContentVie
         <Grid md={6} sm={12}>
           <Box display="flex" justifyContent="flex-end">
             <Button color="primary" onClick={() => { router.push(createLink) }} startIcon={<AddIcon />} variant="contained">
-              Create New Entry
+              Create New {model?.singular ? model.singular : 'Entry'}
             </Button>
           </Box>
         </Grid>

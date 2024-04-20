@@ -26,7 +26,7 @@ export default function MediaTabView({ media, createLink, deleteLink, editLink }
         <ContentViewer
             count={media.length}
             createLink={createLink}
-            title="Media"
+            model={{plural: 'Media', singular: 'Media'}}
         >
             <Box sx={{ width: '100%' }}>
                 <Tabs

@@ -71,7 +71,7 @@ export default function GridView({ timelines, createLink, deleteLink, editLink }
     <ContentViewer
       count={timelines.length}
       createLink={createLink}
-      title="Timelines"
+      model={{plural: 'Timelines', singular: 'Timeline'}}
     >
       <ItemTable
         columns={columns}
