@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- Forgive Supabase's Typescript errors */
 'use server';
 
 import debugFactory from 'debug';
@@ -8,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { mapApiEventToModel } from 'service';
 import type { HistoricalEvent, PostgrestHistoricalEvent } from 'service';
 import { createClient } from '../../../utils/supabase/server';
+import { logger } from '../../../utils/logger';
 import type { NextConfig } from '../../../types';
 
 const debug = debugFactory('admin:events:actions');
@@ -30,7 +32,7 @@ export async function queryAll(): Promise<HistoricalEvent[]> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('user.id', session.user.id);
+    debug('queryAll', { user: session.user });
 
     const { error, data } = await supabase
         .from('historical_events')
@@ -38,16 +40,16 @@ export async function queryAll(): Promise<HistoricalEvent[]> {
         .eq('user_id', session.user.id)
         .order('begin_date');
 
-    debug('queryAll', {error, data});
+    debug('queryAll', { error, data });
 
     if (error) {
-        debug({error});
+        logger.error({ error });
         throw new Error(error.message);
     }
 
     const events = data as PostgrestHistoricalEvent[] | null;
 
-    debug('queryAll', {events});
+    debug('queryAll', { events });
 
     return events ? events.map((event) => mapApiEventToModel(event)) : [];
 }
@@ -60,6 +62,8 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
     if (!session) {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
+
+    debug('queryBySlug', {slug, user: session.user });
 
     const { error, data } = await supabase
         .from('historical_events')
@@ -94,10 +98,10 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
         })
         .maybeSingle();
 
-    debug('query', {error, data});
+    debug('query', { error, data });
 
     if (error) {
-        debug({error});
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -115,26 +119,31 @@ export async function insert(event: HistoricalEvent): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', {event});
+    debug('insert', { event, user: session.user });
 
-    const { error } = await supabase
-        .from('historical_events')
-        .insert({
+    const { error, data } = await supabase.rpc('create_event', {
+        event: {
             user_id: session.user.id,
             slug: event.slug,
             title: event.title,
-            summary: event.summary ? event.summary : null,
-            detail: event.detail ? event.detail : null,
-            location: event.location ? event.location : null,
+            // @ts-expect-error
+            summary: event.summary,
+            // @ts-expect-error
+            detail: event.detail,
+            // @ts-expect-error
+            location: event.location,
             importance: event.importance,
             begin_date: event.beginDate,
-            end_date: event.endDate ? event.endDate : null,
-        });
-      
-    debug('insert', {error});
+            // @ts-expect-error
+            end_date: event.endDate,
+            media: event.media.map((media) => media.slug),
+        }
+    });
+
+    debug('insert', { error, data });
 
     if (error) {
-        debug({error});
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -151,30 +160,31 @@ export async function update(event: HistoricalEvent): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', {event});
+    debug('update', { event, user: session.user });
 
-    const { error, data } = await supabase
-        .from('historical_events')
-        .update({
+    const { error, data } = await supabase.rpc('update_event', {
+        event: {
             user_id: session.user.id,
             slug: event.slug,
             title: event.title,
-            summary: event.summary ? event.summary : null,
-            detail: event.detail ? event.detail : null,
-            location: event.location ? event.location : null,
+            // @ts-expect-error
+            summary: event.summary,
+            // @ts-expect-error
+            detail: event.detail,
+            // @ts-expect-error
+            location: event.location,
             importance: event.importance,
             begin_date: event.beginDate,
-            end_date: event.endDate ? event.endDate : null,
-        })
-        .match({
-            user_id: session.user.id,
-            slug: event.slug,
-        });
+            // @ts-expect-error
+            end_date: event.endDate,
+            media: event.media.map((media) => media.slug),
+        }
+    });
 
-    debug('update', {error, data});
+    debug('update', { error, data });
 
     if (error) {
-        debug({error});
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -191,18 +201,20 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', {slug});
+    debug('remove', { slug });
 
-    const { error } = await supabase
-        .from('historical_events')
-        .delete()
-        .match({
+    const { error, data } = await supabase.rpc('delete_event', {
+        // @ts-expect-error
+        event: {
             user_id: session.user.id,
             slug,
-        });
+        }
+    });
+
+    debug('remove', { error, data });
 
     if (error) {
-        debug({error});
+        logger.error({ error });
         throw new Error(error.message);
     }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- Forgive Supabase's Typescript errors */
 'use server';
 
 import debugFactory from 'debug';
@@ -8,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { mapApiTimelineToModel } from 'service';
 import type { Timeline, PostgrestTimeline } from 'service';
 import { createClient } from '../../../utils/supabase/server';
+import { logger } from '../../../utils/logger';
 import type { NextConfig } from '../../../types';
 
 const debug = debugFactory('admin:timelines:actions');
@@ -30,7 +32,7 @@ export async function queryAll(): Promise<Timeline[]> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('user.id', session.user.id);
+    debug('queryAll', { user: session.user });
 
     const { error, data } = await supabase
         .from('timelines')
@@ -41,6 +43,7 @@ export async function queryAll(): Promise<Timeline[]> {
     debug('queryAll', { error, data });
 
     if (error) {
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -59,6 +62,8 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
     if (!session) {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
+
+    debug('queryBySlug', {slug, user: session.user });
 
     const { error, data } = await supabase
         .from('timelines')
@@ -83,9 +88,10 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
         })
         .maybeSingle();
 
-    debug('queryBySlug', { slug, error, data });
+    debug('queryBySlug', { error, data });
 
     if (error) {
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -103,38 +109,31 @@ export async function insert(timeline: Timeline): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', { timeline });
+    debug('insert', { timeline, user: session.user });
 
-    const { data, error } = await supabase
-        .from('timelines')
-        .insert({
+    const { data, error } = await supabase.rpc('create_timeline', {
+        timeline: {
             user_id: session.user.id,
             slug: timeline.slug,
             title: timeline.title,
+            // @ts-expect-error
             summary: timeline.summary,
+            // @ts-expect-error
             detail: timeline.detail,
+            // @ts-expect-error
+            scale: timeline.scale,
             begin_date: timeline.beginDate,
             end_date: timeline.endDate,
-        })
-        .select();
+            historical_events: timeline.events.map((event) => event.slug),
+        }
+    });
 
     debug('insert', { data, error });
 
     if (error) {
+        logger.error({ error });
         throw new Error(error.message);
     }
-
-    // await Promise.all(timeline.events.map(async (event): Promise<void> => {
-    //     debug({ event });
-    //     const { error: eventError } = await supabase
-    //         .from('timeline_events')
-    //         .insert({
-    //             historical_event_id: eventd.id,
-    //             timeline_id: data.id,
-    //             user_id: session.user.id,
-    //         });
-    //     debug({error: eventError});
-    // }));
 
     revalidatePath(`${appBaseUrl}${basePath}/timelines`, 'layout');
     redirect(`${appBaseUrl}${basePath}/timelines`);
@@ -151,25 +150,27 @@ export async function update(timeline: Timeline): Promise<void> {
 
     debug('update', { timeline });
 
-    const { error, data } = await supabase
-        .from('timelines')
-        .update({
+    const { error, data } = await supabase.rpc('update_timeline', {
+        timeline: {
             user_id: session.user.id,
             slug: timeline.slug,
             title: timeline.title,
+            // @ts-expect-error
             summary: timeline.summary ?? undefined,
+            // @ts-expect-error
             detail: timeline.detail ?? undefined,
+            // @ts-expect-error
+            scale: timeline.scale,
             begin_date: timeline.beginDate,
             end_date: timeline.endDate,
-        })
-        .match({
-            slug: timeline.slug,
-            user_id: session.user.id,
-        });
+            historical_events: timeline.events.map((event) => event.slug),
+        }
+    });
 
     debug('update', { error, data });
 
     if (error) {
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -186,16 +187,15 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', { slug });
+    debug('remove', { slug, user: session.user });
 
-    const { error, data } = await supabase
-        .from('timelines')
-        .delete()
-        .match({
+    const { error, data } = await supabase.rpc('delete_timeline', {
+        // @ts-expect-error
+        timeline: {
             slug,
             user_id: session.user.id,
-        })
-        .select();
+        }
+    });
 
     debug('remove', { error, data });
 

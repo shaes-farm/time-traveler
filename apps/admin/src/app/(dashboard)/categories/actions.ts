@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- Forgive Supabase's Typescript errors */
 'use server';
 
 import debugFactory from 'debug';
@@ -8,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { mapApiCategoryToModel } from 'service';
 import type { Category, PostgrestCategory } from 'service';
 import { createClient } from '../../../utils/supabase/server';
+import { logger } from '../../../utils/logger';
 import type { NextConfig } from '../../../types';
 
 const debug = debugFactory('admin:categories:actions');
@@ -30,7 +32,7 @@ export async function queryAll(): Promise<Category[]> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('user.id', session.user.id);
+    debug('queryAll', { user: session.user });
 
     const { error, data } = await supabase
         .from('categories')
@@ -41,7 +43,7 @@ export async function queryAll(): Promise<Category[]> {
     debug('queryAll', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -61,6 +63,8 @@ export async function queryBySlug(slug: string): Promise<Category | null> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
+    debug('queryBySlug', { slug, user: session.user });
+
     const { error, data } = await supabase
         .from('categories')
         .select(`
@@ -77,10 +81,10 @@ export async function queryBySlug(slug: string): Promise<Category | null> {
         .eq('slug', slug)
         .maybeSingle();
 
-    debug('query', { error, data });
+    debug('queryBySlug', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -98,20 +102,21 @@ export async function insert(category: Category): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', { category });
+    debug('insert', { category, user: session.user });
 
-    const { error } = await supabase
-        .from('categories')
-        .insert({
+    const { error, data } = await supabase.rpc('create_category', {
+        category: {
             user_id: session.user.id,
             slug: category.slug,
             title: category.title,
-        });
+            historical_events: category.events.map((event) => event.slug),
+        }
+    });
 
-    debug('insert', { error });
+    debug('insert', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -128,22 +133,21 @@ export async function update(category: Category): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', { category });
+    debug('update', { category, user: session.user });
 
-    const { error, data } = await supabase
-        .from('categories')
-        .update({
+    const { error, data } = await supabase.rpc('update_category', {
+        category: {
             user_id: session.user.id,
             slug: category.slug,
             title: category.title,
-        })
-        .eq('user_id', session.user.id)
-        .eq('slug', category.slug);
+            historical_events: category.events.map((event) => event.slug),
+        }
+    });
 
     debug('update', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -160,16 +164,20 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', { slug });
+    debug('remove', { slug, user: session.user });
 
-    const { error } = await supabase
-        .from('categories')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug);
+    const { error, data } = await supabase.rpc('delete_category', {
+        // @ts-expect-error
+        category: {
+            user_id: session.user.id,
+            slug,
+        }
+    });
+
+    debug('remove', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- Forgive Supabase's Typescript errors */
 'use server';
 
 import debugFactory from 'debug';
@@ -8,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { mapApiStoryToModel } from 'service';
 import type { Story, PostgrestStory } from 'service';
 import { createClient } from '../../../utils/supabase/server';
+import { logger } from '../../../utils/logger';
 import type { NextConfig } from '../../../types';
 
 const debug = debugFactory('admin:stories:actions');
@@ -30,7 +32,7 @@ export async function queryAll(): Promise<Story[]> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('queryAll', {userId: session.user.id});
+    debug('queryAll', { user: session.user });
 
     const { error, data } = await supabase
         .from('stories')
@@ -41,7 +43,7 @@ export async function queryAll(): Promise<Story[]> {
     debug('queryAll', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -60,6 +62,8 @@ export async function queryBySlug(slug: string): Promise<Story | null> {
     if (!session) {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
+
+    debug('queryBySlug', {slug, user: session.user });
 
     const { error, data } = await supabase
         .from('stories')
@@ -82,10 +86,10 @@ export async function queryBySlug(slug: string): Promise<Story | null> {
         })
         .maybeSingle();
 
-    debug('query', { error, data });
+    debug('queryBySlug', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -103,23 +107,27 @@ export async function insert(story: Story): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('insert', { story });
+    debug('insert', { story, user: session.user });
 
-    const { error } = await supabase
-        .from('stories')
-        .insert({
+    const { error, data } = await supabase.rpc('create_story', {
+        story: {
             user_id: session.user.id,
             slug: story.slug,
             title: story.title,
+            // @ts-expect-error
             sub_title: story.subTitle,
+            // @ts-expect-error
             summary: story.summary,
+            // @ts-expect-error
             detail: story.detail,
-        });
+            periods: story.periods.map((period) => period.slug),
+        }
+    });
 
-    debug('insert', { error });
+    debug('insert', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -136,27 +144,27 @@ export async function update(story: Story): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('update', { story });
+    debug('update', { story, user: session.user });
 
-    const { error, data } = await supabase
-        .from('stories')
-        .update({
+    const { error, data } = await supabase.rpc('update_story', {
+        story: {
             user_id: session.user.id,
             slug: story.slug,
             title: story.title,
+            // @ts-expect-error
             sub_title: story.subTitle,
-            summary: story.summary ?? undefined,
-            detail: story.detail ?? undefined,
-        })
-        .match({
-            user_id: session.user.id,
-            slug: story.slug,
-        });
+            // @ts-expect-error
+            summary: story.summary,
+            // @ts-expect-error
+            detail: story.detail,
+            periods: story.periods.map((period) => period.slug),
+        }
+    });
 
     debug('update', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -173,18 +181,20 @@ export async function remove(slug: string): Promise<void> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('remove', { slug });
+    debug('remove', { slug, user: session.user });
 
-    const { error } = await supabase
-        .from('stories')
-        .delete()
-        .match({
+    const { error, data } = await supabase.rpc('delete_story', {
+        // @ts-expect-error
+        story: {
             user_id: session.user.id,
             slug,
-        });
+        }
+    });
+
+    debug('remove', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 

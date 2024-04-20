@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- Forgive Supabase's Typescript errors */
 'use server';
 
 import debugFactory from 'debug';
@@ -7,6 +8,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { mapApiPeriodToModel } from 'service';
 import type { Period, PostgrestPeriod } from 'service';
+import { logger } from '../../../utils/logger';
 import { createClient } from '../../../utils/supabase/server';
 import type { NextConfig } from '../../../types';
 
@@ -30,7 +32,7 @@ export async function queryAll(): Promise<Period[]> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('user.id', session.user.id);
+    debug('queryAll', { user: session.user });
 
     const { error, data } = await supabase
         .from('periods')
@@ -41,7 +43,7 @@ export async function queryAll(): Promise<Period[]> {
     debug('queryAll', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -88,7 +90,7 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
     debug('queryBySlug', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -108,22 +110,25 @@ export async function insert(period: Period): Promise<void> {
 
     debug('insert', { period });
 
-    const { error } = await supabase
-        .from('periods')
-        .insert({
+    const { error, data } = await supabase.rpc('create_period', {
+        period: {
             user_id: session.user.id,
             slug: period.slug,
             title: period.title,
+            // @ts-expect-error
             summary: period.summary,
+            // @ts-expect-error
             detail: period.detail,
             begin_date: period.beginDate,
             end_date: period.endDate,
-        });
+            timelines: period.timelines.map((timeline) => timeline.slug),
+        }
+    });
 
-    debug('insert', { error });
+    debug('insert', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -142,26 +147,25 @@ export async function update(period: Period): Promise<void> {
 
     debug('update', { period });
 
-    const { error, data } = await supabase
-        .from('periods')
-        .update({
+    const { error, data } = await supabase.rpc('update_period', {
+        period: {
             user_id: session.user.id,
             slug: period.slug,
             title: period.title,
+            // @ts-expect-error
             summary: period.summary ?? undefined,
+            // @ts-expect-error
             detail: period.detail ?? undefined,
             begin_date: period.beginDate,
             end_date: period.endDate,
-        })
-        .match({
-            slug: period.slug,
-            user_id: session.user.id,
-        });
+            timelines: period.timelines.map((timeline) => timeline.slug),
+        }
+    });
 
     debug('update', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
@@ -180,16 +184,18 @@ export async function remove(slug: string): Promise<void> {
 
     debug('remove', { slug });
 
-    const { error } = await supabase
-        .from('periods')
-        .delete()
-        .match({
+    const { error, data } = await supabase.rpc('delete_period', {
+        // @ts-expect-error
+        period: {
             slug,
             user_id: session.user.id,
-        });
+        }
+    });
+
+    debug('remove', { error, data });
 
     if (error) {
-        debug({ error });
+        logger.error({ error });
         throw new Error(error.message);
     }
 
