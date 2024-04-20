@@ -54,7 +54,7 @@ export interface PostgrestCategory {
   user_id?: string;
   slug: string;
   title: string;
-  events?: PostgrestHistoricalEvent[];
+  historical_events?: PostgrestHistoricalEvent[];
 }
 
 export interface PostgrestMedia {

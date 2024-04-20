@@ -109,7 +109,7 @@ export const mapApiCategoryToModel = ({
   user_id: userId,
   slug,
   title,
-  events,
+  historical_events: events,
 }: PostgrestCategory): Category => ({
   userId,
   slug,
