@@ -44,6 +44,8 @@ interface CategoryEditViewProps {
 }
 
 export default function CategoryEditView({ mode, category, events }: CategoryEditViewProps): JSX.Element {
+  debug('CategoryEditView', { mode, category, events });
+
   const initialValues: Category = (mode === 'edit' && category) ? {
     userId: category.userId ?? '',
     slug: category.slug,
@@ -90,7 +92,7 @@ export default function CategoryEditView({ mode, category, events }: CategoryEdi
           </Grid>
           <Grid md={4} sm={12}>
             <Grid mb={2} sm={12}>
-              <Permalink url={formik.values.slug.length ? `/categories/${formik.values.slug}` : ''} />
+              <Permalink url={formik.values.slug.trim().length ? `/categories/${formik.values.slug}` : ''} />
             </Grid>
             <Grid mb={2} sm={12}>
               <TextField
@@ -116,12 +118,12 @@ export default function CategoryEditView({ mode, category, events }: CategoryEdi
             <Grid mb={2} sm={12}>
               <ItemList
                 available={events ?? []}
-                itemNames={{ singular: 'historical event', plural: 'historical events' }}
+                itemNames={{ singular: 'event', plural: 'events' }}
                 items={formik.values.events}
                 onChange={(items) => {
-                  void formik.setFieldValue('events', items)
+                  void formik.setFieldValue('events', items);
                 }}
-                title="Historical Events"
+                title="Events"
                 value=""
               />
             </Grid>

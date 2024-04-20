@@ -100,12 +100,11 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
     },
   });
 
+  debug({initialValues, values: formik.values});
+
   return (
     <ContentEditor title="Timelines">
-      <Editor
-        onSubmit={formik.handleSubmit}
-        title={`${mode === 'create' ? 'Create' : 'Edit'} Timeline`}
-      >
+      <Editor onSubmit={formik.handleSubmit} title={`${mode === 'create' ? 'Create' : 'Edit'} Timeline`}>
         <Grid container spacing={2}>
           <Grid md={8} sm={12}>
             <Grid mb={2} sm={12}>
@@ -115,7 +114,7 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
                 label="Title"
                 name="title"
                 onBlur={(e: unknown) => {
-                  if (formik.values.slug.length === 0) {
+                  if (formik.values.slug.trim().length === 0) {
                     void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true }));
                   }
                   formik.handleBlur(e);
@@ -157,7 +156,7 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
           </Grid>
           <Grid md={4} sm={12}>
             <Grid mb={2} sm={12}>
-              <Permalink url={formik.values.slug.length ? `/timelines/${formik.values.slug}` : ''} />
+              <Permalink url={formik.values.slug.trim().length ? `/timelines/${formik.values.slug}` : ''} />
             </Grid>
             <Grid mb={2} sm={12}>
               <TextField
@@ -168,7 +167,7 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
                 name="slug"
                 onChange={formik.handleChange}
                 onFocus={() => {
-                  if (formik.values.slug.length === 0) {
+                  if (formik.values.slug.trim().length === 0) {
                     void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true }));
                   }
                 }}
@@ -217,7 +216,7 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
                 itemNames={{ singular: 'event', plural: 'events' }}
                 items={formik.values.events}
                 onChange={(items) => {
-                  void formik.setFieldValue('events', items)
+                  void formik.setFieldValue('events', items);
                 }}
                 title="Events"
                 value=""

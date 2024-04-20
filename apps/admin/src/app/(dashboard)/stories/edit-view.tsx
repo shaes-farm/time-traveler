@@ -104,7 +104,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 label="Title"
                 name="title"
                 onBlur={(e: unknown) => {
-                  if (formik.values.slug.length === 0) {
+                  if (formik.values.slug.trim().length === 0) {
                     void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true }));
                   }
                   formik.handleBlur(e);
@@ -155,7 +155,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
           </Grid>
           <Grid md={4} sm={12}>
             <Grid mb={2} sm={12}>
-              <Permalink url={formik.values.slug.length ? `/stories/${formik.values.slug}` : ''} />
+              <Permalink url={formik.values.slug.trim().length ? `/stories/${formik.values.slug}` : ''} />
             </Grid>
             <Grid mb={2} sm={12}>
               <TextField
@@ -165,7 +165,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 name="slug"
                 onChange={formik.handleChange}
                 onFocus={() => {
-                  if (formik.values.slug.length === 0) {
+                  if (formik.values.slug.trim().length === 0) {
                     void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true }));
                   }
                 }}
