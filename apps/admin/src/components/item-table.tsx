@@ -6,8 +6,8 @@ import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import MUIDataTable from "mui-datatables";
-import type { MUIDataTableColumnDef } from "mui-datatables";
+import MUIDataTable from 'mui-datatables';
+import type { MUIDataTableColumnDef } from 'mui-datatables';
 
 export interface ItemTableRow {
   slug: string;
@@ -43,7 +43,7 @@ interface DeleteColumnProps {
   onDelete: () => void;
 }
 
-function DeleteColumn({ onDelete/* , onEdit */ }: DeleteColumnProps): JSX.Element {
+function DeleteColumn({ onDelete }: DeleteColumnProps): JSX.Element {
   return (
     <IconButton onClick={onDelete} size="small">
       <DeleteIcon />
@@ -71,13 +71,13 @@ export function ItemTable({ title, columns, rows, deleteLink, editLink }: ItemTa
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only render when selectedRow changes
   }, [selectedRow]);
 
-  const handleEdit = (name: string): void => {
-    const url = editLink.replace('[slug]', name.toString());
+  const handleEdit = (slug: string): void => {
+    const url = editLink.replace('[slug]', slug.toString());
     router.push(url);
   };
 
-  const handleDelete = (name: string): void => {
-    const url = deleteLink.replace('[slug]', name.toString());
+  const handleDelete = (slug: string): void => {
+    const url = deleteLink.replace('[slug]', slug.toString());
     router.push(url);
   };
 
@@ -109,11 +109,15 @@ export function ItemTable({ title, columns, rows, deleteLink, editLink }: ItemTa
           selectableRowsHeader: false,
           selectableRowsHideCheckboxes: true,
           selectableRowsOnClick: true,
-          onCellClick: (colData: unknown, cellMeta: { colIndex: number, rowIndex: number, dataIndex: number }): void => {
+          onCellClick: (_colData: unknown, cellMeta: { colIndex: number, rowIndex: number, dataIndex: number }): void => {
             if (cellMeta.colIndex < columns.length) {
               setSelectedRow(cellMeta.dataIndex);
             }
           },
+          // selectableRowsOnClick: false,
+          // onRowClick: (_rowData: string[], rowMeta: { dataIndex: number, rowIndex: number }): void => {
+          //   setSelectedRow(rowMeta.dataIndex);
+          // },          
         }}
         title={<Typography variant="h2">{title}</Typography>}
       />
