@@ -584,13 +584,150 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_category: {
+        Args: {
+          category: Database["public"]["CompositeTypes"]["category_data"]
+        }
+        Returns: number
+      }
+      create_event: {
+        Args: {
+          event: Database["public"]["CompositeTypes"]["historical_event_data"]
+        }
+        Returns: number
+      }
+      create_period: {
+        Args: {
+          period: Database["public"]["CompositeTypes"]["period_data"]
+        }
+        Returns: number
+      }
+      create_story: {
+        Args: {
+          story: Database["public"]["CompositeTypes"]["story_data"]
+        }
+        Returns: number
+      }
+      create_timeline: {
+        Args: {
+          timeline: Database["public"]["CompositeTypes"]["timeline_data"]
+        }
+        Returns: number
+      }
+      delete_category: {
+        Args: {
+          category: Database["public"]["CompositeTypes"]["category_data"]
+        }
+        Returns: number
+      }
+      delete_event: {
+        Args: {
+          event: Database["public"]["CompositeTypes"]["historical_event_data"]
+        }
+        Returns: number
+      }
+      delete_period: {
+        Args: {
+          period: Database["public"]["CompositeTypes"]["period_data"]
+        }
+        Returns: number
+      }
+      delete_story: {
+        Args: {
+          story: Database["public"]["CompositeTypes"]["story_data"]
+        }
+        Returns: number
+      }
+      delete_timeline: {
+        Args: {
+          timeline: Database["public"]["CompositeTypes"]["timeline_data"]
+        }
+        Returns: number
+      }
+      update_category: {
+        Args: {
+          category: Database["public"]["CompositeTypes"]["category_data"]
+        }
+        Returns: number
+      }
+      update_event: {
+        Args: {
+          event: Database["public"]["CompositeTypes"]["historical_event_data"]
+        }
+        Returns: number
+      }
+      update_period: {
+        Args: {
+          period: Database["public"]["CompositeTypes"]["period_data"]
+        }
+        Returns: number
+      }
+      update_story: {
+        Args: {
+          story: Database["public"]["CompositeTypes"]["story_data"]
+        }
+        Returns: number
+      }
+      update_timeline: {
+        Args: {
+          timeline: Database["public"]["CompositeTypes"]["timeline_data"]
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
-      [_ in never]: never
+      category_data: {
+        user_id: string
+        slug: string
+        title: string
+        historical_events: unknown
+      }
+      historical_event_data: {
+        user_id: string
+        slug: string
+        title: string
+        summary: string
+        detail: string
+        location: string
+        importance: number
+        begin_date: string
+        end_date: string
+        timeline_slug: string
+        media: unknown
+      }
+      period_data: {
+        user_id: string
+        slug: string
+        title: string
+        summary: string
+        detail: string
+        begin_date: string
+        end_date: string
+        timelines: unknown
+      }
+      story_data: {
+        user_id: string
+        slug: string
+        title: string
+        sub_title: string
+        summary: string
+        detail: string
+        periods: unknown
+      }
+      timeline_data: {
+        user_id: string
+        slug: string
+        title: string
+        summary: string
+        detail: string
+        scale: string
+        begin_date: string
+        end_date: string
+        historical_events: unknown
+      }
     }
   }
   storage: {
