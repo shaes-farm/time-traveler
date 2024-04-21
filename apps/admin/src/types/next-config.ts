@@ -4,6 +4,6 @@ import type {
 } from '.';
 
 export interface NextConfig {
-    publicRuntimeConfig: PublicRuntimeConfig
-    serverRuntimeConfig: ServerRuntimeConfig
+    publicRuntimeConfig: PublicRuntimeConfig;
+    serverRuntimeConfig: ServerRuntimeConfig;
 };

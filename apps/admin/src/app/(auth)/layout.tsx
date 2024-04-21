@@ -1,21 +1,16 @@
-import getConfig from 'next/config';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import type { NextConfig } from '../../types';
 import { AuthLayout } from '../../layouts';
 import { createClient } from '../../utils/supabase/server';
+import { getAppConfig } from '../../utils/config';
 
 const {
-  publicRuntimeConfig: {
-    app: {
-      copyright: {
-        holder: name,
-        url,
-        year,
-      },
-    },
+  copyright: {
+    holder: name,
+    url,
+    year,
   },
-} = getConfig() as NextConfig;
+} = getAppConfig();
 
 export default async function Layout({
   children,

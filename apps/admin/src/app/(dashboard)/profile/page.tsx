@@ -1,20 +1,15 @@
-import getConfig from 'next/config';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import type { NextConfig } from '../../../types';
 import { createClient } from '../../../utils/supabase/server';
+import { getAppConfig } from '../../../utils/config';
 // import ProfileForm from './form';
 import ProfileEditView from './edit-view';
 import { queryById } from './actions';
 
 const {
-  publicRuntimeConfig: {
-    app: {
-      baseUrl: appBaseUrl,
-      basePath,
-    },
-  },
-} = getConfig() as NextConfig;
+  baseUrl: appBaseUrl,
+  basePath,
+} = getAppConfig();
 
 export default async function Page(): Promise<JSX.Element> {
   const supabase = createClient(cookies());

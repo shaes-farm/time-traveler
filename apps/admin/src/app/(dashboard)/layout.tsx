@@ -1,24 +1,19 @@
-import getConfig from 'next/config';
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
-import type { NextConfig } from '../../types';
+import { getAppConfig } from '../../utils/config';
 import { DashboardLayout } from '../../layouts';
 import { createClient } from '../../utils/supabase/server';
 import { queryById } from './profile/actions';
 
 const {
-  publicRuntimeConfig: {
-    app: {
-      copyright: {
-        holder,
-        url,
-        year,
-      },
-      baseUrl: appBaseUrl,
-      basePath,
-    },
+  copyright: {
+    holder,
+    url,
+    year,
   },
-} = getConfig() as NextConfig;
+  baseUrl: appBaseUrl,
+  basePath,
+} = getAppConfig();
 
 export default async function Layout({
   children,

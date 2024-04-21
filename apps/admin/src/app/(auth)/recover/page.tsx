@@ -1,16 +1,11 @@
-import getConfig from 'next/config';
 import { Auth } from 'ui';
-import type { NextConfig } from '../../../types';
+import { getAppConfig } from '../../../utils/config';
 import { RECOVER_URL, SIGNIN_URL, SIGNUP_URL } from '../constants';
 import { login, signup, recover } from '../actions';
 
 const {
-  publicRuntimeConfig: {
-    app: {
-      title,
-    },
-  },
-} = getConfig() as NextConfig;
+  title,
+} = getAppConfig();
 
 export default function Page(): JSX.Element {
   return (

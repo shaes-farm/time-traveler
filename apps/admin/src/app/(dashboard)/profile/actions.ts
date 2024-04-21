@@ -1,25 +1,21 @@
 'use server';
 
 import debugFactory from 'debug';
-import getConfig from 'next/config';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation';
 import { mapApiProfileToModel } from 'service';
 import type { Profile, PostgrestProfile } from 'service';
 import { createClient } from '../../../utils/supabase/server';
-import type { NextConfig } from '../../../types';
+import { getAppConfig } from '../../../utils/config';
+import { logger } from '../../../utils/logger';
 
 const debug = debugFactory('admin:profile:actions');
 
 const {
-  publicRuntimeConfig: {
-    app: {
-      baseUrl: appBaseUrl,
-      basePath,
-    }
-  },
-} = getConfig() as NextConfig;
+  baseUrl: appBaseUrl,
+  basePath,
+} = getAppConfig();
 
 export async function queryById(id: string): Promise<Profile | null> {
   const supabase = createClient(cookies());
@@ -43,7 +39,7 @@ export async function queryById(id: string): Promise<Profile | null> {
   debug('queryById', { error, data });
 
   if (error) {
-    debug({ error });
+    logger.error({ error });
     throw new Error(error.message);
   }
 
@@ -103,6 +99,7 @@ export async function update(profile: Profile): Promise<ActionResult> {
   debug('update', { error, data });
 
   if (error) {
+    logger.error({ error });
     return ({
       message: 'Could not update profile.',
       success: false,
@@ -135,6 +132,7 @@ export async function updateEmail(email: string): Promise<ActionResult> {
   debug('updateEmail', { error, data });
 
   if (error) {
+    logger.error({ error });
     return ({
       message: 'Could not update email.',
       success: false,
@@ -190,6 +188,7 @@ export async function updatePassword(password: string, newPassword: string): Pro
   debug('updatePassword', { error, data });
 
   if (error) {
+    logger.error({ error });
     return ({
       message: 'Could not update password.',
       success: false,

@@ -1,21 +1,16 @@
-import {Analytics} from '@vercel/analytics/react';
-import getConfig from 'next/config';
-import type {Metadata} from 'next';
-import {ThemeRegistry} from 'ui';
-import type {NextConfig} from '../types';
+import { Analytics } from '@vercel/analytics/react';
+import type { Metadata } from 'next';
+import { ThemeRegistry } from 'ui';
+import { getAppConfig } from '../utils/config';
 
-const { 
-  publicRuntimeConfig: {
-    app: {
-      copyright: {
-        holder: name,
-        url,
-      },
-      description,
-      title,
-    },
+const {
+  copyright: {
+    holder: name,
+    url,
   },
-} = getConfig() as NextConfig;
+  description,
+  title,
+} = getAppConfig();
 
 export const metadata: Metadata = {
   applicationName: title,

@@ -2,7 +2,6 @@
 'use server';
 
 import debugFactory from 'debug';
-import getConfig from 'next/config';
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -10,18 +9,14 @@ import { mapApiStoryToModel } from 'service';
 import type { Story, PostgrestStory } from 'service';
 import { createClient } from '../../../utils/supabase/server';
 import { logger } from '../../../utils/logger';
-import type { NextConfig } from '../../../types';
+import { getAppConfig } from '../../../utils/config';
 
 const debug = debugFactory('admin:stories:actions');
 
 const {
-    publicRuntimeConfig: {
-        app: {
-            baseUrl: appBaseUrl,
-            basePath,
-        }
-    },
-} = getConfig() as NextConfig;
+    baseUrl: appBaseUrl,
+    basePath,
+} = getAppConfig();
 
 export async function queryAll(): Promise<Story[]> {
     const supabase = createClient(cookies());
@@ -63,7 +58,7 @@ export async function queryBySlug(slug: string): Promise<Story | null> {
         redirect(`${appBaseUrl}${basePath}/signin`);
     }
 
-    debug('queryBySlug', {slug, user: session.user });
+    debug('queryBySlug', { slug, user: session.user });
 
     const { error, data } = await supabase
         .from('stories')

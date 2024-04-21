@@ -1,16 +1,11 @@
-import getConfig from 'next/config';
 import { Auth } from 'ui';
-import type { NextConfig } from '../../../types';
+import { getAppConfig } from '../../../utils/config';
 import { RECOVER_URL, SIGNIN_URL, SIGNUP_URL } from '../constants';
 import { login, signup, recover } from '../actions';
 
-const { 
-  publicRuntimeConfig: {
-    app: {
-      title,
-    },
-  },
-} = getConfig() as NextConfig;
+const {
+  title,
+} = getAppConfig();
 
 export default function Page(): JSX.Element {
   return (
@@ -21,7 +16,7 @@ export default function Page(): JSX.Element {
       signInUrl={SIGNIN_URL}
       signUp={signup}
       signUpUrl={SIGNUP_URL}
-      subTitle={`Welcome to ${title}`}
+      subTitle={`Welcome to ${title}!`}
       title="Sign In"
       type="password"
     />

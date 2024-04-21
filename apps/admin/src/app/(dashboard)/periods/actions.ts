@@ -2,7 +2,6 @@
 'use server';
 
 import debugFactory from 'debug';
-import getConfig from 'next/config';
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -10,18 +9,14 @@ import { mapApiPeriodToModel } from 'service';
 import type { Period, PostgrestPeriod } from 'service';
 import { logger } from '../../../utils/logger';
 import { createClient } from '../../../utils/supabase/server';
-import type { NextConfig } from '../../../types';
+import { getAppConfig } from '../../../utils/config';
 
 const debug = debugFactory('admin:periods:actions');
 
 const {
-    publicRuntimeConfig: {
-        app: {
-            baseUrl: appBaseUrl,
-            basePath,
-        }
-    },
-} = getConfig() as NextConfig;
+    baseUrl: appBaseUrl,
+    basePath,
+} = getAppConfig();
 
 export async function queryAll(): Promise<Period[]> {
     const supabase = createClient(cookies());

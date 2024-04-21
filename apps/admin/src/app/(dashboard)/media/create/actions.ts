@@ -1,24 +1,19 @@
 'use server';
 
 import debugFactory from 'debug';
-import getConfig from 'next/config';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache'
 import type { Media } from 'service';
 import { createClient } from '../../../../utils/supabase/server';
-import type { NextConfig } from '../../../../types';
+import { getAppConfig } from '../../../../utils/config';
 
 const debug = debugFactory('admin:media:create:actions');
 
 const {
-  publicRuntimeConfig: {
-    app: {
-      baseUrl: appBaseUrl,
-      basePath,
-    }
-  },
-} = getConfig() as NextConfig;
+  baseUrl: appBaseUrl,
+  basePath,
+} = getAppConfig();
 
 export async function addMedia(media: Media): Promise<void> {
   const supabase = createClient(cookies());
@@ -27,7 +22,7 @@ export async function addMedia(media: Media): Promise<void> {
 
   if (!session) {
     redirect(`${appBaseUrl}${basePath}/signin`);
-    }
+  }
 
   debug('addMedia', { media });
 

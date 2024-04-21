@@ -2,7 +2,6 @@
 'use server';
 
 import debugFactory from 'debug';
-import getConfig from 'next/config';
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -10,18 +9,14 @@ import { mapApiCategoryToModel } from 'service';
 import type { Category, PostgrestCategory } from 'service';
 import { createClient } from '../../../utils/supabase/server';
 import { logger } from '../../../utils/logger';
-import type { NextConfig } from '../../../types';
+import { getAppConfig } from '../../../utils/config';
 
 const debug = debugFactory('admin:categories:actions');
 
 const {
-    publicRuntimeConfig: {
-        app: {
-            baseUrl: appBaseUrl,
-            basePath,
-        }
-    },
-} = getConfig() as NextConfig;
+    baseUrl: appBaseUrl,
+    basePath,
+} = getAppConfig();
 
 export async function queryAll(): Promise<Category[]> {
     const supabase = createClient(cookies());

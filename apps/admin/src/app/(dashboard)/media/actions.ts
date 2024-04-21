@@ -1,25 +1,20 @@
 'use server';
 
 import debugFactory from 'debug';
-import getConfig from 'next/config';
 import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { mapApiMediaToModel } from 'service';
 import type { Media, PostgrestMedia } from 'service';
 import { createClient } from '../../../utils/supabase/server';
-import type { NextConfig } from '../../../types';
+import { getAppConfig } from '../../../utils/config';
 
 const debug = debugFactory('admin:media:actions');
 
 const {
-    publicRuntimeConfig: {
-        app: {
-            baseUrl: appBaseUrl,
-            basePath,
-        }
-    },
-} = getConfig() as NextConfig;
+    baseUrl: appBaseUrl,
+    basePath,
+} = getAppConfig();
 
 export async function queryAll(): Promise<Media[]> {
     const supabase = createClient(cookies());

@@ -1,17 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument -- allow any assignment */
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import getConfig from 'next/config';
-import type {NextConfig} from '../types';
+import { getApiConfig } from '../utils/config';
 
 const {
-  serverRuntimeConfig: {
-    api: {
-      baseUrl,
-      key,
-    }
-  }
-} = getConfig() as NextConfig;
+  baseUrl,
+  key,
+} = getApiConfig();
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({
