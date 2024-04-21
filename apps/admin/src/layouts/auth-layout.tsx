@@ -1,6 +1,11 @@
 'use client';
+import debugLogger from 'debug';
+import { useEffect } from 'react';
 import { Grid, Paper } from '@mui/material';
 import { Copyright } from 'ui';
+import { createClient } from '../utils/supabase/client';
+
+const debug = debugLogger('admin:layouts:auth-layout');
 
 interface AuthLayoutProps {
   name: string;
@@ -10,6 +15,26 @@ interface AuthLayoutProps {
 }
 
 export function AuthLayout({ name, url, year, children }: AuthLayoutProps): JSX.Element {
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        debug(event, session)
+      } else if (event === 'PASSWORD_RECOVERY') {
+        debug(event, session);
+      } else if (event === 'TOKEN_REFRESHED') {
+        debug(event, session);
+      } else if (event === 'USER_UPDATED') {
+        debug(event, session);
+      } else if (event === 'INITIAL_SESSION') {
+        debug(event, session);
+      } else {
+        debug(event, session);
+      }
+    });
+  });
+
   return (
     <Grid
       component="main"

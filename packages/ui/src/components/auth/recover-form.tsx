@@ -85,7 +85,7 @@ export function RecoverPasswordForm({
         <Grid container>
           <Grid item xs>
             <Link href={signInUrl} variant="body2">
-              Remember your password? Sign in
+              Remembered your password? Sign in
             </Link>
           </Grid>
         </Grid>
