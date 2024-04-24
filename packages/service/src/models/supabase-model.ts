@@ -644,6 +644,12 @@ export interface Database {
         }
         Returns: number
       }
+      get_metrics: {
+        Args: {
+          u: Database["public"]["CompositeTypes"]["user_data"]
+        }
+        Returns: Database["public"]["CompositeTypes"]["metrics"]
+      }
       update_category: {
         Args: {
           category: Database["public"]["CompositeTypes"]["category_data"]
@@ -698,6 +704,14 @@ export interface Database {
         timeline_slug: string
         media: unknown
       }
+      metrics: {
+        story_count: number
+        period_count: number
+        timeline_count: number
+        event_count: number
+        category_count: number
+        media_count: number
+      }
       period_data: {
         user_id: string
         slug: string
@@ -727,6 +741,9 @@ export interface Database {
         begin_date: string
         end_date: string
         historical_events: unknown
+      }
+      user_data: {
+        id: string
       }
     }
   }
