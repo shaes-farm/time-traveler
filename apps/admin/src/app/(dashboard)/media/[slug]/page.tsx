@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
-import { ContentEditor } from '../../../../components';
 import { queryBySlug } from '../actions';
+import MediaEditView from '../edit-view';
 
 interface PageProps {
   params: {
@@ -16,10 +16,8 @@ export default async function Page({ params: { slug } }: PageProps): Promise<JSX
   }
 
   return (
-    <ContentEditor title="Edit a Media Item">
-      <pre>
-        {JSON.stringify({ media }, null, 2)}
-      </pre>
-    </ContentEditor>
+    <MediaEditView
+      media={media}
+    />
   );
 }

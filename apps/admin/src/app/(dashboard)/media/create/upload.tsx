@@ -17,13 +17,14 @@ import type { FileUpload } from 'ui';
 import { SupabaseUpload } from 'service';
 import type { Media, UploadInfo } from 'service';
 import { createClient } from '../../../../utils/supabase/client';
-import { addMedia } from './actions';
+import { addMedia } from '../actions';
 
 const debug = debugLogger('admin:media:upload');
 
 interface UploadProps {
     backUrl: string;
 }
+
 export function Upload({backUrl}: UploadProps): JSX.Element {
     const router = useRouter();
 
@@ -35,8 +36,8 @@ export function Upload({backUrl}: UploadProps): JSX.Element {
     function onSuccess(info: UploadInfo): void {
         const img = new Image();
         img.src = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${encodeURIComponent(info.fileName)}?quality=100`;
-        debug('upload', { img });
-        setTimeout(() => {
+        debug('onSuccess', { img });
+        img.onload=() => {
             debug('height', img.naturalHeight);
             debug('width', img.naturalWidth);
             const media: Media = {
@@ -53,7 +54,7 @@ export function Upload({backUrl}: UploadProps): JSX.Element {
                 const { message } = error as Error;
                 debug(`Failed because of ${message}`);
             });
-        }, 3);
+        };
     };
 
     async function upload(fileUpload: FileUpload, setProgress: (percentage: number) => void, onError: (error: Error) => void): Promise<void> {
@@ -73,7 +74,7 @@ export function Upload({backUrl}: UploadProps): JSX.Element {
           onReset,
           onError,
         );
-      }
+    }
     
     return (
         <Paper elevation={0} sx={{ p: '1rem', width: '100%' }}>

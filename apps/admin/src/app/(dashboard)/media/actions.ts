@@ -12,163 +12,196 @@ import { getAppConfig } from '../../../utils/config';
 const debug = debugFactory('admin:media:actions');
 
 const {
-    baseUrl: appBaseUrl,
-    basePath,
+  baseUrl: appBaseUrl,
+  basePath,
 } = getAppConfig();
 
 export async function queryAll(): Promise<Media[]> {
-    const supabase = createClient(cookies());
+  const supabase = createClient(cookies());
 
-    const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-        redirect(`${appBaseUrl}${basePath}/signin`);
-    }
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
 
-    debug('user.id', session.user.id);
+  debug('user.id', session.user.id);
 
-    const { error, data } = await supabase
-        .from('media')
-        .select()
-        .eq('user_id', session.user.id)
-        .order('alternativetext');
+  const { error, data } = await supabase
+    .from('media')
+    .select()
+    .eq('user_id', session.user.id)
+    .order('alternativetext');
 
-    debug('queryAll', { error, data });
+  debug('queryAll', { error, data });
 
-    if (error) {
-        debug({ error });
-        throw new Error(error.message);
-    }
+  if (error) {
+    debug({ error });
+    throw new Error(error.message);
+  }
 
-    const mediaList = data as PostgrestMedia[] | null;
+  const mediaList = data as PostgrestMedia[] | null;
 
-    debug('queryAll', { media: mediaList });
+  debug('queryAll', { media: mediaList });
 
-    return mediaList ? mediaList.map((media) => mapApiMediaToModel(media)) : [];
+  return mediaList ? mediaList.map((media) => mapApiMediaToModel(media)) : [];
 }
 
 export async function queryBySlug(slug: string): Promise<Media | null> {
-    const supabase = createClient(cookies());
+  const supabase = createClient(cookies());
 
-    const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-        redirect(`${appBaseUrl}${basePath}/signin`);
-    }
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
 
-    const { error, data } = await supabase
-        .from('media')
-        .select()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug)
-        .maybeSingle();
+  const { error, data } = await supabase
+    .from('media')
+    .select()
+    .match({
+      user_id: session.user.id,
+      slug,
+    })
+    .maybeSingle();
 
-    debug('query', { error, data });
+  debug('query', { error, data });
 
-    if (error) {
-        debug({ error });
-        throw new Error(error.message);
-    }
+  if (error) {
+    debug({ error });
+    throw new Error(error.message);
+  }
 
-    const media = data as PostgrestMedia | null;
+  const media = data as PostgrestMedia | null;
 
-    return media ? mapApiMediaToModel(media) : null;
+  return media ? mapApiMediaToModel(media) : null;
 }
 
 export async function insert(media: Media): Promise<void> {
-    const supabase = createClient(cookies());
+  const supabase = createClient(cookies());
 
-    const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-        redirect(`${appBaseUrl}${basePath}/signin`);
-    }
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
 
-    debug('insert', { media });
+  debug('insert', { media });
 
-    const { error } = await supabase
-        .from('media')
-        .insert({
-            user_id: session.user.id,
-            slug: media.slug,
-            alternativetext: media.alternativeText,
-            caption: media.caption ? media.caption : null,
-            url: media.url,
-            width: media.width,
-            height: media.height,
-            formats: media.formats,
-        });
+  const { error } = await supabase
+    .from('media')
+    .insert({
+      user_id: session.user.id,
+      slug: media.slug,
+      alternativetext: media.alternativeText,
+      caption: media.caption ? media.caption : null,
+      url: media.url,
+      width: media.width,
+      height: media.height,
+      formats: media.formats,
+    });
 
-    debug('insert', { error });
+  debug('insert', { error });
 
-    if (error) {
-        debug({ error });
-        throw new Error(error.message);
-    }
+  if (error) {
+    debug({ error });
+    throw new Error(error.message);
+  }
 
-    revalidatePath(`${appBaseUrl}${basePath}/media`, 'layout');
-    redirect(`${appBaseUrl}${basePath}/media`);
+  revalidatePath(`${appBaseUrl}${basePath}/media`, 'layout');
+  redirect(`${appBaseUrl}${basePath}/media`);
 }
 
 export async function update(media: Media): Promise<void> {
-    const supabase = createClient(cookies());
+  const supabase = createClient(cookies());
 
-    const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-        redirect(`${appBaseUrl}${basePath}/signin`);
-    }
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
 
-    debug('update', { media });
+  debug('update', { media });
 
-    const { error, data } = await supabase
-        .from('media')
-        .update({
-            user_id: session.user.id,
-            slug: media.slug,
-            alternativetext: media.alternativeText,
-            caption: media.caption ? media.caption : null,
-            url: media.url,
-            width: media.width,
-            height: media.height,
-            formats: media.formats,
-        })
-        .eq('user_id', session.user.id)
-        .eq('slug', media.slug);
+  const { error, data } = await supabase
+    .from('media')
+    .update({
+      user_id: session.user.id,
+      slug: media.slug,
+      alternativetext: media.alternativeText,
+      caption: media.caption ? media.caption : null,
+      url: media.url,
+      width: media.width,
+      height: media.height,
+      formats: media.formats,
+    })
+    .match({
+      user_id: session.user.id,
+      slug: media.slug,
+    });
 
-    debug('update', { error, data });
+  debug('update', { error, data });
 
-    if (error) {
-        debug({ error });
-        throw new Error(error.message);
-    }
+  if (error) {
+    debug({ error });
+    throw new Error(error.message);
+  }
 
-    revalidatePath(`${appBaseUrl}${basePath}/media`, 'layout');
-    redirect(`${appBaseUrl}${basePath}/media`);
+  revalidatePath(`${appBaseUrl}${basePath}/media`, 'layout');
+  redirect(`${appBaseUrl}${basePath}/media`);
+}
+
+export async function addMedia(media: Media): Promise<void> {
+  const supabase = createClient(cookies());
+
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
+
+  debug('addMedia', { media });
+
+  const { data: items, error: lookupError } = await supabase
+    .from('media')
+    .select()
+    .eq('slug', media.slug);
+
+  debug('addMedia', { lookupError, items });
+
+  if (!lookupError && items.length > 0) {
+    await update(media);
+  } else {
+    await insert(media);
+  }
+
+  revalidatePath(`${appBaseUrl}${basePath}/media`, 'page');
 }
 
 export async function remove(slug: string): Promise<void> {
-    const supabase = createClient(cookies());
+  const supabase = createClient(cookies());
 
-    const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-        redirect(`${appBaseUrl}${basePath}/signin`);
-    }
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
 
-    debug('remove', { slug });
+  debug('remove', { slug });
 
-    const { error } = await supabase
-        .from('media')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('slug', slug);
+  const { error } = await supabase
+    .from('media')
+    .delete()
+    .match({
+      user_id: session.user.id,
+      slug,
+    });
 
-    if (error) {
-        debug({ error });
-        throw new Error(error.message);
-    }
+  if (error) {
+    debug({ error });
+    throw new Error(error.message);
+  }
 
-    revalidatePath(`${appBaseUrl}${basePath}/media`, 'layout');
-    redirect(`${appBaseUrl}${basePath}/media`);
+  revalidatePath(`${appBaseUrl}${basePath}/media`, 'layout');
+  redirect(`${appBaseUrl}${basePath}/media`);
 }
