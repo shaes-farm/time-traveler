@@ -28,6 +28,7 @@ interface PageProps {
 export default function Page({ params, searchParams }: PageProps): JSX.Element {
     debug({ params, searchParams });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- code
     const { code, error_description: errorDescription } = searchParams;
 
     return (

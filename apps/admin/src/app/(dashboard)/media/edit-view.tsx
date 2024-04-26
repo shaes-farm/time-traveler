@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- consider using Image? */
 'use client';
 
 import debugLogger from 'debug';
