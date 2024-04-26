@@ -151,33 +151,6 @@ export async function update(media: Media): Promise<void> {
   redirect(`${appBaseUrl}${basePath}/media`);
 }
 
-export async function addMedia(media: Media): Promise<void> {
-  const supabase = createClient(cookies());
-
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) {
-    redirect(`${appBaseUrl}${basePath}/signin`);
-  }
-
-  debug('addMedia', { media });
-
-  const { data: items, error: lookupError } = await supabase
-    .from('media')
-    .select()
-    .eq('slug', media.slug);
-
-  debug('addMedia', { lookupError, items });
-
-  if (!lookupError && items.length > 0) {
-    await update(media);
-  } else {
-    await insert(media);
-  }
-
-  revalidatePath(`${appBaseUrl}${basePath}/media`, 'page');
-}
-
 export async function remove(slug: string): Promise<void> {
   const supabase = createClient(cookies());
 
@@ -204,4 +177,37 @@ export async function remove(slug: string): Promise<void> {
 
   revalidatePath(`${appBaseUrl}${basePath}/media`, 'layout');
   redirect(`${appBaseUrl}${basePath}/media`);
+}
+
+export async function addMedia(media: Media): Promise<void> {
+  const supabase = createClient(cookies());
+
+  const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    redirect(`${appBaseUrl}${basePath}/signin`);
+  }
+
+  debug('addMedia', { media });
+
+  const { data, error } = await supabase
+    .from('media')
+    .select()
+    .match({
+      user_id: session.user.id,
+      slug: media.slug,
+    })
+    .maybeSingle();
+
+  debug('addMedia', { error, data });
+
+  if (!error) {
+    if (data) {
+      await update(media);
+    } else {
+      await insert(media);
+    }
+  }
+
+  revalidatePath(`${appBaseUrl}${basePath}/media`, 'page');
 }
