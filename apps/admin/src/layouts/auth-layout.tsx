@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Grid, Paper } from '@mui/material';
 import { Copyright } from 'ui';
 import { createClient } from '../utils/supabase/client';
+import { AuthState } from './auth-state';
 
 const debug = debugLogger('admin:layouts:auth-layout');
 
@@ -19,15 +20,15 @@ export function AuthLayout({ name, url, year, children }: AuthLayoutProps): JSX.
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === AuthState.SignedOut) {
         debug(event, session)
-      } else if (event === 'PASSWORD_RECOVERY') {
+      } else if (event === AuthState.PasswordRecovery) {
         debug(event, session);
-      } else if (event === 'TOKEN_REFRESHED') {
+      } else if (event === AuthState.TokenRefreshed) {
         debug(event, session);
-      } else if (event === 'USER_UPDATED') {
+      } else if (event === AuthState.UserUpdated) {
         debug(event, session);
-      } else if (event === 'INITIAL_SESSION') {
+      } else if (event === AuthState.InitialSession) {
         debug(event, session);
       } else {
         debug(event, session);
