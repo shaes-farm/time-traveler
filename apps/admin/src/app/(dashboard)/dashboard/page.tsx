@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import {
   Box,
   Card,
@@ -12,6 +11,7 @@ import {
   Typography,
 } from '@mui/material';
 import { getAppConfig } from '../../../utils/config';
+import { Link } from '../../../components';
 import { getMetrics } from './actions';
 
 const {
