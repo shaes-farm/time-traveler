@@ -29,6 +29,7 @@ export function Footer(props: FooterProps): JSX.Element {
           <Link
             color="inherit"
             href={url}
+            target="_blank"
             underline="hover"
           >
             {holder.toLowerCase()}
