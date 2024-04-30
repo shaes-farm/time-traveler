@@ -36,11 +36,13 @@ export function GridList({ columns, rows, deleteLink, editLink }: GridListProps)
   };
 
   const columnDef = columns.concat([{
-    field: 'actions',
-    type: 'actions',
-    headerName: 'Actions',
-    width: 100,
     cellClassName: 'actions',
+    field: 'actions',
+    headerName: 'Actions',
+    hideable: false,
+    sortable: false,
+    type: 'actions',
+    width: 100,
     getActions: ({ id }) => {
       return [
         <GridActionsCellItem

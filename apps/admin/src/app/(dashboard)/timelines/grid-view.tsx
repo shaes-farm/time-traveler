@@ -1,61 +1,47 @@
 'use client';
-// import type { GridColDef } from '@mui/x-data-grid';
+import type { GridColDef } from '@mui/x-data-grid';
 import type { Timeline } from 'service';
-import { ContentViewer, type ItemTableCol, ItemTable } from '../../../components';
+import { ContentViewer, GridList } from '../../../components';
 
-const columns: ItemTableCol[] = [
+const columns: GridColDef[] = [
   {
-    name: 'slug',
-    label: 'Slug',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'slug',
+    flex: 3,
+    headerName: 'Slug',
+    minWidth: 150,
   },
   {
-    name: 'title',
-    label: 'Title',
-    options: {
-      filter: true,
-      sort: true,
-    }
+    field: 'title',
+    flex: 3,
+    headerName: 'Title',
+    hideable: false,
+    minWidth: 150,
   },
   {
-    name: 'summary',
-    label: 'Summary',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'summary',
+    flex: 4,
+    headerName: 'Summary',
+    width: 150,
   },
   {
-    name: 'scale',
-    label: 'Scale',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'scale',
+    flex: 2,
+    headerName: 'Scale',
+    width: 150,
   },
   {
-    name: 'beginDate',
-    label: 'Begin Date',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'beginDate',
+    flex: 1,
+    headerName: 'Begin',
+    type: 'number',
+    width: 75,
   },
   {
-    name: 'endDate',
-    label: 'End Date',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'endDate',
+    flex: 1,
+    headerName: 'End',
+    type: 'number',
+    width: 75,
   },
 ];
 
@@ -73,12 +59,11 @@ export default function GridView({ timelines, createLink, deleteLink, editLink }
       createLink={createLink}
       model={{plural: 'Timelines', singular: 'Timeline'}}
     >
-      <ItemTable
+      <GridList
         columns={columns}
         deleteLink={deleteLink}
         editLink={editLink}
         rows={timelines}
-        title="All Timelines"
       />
     </ContentViewer>
   );

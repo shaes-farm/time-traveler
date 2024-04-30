@@ -1,71 +1,51 @@
 'use client';
-// import type { GridColDef } from '@mui/x-data-grid';
+import type { GridColDef } from '@mui/x-data-grid';
 import type { Media } from 'service';
-import {type ItemTableCol, ItemTable } from '../../../components';
+import { GridList } from '../../../components';
 
-const columns: ItemTableCol[] = [
+const columns: GridColDef[] = [
   {
-    name: 'slug',
-    label: 'Slug',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'slug',
+    flex: 3,
+    headerName: 'Slug',
+    width: 150,
   },
   {
-    name: 'alternativeText',
-    label: 'Title',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'alternativetext',
+    flex: 2,
+    headerName: 'Title',
+    hideable: false,
+    width: 150,
   },
   {
-    name: 'caption',
-    label: 'Caption',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'caption',
+    flex: 2,
+    headerName: 'Caption',
+    width: 150,
   },
   {
-    name: 'url',
-    label: 'Source',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'url',
+    flex: 2,
+    headerName: 'Source',
+    width: 150,
   },
   {
-    name: 'width',
-    label: 'Width',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'width',
+    flex: 1,
+    headerName: 'Width',
+    width: 75,
   },
   {
-    name: 'height',
-    label: 'Height',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'height',
+    flex: 1,
+    headerName: 'Height',
+    width: 75,
   },
   {
-    name: 'formats',
-    label: 'File Type',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'formats',
+    flex: 1,
+    headerName: 'Formats',
+    width: 100,
   },
 ];
 
@@ -78,12 +58,11 @@ interface MediaListViewProps {
 
 export function MediaListView({ media, deleteLink, editLink }: MediaListViewProps): JSX.Element {
   return (
-    <ItemTable
+    <GridList
       columns={columns}
       deleteLink={deleteLink}
       editLink={editLink}
-      rows={media.map((item) => ({title: item.alternativeText ?? '', ...item}))}
-      title="All Media"
+      rows={media.map((item) => ({ title: item.alternativeText ?? '', ...item }))}
     />
   );
 }

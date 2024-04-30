@@ -1,44 +1,33 @@
 'use client';
-// import type { GridColDef } from '@mui/x-data-grid';
+import type { GridColDef } from '@mui/x-data-grid';
 import type { Story } from 'service';
-import { ContentViewer, type ItemTableCol, ItemTable } from '../../../components';
+import { ContentViewer, GridList } from '../../../components';
 
-const columns: ItemTableCol[] = [
+const columns: GridColDef[] = [
   {
-    name: 'slug',
-    label: 'Slug',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'slug',
+    flex: 3,
+    headerName: 'Slug',
+    width: 150,
   },
   {
-    name: 'title',
-    label: 'Title',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'title',
+    flex: 3,
+    headerName: 'Title',
+    hideable: false,
+    width: 150,
   },
   {
-    name: 'subTitle',
-    label: 'Sub-Title',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'subTitle',
+    flex: 3,
+    headerName: 'Sub-Title',
+    width: 150,
   },
   {
-    name: 'summary',
-    label: 'Summary',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'summary',
+    flex: 4,
+    headerName: 'Summary',
+    width: 150,
   },
 ];
 
@@ -56,12 +45,11 @@ export default function StoryGridView({ stories, createLink, deleteLink, editLin
       createLink={createLink}
       model={{plural: 'Stories', singular: 'Story'}}
     >
-      <ItemTable
+      <GridList
         columns={columns}
         deleteLink={deleteLink}
         editLink={editLink}
         rows={stories}
-        title="All Stories"
       />
     </ContentViewer>
   );

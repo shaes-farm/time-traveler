@@ -1,62 +1,45 @@
 'use client';
-// import type { GridColDef } from '@mui/x-data-grid';
+import type { GridColDef } from '@mui/x-data-grid';
 import type { HistoricalEvent } from 'service';
-import { ContentViewer, type ItemTableCol, ItemTable } from '../../../components';
+import { ContentViewer, GridList } from '../../../components';
 
-const columns: ItemTableCol[] = [
+const columns: GridColDef[] = [
   {
-    name: 'slug',
-    label: 'Slug',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'slug',
+    flex: 3,
+    headerName: 'Slug',
+    width: 150,
   },
   {
-    name: 'title',
-    label: 'Title',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'title',
+    flex: 3,
+    headerName: 'Title',
+    hideable: false,
+    width: 150,
   },
   {
-    name: 'summary',
-    label: 'Summary',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'summary',
+    flex: 2,
+    headerName: 'Summary',
+    width: 150,
   },
   {
-    name: 'location',
-    label: 'Location',
-    options: {
-      display: false,
-      filter: true,
-      sort: true,
-    }
+    field: 'location',
+    flex: 2,
+    headerName: 'Location',
+    width: 150,
   },
   {
-    name: 'beginDate',
-    label: 'Begin Date',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'beginDate',
+    flex: 1,
+    headerName: 'Begin',
+    width: 75,
   },
   {
-    name: 'endDate',
-    label: 'End Date',
-    options: {
-      display: true,
-      filter: true,
-      sort: true,
-    }
+    field: 'endDate',
+    flex: 1,
+    headerName: 'End',
+    width: 75,
   },
 ];
 
@@ -74,12 +57,11 @@ export default function GridView({ events, createLink, deleteLink, editLink }: G
       createLink={createLink}
       model={{plural: 'Events', singular: 'Event'}}
     >
-      <ItemTable
+      <GridList
         columns={columns}
         deleteLink={deleteLink}
         editLink={editLink}
         rows={events}
-        title="All Events"
       />
     </ContentViewer>
   );
