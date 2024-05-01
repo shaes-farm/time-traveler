@@ -18,8 +18,8 @@ interface GridListRow {
 }
 
 interface GridListProps {
-  columns: GridColDef[];
-  rows: GridListRow[];
+  columns: readonly GridColDef[];
+  rows: readonly GridListRow[];
   deleteLink: string;
   editLink: string;
 }
@@ -65,7 +65,7 @@ export function GridList({ columns, rows, deleteLink, editLink }: GridListProps)
   }]);
 
   return (
-    <Box m="1rem">
+    <Box m={2}>
       <DataGrid
         columns={columnDef}
         getRowId={(row: GridListRow) => row.slug}
