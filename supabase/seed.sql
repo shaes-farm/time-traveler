@@ -83,7 +83,7 @@ debug.print("foo");
 A [link](http://example.com) to nowhere.
 
 
->Quoth the Raven, Nevermore', 'Another Place', 10, '1.111', '1.222');
+>Quoth the Raven, Nevermore', 'Another Place', 5, '1.111', '1.222');
 
 insert into public.historical_events
     (user_id, slug, title, summary, detail, location, importance, begin_date, end_date)
@@ -110,7 +110,7 @@ A [link](http://example.com) to nowhere.
 
 
 >Quoth the Raven, Nevermore
-', 'Another Place', 10, '1.222', '1.333');
+', 'Another Place', 3, '1.222', '1.333');
 
 insert into categories
     (user_id, slug, title)
