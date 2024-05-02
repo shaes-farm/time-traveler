@@ -11,7 +11,7 @@ const columns: GridColDef[] = [
     width: 150,
   },
   {
-    field: 'alternativetext',
+    field: 'alternativeText',
     flex: 2,
     headerName: 'Title',
     hideable: false,
@@ -21,12 +21,6 @@ const columns: GridColDef[] = [
     field: 'caption',
     flex: 2,
     headerName: 'Caption',
-    width: 150,
-  },
-  {
-    field: 'url',
-    flex: 2,
-    headerName: 'Source',
     width: 150,
   },
   {
