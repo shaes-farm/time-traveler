@@ -12,6 +12,7 @@ import {
 } from 'ui';
 import { MAIN_ROUTES, TOOLBAR_ROUTES } from '../app/constants';
 import { createClient } from '../utils/supabase/client';
+import { AuthState } from './auth-state';
 
 const debug = debugLogger('admin:layouts:dashboard-layout');
 
@@ -30,7 +31,7 @@ export function DashboardLayout({ name, url, year, userProfile, children }: Dash
 
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === AuthState.SignedOut) {
         debug(event, session)
 
         const storageList: Storage[] = [];
@@ -50,14 +51,6 @@ export function DashboardLayout({ name, url, year, userProfile, children }: Dash
         });
 
         setTimeout(() => { nextRouter.push('/signin') });
-      } else if (event === 'PASSWORD_RECOVERY') {
-        debug(event, session);
-      } else if (event === 'TOKEN_REFRESHED') {
-        debug(event, session);
-      } else if (event === 'USER_UPDATED') {
-        debug(event, session);
-      } else if (event === 'INITIAL_SESSION') {
-        debug(event, session);
       } else {
         debug(event, session);
       }
