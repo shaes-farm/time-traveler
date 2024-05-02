@@ -30,6 +30,7 @@ export function Permalink({ url }: PermalinkProps): JSX.Element {
             </Tooltip>
           </InputAdornment>
       }}
+      aria-readonly
       disabled
       fullWidth
       id="url"
