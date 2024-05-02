@@ -73,7 +73,7 @@ export function DashboardLayout({ name, url, year, userProfile, children }: Dash
         routes={MAIN_ROUTES}
         toolbar={TOOLBAR_ROUTES}
       >
-        <Container maxWidth="lg" sx={{ m: 'auto' }}>
+        <Container maxWidth="xl" sx={{ m: 'auto' }}>
           <Stack
             alignItems="stretch"
             justifyContent="flex-end"
