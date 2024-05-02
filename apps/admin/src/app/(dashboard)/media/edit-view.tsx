@@ -27,10 +27,6 @@ import { update } from './actions';
 const debug = debugLogger('admin:media:edit-view');
 
 const validationSchema = yup.object({
-  title: yup
-    .string()
-    .min(3, 'Title should be a minimum of 3 characters long')
-    .required('Title is required'),
   slug: yup
     .string()
     .required('Slug is required'),
@@ -39,12 +35,9 @@ const validationSchema = yup.object({
     .required('Title is required'),
   caption: yup
     .string(),
-  url: yup
-    .string()
-    .required('URL is required'),
-  width: yup
-    .number(),
   height: yup
+    .number(),
+  width: yup
     .number(),
   formats: yup
     .string()
@@ -145,6 +138,8 @@ export default function MediaEditView({ media }: MediaEditViewProps): JSX.Elemen
             <Grid mb={2} sm={12}>
               <Stack direction="row" spacing={1}>
                 <TextField
+                  aria-readonly
+                  disabled
                   id="height"
                   label="Height"
                   name="height"
@@ -152,9 +147,11 @@ export default function MediaEditView({ media }: MediaEditViewProps): JSX.Elemen
                   value={formik.values.height}
                 />
                 <Box sx={{ pt: 2 }}>
-                  <ClearIcon />
+                  <ClearIcon/>
                 </Box>
                 <TextField
+                  aria-readonly
+                  disabled
                   id="width"
                   label="Width"
                   name="width"
