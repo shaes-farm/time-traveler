@@ -22,6 +22,8 @@ export const mapApiStoryToModel = ({
   sub_title: subTitle,
   summary,
   detail,
+  published,
+  published_at: publishedAt,
   periods,
 }: PostgrestStory): Story => ({
   userId,
@@ -29,6 +31,8 @@ export const mapApiStoryToModel = ({
   title,
   subTitle: subTitle ?? null,
   summary: summary ?? null,
+  published,
+  publishedAt: publishedAt ?? null,
   detail: detail ?? null,
   periods: periods?.map((p) => mapApiPeriodToModel(p)) ?? [],
 });
@@ -41,6 +45,8 @@ export const mapApiPeriodToModel = ({
   detail,
   begin_date: beginDate,
   end_date: endDate,
+  published,
+  published_at: publishedAt,
   timelines,
 }: PostgrestPeriod): Period => ({
   userId,
@@ -50,6 +56,8 @@ export const mapApiPeriodToModel = ({
   detail: detail ?? null,
   beginDate,
   endDate,
+  published,
+  publishedAt: publishedAt ?? null,
   timelines: timelines?.map((t) => mapApiTimelineToModel(t)) ?? [],
 });
 
@@ -62,6 +70,8 @@ export const mapApiTimelineToModel = ({
   scale,
   begin_date: beginDate,
   end_date: endDate,
+  published,
+  published_at: publishedAt,
   historical_events: events,
   periods,
 }: PostgrestTimeline): Timeline => ({
@@ -73,6 +83,8 @@ export const mapApiTimelineToModel = ({
   scale: scale ?? null,
   beginDate,
   endDate,
+  published,
+  publishedAt: publishedAt ?? null,
   events: events?.map((e) => mapApiEventToModel(e)) ?? [],
   periods: periods?.map((p) => mapApiPeriodToModel(p)) ?? [],
 });
@@ -88,6 +100,8 @@ export const mapApiEventToModel = ({
   location,
   begin_date: beginDate,
   end_date: endDate,
+  published,
+  published_at: publishedAt,
   media,
   timelines,
 }: PostgrestHistoricalEvent): HistoricalEvent => ({
@@ -101,6 +115,8 @@ export const mapApiEventToModel = ({
   location,
   beginDate,
   endDate,
+  published,
+  publishedAt: publishedAt ?? null,
   media: media?.map((m) => mapApiMediaToModel(m)) ?? [],
   timelines: timelines?.map((t) => mapApiTimelineToModel(t)) ?? [],
 });

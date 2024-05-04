@@ -72,8 +72,10 @@ export async function queryBySlug(slug: string): Promise<Category | null> {
                 end_date
             )
         `)
-        .eq('user_id', session.user.id)
-        .eq('slug', slug)
+        .match({
+            user_id: session.user.id,
+            slug,
+        })
         .maybeSingle();
 
     debug('queryBySlug', { error, data });

@@ -7,8 +7,8 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { mapApiPeriodToModel } from 'service';
 import type { Period, PostgrestPeriod } from 'service';
-import { logger } from '../../../utils/logger';
 import { createClient } from '../../../utils/supabase/server';
+import { logger } from '../../../utils/logger';
 import { getAppConfig } from '../../../utils/config';
 
 const debug = debugFactory('admin:periods:actions');
@@ -69,6 +69,8 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
             detail,
             begin_date,
             end_date,
+            published,
+            publishedAt
             timelines!period_timelines (
                 slug,
                 title,
@@ -196,4 +198,31 @@ export async function remove(slug: string): Promise<void> {
 
     revalidatePath(`${appBaseUrl}${basePath}/periods`, 'layout');
     redirect(`${appBaseUrl}${basePath}/periods`);
+}
+
+export async function publish(slug: string, published: boolean): Promise<boolean> {
+    const supabase = createClient(cookies());
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        redirect(`${appBaseUrl}${basePath}/signin`);
+    }
+
+    debug('publish', { published, slug, user: session.user });
+
+    const { error, data } = await supabase.rpc('publish_period', {
+        user_id: session.user.id,
+        slug,
+        published
+    });
+
+    debug('publish', { error, data });
+
+    if (error) {
+        logger.error({ error });
+        throw new Error(error.message);
+    }
+
+    return data;
 }

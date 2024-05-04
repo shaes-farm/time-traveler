@@ -6,6 +6,8 @@ create table stories (
     sub_title varchar(2000),
     summary text,
     detail text,
+    published boolean default false,
+    published_at timestamptz,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );
@@ -19,6 +21,8 @@ create table periods (
     detail text,
     begin_date varchar(1000) not null,
     end_date varchar(1000) not null,
+    published boolean default false,
+    published_at timestamptz,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );
@@ -33,6 +37,8 @@ create table timelines (
     scale varchar(2000),
     begin_date varchar(1000) not null,
     end_date varchar(1000) not null,
+    published boolean default false,
+    published_at timestamptz,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );
@@ -49,6 +55,8 @@ create table historical_events (
     begin_date varchar(1000) not null,
     end_date varchar(1000),
     timeline_id bigint references timelines (id),
+    published boolean default false,
+    published_at timestamptz,
     created_at timestamptz default now(),
     updated_at timestamptz default now()
 );

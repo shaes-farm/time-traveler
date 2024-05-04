@@ -71,6 +71,8 @@ export async function queryBySlug(slug: string): Promise<HistoricalEvent | null>
             importance,
             begin_date,
             end_date,
+            published,
+            publishedAt
             timelines!timeline_events (
                 slug,
                 title,
@@ -215,4 +217,31 @@ export async function remove(slug: string): Promise<void> {
 
     revalidatePath(`${appBaseUrl}${basePath}/events`, 'layout');
     redirect(`${appBaseUrl}${basePath}/events`);
+}
+
+export async function publish(slug: string, published: boolean): Promise<boolean> {
+    const supabase = createClient(cookies());
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        redirect(`${appBaseUrl}${basePath}/signin`);
+    }
+
+    debug('publish', { published, slug, user: session.user });
+
+    const { error, data } = await supabase.rpc('publish_event', {
+        user_id: session.user.id,
+        slug,
+        published
+    });
+
+    debug('publish', { error, data });
+
+    if (error) {
+        logger.error({ error });
+        throw new Error(error.message);
+    }
+
+    return data;
 }

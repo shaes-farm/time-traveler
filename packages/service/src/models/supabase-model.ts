@@ -158,6 +158,8 @@ export interface Database {
           id: number
           importance: number
           location: string | null
+          published: boolean | null
+          published_at: string | null
           slug: string
           summary: string | null
           timeline_id: number | null
@@ -173,6 +175,8 @@ export interface Database {
           id?: never
           importance: number
           location?: string | null
+          published?: boolean | null
+          published_at?: string | null
           slug: string
           summary?: string | null
           timeline_id?: number | null
@@ -188,6 +192,8 @@ export interface Database {
           id?: never
           importance?: number
           location?: string | null
+          published?: boolean | null
+          published_at?: string | null
           slug?: string
           summary?: string | null
           timeline_id?: number | null
@@ -309,6 +315,8 @@ export interface Database {
           detail: string | null
           end_date: string
           id: number
+          published: boolean | null
+          published_at: string | null
           slug: string
           summary: string | null
           title: string
@@ -321,6 +329,8 @@ export interface Database {
           detail?: string | null
           end_date: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           slug: string
           summary?: string | null
           title: string
@@ -333,6 +343,8 @@ export interface Database {
           detail?: string | null
           end_date?: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           slug?: string
           summary?: string | null
           title?: string
@@ -353,6 +365,7 @@ export interface Database {
         Row: {
           avatar_url: string | null
           bio: string | null
+          created_at: string | null
           first_name: string
           id: string
           last_name: string
@@ -368,6 +381,7 @@ export interface Database {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          created_at?: string | null
           first_name: string
           id: string
           last_name: string
@@ -383,6 +397,7 @@ export interface Database {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          created_at?: string | null
           first_name?: string
           id?: string
           last_name?: string
@@ -410,6 +425,8 @@ export interface Database {
           created_at: string | null
           detail: string | null
           id: number
+          published: boolean | null
+          published_at: string | null
           slug: string
           sub_title: string | null
           summary: string | null
@@ -421,6 +438,8 @@ export interface Database {
           created_at?: string | null
           detail?: string | null
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           slug: string
           sub_title?: string | null
           summary?: string | null
@@ -432,6 +451,8 @@ export interface Database {
           created_at?: string | null
           detail?: string | null
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           slug?: string
           sub_title?: string | null
           summary?: string | null
@@ -536,6 +557,8 @@ export interface Database {
           detail: string | null
           end_date: string
           id: number
+          published: boolean | null
+          published_at: string | null
           scale: string | null
           slug: string
           summary: string | null
@@ -549,6 +572,8 @@ export interface Database {
           detail?: string | null
           end_date: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           scale?: string | null
           slug: string
           summary?: string | null
@@ -562,6 +587,8 @@ export interface Database {
           detail?: string | null
           end_date?: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           scale?: string | null
           slug?: string
           summary?: string | null
@@ -649,6 +676,38 @@ export interface Database {
           u: Database["public"]["CompositeTypes"]["user_data"]
         }
         Returns: Database["public"]["CompositeTypes"]["metrics"]
+      }
+      publish_event: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
+      }
+      publish_period: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
+      }
+      publish_story: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
+      }
+      publish_timeline: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
       }
       update_category: {
         Args: {

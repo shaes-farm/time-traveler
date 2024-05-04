@@ -59,7 +59,8 @@ BEGIN
         location = event.location,
         importance = event.importance,
         begin_date = event.begin_date,
-        end_date = event.end_date
+        end_date = event.end_date,
+        updated_at = now()
     WHERE user_id = event.user_id::uuid AND slug = event.slug;
 
     DELETE FROM event_media WHERE user_id = event.user_id::uuid AND historical_event_id = event_id;
@@ -91,6 +92,29 @@ BEGIN
     DELETE FROM historical_events WHERE id = eid;
 
     RETURN eid;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION publish_event(user_id TEXT, slug TEXT, published BOOLEAN)
+RETURNS BOOLEAN
+AS $$
+DECLARE
+    eid BIGINT;
+    isPublished BOOLEAN;
+BEGIN
+    SELECT id, published INTO STRICT eid, isPublished FROM historical_events WHERE user_id = user_id::uuid AND slug = slug;
+
+    IF published = FALSE AND isPublished = TRUE THEN
+        UPDATE historical_events SET
+            published = FALSE,
+            published_at = NULL;
+    ELSIF published = TRUE AND isPublished = FALSE THEN
+        UPDATE historical_events SET
+            published = TRUE,
+            published_at = NOW();
+    END IF;
+
+    RETURN isPublished;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -140,7 +164,8 @@ BEGIN
     UPDATE categories SET
         user_id = category.user_id::uuid,
         slug = category.slug,
-        title = category.title
+        title = category.title,
+        updated_at = now()
     WHERE user_id = category.user_id::uuid AND slug = category.slug;
 
     DELETE FROM event_categories WHERE user_id = category.user_id::uuid AND category_id = cid;
@@ -230,7 +255,8 @@ BEGIN
         detail = timeline.detail,
         scale = timeline.scale,
         begin_date = timeline.begin_date,
-        end_date = timeline.end_date
+        end_date = timeline.end_date,
+        updated_at = now()
     WHERE user_id = timeline.user_id::uuid AND slug = timeline.slug RETURNING id INTO tid;
 
     DELETE FROM timeline_events WHERE user_id = timeline.user_id::uuid AND timeline_id = tid;
@@ -261,6 +287,29 @@ BEGIN
     DELETE FROM timelines WHERE id = tid;
 
     RETURN tid;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION publish_timeline(user_id TEXT, slug TEXT, published BOOLEAN)
+RETURNS BOOLEAN
+AS $$
+DECLARE
+    eid BIGINT;
+    isPublished BOOLEAN;
+BEGIN
+    SELECT id, published INTO STRICT eid, isPublished FROM timelines WHERE user_id = user_id::uuid AND slug = slug;
+
+    IF published = FALSE AND isPublished = TRUE THEN
+        UPDATE timelines SET
+            published = FALSE,
+            published_at = NULL;
+    ELSIF published = TRUE AND isPublished = FALSE THEN
+        UPDATE timelines SET
+            published = TRUE,
+            published_at = NOW();
+    END IF;
+
+    RETURN isPublished;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -318,7 +367,8 @@ BEGIN
         summary = period.summary,
         detail = period.detail,
         begin_date = period.begin_date,
-        end_date = period.end_date
+        end_date = period.end_date,
+        updated_at = now()
     WHERE user_id = period.user_id::uuid AND slug = period.slug RETURNING id INTO pid;
 
     DELETE FROM period_timelines WHERE user_id = period.user_id::uuid AND period_id = pid;
@@ -349,6 +399,29 @@ BEGIN
     DELETE FROM periods WHERE id = pid;
 
     RETURN pid;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION publish_period(user_id TEXT, slug TEXT, published BOOLEAN)
+RETURNS BOOLEAN
+AS $$
+DECLARE
+    eid BIGINT;
+    isPublished BOOLEAN;
+BEGIN
+    SELECT id, published INTO STRICT eid, isPublished FROM periods WHERE user_id = user_id::uuid AND slug = slug;
+
+    IF published = FALSE AND isPublished = TRUE THEN
+        UPDATE periods SET
+            published = FALSE,
+            published_at = NULL;
+    ELSIF published = TRUE AND isPublished = FALSE THEN
+        UPDATE periods SET
+            published = TRUE,
+            published_at = NOW();
+    END IF;
+
+    RETURN isPublished;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -404,7 +477,8 @@ BEGIN
         title = story.title,
         sub_title = story.sub_title,
         summary = story.summary,
-        detail = story.detail
+        detail = story.detail,
+        updated_at = now()
     WHERE user_id = story.user_id::uuid AND slug = story.slug;
 
     DELETE FROM story_periods WHERE user_id = story.user_id::uuid AND story_id = sid;
@@ -435,5 +509,28 @@ BEGIN
     DELETE FROM stories WHERE id = sid;
 
     RETURN sid;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION publish_story(user_id TEXT, slug TEXT, published BOOLEAN)
+RETURNS BOOLEAN
+AS $$
+DECLARE
+    eid BIGINT;
+    isPublished BOOLEAN;
+BEGIN
+    SELECT id, published INTO STRICT eid, isPublished FROM stories WHERE user_id = user_id::uuid AND slug = slug;
+
+    IF published = FALSE AND isPublished = TRUE THEN
+        UPDATE stories SET
+            published = FALSE,
+            published_at = NULL;
+    ELSIF published = TRUE AND isPublished = FALSE THEN
+        UPDATE stories SET
+            published = TRUE,
+            published_at = NOW();
+    END IF;
+
+    RETURN isPublished;
 END;
 $$ LANGUAGE plpgsql;

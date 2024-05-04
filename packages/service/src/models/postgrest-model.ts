@@ -8,6 +8,8 @@ export interface PostgrestStory {
   sub_title?: string;
   summary?: string;
   detail?: string;
+  published: boolean;
+  published_at?: string;
   periods?: PostgrestPeriod[];
 }
 
@@ -19,6 +21,8 @@ export interface PostgrestPeriod {
   detail?: string;
   begin_date: string;
   end_date: string;
+  published: boolean;
+  published_at?: string;
   timelines?: PostgrestTimeline[];
 }
 
@@ -31,6 +35,8 @@ export interface PostgrestTimeline {
   scale?: string;
   begin_date: string;
   end_date: string;
+  published: boolean;
+  published_at?: string;
   historical_events?: PostgrestHistoricalEvent[];
   periods?: PostgrestPeriod[];
 }
@@ -46,6 +52,8 @@ export interface PostgrestHistoricalEvent {
   location: string;
   begin_date: string;
   end_date: string;
+  published: boolean;
+  published_at?: string;
   media?: PostgrestMedia[];
   timelines?: PostgrestTimeline[];
 }

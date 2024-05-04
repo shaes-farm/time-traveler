@@ -70,6 +70,8 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
             scale,
             begin_date,
             end_date,
+            published,
+            publishedAt
             historical_events!timeline_events (
                 slug,
                 title,
@@ -200,4 +202,31 @@ export async function remove(slug: string): Promise<void> {
 
     revalidatePath(`${appBaseUrl}${basePath}/timelines`, 'layout');
     redirect(`${appBaseUrl}${basePath}/timelines`);
+}
+
+export async function publish(slug: string, published: boolean): Promise<boolean> {
+    const supabase = createClient(cookies());
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        redirect(`${appBaseUrl}${basePath}/signin`);
+    }
+
+    debug('publish', { published, slug, user: session.user });
+
+    const { error, data } = await supabase.rpc('publish_timeline', {
+        user_id: session.user.id,
+        slug,
+        published
+    });
+
+    debug('publish', { error, data });
+
+    if (error) {
+        logger.error({ error });
+        throw new Error(error.message);
+    }
+
+    return data;
 }

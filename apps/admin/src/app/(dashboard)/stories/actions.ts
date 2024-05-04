@@ -68,6 +68,8 @@ export async function queryBySlug(slug: string): Promise<Story | null> {
             sub_title,
             summary,
             detail,
+            published,
+            publishedAt
             periods!story_periods (
                 slug,
                 title,
@@ -195,4 +197,31 @@ export async function remove(slug: string): Promise<void> {
 
     revalidatePath(`${appBaseUrl}${basePath}/stories`, 'layout');
     redirect(`${appBaseUrl}${basePath}/stories`);
+}
+
+export async function publish(slug: string, published: boolean): Promise<boolean> {
+    const supabase = createClient(cookies());
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+        redirect(`${appBaseUrl}${basePath}/signin`);
+    }
+
+    debug('publish', { published, slug, user: session.user });
+
+    const { error, data } = await supabase.rpc('publish_story', {
+        user_id: session.user.id,
+        slug,
+        published
+    });
+
+    debug('publish', { error, data });
+
+    if (error) {
+        logger.error({ error });
+        throw new Error(error.message);
+    }
+
+    return data;
 }

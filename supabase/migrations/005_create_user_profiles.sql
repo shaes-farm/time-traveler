@@ -12,7 +12,8 @@ create table profiles (
   social_instagram varchar(200),
   social_pinterest varchar(200),
   social_youtube varchar(200),
-  updated_at timestamp with time zone,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
 
   constraint first_name_length check (char_length(first_name) > 1),
   constraint last_name_length check (char_length(last_name) > 1),
@@ -62,9 +63,9 @@ create trigger on_auth_user_created
 
 -- Set up user profile avatar storage
 insert into storage.buckets
-  (id, name)
+  (id, name, public)
 values
-  ('avatars', 'avatars');
+  ('avatars', 'avatars', true);
 
 -- Set up access controls for storage.
 -- See https://supabase.com/docs/guides/storage#policy-examples for more details.
