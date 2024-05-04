@@ -69,7 +69,7 @@ export async function queryBySlug(slug: string): Promise<Story | null> {
             summary,
             detail,
             published,
-            publishedAt
+            published_at,
             periods!story_periods (
                 slug,
                 title,

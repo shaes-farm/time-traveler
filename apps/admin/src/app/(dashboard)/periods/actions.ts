@@ -70,7 +70,7 @@ export async function queryBySlug(slug: string): Promise<Period | null> {
             begin_date,
             end_date,
             published,
-            publishedAt
+            published_at,
             timelines!period_timelines (
                 slug,
                 title,

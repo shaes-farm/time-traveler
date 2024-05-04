@@ -71,7 +71,7 @@ export async function queryBySlug(slug: string): Promise<Timeline | null> {
             begin_date,
             end_date,
             published,
-            publishedAt
+            published_at,
             historical_events!timeline_events (
                 slug,
                 title,
