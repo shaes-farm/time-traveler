@@ -20,12 +20,12 @@ import type {
 import {
   DateRangePicker,
   ItemList,
+  Permalink,
   RichTextEditor,
 } from 'ui';
 import {
   ContentEditor,
   Editor,
-  Permalink,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -75,6 +75,8 @@ export default function PeriodEditView({ mode, period, timelines }: PeriodEditVi
     detail: period.detail ?? '',
     beginDate: period.beginDate,
     endDate: period.endDate,
+    published: period.published,
+    publishedAt: period.publishedAt ?? '',
     timelines: period.timelines,
   } : {
     userId: '',
@@ -84,6 +86,8 @@ export default function PeriodEditView({ mode, period, timelines }: PeriodEditVi
     detail: '',
     beginDate: '',
     endDate: '',
+    published: false,
+    publishedAt: '',
     timelines: [],
   };
 

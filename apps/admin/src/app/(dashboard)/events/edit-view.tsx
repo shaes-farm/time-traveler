@@ -24,12 +24,12 @@ import {
   DateRangePicker,
   ImportanceMeter,
   ItemList,
+  Permalink,
   RichTextEditor,
 } from 'ui';
 import {
   ContentEditor,
   Editor,
-  Permalink,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -87,6 +87,8 @@ export default function HistoricalEventEditView({ mode, event, categories }: His
     importance: event.importance,
     beginDate: event.beginDate,
     endDate: event.endDate ?? '',
+    published: event.published,
+    publishedAt: event.publishedAt ?? '',
     categories: event.categories,
     timelines: event.timelines,
     media: event.media,
@@ -97,9 +99,11 @@ export default function HistoricalEventEditView({ mode, event, categories }: His
     summary: '',
     detail: '',
     location: '',
-    importance: 1,
+    importance: 5,
     beginDate: '',
     endDate: '',
+    published: false,
+    publishedAt: '',
     categories: [],
     timelines: [],
     media: [],

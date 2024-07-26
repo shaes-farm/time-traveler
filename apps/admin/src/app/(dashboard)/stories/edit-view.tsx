@@ -20,12 +20,12 @@ import type {
 } from 'service';
 import {
   ItemList,
+  ItemSummary,
   RichTextEditor,
 } from 'ui';
 import {
   ContentEditor,
   Editor,
-  Permalink,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -68,6 +68,8 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
     subTitle: story.subTitle ?? '',
     summary: story.summary ?? '',
     detail: story.detail ?? '',
+    published: story.published,
+    publishedAt: story.publishedAt ?? '',
     periods: story.periods,
   } : {
     userId: '',
@@ -76,6 +78,8 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
     subTitle: '',
     summary: '',
     detail: '',
+    published: false,
+    publishedAt: '',
     periods: [],
   };
 
@@ -155,7 +159,8 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
           </Grid>
           <Grid md={4} sm={12}>
             <Grid mb={2} sm={12}>
-              <Permalink url={formik.values.slug.trim().length ? `/stories/${formik.values.slug}` : ''} />
+              <ItemSummary published={formik.values.published} publishedAt={formik.values.publishedAt} title="Summary" url={formik.values.slug.trim().length ? `/stories/${formik.values.slug}` : ''} />
+              {/* <Permalink url={formik.values.slug.trim().length ? `/stories/${formik.values.slug}` : ''} /> */}
             </Grid>
             <Grid mb={2} sm={12}>
               <TextField
@@ -177,7 +182,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
               <TextField
                 fullWidth
                 id="summary"
-                label="Summary"
+                label="Excerpt"
                 multiline
                 name="summary"
                 onChange={formik.handleChange}

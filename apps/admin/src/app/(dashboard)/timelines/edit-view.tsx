@@ -20,12 +20,12 @@ import type {
 import {
   DateRangePicker,
   ItemList,
+  Permalink,
   RichTextEditor,
 } from 'ui';
 import {
   ContentEditor,
   Editor,
-  Permalink,
 } from '../../../components';
 import { insert, update } from './actions';
 
@@ -78,6 +78,8 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
     scale: timeline.scale ?? '',
     beginDate: timeline.beginDate,
     endDate: timeline.endDate,
+    published: timeline.published,
+    publishedAt: timeline.publishedAt ?? '',
     events: timeline.events,
   } : {
     userId: '',
@@ -88,6 +90,8 @@ export default function TimelineEditView({ mode, timeline, events }: TimelineEdi
     scale: '',
     beginDate: '',
     endDate: '',
+    published: false,
+    publishedAt: '',
     events: [],
   };
 

@@ -17,9 +17,11 @@ import type {
   Media,
 } from 'service';
 import {
+  Permalink,
+} from 'ui';
+import {
   ContentEditor,
   Editor,
-  Permalink,
 } from '../../../components';
 import { getIcon } from '../../../utils/media';
 import { update } from './actions';
@@ -147,7 +149,7 @@ export default function MediaEditView({ media }: MediaEditViewProps): JSX.Elemen
                   value={formik.values.height}
                 />
                 <Box sx={{ pt: 2 }}>
-                  <ClearIcon/>
+                  <ClearIcon />
                 </Box>
                 <TextField
                   aria-readonly

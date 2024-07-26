@@ -15,11 +15,11 @@ import type {
 } from 'service';
 import {
   ItemList,
+  Permalink,
 } from 'ui';
 import {
   ContentEditor,
   Editor,
-  Permalink,
 } from '../../../components';
 import { insert, update } from './actions';
 
