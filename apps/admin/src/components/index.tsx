@@ -4,5 +4,4 @@ export * from './editor';
 export * from './grid-list';
 export * from './item-table';
 export * from './link';
-export * from './permalink';
 export * from './transfer-list';
