@@ -13,13 +13,13 @@ describe('VerticalTimeline component', () => {
   });
 
   it('should display a vertical timeline', () => {
-    render(<VerticalTimeline markers={markers} />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should ensure each event has a link with a label', () => {
-    render(<VerticalTimeline markers={markers} />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} />);
   
     const links = screen.getAllByRole('link');
     links.forEach((link, index) => {
@@ -28,76 +28,76 @@ describe('VerticalTimeline component', () => {
   });
 
   it('should display a vertical timeline in reverse order', () => {
-    render(<VerticalTimeline markers={markers} reverse />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} reverse />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display a vertical timeline in alternating order', () => {
-    render(<VerticalTimeline alternate markers={markers} />);
+    render(<VerticalTimeline alternate markers={markers} onSelect={jest.fn()} />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display a vertical timeline in alternating reverse order', () => {
-    render(<VerticalTimeline alternate markers={markers} reverse />);
+    render(<VerticalTimeline alternate markers={markers} onSelect={jest.fn()} reverse />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display a vertical timeline without opposite text', () => {
-    render(<VerticalTimeline markers={markers} opposite={false} />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} opposite={false} />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display a vertical timeline without summary text', () => {
-    render(<VerticalTimeline markers={markers} summary={false} />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} summary={false} />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display a vertical timeline with colored dots and text', () => {
-    render(<VerticalTimeline colored markers={markers} />);
+    render(<VerticalTimeline colored markers={markers} onSelect={jest.fn()} />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display a vertical timeline with outlined dots', () => {
-    render(<VerticalTimeline markers={markers} outlined />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} outlined />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display a vertical timeline and override the styles', () => {
-    render(<VerticalTimeline markers={markers} sx={{ px: 1 }} />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} sx={{ px: 1 }} />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display an event without a date if begin date is empty', () => {
     markers[0].beginDate = '';
-    render(<VerticalTimeline markers={markers} opposite />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} opposite />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display an event without a date range if end date is null', () => {
     markers[0].endDate = null;
-    render(<VerticalTimeline markers={markers} opposite />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} opposite />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should display an event without a date range if dates are the same', () => {
     markers[0].endDate = markers[0].beginDate;
-    render(<VerticalTimeline markers={markers} opposite />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} opposite />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   });
 
   it('should ignore user click if onSelect handler is not configured', async () => {
-    render(<VerticalTimeline markers={markers} />);
+    render(<VerticalTimeline markers={markers} onSelect={jest.fn()} />);
   
     expect(screen.getByRole('list')).toHaveClass('MuiTimeline-root');
   

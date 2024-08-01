@@ -1,0 +1,9 @@
+{
+  "app": {
+    "baseUrl": "https://time-traveler-admin.vercel.app:3000"
+  },
+  "api": {
+    "backend": "supabase",
+    "baseUrl": "https://fhksymzqcoozwfxpurzn.supabase.co"
+  }
+}

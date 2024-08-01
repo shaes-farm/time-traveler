@@ -11,7 +11,7 @@ export interface Crumb {
   link?: string;
 }
 
-export interface BreadcrumbsProps {
+interface BreadcrumbsProps {
   crumbs: Crumb[];
 }
 

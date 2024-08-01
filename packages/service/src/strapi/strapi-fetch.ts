@@ -1,10 +1,12 @@
 import fetch from 'isomorphic-fetch';
-import {
-  type StrapiPeriodsResponse,
-  type StrapiTimelineResponse,
-  type HistoricalEvent,
-  type Period,
-  type Timeline,
+import type {
+  Category,
+  StrapiPeriodsResponse,
+  StrapiTimelineResponse,
+  HistoricalEvent,
+  Media,
+  Period,
+  Timeline,
 } from '../models';
 import type { Fetch } from '../types';
 import {
@@ -134,62 +136,43 @@ export class StrapiFetch implements Fetch {
     return new Promise(resolve => {resolve([]);});
   }
 
-  // async getEvents(): Promise<HistoricalEvent[]> {
-  //   const res = await fetch(`${this.baseUrl}/api/events?sort=eventDate`);
-  //   // The return value is *not* serialized
-  //   // You can return Date, Map, Set, etc.
-
-  //   if (!res.ok) {
-  //     // This will activate the closest `error.js` Error Boundary
-  //     throw new Error('Failed to fetch events')
-  //   }
-
-  //   const events = await res.json() as StrapiEventResponse;
-  //   // console.log({events: JSON.stringify(events, null, 2)});
-
-  //   if (!events.data?.length) {
-  //     return [];
-  //   }
-
-  //   return events.data.map((event) => mapEventToModel(event));
-  // }
-
   async getEvent(slug: string): Promise<HistoricalEvent | null> {
     return new Promise(resolve => {debug({slug}); resolve(null);});
   }
 
-  // async getEvent(slug: string): Promise<HistoricalEvent | null> {
-  //   const res = await fetch(`${this.baseUrl}/api/events?filters[slug][$eq]=${slug}&populate=*`);
+  /**
+   * Fetch all categories from the CMS.
+   *
+   * @returns An array of category objects.
+   */
+  async getCategories(): Promise<Category[]> {
+    return new Promise(resolve => {resolve([]);});
+  }
 
-  //   if (!res.ok) {
-  //     // This will activate the closest `error.js` Error Boundary
-  //     throw new Error('Failed to fetch event')
-  //   }
+  /**
+   * Fetch a category by slug.
+   * 
+   * @returns An category object if found, otherwise null.
+   */
+  async getCategory(slug: string):Promise<Category | null> {
+    return new Promise(resolve => {debug({slug}); resolve(null);});
+  }
 
-  //   const event = await res.json() as StrapiEventResponse;
-  //   // console.log({event: JSON.stringify(event, null, 2)});
+  /**
+   * Fetch all media from the CMS.
+   *
+   * @returns An array of media objects.
+   */
+  async getMedia(): Promise<Media[]> {
+    return new Promise(resolve => {resolve([]);});
+  }
 
-  //   if (!event.data?.length) {
-  //     return null;
-  //   }
-
-  //   return mapEventToModel(event.data[0]);
-  // }
-
-  // async getStrapiEvent(slug: string): Promise<HistoricalEvent | null> {
-  //   const res = await fetch(`${this.baseUrl}/api/events?filters[slug][$eq]=${slug}&populate=*`);
-
-  //   if (!res.ok) {
-  //     // This will activate the closest `error.js` Error Boundary
-  //     throw new Error('Failed to fetch event')
-  //   }
-
-  //   log({StrapiEventType: typeof StrapiEventType});
-
-  //   const event: StrapiEventType | null = await res.json() as StrapiEventType | null;
-
-  //   log({strapiEvent: JSON.stringify(event, null, 2)});
-
-  //   return event ? mapStrapiEventToModel(event.data[0].attributes) : null;
-  // }
+  /**
+   * Fetch a media item by slug.
+   * 
+   * @returns An media object if found, otherwise null.
+   */
+  async getMediaItem(slug: string): Promise<Media | null> {
+    return new Promise(resolve => {debug({slug}); resolve(null);});
+  }
 }

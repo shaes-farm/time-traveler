@@ -1,3 +1,4 @@
+export * from './dashboard';
 export * from './event-timeline';
 export * from './historical-event-card';
 export * from './period-navigator';

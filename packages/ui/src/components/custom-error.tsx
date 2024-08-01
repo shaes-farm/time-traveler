@@ -2,7 +2,7 @@
 import React from 'react';
 import {Box, Container, Grid, Paper, Typography,} from '@mui/material';
 
-export interface CustomErrorProps {
+interface CustomErrorProps {
   dump?: unknown;
   message: string;
   status?: number;

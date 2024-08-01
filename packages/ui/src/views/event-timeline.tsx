@@ -1,6 +1,6 @@
 'use client'
 import type {HistoricalEvent} from 'service';
-import {VerticalTimeline, type VerticalTimelineProps} from '../components';
+import {VerticalTimeline, type VerticalTimelineProps} from '../components/vertical-timeline';
 
 export interface EventTimelineProps extends Omit<VerticalTimelineProps, 'markers'>{
   events: HistoricalEvent[];

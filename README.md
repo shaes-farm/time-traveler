@@ -2,6 +2,10 @@
 
 Time Traveler is a content management system for telling the stories of history.
 
+## Preface
+
+Portions of this document, and the concepts upon which it elaborates, were extracted from the work of others. While the idea of this software was originally ours, and the implementation is the sole work of SHAES farm, the desire for humans to express themselves linearly in time is ancient. We would like to thank our ancestors for giving us the curiousity to look back at them. We would also like to credit Diane Kullberg and her work with Dynamic Timelines, it is her work that is mostly expressed in this document.
+
 ## Abstract
 
 This document describes the design and development of Time Traveler, a system allowing for the storage, visualization, and interaction with temporal and semantic information using timelines in 2D environments as layered, filtered graphs. We focus on the application of interactive timelines for temporal content management systems, extending their capabilities with novel concepts for cross referencing temporal events with the spatial dimension. The work is intended to investigate beyond the current state of the art interaction with temporal data using a variety of techniques for cross-referencing, analyzing, and representing historical events.

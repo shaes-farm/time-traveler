@@ -1,0 +1,24 @@
+import { Auth } from 'ui';
+import { getAppConfig } from '../../../utils/config';
+import { RECOVER_URL, SIGNIN_URL, SIGNUP_URL } from '../constants';
+import { login, signup, recover } from '../actions';
+
+const {
+  title,
+} = getAppConfig();
+
+export default function Page(): JSX.Element {
+  return (
+    <Auth
+      recoverPassword={recover}
+      recoverPasswordUrl={RECOVER_URL}
+      signIn={login}
+      signInUrl={SIGNIN_URL}
+      signUp={signup}
+      signUpUrl={SIGNUP_URL}
+      subTitle={`Welcome to ${title}!`}
+      title="Sign In"
+      type="password"
+    />
+  );
+}

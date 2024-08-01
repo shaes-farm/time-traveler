@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import getConfig from 'next/config';
 import {Paper} from '@mui/material';
 import {PeriodNavigator} from 'ui';
@@ -15,9 +16,14 @@ const {
 
 const f = fetchFactory(backend, baseUrl);
 
-export default async function Page(): Promise<JSX.Element> {
-  const periods = await f.getPeriods();
+export const revalidate = 3600;
 
+const getAllPeriods = cache(async () => {
+  return f.getPeriods();
+});
+
+export default async function Page(): Promise<JSX.Element> {
+  const periods = await getAllPeriods();
   return (
     <main>
       <Paper>

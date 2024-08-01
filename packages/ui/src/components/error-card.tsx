@@ -6,7 +6,7 @@ import {
   CardHeader,
 } from '@mui/material';
 
-export interface ErrorCardProps {
+interface ErrorCardProps {
   title: string;
   message: string;
 }

@@ -1,9 +1,8 @@
 'use client';
-import React from 'react';
 import {Box, Divider, Link, Typography} from '@mui/material';
 import {type LabeledRoute, Menu} from './menu';
 
-export interface FooterProps {
+interface FooterProps {
   year: number;
   url: string;
   holder: string;
@@ -30,6 +29,7 @@ export function Footer(props: FooterProps): JSX.Element {
           <Link
             color="inherit"
             href={url}
+            target="_blank"
             underline="hover"
           >
             {holder.toLowerCase()}

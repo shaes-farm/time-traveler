@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-redundant-type-constituents -- generated file*/
 export type Json =
   | string
   | number
@@ -42,6 +41,7 @@ export interface Database {
           slug: string
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
@@ -49,6 +49,7 @@ export interface Database {
           slug: string
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
@@ -56,21 +57,33 @@ export interface Database {
           slug?: string
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       event_categories: {
         Row: {
           category_id: number
           historical_event_id: number
+          user_id: string
         }
         Insert: {
           category_id: number
           historical_event_id: number
+          user_id: string
         }
         Update: {
           category_id?: number
           historical_event_id?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -86,6 +99,13 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "historical_events"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_categories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           }
         ]
       }
@@ -93,14 +113,17 @@ export interface Database {
         Row: {
           historical_event_id: number
           media_id: number
+          user_id: string
         }
         Insert: {
           historical_event_id: number
           media_id: number
+          user_id: string
         }
         Update: {
           historical_event_id?: number
           media_id?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -116,6 +139,13 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "media"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_media_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           }
         ]
       }
@@ -124,43 +154,52 @@ export interface Database {
           begin_date: string
           created_at: string | null
           detail: string | null
-          end_date: string
+          end_date: string | null
           id: number
           importance: number
           location: string | null
+          published: boolean | null
+          published_at: string | null
           slug: string
           summary: string | null
           timeline_id: number | null
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           begin_date: string
           created_at?: string | null
           detail?: string | null
-          end_date: string
+          end_date?: string | null
           id?: never
           importance: number
           location?: string | null
+          published?: boolean | null
+          published_at?: string | null
           slug: string
           summary?: string | null
           timeline_id?: number | null
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           begin_date?: string
           created_at?: string | null
           detail?: string | null
-          end_date?: string
+          end_date?: string | null
           id?: never
           importance?: number
           location?: string | null
+          published?: boolean | null
+          published_at?: string | null
           slug?: string
           summary?: string | null
           timeline_id?: number | null
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
         Relationships: [
           {
@@ -168,6 +207,13 @@ export interface Database {
             columns: ["timeline_id"]
             isOneToOne: false
             referencedRelation: "timelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historical_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           }
         ]
@@ -182,7 +228,8 @@ export interface Database {
           id: number
           slug: string
           updated_at: string | null
-          url: string | null
+          url: string
+          user_id: string
           width: number | null
         }
         Insert: {
@@ -194,7 +241,8 @@ export interface Database {
           id?: never
           slug: string
           updated_at?: string | null
-          url?: string | null
+          url: string
+          user_id: string
           width?: number | null
         }
         Update: {
@@ -206,23 +254,35 @@ export interface Database {
           id?: never
           slug?: string
           updated_at?: string | null
-          url?: string | null
+          url?: string
+          user_id?: string
           width?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "media_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       period_timelines: {
         Row: {
           period_id: number
           timeline_id: number
+          user_id: string
         }
         Insert: {
           period_id: number
           timeline_id: number
+          user_id: string
         }
         Update: {
           period_id?: number
           timeline_id?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -238,6 +298,13 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "timelines"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "period_timelines_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           }
         ]
       }
@@ -245,47 +312,219 @@ export interface Database {
         Row: {
           begin_date: string
           created_at: string | null
+          detail: string | null
           end_date: string
           id: number
+          published: boolean | null
+          published_at: string | null
           slug: string
           summary: string | null
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           begin_date: string
           created_at?: string | null
+          detail?: string | null
           end_date: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           slug: string
           summary?: string | null
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           begin_date?: string
           created_at?: string | null
+          detail?: string | null
           end_date?: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           slug?: string
           summary?: string | null
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "periods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string | null
+          first_name: string
+          id: string
+          last_name: string
+          social_facebook: string | null
+          social_instagram: string | null
+          social_pinterest: string | null
+          social_x: string | null
+          social_youtube: string | null
+          updated_at: string | null
+          username: string | null
+          website: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          first_name: string
+          id: string
+          last_name: string
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_pinterest?: string | null
+          social_x?: string | null
+          social_youtube?: string | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_pinterest?: string | null
+          social_x?: string | null
+          social_youtube?: string | null
+          updated_at?: string | null
+          username?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      stories: {
+        Row: {
+          created_at: string | null
+          detail: string | null
+          id: number
+          published: boolean | null
+          published_at: string | null
+          slug: string
+          sub_title: string | null
+          summary: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          detail?: string | null
+          id?: never
+          published?: boolean | null
+          published_at?: string | null
+          slug: string
+          sub_title?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          detail?: string | null
+          id?: never
+          published?: boolean | null
+          published_at?: string | null
+          slug?: string
+          sub_title?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      story_periods: {
+        Row: {
+          period_id: number
+          story_id: number
+          user_id: string
+        }
+        Insert: {
+          period_id: number
+          story_id: number
+          user_id: string
+        }
+        Update: {
+          period_id?: number
+          story_id?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_periods_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_periods_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_periods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       timeline_events: {
         Row: {
           historical_event_id: number
           timeline_id: number
+          user_id: string
         }
         Insert: {
           historical_event_id: number
           timeline_id: number
+          user_id: string
         }
         Update: {
           historical_event_id?: number
           timeline_id?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -301,6 +540,13 @@ export interface Database {
             isOneToOne: false
             referencedRelation: "timelines"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
           }
         ]
       }
@@ -308,50 +554,256 @@ export interface Database {
         Row: {
           begin_date: string
           created_at: string | null
+          detail: string | null
           end_date: string
           id: number
+          published: boolean | null
+          published_at: string | null
           scale: string | null
           slug: string
           summary: string | null
           title: string
           updated_at: string | null
+          user_id: string
         }
         Insert: {
           begin_date: string
           created_at?: string | null
+          detail?: string | null
           end_date: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           scale?: string | null
           slug: string
           summary?: string | null
           title: string
           updated_at?: string | null
+          user_id: string
         }
         Update: {
           begin_date?: string
           created_at?: string | null
+          detail?: string | null
           end_date?: string
           id?: never
+          published?: boolean | null
+          published_at?: string | null
           scale?: string | null
           slug?: string
           summary?: string | null
           title?: string
           updated_at?: string | null
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "timelines_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_category: {
+        Args: {
+          category: Database["public"]["CompositeTypes"]["category_data"]
+        }
+        Returns: number
+      }
+      create_event: {
+        Args: {
+          event: Database["public"]["CompositeTypes"]["historical_event_data"]
+        }
+        Returns: number
+      }
+      create_period: {
+        Args: {
+          period: Database["public"]["CompositeTypes"]["period_data"]
+        }
+        Returns: number
+      }
+      create_story: {
+        Args: {
+          story: Database["public"]["CompositeTypes"]["story_data"]
+        }
+        Returns: number
+      }
+      create_timeline: {
+        Args: {
+          timeline: Database["public"]["CompositeTypes"]["timeline_data"]
+        }
+        Returns: number
+      }
+      delete_category: {
+        Args: {
+          category: Database["public"]["CompositeTypes"]["category_data"]
+        }
+        Returns: number
+      }
+      delete_event: {
+        Args: {
+          event: Database["public"]["CompositeTypes"]["historical_event_data"]
+        }
+        Returns: number
+      }
+      delete_period: {
+        Args: {
+          period: Database["public"]["CompositeTypes"]["period_data"]
+        }
+        Returns: number
+      }
+      delete_story: {
+        Args: {
+          story: Database["public"]["CompositeTypes"]["story_data"]
+        }
+        Returns: number
+      }
+      delete_timeline: {
+        Args: {
+          timeline: Database["public"]["CompositeTypes"]["timeline_data"]
+        }
+        Returns: number
+      }
+      get_metrics: {
+        Args: {
+          u: Database["public"]["CompositeTypes"]["user_data"]
+        }
+        Returns: Database["public"]["CompositeTypes"]["metrics"]
+      }
+      publish_event: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
+      }
+      publish_period: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
+      }
+      publish_story: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
+      }
+      publish_timeline: {
+        Args: {
+          user_id: string
+          slug: string
+          published: boolean
+        }
+        Returns: boolean
+      }
+      update_category: {
+        Args: {
+          category: Database["public"]["CompositeTypes"]["category_data"]
+        }
+        Returns: number
+      }
+      update_event: {
+        Args: {
+          event: Database["public"]["CompositeTypes"]["historical_event_data"]
+        }
+        Returns: number
+      }
+      update_period: {
+        Args: {
+          period: Database["public"]["CompositeTypes"]["period_data"]
+        }
+        Returns: number
+      }
+      update_story: {
+        Args: {
+          story: Database["public"]["CompositeTypes"]["story_data"]
+        }
+        Returns: number
+      }
+      update_timeline: {
+        Args: {
+          timeline: Database["public"]["CompositeTypes"]["timeline_data"]
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
     }
     CompositeTypes: {
-      [_ in never]: never
+      category_data: {
+        user_id: string
+        slug: string
+        title: string
+        historical_events: unknown
+      }
+      historical_event_data: {
+        user_id: string
+        slug: string
+        title: string
+        summary: string
+        detail: string
+        location: string
+        importance: number
+        begin_date: string
+        end_date: string
+        timeline_slug: string
+        media: unknown
+      }
+      metrics: {
+        story_count: number
+        period_count: number
+        timeline_count: number
+        event_count: number
+        category_count: number
+        media_count: number
+      }
+      period_data: {
+        user_id: string
+        slug: string
+        title: string
+        summary: string
+        detail: string
+        begin_date: string
+        end_date: string
+        timelines: unknown
+      }
+      story_data: {
+        user_id: string
+        slug: string
+        title: string
+        sub_title: string
+        summary: string
+        detail: string
+        periods: unknown
+      }
+      timeline_data: {
+        user_id: string
+        slug: string
+        title: string
+        summary: string
+        detail: string
+        scale: string
+        begin_date: string
+        end_date: string
+        historical_events: unknown
+      }
+      user_data: {
+        id: string
+      }
     }
   }
   storage: {
