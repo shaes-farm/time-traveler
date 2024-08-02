@@ -55,7 +55,7 @@ const validationSchema = yup.object({
 interface StoryEditViewProps {
   mode: 'create' | 'edit';
   story?: Story;
-  periods?: readonly Period[];
+  periods: readonly Period[];
 }
 
 export default function StoryEditView({ mode, story, periods }: StoryEditViewProps): JSX.Element {
@@ -159,8 +159,12 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
           </Grid>
           <Grid md={4} sm={12}>
             <Grid mb={2} sm={12}>
-              <ItemSummary published={formik.values.published} publishedAt={formik.values.publishedAt} title="Summary" url={formik.values.slug.trim().length ? `/stories/${formik.values.slug}` : ''} />
-              {/* <Permalink url={formik.values.slug.trim().length ? `/stories/${formik.values.slug}` : ''} /> */}
+              <ItemSummary onDelete={(slug: string): void => {
+                debug('onDelete', slug);
+              } } onPublish={(slug: string): boolean => {
+                debug('onPublish', slug);
+                return true;
+              } } published={formik.values.published} publishedAt={formik.values.publishedAt} title="Summary" url={formik.values.slug.trim().length ? `/stories/${formik.values.slug}` : ''} />
             </Grid>
             <Grid mb={2} sm={12}>
               <TextField
@@ -171,7 +175,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
                 onChange={formik.handleChange}
                 onFocus={() => {
                   if (formik.values.slug.trim().length === 0) {
-                    void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true }));
+                    void formik.setFieldValue('slug', slugify(formik.values.title, { lower: true, trim: true }));
                   }
                 }}
                 required
@@ -192,7 +196,7 @@ export default function StoryEditView({ mode, story, periods }: StoryEditViewPro
             </Grid>
             <Grid mb={2} sm={12}>
               <ItemList
-                available={periods ?? []}
+                available={periods}
                 itemNames={{ singular: 'period', plural: 'periods' }}
                 items={formik.values.periods}
                 onChange={(items) => {
