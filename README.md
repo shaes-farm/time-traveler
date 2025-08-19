@@ -1,48 +1,86 @@
 # Time Traveler
 
-Time Traveler is a content management system for telling the stories of history.
+[![Build Status](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/ci.yml?branch=main)](https://github.com/shaes-farm/time-traveler/actions)
+[![Coverage Status](https://img.shields.io/codecov/c/github/shaes-farm/time-traveler/main.svg)](https://codecov.io/gh/shaes-farm/time-traveler)
+[![License](https://img.shields.io/github/license/shaes-farm/time-traveler.svg)](LICENSE)
 
-## Preface
+**Time Traveler** is an advanced temporal content management system for storing, visualizing, and interacting with historical events and narratives. It introduces a fractal timeline metaphor, enabling users to zoom in and out of nested timelines while maintaining semantic and relational context. The system supports a wide range of character types (human, animal, mythological, fictional, organizations, divine, artifacts) and enables multi-dimensional navigation: temporal-first, character-first, and relationship-first views.
 
-Portions of this document, and the concepts upon which it elaborates, were extracted from the work of others. While the idea of this software was originally ours, and the implementation is the sole work of SHAES farm, the desire for humans to express themselves linearly in time is ancient. We would like to thank our ancestors for giving us the curiousity to look back at them. We would also like to credit Diane Kullberg and her work with Dynamic Timelines, it is her work that is mostly expressed in this document.
+---
 
-## Abstract
+## Key Features
 
-This document describes the design and development of Time Traveler, a system allowing for the storage, visualization, and interaction with temporal and semantic information using timelines in 2D environments as layered, filtered graphs. We focus on the application of interactive timelines for temporal content management systems, extending their capabilities with novel concepts for cross referencing temporal events with the spatial dimension. The work is intended to investigate beyond the current state of the art interaction with temporal data using a variety of techniques for cross-referencing, analyzing, and representing historical events.
+- **Fractal Timelines:** Zoomable, nested timelines for immersive exploration of history.
+- **Multi-Dimensional Navigation:** Switch between temporal, character-centric, and relationship network views.
+- **Rich Character Modeling:** Track not just what happened and when, but also who was involved and how they were connected.
+- **Cross-Dimensional Queries:** Sophisticated queries across time, character, and relationships.
+- **Semantic Categorization:** Flexible grouping and filtering of events and periods.
+- **Prehistoric Date Support:** Hybrid temporal system for representing dates from the Big Bang to the far future.
+- **Interactive & Collaborative:** Real-time editing, multimedia showcases, and collaborative features.
 
-## Introduction
+---
 
-Timelines are a widespread concept for temporal information representation (i.e., events that took place during a time period) and are employed in various environments and contexts, ranging from exhibition spaces and museums to educational textbooks. In general, timelines aim to present information regarding specific temporal periods along with an overview of related occurring events in condensed, yet rich, form. The contents of a timeline can vary from historical events to numerical data representation, while the only limitation is that the various items should be temporally related.
+## Architecture & Domain Model
 
-In this context, this document provides the design and development of Time Traveler, a system allowing for the modeling, storing, visualization and interaction with temporal data as timelines. Time Traveler extends the typical visualization techniques offered by the majority of the available interactive timelines, which order events in simple, linear 2D space to denote temporal relations, by providing an innovative alternate view that aims to highlight the fractal dimension of time and facilitate a more immersive exploration of the available information. This view employs a “fractal” metaphor, i.e., the ability to zoom in and out of time to reveal the timelines associated with each event. Along the timeline, next to each event, exists an extendable ‘showcase’ comprising various multimedia objects (e.g., texts, documents, images, videos and 3D models).
+- **Modular Layers:** Presentation, application, and data layers with clear separation of concerns.
+- **Core Components:** Temporal engine, visualization engine, semantic engine, content manager, navigation controller.
+- **Modern Stack:** React/Next.js frontend, RESTful/GraphQL API, PostgreSQL database, WebSocket support.
+- **Extensible Schema:** Comprehensive TypeScript-style models for timelines, periods, events, stories, categories, and characters.
+- **Character Extensions:** Dedicated tables and relationships for character profiles, attributes, media, relationships, and event participation.
+- **Prehistoric Dates:** JSONB-based temporal data, computed columns for sorting, and UI components for flexible date input and display.
 
-## Background
+---
 
-### Timeline-Related Concepts
+## Use Cases
 
-**Events** are a common concept of timelines and represent any type of incident that took place at some point in time. Information concerning events is represented in chronological order and usually includes at least a title/short description, as well as when it happened. Event occurrences may be (or considered) instant, e.g., the birth of a person, or have a duration, e.g., the construction of a monument.
+- **Historical Research:** Academic studies, period analysis, and cross-referencing of events.
+- **Criminal & Journalistic Investigation:** Timeline reconstruction, pattern recognition, and relationship mapping.
+- **Education:** Interactive curriculum timelines and immersive learning experiences.
+- **Storytelling & Biography:** Narrative construction, character-centric timelines, and ensemble storytelling.
+- **Paleontology & Geology:** Representation of events spanning millions or billions of years.
 
-**Periods** are time frames during which incidents share some common characteristics or hold a distinct meaning.
+---
 
-**Categories** define groups of semantically relevant events whose common denominator can be their type, their context or a specific attribute (e.g., the director in the case of a movie). Categories are mainly used to facilitate interaction by minimizing the amount of the displayed information through filtering out certain objects.
+## Development & Deployment
 
-### Interactive Timelines
+- **Well-Organized Codebase:** Clear separation of components, services, stores, utilities, and types.
+- **Testing:** Unit, integration, end-to-end, and performance tests.
+- **Security:** Row-level security (RLS) policies, authentication, and authorization.
+- **CI/CD:** Automated testing and deployment pipelines.
+- **Docker-Based Deployment:** Scalable and production-ready environments.
 
-Interactive timelines may be broadly classified into three distinct categories according to the type of information they present, as well as the aspect of information they focus on:
+---
 
-1. Historical Events Representation
-2. Temporal Data Representation
-3. Semantic Timelines
+## Getting Started
 
-The first category includes timelines that represent historical events, aiming to provide an overview around a specific topic. Timelines representing temporal data consist of numerous values of one or more variables that change over time; therefore, the second category can be considered as enriched graph visualization techniques, which primarily focus on the analysis of data distribution over time. Finally, the third category, semantic timelines, represents events with metadata that can be interrelated with others, primarily focusing on displaying the relationships between events rather than providing detailed information about the events.
+### Build
 
-Faceted navigation is a common practice used for temporal data visualization in timelines, implemented through the adoption of taxonomies to classify data in multiple ways and allows the application of filters to information. Faceted display is implemented through hierarchical trees, separate quantitative controls, and separate toggle / filtering controls.
+```bash
+npm install
+npm run build
+```
 
-## Motivation and Design Requirements
+### Test
 
-The overall goal of this work is to design, develop and assess an integrated approach for modeling, storing, retrieving, and visualizing temporal information in a way generally application for the purpose of storytelling. In brief, according to the envisioned design requirements the system should:
+```bash
+npm test
+```
 
-1. allow expressing, storing and retrieving event-related data augmented with semantic information, and thus be able to retrieve knowledge from a formal data model;
-2. support the arbitrary grouping (categorization) of events in a non-restrictive way; thus, apart from temporal categorization, the system should offer a content-independent semantic categorization mechanism;
-3. provide alternative, appropriate and complementary, ways (views) to represent information among which the user should be able to dynamically switch ‘on-the-fly’;
-4. provide suitable display modes for the presentation of event information, both for fundamental data such as titles and for extended details such as descriptive text, images, videos and 3D models.
+### Start
+
+```bash
+npm start
+```
+
+---
+
+## Learn More
+
+- [System Overview & Design](docs/system/README.md)
+- [Detailed Architecture & Domain Models](docs/system/design.md)
+- [Character Data Model & Migration Guide](docs/system/character-migrations-analysis.md)
+- [Prehistoric Date Representation](docs/system/prehistoric-date-representation.md)
+
+---
+
+*Time Traveler empowers users to explore, document, and analyze history across any scale of time, with rich semantic and relational context.*
