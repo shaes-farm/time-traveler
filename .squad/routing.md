@@ -6,12 +6,14 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| {domain 1} | {Name} | {example tasks} |
-| {domain 2} | {Name} | {example tasks} |
-| {domain 3} | {Name} | {example tasks} |
-| Code review | {Name} | Review PRs, check quality, suggest improvements |
-| Testing | {Name} | Write tests, find edge cases, verify fixes |
-| Scope & priorities | {Name} | What to build next, trade-offs, decisions |
+| Architecture, system design, tech choices | Cooper | Schema design, Supabase setup strategy, API contracts, tech stack decisions |
+| Next.js, React, UI components, timeline visualization | Brand | Pages, components, temporal input UX, fractal navigation, logarithmic scale rendering |
+| Supabase, PostgreSQL, JSONB, Edge Functions, APIs | TARS | Schema migrations, RLS policies, storage config, Realtime, bulk import/export |
+| Tests, QA, edge cases, temporal validation | Romilly | Hybrid temporal tests, RLS verification, BCE/CE boundaries, integration tests |
+| Code review | Cooper | Review PRs, architectural guidance, accept/reject with lockout enforcement |
+| Code review (frontend) | Brand | Next.js/React PR review |
+| Testing | Romilly | Write tests, find edge cases, verify fixes, validate RLS policies |
+| Scope & priorities | Cooper | What to build next, trade-offs, decisions |
 | Async issue work (bugs, tests, small features) | @copilot 🤖 | Well-defined tasks matching capability profile |
 | Session logging | Scribe | Automatic — never needs routing |
 
