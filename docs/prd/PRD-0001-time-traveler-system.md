@@ -3724,8 +3724,8 @@ Time Traveler follows a modern JAMstack architecture with serverless backend ser
 
 | Component         | Technology               | Purpose                                         |
 | ----------------- | ------------------------ | ----------------------------------------------- |
-| Framework         | Next.js 14+ (App Router) | Server-side rendering, routing, optimization    |
-| UI Library        | React 18+                | Component-based UI, hooks, concurrent features  |
+| Framework         | Next.js 16+ (App Router) | Server-side rendering, routing, optimization    |
+| UI Library        | React 19+                | Component-based UI, hooks, concurrent features  |
 | Language          | TypeScript (strict mode) | Type safety, developer experience               |
 | Component Library | shadcn/ui + Radix UI     | Accessible, customizable components             |
 | Styling           | Tailwind CSS             | Utility-first CSS, design system                |
