@@ -19,9 +19,10 @@
 9. [Security & Authentication](#9-security--authentication)
 10. [Deployment Strategy](#10-deployment-strategy)
 11. [Project Structure](#11-project-structure)
-12. [Use Cases & Applications](#12-use-cases--applications)
-13. [Appendix A: Enumerated Values](#13-appendix-a-enumerated-values)
-14. [Appendix B: Design Decisions Log](#14-appendix-b-design-decisions-log)
+12. [Curated Content Library](#12-curated-content-library)
+13. [Use Cases & Applications](#13-use-cases--applications)
+14. [Appendix A: Enumerated Values](#14-appendix-a-enumerated-values)
+15. [Appendix B: Design Decisions Log](#15-appendix-b-design-decisions-log)
 
 ---
 
@@ -85,7 +86,7 @@ This system targets a Supabase implementation. Supabase provides PostgreSQL, aut
 
 | Layer           | Technology                                                       |
 | --------------- | ---------------------------------------------------------------- |
-| Frontend        | Next.js 14+ (App Router), React 18+, TypeScript                  |
+| Frontend        | Next.js 16+ (App Router), React 19+, TypeScript                  |
 | UI Components   | shadcn/ui, Tailwind CSS, Recharts, D3.js                         |
 | Server State    | TanStack Query (React Query)                                     |
 | Client State    | Zustand (UI state, navigation, view modes)                       |
@@ -146,6 +147,8 @@ CREATE TABLE profiles (
   avatar_url TEXT,
   website TEXT,
   social_links JSONB DEFAULT '{}',
+  role VARCHAR(20) DEFAULT 'editor'
+    CHECK (role IN ('editor', 'admin')),
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
 
@@ -158,6 +161,23 @@ CREATE UNIQUE INDEX profiles_username_idx ON profiles (username);
 ```
 
 > **Change from prior schema:** Social media links consolidated into a single `social_links JSONB` column rather than individual `social_x`, `social_facebook`, etc. columns. This is more extensible — new platforms can be added without schema changes.
+>
+> **Admin role:** The `role` column defaults to `editor` for all new users. Admin role is assigned manually via SQL or an admin interface. The `is_admin()` helper function (see [Section 9.2](#92-rls-pattern)) checks this column in RLS policies.
+
+#### is_admin() Helper Function
+
+```sql
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+      AND role = 'admin'
+  );
+$$;
+```
+
+> **SECURITY DEFINER** is required here because the function needs to read `profiles` regardless of the calling user's RLS context. The function is `STABLE` (no side effects) and returns a simple boolean used in RLS policy clauses.
 
 #### timelines
 
@@ -181,6 +201,12 @@ CREATE TABLE timelines (
     CHECK (visibility IN ('private', 'public', 'shared')),
   fractal_depth INTEGER DEFAULT 5,
   metadata JSONB DEFAULT '{}',
+  search_vector TSVECTOR GENERATED ALWAYS AS (
+    to_tsvector('english',
+      coalesce(title, '') || ' ' ||
+      coalesce(summary, '') || ' ' ||
+      coalesce(detail, ''))
+  ) STORED,
   published BOOLEAN DEFAULT false,
   published_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -189,6 +215,8 @@ CREATE TABLE timelines (
 
 CREATE UNIQUE INDEX timelines_slug_idx ON timelines (user_id, slug);
 ```
+
+> **Addition per PRD:** `search_vector` column added to timelines to support full-text search across all four searchable entity types (events, characters, stories, timelines) as required by PRD Section 4.12.1.
 
 #### periods
 
@@ -527,6 +555,73 @@ CREATE TABLE timeline_collaborators (
 > - Added `story_events` (stories linked directly to events, not just via periods).
 > - Added `character_media` for character profile images.
 > - Added `timeline_collaborators` for shared timeline access.
+> - Added `timeline_media` for timeline cover images and header media (per PRD Section 4.8.5).
+
+```sql
+-- Timelines ↔ Media
+CREATE TABLE timeline_media (
+  timeline_id UUID REFERENCES timelines(id) ON DELETE CASCADE,
+  media_id UUID REFERENCES media(id) ON DELETE CASCADE,
+  sort_order INTEGER DEFAULT 0,
+  PRIMARY KEY (timeline_id, media_id)
+);
+```
+
+### 3.5 Supporting Tables
+
+#### notifications
+
+Notifications support collaboration invitations, content moderation alerts, and system messages as required by PRD Sections 3.3.2, 3.4.1, and 4.9.7.
+
+```sql
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users NOT NULL,
+  type VARCHAR(50) NOT NULL
+    CHECK (type IN (
+      'collaborator_invite', 'content_moderated', 'content_reported',
+      'library_update', 'system_message'
+    )),
+  title TEXT NOT NULL,
+  body TEXT,
+  metadata JSONB DEFAULT '{}',
+  read BOOLEAN DEFAULT false,
+  read_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_notifications_user ON notifications (user_id, read, created_at DESC);
+```
+
+> **Design notes:** Notifications are write-once — they are never updated except to mark `read = true`. The `metadata` JSONB field stores context-specific data (e.g., `{ "timeline_id": "...", "role": "editor" }` for collaboration invites, or `{ "entity_type": "timeline", "entity_id": "...", "reason": "misinformation" }` for moderation alerts). RLS: users can only read their own notifications.
+
+#### content_reports
+
+Content reporting enables users to flag inappropriate or inaccurate content for admin moderation as described in PRD Section 3.3.2.
+
+```sql
+CREATE TABLE content_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id UUID REFERENCES auth.users NOT NULL,
+  entity_type VARCHAR(50) NOT NULL
+    CHECK (entity_type IN ('timeline', 'event', 'period', 'story', 'character')),
+  entity_id UUID NOT NULL,
+  reason VARCHAR(50) NOT NULL
+    CHECK (reason IN ('inaccurate', 'inappropriate', 'spam', 'copyright', 'other')),
+  description TEXT,
+  status VARCHAR(20) DEFAULT 'pending'
+    CHECK (status IN ('pending', 'reviewed', 'actioned', 'dismissed')),
+  admin_notes TEXT,
+  resolved_by UUID REFERENCES auth.users,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_reports_status ON content_reports (status, created_at DESC);
+CREATE INDEX idx_reports_entity ON content_reports (entity_type, entity_id);
+```
+
+> **Design notes:** Reports use a polymorphic `entity_type`/`entity_id` pattern rather than separate FK columns per entity, keeping the schema simple. The `resolved_by` FK tracks which admin handled the report. RLS: reporters can read their own reports; admins can read and update all reports.
 
 ---
 
@@ -866,9 +961,11 @@ $$;
 
 ### 5.5 Edge Functions
 
-Edge Functions (Deno runtime) handle operations that _cannot or should not_ run on the client:
+Edge Functions (Deno runtime) handle operations that _cannot or should not_ run on the client. Each function below maps to a specific PRD requirement.
 
-**Bulk Import.** Accepts CSV/JSON uploads, validates temporal data, and inserts events + junction rows in a server-side transaction. This is the one place where a `plpgsql` transactional wrapper is justified — the Edge Function calls `supabase.rpc('bulk_import_events', { ... })` with a validated payload.
+#### 5.5.1 Bulk Import (`supabase/functions/bulk-import/index.ts`)
+
+Accepts CSV/JSON uploads, validates temporal data, and inserts events + junction rows in a server-side transaction (PRD Section 4.10). This is the one place where a `plpgsql` transactional wrapper is justified — the Edge Function calls `supabase.rpc('bulk_import_events', { ... })` with a validated payload.
 
 ```typescript
 // supabase/functions/bulk-import/index.ts
@@ -876,29 +973,110 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 serve(async (req) => {
-  const { timelineId, events } = await req.json();
+  const { timelineId, events, options } = await req.json();
+  // options: { mode: 'partial' | 'strict', duplicateStrategy: 'skip' | 'update' | 'create' }
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, // Admin access for bulk ops
   );
-  // Validate, transform, insert in transaction...
+
+  // 1. Parse CSV/JSON input into event objects
+  // 2. Validate each row against Zod temporalDataSchema
+  // 3. In strict mode: reject entire batch if any validation errors
+  //    In partial mode: collect errors, continue with valid rows
+  // 4. Resolve slug-based references (timeline_slug, category slugs, character slugs)
+  // 5. Insert events + junction rows in a plpgsql transaction
+  // 6. Return import summary:
+  //    { total_rows, imported, rejected, errors: [{ row, field, error, suggestion }] }
 });
 ```
 
-**Timeline Export.** Generates PDF, embeddable HTML, or structured JSON for a timeline and its events. Requires server-side rendering (PDF generation via a headless library or template engine).
+**Timeout:** 30s (Supabase Edge Function limit). For imports exceeding ~500 rows, implement chunked processing with progress tracking.
 
-**Image Processing.** When a user uploads media to Supabase Storage, a database webhook triggers an Edge Function that generates thumbnails, extracts EXIF metadata, and updates the `media` row with dimensions and file size.
+#### 5.5.2 Timeline Export (`supabase/functions/export-timeline/index.ts`)
 
-**Geocoding.** When `spatial_data` is missing but `location` text is present, an Edge Function calls a geocoding API (e.g., Mapbox, Google Places) and backfills the `spatial_data` JSONB.
+Generates timeline exports in multiple formats per PRD Section 4.11.
 
-**Publish Workflow.** The `publish` operation sets `published = true` and `published_at = now()`, but may also need to trigger notifications, generate a public snapshot, or update a search index. An Edge Function wraps this logic:
+```typescript
+serve(async (req) => {
+  const { timelineId, format, options } = await req.json();
+  // format: 'pdf' | 'json' | 'csv' | 'html'
+  // options: { includeCharacters, includeMedia, colorScheme, ... }
+
+  // 1. Fetch timeline + all related entities (events, characters, periods, stories, media)
+  //    via joins through junction tables
+  // 2. Format-specific generation:
+
+  // PDF: Use @react-pdf/renderer (Deno-compatible) or jsPDF
+  //   - Cover page: title, summary, author, date range, export date
+  //   - Timeline visualization: horizontal graphic with positioned events
+  //   - Event list: chronological, with temporal display, characters, categories
+  //   - Character profiles (if included)
+  //   - Appendices: period definitions, sources
+  //   - Professional typography, page numbers, TOC
+
+  // JSON: Complete structured dump matching PRD Section 4.11.3 schema
+  //   - Excludes generated columns (sort_order_years, search_vector)
+  //   - Includes all junction relationships
+  //   - Re-importable via bulk-import function
+
+  // CSV: Flat tabular format per PRD Section 4.11.5
+  //   - Columns: title, temporal_year, temporal_era, temporal_display, summary,
+  //     detail, event_type, importance, location, latitude, longitude,
+  //     categories (comma-separated), characters (comma-separated), published
+
+  // HTML: Self-contained embeddable file per PRD Section 4.11.4
+  //   - Single file <500KB with inline CSS/JS
+  //   - Interactive timeline navigation, event popups, client-side search
+  //   - Responsive, no server dependencies
+  //   - Customizable: color scheme, font, density, feature toggles
+
+  // 3. Upload result to Supabase Storage (exports bucket, private)
+  // 4. Return signed URL (expires in 24h)
+});
+```
+
+#### 5.5.3 Library Import (`supabase/functions/library-import/index.ts`)
+
+Duplicates curated library content to a user's account per PRD Section 4.14 and Section 12 of this document.
+
+```typescript
+serve(async (req) => {
+  const { sourceTimelineId, eventIds, mode, targetTimelineId } = await req.json();
+  // mode: 'customize' | 'readonly'
+  // eventIds: null (entire timeline) or array (cherry-pick)
+  // targetTimelineId: null (create new) or UUID (add to existing)
+
+  // 1. Fetch library entities (owned by admin, metadata.is_library_content = true)
+  // 2. Deep-copy with new UUIDs, user_id = requesting user
+  // 3. Import referenced characters (match by slug to avoid duplicates)
+  // 4. Import referenced categories (match by title to reuse existing)
+  // 5. Create junction rows (event_characters, event_categories, timeline_events)
+  // 6. Handle slug conflicts (append numeric suffix)
+  // 7. Return: { imported_events, imported_characters, imported_categories, timeline_id }
+});
+```
+
+#### 5.5.4 Image Processing (`supabase/functions/process-media/index.ts`)
+
+When a user uploads media to Supabase Storage, a database webhook triggers this function to generate thumbnails, extract EXIF metadata, and update the `media` row with dimensions and file size.
+
+#### 5.5.5 Geocoding (`supabase/functions/geocode/index.ts`)
+
+When `spatial_data` is missing but `location` text is present, this function calls a geocoding API (e.g., Mapbox, Google Places) and backfills the `spatial_data` JSONB.
+
+#### 5.5.6 Publish Workflow (`supabase/functions/publish/index.ts`)
+
+The `publish` operation sets `published = true` and `published_at = now()`, triggers notifications for collaborators, and handles any downstream effects.
 
 ```typescript
 // supabase/functions/publish/index.ts
 serve(async (req) => {
   const { entityType, entityId, action } = await req.json();
-  // Validate user owns entity, set published state,
-  // trigger any downstream effects (notifications, etc.)
+  // 1. Validate user owns entity
+  // 2. Set published state and published_at timestamp
+  // 3. If timeline has collaborators, insert notifications for each
+  // 4. Return updated entity
 });
 ```
 
@@ -1050,8 +1228,9 @@ CREATE INDEX idx_events_timeline_sort ON events (timeline_id, sort_order_years);
 CREATE INDEX idx_events_range ON events (sort_order_years, sort_order_end);
 CREATE INDEX idx_periods_sort ON periods (sort_order_start);
 
--- Full-text search
+-- Full-text search (all four searchable entity types per PRD Section 4.12.1)
 CREATE INDEX idx_events_search ON events USING GIN (search_vector);
+CREATE INDEX idx_timelines_search ON timelines USING GIN (search_vector);
 CREATE INDEX idx_characters_search ON characters USING GIN (search_vector);
 CREATE INDEX idx_stories_search ON stories USING GIN (search_vector);
 
@@ -1130,28 +1309,173 @@ Supabase Auth (email/password, magic link, OAuth). Profile trigger auto-creates 
 
 ### 9.2 RLS Pattern
 
-**Content tables** (events, timelines, periods, stories, characters, categories, media):
+Every content table uses the same four-clause pattern for reads: published content is public, owners see their own, admins see everything, and collaborators see shared timeline content. Write policies check ownership or admin status, with collaborator editors granted write access to shared timeline content.
+
+#### 9.2.1 Content Tables with Timeline Association (events)
+
+Tables that have a `timeline_id` column benefit from direct collaborator checks:
 
 ```sql
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 
--- Read: public content is readable by everyone, private by owner only
+-- Read: published OR owner OR admin OR collaborator
 CREATE POLICY "read_events" ON events FOR SELECT USING (
-  published = true OR user_id = auth.uid()
+  published = true
+  OR user_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM timeline_collaborators tc
+    WHERE tc.timeline_id = events.timeline_id
+      AND tc.user_id = auth.uid()
+  )
 );
 
--- Write: owner only
+-- Insert: owner or admin
 CREATE POLICY "insert_events" ON events FOR INSERT TO authenticated
-  WITH CHECK (user_id = auth.uid());
+  WITH CHECK (
+    user_id = auth.uid()
+    OR is_admin()
+  );
+
+-- Update: owner OR admin OR collaborator-editor
 CREATE POLICY "update_events" ON events FOR UPDATE TO authenticated
-  USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+  USING (
+    user_id = auth.uid()
+    OR is_admin()
+    OR EXISTS (
+      SELECT 1 FROM timeline_collaborators tc
+      WHERE tc.timeline_id = events.timeline_id
+        AND tc.user_id = auth.uid()
+        AND tc.role IN ('editor', 'admin')
+    )
+  )
+  WITH CHECK (
+    user_id = auth.uid()
+    OR is_admin()
+    OR EXISTS (
+      SELECT 1 FROM timeline_collaborators tc
+      WHERE tc.timeline_id = events.timeline_id
+        AND tc.user_id = auth.uid()
+        AND tc.role IN ('editor', 'admin')
+    )
+  );
+
+-- Delete: owner or admin only (collaborators cannot delete)
 CREATE POLICY "delete_events" ON events FOR DELETE TO authenticated
-  USING (user_id = auth.uid());
+  USING (user_id = auth.uid() OR is_admin());
 ```
 
-> **Key change from prior schema:** The prior RLS allowed anonymous read of _all_ content (`USING (true)`). The greenfield design respects the `published` flag — unpublished content is visible only to the owner.
+#### 9.2.2 Content Tables without Timeline Association (timelines, periods, stories, characters, categories, media)
 
-**Junction tables** (no user_id — ownership derived from parent):
+Tables without a direct `timeline_id` use the owner + admin + published pattern. For periods, stories, and characters, collaborator access is derived via the junction tables that connect them to timelines.
+
+```sql
+-- Example: timelines (the parent entity for collaboration)
+ALTER TABLE timelines ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_timelines" ON timelines FOR SELECT USING (
+  published = true
+  OR user_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM timeline_collaborators tc
+    WHERE tc.timeline_id = timelines.id
+      AND tc.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "insert_timelines" ON timelines FOR INSERT TO authenticated
+  WITH CHECK (user_id = auth.uid() OR is_admin());
+CREATE POLICY "update_timelines" ON timelines FOR UPDATE TO authenticated
+  USING (user_id = auth.uid() OR is_admin())
+  WITH CHECK (user_id = auth.uid() OR is_admin());
+CREATE POLICY "delete_timelines" ON timelines FOR DELETE TO authenticated
+  USING (user_id = auth.uid() OR is_admin());
+```
+
+```sql
+-- Periods: collaborator access derived via period_timelines junction
+ALTER TABLE periods ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_periods" ON periods FOR SELECT USING (
+  published = true
+  OR user_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM period_timelines pt
+    JOIN timeline_collaborators tc ON tc.timeline_id = pt.timeline_id
+    WHERE pt.period_id = periods.id
+      AND tc.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "write_periods" ON periods FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR is_admin());
+```
+
+```sql
+-- Characters: collaborator access derived via event_characters → events → timelines
+ALTER TABLE characters ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_characters" ON characters FOR SELECT USING (
+  published = true
+  OR user_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM event_characters ec
+    JOIN events e ON ec.event_id = e.id
+    JOIN timeline_collaborators tc ON tc.timeline_id = e.timeline_id
+    WHERE ec.character_id = characters.id
+      AND tc.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "write_characters" ON characters FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR is_admin());
+```
+
+```sql
+-- Stories: collaborator access derived via story_events → events → timelines
+ALTER TABLE stories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_stories" ON stories FOR SELECT USING (
+  published = true
+  OR user_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM story_events se
+    JOIN events e ON se.event_id = e.id
+    JOIN timeline_collaborators tc ON tc.timeline_id = e.timeline_id
+    WHERE se.story_id = stories.id
+      AND tc.user_id = auth.uid()
+  )
+);
+
+CREATE POLICY "write_stories" ON stories FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR is_admin());
+```
+
+```sql
+-- Categories and Media: owner + admin + published pattern
+-- (Collaborator access derived transitively when queried via junction joins)
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_categories" ON categories FOR SELECT USING (true);
+  -- Categories are globally readable (they are organizational metadata)
+CREATE POLICY "write_categories" ON categories FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR is_admin());
+
+ALTER TABLE media ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_media" ON media FOR SELECT USING (true);
+  -- Media is globally readable (access control is on the parent entity)
+CREATE POLICY "write_media" ON media FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR is_admin());
+```
+
+> **Key changes from prior schema:** The prior RLS allowed anonymous read of _all_ content (`USING (true)`). The greenfield design respects the `published` flag — unpublished content is visible only to the owner. Admin override (`OR is_admin()`) is included on all policies per PRD Section 4.9.2. Collaborator access extends beyond events to periods, characters, and stories via their junction table relationships to timelines.
+
+#### 9.2.3 Junction Tables (no user_id — ownership derived from parent)
 
 ```sql
 ALTER TABLE event_categories ENABLE ROW LEVEL SECURITY;
@@ -1159,34 +1483,39 @@ ALTER TABLE event_categories ENABLE ROW LEVEL SECURITY;
 -- Read: anyone can read junctions for events they can see
 CREATE POLICY "read_event_categories" ON event_categories FOR SELECT USING (
   EXISTS (SELECT 1 FROM events WHERE id = event_categories.event_id
-    AND (published = true OR user_id = auth.uid()))
+    AND (published = true OR user_id = auth.uid() OR is_admin()))
 );
 
--- Write: only event owner
+-- Write: event owner or admin
 CREATE POLICY "write_event_categories" ON event_categories FOR ALL TO authenticated USING (
   EXISTS (SELECT 1 FROM events WHERE id = event_categories.event_id
-    AND user_id = auth.uid())
+    AND (user_id = auth.uid() OR is_admin()))
 );
 ```
 
-**Collaborators** (shared timelines):
+> The same derived-ownership pattern applies to all junction tables: `event_media`, `event_characters`, `timeline_events`, `period_timelines`, `story_periods`, `story_characters`, `story_events`, `character_media`, and `timeline_media`. Each checks ownership of its parent entity.
+
+#### 9.2.4 Collaborator Table
 
 ```sql
--- Collaborators can read and (if editor/admin) write events in shared timelines
-CREATE POLICY "collaborator_read_events" ON events FOR SELECT USING (
-  EXISTS (
-    SELECT 1 FROM timeline_collaborators tc
-    WHERE tc.timeline_id = events.timeline_id
-      AND tc.user_id = auth.uid()
+ALTER TABLE timeline_collaborators ENABLE ROW LEVEL SECURITY;
+
+-- Read: timeline owner, the collaborator themselves, or admin
+CREATE POLICY "read_collaborators" ON timeline_collaborators FOR SELECT USING (
+  user_id = auth.uid()
+  OR is_admin()
+  OR EXISTS (
+    SELECT 1 FROM timelines WHERE id = timeline_collaborators.timeline_id
+      AND user_id = auth.uid()
   )
 );
 
-CREATE POLICY "collaborator_write_events" ON events FOR ALL TO authenticated USING (
-  EXISTS (
-    SELECT 1 FROM timeline_collaborators tc
-    WHERE tc.timeline_id = events.timeline_id
-      AND tc.user_id = auth.uid()
-      AND tc.role IN ('editor', 'admin')
+-- Write: timeline owner or admin only (owners manage their collaborators)
+CREATE POLICY "write_collaborators" ON timeline_collaborators FOR ALL TO authenticated USING (
+  is_admin()
+  OR EXISTS (
+    SELECT 1 FROM timelines WHERE id = timeline_collaborators.timeline_id
+      AND user_id = auth.uid()
   )
 );
 ```
@@ -1236,7 +1565,14 @@ time-traveler/
 │   │   │   ├── dashboard/
 │   │   │   ├── timelines/create/
 │   │   │   ├── events/create/
-│   │   │   └── characters/create/
+│   │   │   ├── characters/create/
+│   │   │   ├── library/                  # Curated content library browser
+│   │   │   └── notifications/            # User notification center
+│   │   ├── (admin)/                      # Admin-only routes (is_admin() check)
+│   │   │   ├── dashboard/                # Admin dashboard, usage metrics
+│   │   │   ├── library/                  # Manage curated content library
+│   │   │   ├── moderation/               # Content reports and moderation
+│   │   │   └── users/                    # User management, role assignment
 │   │   └── auth/
 │   ├── components/
 │   │   ├── timeline/                     # Timeline, FractalView, Renderer
@@ -1244,6 +1580,7 @@ time-traveler/
 │   │   ├── character/                    # Profile, Timeline, RelationshipNetwork
 │   │   ├── temporal/                     # TemporalInput, PrehistoricTimeline
 │   │   ├── showcase/                     # MediaGallery, Uploader
+│   │   ├── admin/                        # Admin-specific components
 │   │   └── ui/                           # shadcn/ui
 │   ├── lib/
 │   │   ├── supabase/
@@ -1255,7 +1592,9 @@ time-traveler/
 │   │   │   ├── timelineService.ts
 │   │   │   ├── characterService.ts
 │   │   │   ├── storyService.ts
-│   │   │   └── temporalService.ts        # Era conversion, formatting
+│   │   │   ├── temporalService.ts        # Era conversion, formatting
+│   │   │   ├── notificationService.ts    # Create/read/mark-read notifications
+│   │   │   └── libraryService.ts         # Curated content import logic
 │   │   ├── schemas/
 │   │   │   ├── temporal.ts               # Zod schemas for TemporalData
 │   │   │   ├── event.ts                  # Zod schemas for event forms
@@ -1267,6 +1606,7 @@ time-traveler/
 │   │   ├── useEvents.ts                  # TanStack Query hooks
 │   │   ├── useCharacters.ts
 │   │   ├── useTimelines.ts
+│   │   ├── useNotifications.ts           # Notification polling/realtime
 │   │   └── useRealtime.ts               # Realtime subscription hooks
 │   ├── stores/
 │   │   ├── navigationStore.ts            # Zoom, view mode, timeline selection
@@ -1279,6 +1619,8 @@ time-traveler/
 │   ├── functions/
 │   │   ├── bulk-import/index.ts
 │   │   ├── export-timeline/index.ts
+│   │   ├── library-import/index.ts       # Curated content import
+│   │   ├── geocode/index.ts              # Location → spatial_data
 │   │   ├── process-media/index.ts
 │   │   └── publish/index.ts
 │   ├── seed.sql
@@ -1292,31 +1634,93 @@ time-traveler/
 
 ---
 
-## 12. Use Cases & Applications
+## 12. Curated Content Library
 
-### 12.1 Geological & Cosmological Timelines
+The curated content library is a reference collection of ~100 high-quality historical events organized into 10-15 thematic timelines, serving as an onboarding tool and content bootstrap per PRD Section 4.14.
+
+### 12.1 Strategy: Admin-Owned Content (PRD Option A)
+
+Library content is stored in the same tables as user content, owned by a dedicated admin user and identified by a metadata flag:
+
+```json
+{
+  "is_library_content": true,
+  "library_version": "1.0",
+  "library_category": "curated"
+}
+```
+
+This reuses existing tables and RLS — library content is published and publicly readable like any other published content. No separate schema required.
+
+### 12.2 Import Mechanism
+
+When a user imports from the library, content is duplicated to the user's account via an Edge Function:
+
+```typescript
+// supabase/functions/library-import/index.ts
+serve(async (req) => {
+  const { timelineId, eventIds, mode } = await req.json();
+  // mode: 'customize' (editable copies) or 'readonly' (read-only reference)
+
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+
+  // 1. Fetch selected library entities (events, characters, categories)
+  // 2. Deep-copy with new UUIDs, user_id = requesting user
+  // 3. Preserve relationships (event_characters, event_categories)
+  // 4. Handle slug conflicts (append numeric suffix)
+  // 5. Return import summary
+});
+```
+
+**Import modes:**
+
+- **Customize** (default): Creates editable copies. User can modify freely. No link to library.
+- **Read-only reference**: Creates copies with `metadata.library_readonly = true`. UI prevents editing. Future enhancement: propagate library updates.
+
+### 12.3 Relationship Preservation
+
+During import, the Edge Function:
+
+- Imports referenced characters if not already in the user's account (match by slug to avoid duplicates)
+- Imports referenced categories (match by title to reuse existing user categories)
+- Creates all junction table rows (`event_characters`, `event_categories`, `timeline_events`)
+- If importing a full timeline, creates the timeline entity first, then associates events
+- If cherry-picking events, user chooses an existing timeline or creates a new one
+
+### 12.4 Admin Management
+
+Library content is managed by admin users through the standard CRUD interface with an admin-only "Library Management" section in the dashboard. Bulk import via CSV/JSON (the same `bulk-import` Edge Function) is the primary seeding mechanism. Library content is maintained in the `supabase/seed.sql` file for reproducible bootstrapping across environments.
+
+---
+
+## 13. Use Cases & Applications
+
+### 13.1 Geological & Cosmological Timelines
 
 Paleontologist creates Mesozoic Era timeline (252–66 MYA). Logarithmic scale for overview, linear when zoomed to a stage. Characters as species with temporal birth/death as emergence/extinction dates.
 
-### 12.2 Criminal Investigation
+### 13.2 Criminal Investigation
 
 Private timeline, CE exact dates, spatial_data for geographic correlation. Characters as suspects/witnesses/victims. Relationship network reveals connections; comparative view shows parallel movements.
 
-### 12.3 Mythological Storytelling
+### 13.3 Mythological Storytelling
 
 Greek mythology timeline. Characters: mythological/divine. Relationships: family, rivalry, worship. Fractal nesting: myths within narrative arcs. Spans from cosmological origin to Trojan War (c. 1200 BCE).
 
-### 12.4 Animal Biography
+### 13.4 Animal Biography
 
 Seabiscuit: character_type `animal`, species `horse`, breed `Thoroughbred`, birth 1933 CE, death 1947 CE. Events = races, appearances. Relationships = trainers, jockeys, rivals. Character-centric view as complete life timeline.
 
-### 12.5 Journalistic Investigation
+### 13.5 Journalistic Investigation
 
 Bulk import event data via Edge Function. Characters as executives, regulators, whistleblowers. Private with selective sharing via `timeline_collaborators`.
 
 ---
 
-## 13. Appendix A: Enumerated Values
+## 14. Appendix A: Enumerated Values
 
 ### Character Types
 
@@ -1378,28 +1782,50 @@ Bulk import event data via Edge Function. Characters as executives, regulators, 
 
 `viewer`, `editor`, `admin`
 
+### Profile Roles
+
+`editor`, `admin`
+
+### Notification Types
+
+`collaborator_invite`, `content_moderated`, `content_reported`, `library_update`, `system_message`
+
+### Content Report Reasons
+
+`inaccurate`, `inappropriate`, `spam`, `copyright`, `other`
+
+### Content Report Statuses
+
+`pending`, `reviewed`, `actioned`, `dismissed`
+
 ---
 
-## 14. Appendix B: Design Decisions Log
+## 15. Appendix B: Design Decisions Log
 
 This appendix documents key decisions and the reasoning behind them, for future reference.
 
-| #   | Decision                                            | Rationale                                                                                                                              |
-| --- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **UUIDs over BIGINT identity**                      | Client-side generation for optimistic updates, natural fit with Supabase Auth, no guessable IDs                                        |
-| 2   | **No stored procedures for CRUD**                   | PostgREST provides typed CRUD, cascades handle deletes, TypeScript services handle multi-step operations, functions are harder to test |
-| 3   | **SQL functions over PL/pgSQL for reads**           | SQL functions are inlineable by the query optimizer; PL/pgSQL is opaque. All read functions use `LANGUAGE sql STABLE`                  |
-| 4   | **No user_id on junction tables**                   | Prevents integrity issues where junction `user_id` disagrees with parent entity ownership. RLS checks parent entity directly           |
-| 5   | **Separate start/end temporal columns**             | Enables proper range-overlap queries, cleaner validation, simpler TemporalService code                                                 |
-| 6   | **Zod for temporal validation, not DB constraints** | JSONB CHECK constraints are verbose and hard to maintain. Zod gives typed errors and is shared across form/API/seed code               |
-| 7   | **Table named `events` not `historical_events`**    | Brevity. `event_id` as FK name throughout the schema rather than `historical_event_id`                                                 |
-| 8   | **Published flag respected in RLS**                 | Prior schema allowed anon read of all content. Greenfield respects `published` — unpublished is owner-only                             |
-| 9   | **Edge Functions for orchestration only**           | Bulk import, export, image processing, geocoding, publish workflows. Not for data access that PostgREST handles                        |
-| 10  | **Social links as JSONB**                           | More extensible than individual columns per platform. `{ "x": "...", "github": "..." }`                                                |
-| 11  | **ON DELETE CASCADE everywhere**                    | Eliminates need for manual junction cleanup in stored functions or client code                                                         |
-| 12  | **TanStack Query as server state manager**          | Provides caching, deduplication, background refresh, optimistic updates. Zustand handles UI-only state                                 |
-| 13  | **Collaborator model via junction table**           | `timeline_collaborators(timeline_id, user_id, role)` enables shared editing with role-based access, checked in RLS                     |
-| 14  | **Single greenfield migration**                     | No legacy migration debt. One `00001_initial_schema.sql` containing all tables, indexes, policies, functions, views                    |
+| # | Decision | Rationale |
+| --- | --- | --- |
+| 1 | **UUIDs over BIGINT identity** | Client-side generation for optimistic updates, natural fit with Supabase Auth, no guessable IDs |
+| 2 | **No stored procedures for CRUD** | PostgREST provides typed CRUD, cascades handle deletes, TypeScript services handle multi-step operations |
+| 3 | **SQL functions over PL/pgSQL for reads** | SQL functions are inlineable by the query optimizer; PL/pgSQL is opaque. All read functions use `LANGUAGE sql STABLE` |
+| 4 | **No user_id on junction tables** | Prevents integrity issues where junction `user_id` disagrees with parent entity ownership. RLS checks parent entity directly |
+| 5 | **Separate start/end temporal columns** | Enables proper range-overlap queries, cleaner validation, simpler TemporalService code |
+| 6 | **Zod for temporal validation, not DB constraints** | JSONB CHECK constraints are verbose and hard to maintain. Zod gives typed errors shared across form/API/seed code |
+| 7 | **Table named `events` not `historical_events`** | Brevity. `event_id` as FK name throughout the schema rather than `historical_event_id` |
+| 8 | **Published flag respected in RLS** | Prior schema allowed anon read of all content. Greenfield respects `published` — unpublished is owner-only |
+| 9 | **Edge Functions for orchestration only** | Bulk import, export, image processing, geocoding, publish workflows. Not for data access that PostgREST handles |
+| 10 | **Social links as JSONB** | More extensible than individual columns per platform. `{ "x": "...", "github": "..." }` |
+| 11 | **ON DELETE CASCADE everywhere** | Eliminates need for manual junction cleanup in stored functions or client code |
+| 12 | **TanStack Query as server state manager** | Provides caching, deduplication, background refresh, optimistic updates. Zustand handles UI-only state |
+| 13 | **Collaborator model via junction table** | `timeline_collaborators(timeline_id, user_id, role)` enables shared editing with role-based access, checked in RLS |
+| 14 | **Single greenfield migration** | No legacy migration debt. One `00001_initial_schema.sql` with all tables, indexes, policies, functions, views |
+| 15 | **Admin role on profiles, not auth metadata** | `profiles.role` column with `is_admin()` SECURITY DEFINER function. Queryable in RLS without parsing JWT claims (PRD 4.9.2) |
+| 16 | **search_vector on timelines** | PRD 4.12.1 requires full-text search across events, characters, stories, AND timelines. All four types have search_vector + GIN index |
+| 17 | **Curated library as admin-owned content** | PRD 4.14.7 Option A: reuse existing tables with `metadata.is_library_content = true`. Simpler than dedicated library tables |
+| 18 | **Notifications table for system messaging** | PRD requires collaborator invites (3.4.1), moderation alerts (3.3.2). Simple write-once table with JSONB metadata for context |
+| 19 | **Content reports with polymorphic entity ref** | `entity_type`/`entity_id` pattern keeps schema simple vs. per-entity FK columns. Admin moderation per PRD 3.3.2 |
+| 20 | **Collaborator RLS extends to all entity types** | PRD 4.9.5 requires shared timeline access to include associated entities. Junction table joins derive access transitively |
 
 ---
 
