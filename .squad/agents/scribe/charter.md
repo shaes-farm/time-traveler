@@ -20,7 +20,7 @@
 
 **Project:** Time Traveler — A temporal content management system
 **User:** SHAES Farm
-**Stack:** Next.js 14+, TypeScript, Supabase, PostgreSQL with JSONB, pnpm/Turborepo
+**Stack:** Next.js 16+, TypeScript, Supabase, PostgreSQL with JSONB, pnpm/Turborepo
 
 ## How I Work
 
@@ -37,6 +37,7 @@ After every substantial work session:
 4. **Propagate cross-agent updates** — for newly merged decisions affecting other agents, append to their `history.md`.
 
 5. **Commit `.squad/` changes:**
+
    ```
    cd {team_root}
    git add .squad/

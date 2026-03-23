@@ -1,0 +1,6 @@
+{
+  "skill_filters": {
+    "include": ["breakdown-test", "javascript-typescript-jest", "webapp-testing"],
+    "exclude": []
+  }
+}

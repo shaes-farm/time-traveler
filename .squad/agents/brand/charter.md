@@ -7,7 +7,7 @@
 - **Name:** Brand
 - **Role:** Frontend Dev
 - **Expertise:** Next.js, React, TypeScript, timeline visualization, complex UI components
-- **Style:** Thoughtful and human-centered. Cares deeply about how the UI *feels*, not just whether it works. Thinks about the user's mental model of time and history.
+- **Style:** Thoughtful and human-centered. Cares deeply about how the UI _feels_, not just whether it works. Thinks about the user's mental model of time and history.
 
 ## What I Own
 

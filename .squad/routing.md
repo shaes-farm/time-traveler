@@ -4,26 +4,28 @@ How to decide who handles what.
 
 ## Routing Table
 
-| Work Type | Route To | Examples |
-|-----------|----------|----------|
-| Architecture, system design, tech choices | Cooper | Schema design, Supabase setup strategy, API contracts, tech stack decisions |
-| Next.js, React, UI components, timeline visualization | Brand | Pages, components, temporal input UX, fractal navigation, logarithmic scale rendering |
-| Supabase, PostgreSQL, JSONB, Edge Functions, APIs | TARS | Schema migrations, RLS policies, storage config, Realtime, bulk import/export |
-| Tests, QA, edge cases, temporal validation | Romilly | Hybrid temporal tests, RLS verification, BCE/CE boundaries, integration tests |
-| Code review | Cooper | Review PRs, architectural guidance, accept/reject with lockout enforcement |
-| Code review (frontend) | Brand | Next.js/React PR review |
-| Testing | Romilly | Write tests, find edge cases, verify fixes, validate RLS policies |
-| Scope & priorities | Cooper | What to build next, trade-offs, decisions |
-| Async issue work (bugs, tests, small features) | @copilot 🤖 | Well-defined tasks matching capability profile |
-| Session logging | Scribe | Automatic — never needs routing |
+| Work Type                                             | Route To    | Examples                                                                              |
+| ----------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------- |
+| Architecture, system design, tech choices             | Cooper      | Schema design, Supabase setup strategy, API contracts, tech stack decisions           |
+| Next.js, React, UI components, timeline visualization | Brand       | Pages, components, temporal input UX, fractal navigation, logarithmic scale rendering |
+| Supabase, PostgreSQL, JSONB, Edge Functions, APIs     | TARS        | Schema migrations, RLS policies, storage config, Realtime, bulk import/export         |
+| Tests, QA, edge cases, temporal validation            | Romilly     | Hybrid temporal tests, RLS verification, BCE/CE boundaries, integration tests         |
+| CI/CD, Vercel, env config, secrets, build pipeline    | CASE        | GitHub Actions workflows, Vercel deployment, migration runs, Dependabot               |
+| Task breakdown, sequencing, routing, progress         | Murph       | Decompose PRD features, map dependencies, route tasks, track blockers                 |
+| Code review                                           | Cooper      | Review PRs, architectural guidance, accept/reject with lockout enforcement            |
+| Code review (frontend)                                | Brand       | Next.js/React PR review                                                               |
+| Testing                                               | Romilly     | Write tests, find edge cases, verify fixes, validate RLS policies                     |
+| Scope & priorities                                    | Cooper      | What to build next, trade-offs, decisions                                             |
+| Async issue work (bugs, tests, small features)        | @copilot 🤖 | Well-defined tasks matching capability profile                                        |
+| Session logging                                       | Scribe      | Automatic — never needs routing                                                       |
 
 ## Issue Routing
 
-| Label | Action | Who |
-|-------|--------|-----|
-| `squad` | Triage: analyze issue, evaluate @copilot fit, assign `squad:{member}` label | Lead |
-| `squad:{name}` | Pick up issue and complete the work | Named member |
-| `squad:copilot` | Assign to @copilot for autonomous work (if enabled) | @copilot 🤖 |
+| Label           | Action                                                                      | Who          |
+| --------------- | --------------------------------------------------------------------------- | ------------ |
+| `squad`         | Triage: analyze issue, evaluate @copilot fit, assign `squad:{member}` label | Lead         |
+| `squad:{name}`  | Pick up issue and complete the work                                         | Named member |
+| `squad:copilot` | Assign to @copilot for autonomous work (if enabled)                         | @copilot 🤖  |
 
 ### How Issue Assignment Works
 

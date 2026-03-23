@@ -1,0 +1,6 @@
+{
+  "skill_filters": {
+    "include": ["agentic-eval", "cloud-design-patterns", "context-map", "create-architectural-decision-record", "create-specification", "documentation-writer", "prd", "project-conventions", "update-specification"],
+    "exclude": []
+  }
+}

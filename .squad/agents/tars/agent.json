@@ -1,0 +1,9 @@
+{
+  "name": "TARS",
+  "model": "claude-sonnet-4.5",
+  "charter": "backend-dev.md",
+  "skill_filters": {
+    "include": ["postgresql-code-review", "postgresql-optimization"],
+    "exclude": ["breakdown-test", "create-architectural-decision-record", "frontend-design", "javascript-typescript-jest", "premium-frontend-ui", "web-coder", "web-design-reviewer", "webapp-testing"]
+  }
+}

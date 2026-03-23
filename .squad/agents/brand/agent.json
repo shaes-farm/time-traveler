@@ -1,0 +1,8 @@
+{
+  "name": "Brand",
+  "model": "claude-sonnet-4.5",
+  "skill_filters": {
+    "include": ["frontend-design", "premium-frontend-ui", "vercel-composition-patterns", "vercel-react-best-practices", "web-coder", "web-design-reviewer"],
+    "exclude": ["postgresql-code-review", "postgresql-optimization", "breakdown-test", "create-architectural-decision-record", "javascript-typescript-jest", "webapp-testing", "agentic-eval", "cloud-design-patterns", "context-map", "create-specification", "documentation-writer", "prd", "update-specification"]
+  }
+}

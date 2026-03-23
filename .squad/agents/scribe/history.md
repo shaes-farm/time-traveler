@@ -2,7 +2,7 @@
 
 - **Owner:** SHAES Farm
 - **Project:** Time Traveler — A temporal content management system for storing, visualizing, and interacting with historical events and narratives across the full span of time.
-- **Stack:** Next.js 14+, TypeScript, Supabase (Auth, Storage, Realtime, RLS), PostgreSQL with JSONB, pnpm workspaces, Turborepo
+- **Stack:** Next.js 16+, TypeScript, Supabase (Auth, Storage, Realtime, RLS), PostgreSQL with JSONB, pnpm workspaces, Turborepo
 - **Created:** 2026-03-22
 
 ## Core Context
