@@ -34,3 +34,12 @@ Time Traveler is a temporal CMS handling events from the Big Bang (13.8 billion 
 - Shared UI: packages/ui/
 
 ## Learnings
+
+### 2026-03-23: Build order decided — your phase assignments (cross-agent from Cooper)
+
+Cooper completed the build-order analysis. Your assignments:
+
+- **Phase 1** (Temporal Core): Write exhaustive unit tests for TemporalService and Zod schemas. Every era, every edge case (year 0, negative years, BYA precision, uncertainty rendering). This is the one area with heavy early test investment. Gate: all conversions correct, display formatting matches spec §6.2, sort ordering mathematically correct across all eras.
+- **Phase 4** (Timeline + Event CRUD UI): Integration tests for timeline and event CRUD pages.
+
+No test framework is configured yet — that will need to be set up as part of Phase 1 work. See `.squad/decisions.md` for full build order and architectural locks.

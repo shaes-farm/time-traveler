@@ -34,3 +34,15 @@ Time Traveler is a temporal CMS handling events from the Big Bang (13.8 billion 
 - Shared UI: packages/ui/
 
 ## Learnings
+
+### 2026-03-23: Build order decided — your phase assignments (cross-agent from Cooper)
+
+Cooper completed the build-order analysis. You lead the foundation:
+
+- **Phase 0** (Supabase + Schema + RLS): Own. Local dev setup, initial migration with ALL core tables/indexes/RLS/views/generated columns, type generation, client setup, auth trigger. Cooper reviews. Gate: schema passes `supabase db push`, types generate, RLS verified.
+- **Phase 1** (Temporal Core): Own. Zod schemas for TemporalData, TemporalService (toSortableYears, formatDisplay, createFromDate, createFromYear, log position), slug utility. Romilly writes tests. Gate: all era conversions correct, display formatting matches spec.
+- **Phase 2** (Service Layer + Hooks): Own. Entity Zod schemas, CRUD services via PostgREST, TanStack Query hooks, Zustand stores. Cooper reviews. Gate: full CRUD works, RLS enforced, end-to-end type safety.
+- **Phase 3** (Auth + UI Shell): Co-own with Brand. Auth flow, middleware, session management.
+- **Phase 5** (Characters + Relationships): Co-own with Brand. Relationship queries.
+
+Architectural locks to follow: JSONB structure final per §4.2, no CRUD sprocs, RLS in initial migration, separate start/end temporal columns, client-side temporal logic, UUIDs, CASCADE deletes. See `.squad/decisions.md` for full details.

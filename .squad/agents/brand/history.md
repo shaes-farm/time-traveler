@@ -34,3 +34,15 @@ Time Traveler is a temporal CMS handling events from the Big Bang (13.8 billion 
 - Shared UI: packages/ui/
 
 ## Learnings
+
+### 2026-03-23: Build order decided — your phase assignments (cross-agent from Cooper)
+
+Cooper completed the build-order analysis. Your assignments:
+
+- **Phase 3** (Auth + UI Shell + TemporalInput): Co-own with TARS. Build app shell, layout, navigation, shadcn/ui setup, and the TemporalInput component (era-aware form with live preview). Cooper reviews.
+- **Phase 4** (Timeline + Event CRUD UI): Own. Timeline and event create/edit/list/detail pages, parent-child nesting UI. Romilly tests.
+- **Phase 5** (Characters + Relationships): Co-own with TARS. Character CRUD (all 7 types), event participation, relationship management. Cooper reviews.
+- **Phase 6** (Stories + Categories + Periods): Own. Period/story/category CRUD. Cooper reviews.
+- **Phase 7** (Timeline Visualization): Own. D3.js horizontal timeline, logarithmic scale, fractal zoom, event markers, period bands. Cooper reviews.
+
+You are NOT blocked until Phase 3. TARS builds the foundation (Phases 0–2) first. See `.squad/decisions.md` for full details and architectural locks.

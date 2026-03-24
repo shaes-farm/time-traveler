@@ -37,3 +37,13 @@ pnpm run check-types  # tsc --noEmit in all packages+apps
 
 ## Learnings
 
+### 2026-03-23: Build order decided (cross-agent from Cooper)
+
+Cooper completed the build-order analysis. No specific phase is assigned to you in the initial 7-phase sequence — infrastructure and deployment work will be needed as the phases produce deployable artifacts. Key context:
+
+- Phase 0 (TARS) produces the Supabase schema and local dev setup. You may need to help with `supabase start` configuration and environment variables.
+- Vercel deployment pipeline will be needed once UI work begins (Phase 3+).
+- No CI pipeline exists yet — build validation is local only (`pnpm run build`, `lint`, `check-types`).
+
+See `.squad/decisions.md` for full build order and architectural locks.
+

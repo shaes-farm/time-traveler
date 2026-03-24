@@ -39,3 +39,20 @@ Time Traveler is a temporal CMS spanning from the Big Bang to the speculative fu
 
 ## Learnings
 
+### 2026-03-23: Build order decided (cross-agent from Cooper)
+
+Cooper completed the build-order analysis. 7-phase sequence locked:
+
+| Phase | What | Owner | Reviewer |
+|-------|------|-------|----------|
+| 0 | Supabase + Schema + RLS | TARS | Cooper |
+| 1 | Temporal Core (TS) | TARS | Romilly |
+| 2 | Service Layer + Hooks | TARS | Cooper |
+| 3 | Auth + UI Shell + TemporalInput | Brand + TARS | Cooper |
+| 4 | Timeline + Event UI | Brand | Romilly |
+| 5 | Characters + Relationships | Brand + TARS | Cooper |
+| 6 | Stories + Categories + Periods | Brand | Cooper |
+| 7 | Timeline Visualization (D3) | Brand | Cooper |
+
+7 architectural decisions locked, 12 items deferred from MVP. Use this for task decomposition and sequencing. See `.squad/decisions.md` for full details.
+
