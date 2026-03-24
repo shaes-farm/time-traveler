@@ -1,31 +1,30 @@
 {
-  "name": "Brand",
-  "model": "claude-sonnet-4.6",
+  "name": "CASE",
   "skill_filters": {
     "include": [
+      "codeql",
+      "dependabot",
       "deploy-to-vercel",
-      "frontend-design",
+      "devops-rollout-plan",
       "gh-cli",
-      "premium-frontend-ui",
-      "project-conventions",
-      "refactor",
-      "vercel-composition-patterns",
-      "vercel-react-best-practices",
-      "web-coder",
-      "web-design-reviewer"
+      "project-conventions"
     ],
     "exclude": [
       "agentic-eval",
+      "breakdown-test",
       "cloud-design-patterns",
-      "context-map",
       "create-architectural-decision-record",
       "create-specification",
       "documentation-writer",
+      "frontend-design",
       "javascript-typescript-jest",
       "postgresql-code-review",
       "postgresql-optimization",
       "prd",
+      "premium-frontend-ui",
       "update-specification",
+      "web-coder",
+      "web-design-reviewer",
       "webapp-testing"
     ]
   }

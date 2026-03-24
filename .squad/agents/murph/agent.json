@@ -1,0 +1,29 @@
+{
+  "name": "Murph",
+  "skill_filters": {
+    "include": [
+      "breakdown-plan",
+      "context-map",
+      "create-github-issues-feature-from-implementation-plan",
+      "create-github-issues-for-unmet-specification-requirements",
+      "gen-specs-as-issues",
+      "gh-cli",
+      "prd"
+    ],
+    "exclude": [
+      "agentic-eval",
+      "cloud-design-patterns",
+      "codeql",
+      "deploy-to-vercel",
+      "frontend-design",
+      "javascript-typescript-jest",
+      "postgresql-code-review",
+      "postgresql-optimization",
+      "premium-frontend-ui",
+      "refactor",
+      "web-coder",
+      "web-design-reviewer",
+      "webapp-testing"
+    ]
+  }
+}

@@ -1,6 +1,22 @@
 {
+  "name": "Romilly",
   "skill_filters": {
-    "include": ["breakdown-test", "javascript-typescript-jest", "webapp-testing"],
-    "exclude": []
+    "include": [
+      "breakdown-test",
+      "codeql",
+      "doublecheck",
+      "javascript-typescript-jest",
+      "project-conventions",
+      "webapp-testing"
+    ],
+    "exclude": [
+      "cloud-design-patterns",
+      "create-architectural-decision-record",
+      "frontend-design",
+      "premium-frontend-ui",
+      "postgresql-optimization",
+      "web-coder",
+      "web-design-reviewer"
+    ]
   }
 }

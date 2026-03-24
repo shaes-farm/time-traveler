@@ -1,6 +1,37 @@
 {
+  "name": "Cooper",
+  "model": "claude-opus-4.6",
   "skill_filters": {
-    "include": ["agentic-eval", "cloud-design-patterns", "context-map", "create-architectural-decision-record", "create-specification", "documentation-writer", "prd", "project-conventions", "update-specification"],
-    "exclude": []
+    "include": [
+      "agentic-eval",
+      "breakdown-epic-arch",
+      "breakdown-feature-prd",
+      "breakdown-plan",
+      "cloud-design-patterns",
+      "context-map",
+      "create-architectural-decision-record",
+      "create-github-issues-feature-from-implementation-plan",
+      "create-github-issues-for-unmet-specification-requirements",
+      "create-github-pull-request-from-specification",
+      "create-readme",
+      "create-specification",
+      "documentation-writer",
+      "doublecheck",
+      "gen-specs-as-issues",
+      "gh-cli",
+      "prd",
+      "project-conventions",
+      "update-specification"
+    ],
+    "exclude": [
+      "frontend-design",
+      "premium-frontend-ui",
+      "postgresql-code-review",
+      "postgresql-optimization",
+      "javascript-typescript-jest",
+      "webapp-testing",
+      "web-coder",
+      "web-design-reviewer"
+    ]
   }
 }
