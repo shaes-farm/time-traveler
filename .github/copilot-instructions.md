@@ -109,3 +109,10 @@ Run these in order — all must pass:
 - **No CI pipeline**: There is no `ci.yml` GitHub Actions build workflow. The only workflows are squad automation (triage, heartbeat, label sync). Validation is done locally via the commands above.
 - **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work.
 - **App name discrepancy**: The admin app's `package.json` uses `"name": "web"` — Turborepo references it as `web:build`, `web:lint`, etc.
+
+## When You're Blocked
+
+- If a required API, package, or service is unavailable — STOP. Add a `// BLOCKED: [reason]` comment and move on. Do not mock, stub, or simulate the missing dependency.
+- If a task requires credentials, secrets, or tokens you don't have — leave a placeholder with `// NEEDS: [credential description]`. Never hardcode, generate, or invent values.
+- If you're unsure about the correct business logic — do not guess. Add `// DECISION NEEDED: [describe the ambiguity]` and implement the most conservative path.
+- If a pattern conflicts with existing project conventions — follow the existing convention. Flag the conflict with a comment, don't silently override it.
