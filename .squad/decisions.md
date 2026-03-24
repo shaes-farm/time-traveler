@@ -36,6 +36,27 @@
 
 ---
 
+### 2026-03-23: MVP PRD decomposition into GitHub issues
+
+**By:** Murph (Project Coordinator), completed by Squad Coordinator
+**What:** Decomposed the full PRD and system design into 58 GitHub issues (#12–#69) across 8 milestones (Phases 0–7). All issues have acceptance criteria, dependency chains, squad member assignments, and milestone tags.
+
+**Phase breakdown:**
+- Phase 0 (Foundation): 11 issues (#12–#22) — Supabase, schema, RLS, storage
+- Phase 1 (Shared Logic): 5 issues (#23–#27) — Zod, TemporalService, slug, Vitest
+- Phase 2 (Service Layer): 7 issues (#28–#34) — service modules, TanStack Query, Zustand
+- Phase 3 (Auth & App Shell): 7 issues (#35–#41) — auth, middleware, shadcn/ui, shell, TemporalInput
+- Phase 4 (Timeline & Event CRUD): 9 issues (#42–#50) — timeline/event CRUD, media, collaborators, publish
+- Phase 5 (Characters & Relationships): 7 issues (#51–#57) — character service, relationships, event participation, UI
+- Phase 6 (Stories, Categories & Periods): 7 issues (#58–#64) — story/category/period services and UI
+- Phase 7 (Timeline Visualization): 5 issues (#65–#69) — D3.js renderer, log/linear scales, fractal zoom, period bands
+
+**Why:** Maps the complete MVP scope from PRD-0001 to actionable, trackable work items with clear dependency ordering.
+
+**Blocked:** GitHub project board creation requires `read:project` token scope. Run `gh auth refresh -s read:project` to unblock.
+
+---
+
 ## Governance
 
 - All meaningful changes require team consensus

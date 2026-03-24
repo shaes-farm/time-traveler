@@ -56,3 +56,24 @@ Cooper completed the build-order analysis. 7-phase sequence locked:
 
 7 architectural decisions locked, 12 items deferred from MVP. Use this for task decomposition and sequencing. See `.squad/decisions.md` for full details.
 
+### 2026-03-23: Full MVP decomposition into GitHub issues
+
+Decomposed the PRD and system design into **58 GitHub issues** (#12–#69) across **8 milestones** (Phases 0–7). All issues have:
+- Detailed acceptance criteria with checkboxes
+- Dependency chains (depends-on references)
+- Squad member assignments via labels (squad:tars, squad:brand, squad:cooper, etc.)
+- Milestone tags matching Cooper's 7-phase build order
+- Category labels (backend, frontend, infrastructure, testing, etc.)
+
+**Issue distribution by phase:**
+- Phase 0: #12–#22 (11 issues) — Foundation
+- Phase 1: #23–#27 (5 issues) — Shared Logic
+- Phase 2: #28–#34 (7 issues) — Service Layer
+- Phase 3: #35–#41 (7 issues) — Auth & App Shell
+- Phase 4: #42–#50 (9 issues) — Timeline & Event CRUD
+- Phase 5: #51–#57 (7 issues) — Characters & Relationships
+- Phase 6: #58–#64 (7 issues) — Stories, Categories & Periods
+- Phase 7: #65–#69 (5 issues) — Timeline Visualization
+
+**Blocked:** GitHub project board requires `read:project` scope. Run `gh auth refresh -s read:project` to unblock.
+
