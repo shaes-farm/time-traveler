@@ -1,0 +1,205 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-governance": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "a91eb8ef638422fa4ec457d81e270f79fe5040b41d7f137dba35016bc20529f5"
+    },
+    "agentic-eval": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "40771d7d389c1542e6cb995d75e516893466f01c3b66bc040b158ceb793d4bed"
+    },
+    "breakdown-epic-arch": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "76217938e959a2a39f1bda7659416f87b3bb12bd0fe09a3d8684f8a94cacbab4"
+    },
+    "breakdown-feature-prd": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "e0a851ff26f6ddc213c390556ede39ac8fa43b76076b4a187c8c759128fe9fce"
+    },
+    "breakdown-plan": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "24abce941a7c952ad3da3b1acf4e6fdf566ba24ffeaa2e37d74d68fb401ef7c3"
+    },
+    "breakdown-test": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "aec76bd6b3246889ada4fecba3f78a6c5d0717d66a70af5791279556a3891759"
+    },
+    "cloud-design-patterns": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "be69c23d717e7f1ddd9b288c5ce36a582eb5717086392cbe5b0dd1faa5423c8e"
+    },
+    "codeql": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "a7d80450799b2141ddff9ec614477e237c1f50acb9eeade2dd869aeac3d004a9"
+    },
+    "context-map": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "cca0523289057f0f6fbff2c3ead5063359dd2482a451bf8694eac0f282185786"
+    },
+    "copilot-instructions-blueprint-generator": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "45fd25e507349b05f80a0cafc159109071ed6c24ac5f014b9c749fd6846bd62b"
+    },
+    "create-architectural-decision-record": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "5c99e32293271aef0270c279c2af8b62301e29257bf85f2ebf7e810c740b4404"
+    },
+    "create-github-issues-feature-from-implementation-plan": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "ff0083bd824eaa94c6e4097abe27f1441694a44feb8d6ea43b51bf3f00b883e1"
+    },
+    "create-github-issues-for-unmet-specification-requirements": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "f44956e909348a20a808bcc2aa56a1b063ff1cc2ae1a1659de6193cff45f59ac"
+    },
+    "create-github-pull-request-from-specification": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "2693885db375a1e4a21f66ac69761a86db30911c0a2a9fcb8bac5d9dd05eeb5c"
+    },
+    "create-implementation-plan": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "4764bacd34af8e5c27a85ca01a90197afcf1f1ed1785975ba91d9b80dff60e2d"
+    },
+    "create-readme": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "d0ece1b2164ce1376e4ab6e98d6ac079df3a2a94f5f02224362b6a1ce2516ae9"
+    },
+    "create-specification": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "45b9ef98b0fb82ba0e1aee65dfb464fa1f8494a14a557b9788d73aae87e9e618"
+    },
+    "dependabot": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "9f63e2294479161689e07603a4cf76727be3b6e1a63f4e04c0a01e34133bfd2a"
+    },
+    "deploy-to-vercel": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "d2b5bcc7c09fdb649129ffc7dd7b647ec1b155736974b974292675afd588cb39"
+    },
+    "devops-rollout-plan": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "9c71bc5839febec1c42fdd6f5aed3beb3fa9df399460f0d20310124abd77cc31"
+    },
+    "documentation-writer": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "ee53d65b163cd7eb953a930c95841cfe398cc2c0bd24c06508bbaa07c432be35"
+    },
+    "doublecheck": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "b4767dd00fcdc47e7c7b91efaa56198639719056e1c3e2a7299300c0fb2a4241"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
+    "gen-specs-as-issues": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "7c33068d277612faf02cd360c1045b738ee0cd9ff6caa943048387bf08a46101"
+    },
+    "gh-cli": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "cbe644b0c6760ae2a1eaafa39133920d889331327065d92a131675a665273e56"
+    },
+    "javascript-typescript-jest": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "0073d19ab0275eb6a8200aced6789a53744667bd717b5d1f44ce708a1740e5d4"
+    },
+    "next-best-practices": {
+      "source": "vercel-labs/next-skills",
+      "sourceType": "github",
+      "computedHash": "515ba75178bd44875812d9a560bdf14651f86709f89cf1d4f209638e879807f3"
+    },
+    "postgresql-code-review": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "1167ec9449aa866e16bc7449e05ab4d391cdce95a0b0c5e1155b793160471eb5"
+    },
+    "postgresql-optimization": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "8022448de70ba9a485e3b5bce34c5bbc644f93eb39b68431c9f7dabcf03aeb09"
+    },
+    "prd": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "1f3e1f005fc40fda85d250ae906c8ee4f7e8e833e23adfeca6542c19609fd7cd"
+    },
+    "premium-frontend-ui": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "2dcc7fe529ddad9b826fcc8ba43fb2357fc2919cc1d1cb5aaa6bcb434d872f9c"
+    },
+    "refactor": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "87789a786b96f99ba0680e89345a975106e10e7db1071c7cdc2e76d507c449d6"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
+    },
+    "update-implementation-plan": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "b2f2a6bf2544b416b9145e805c0f534ad078e7135c1ce26e73af1b0cd99cb692"
+    },
+    "update-specification": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "56832dcff10483e3b9755c73d8d88286e5ae4274b3ae75092b9a6aa245a943cb"
+    },
+    "vercel-composition-patterns": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "f98931159fa9c7fed043bcd18a891a46dcf89ababa38df13a4c5b7b30dc0ce07"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "computedHash": "c858d2d9023e73edb4e5504868cb0e36313e58fd56af12ef888b43c5634a3c17"
+    },
+    "web-coder": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "f26b2845e3b1ccd59ff2158c45fe2872038e27237757e063d3811a1244757074"
+    },
+    "web-design-reviewer": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "10c6fad8b4f01dbeae969009d81d6c306c8a96d56077cad9bfe2a73a38f5dcbe"
+    },
+    "webapp-testing": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "e386cf78f5a002c8fa684066f933c670571f3cfb43b0d66bfc82050d74d6ea64"
+    }
+  }
+}
