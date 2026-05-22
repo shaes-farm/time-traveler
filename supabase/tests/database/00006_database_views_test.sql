@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(31);
+select plan(29);
 
 -- ============================================================================
 -- Views and key columns exist
@@ -207,8 +207,8 @@ select is(
 );
 
 select is(
-  (select participants from event_participants_view where title='Quiet Event'),
-  '[]'::json,
+  (select participants::jsonb from event_participants_view where title='Quiet Event'),
+  '[]'::jsonb,
   'event_participants_view returns empty JSON array for events without participants'
 );
 
