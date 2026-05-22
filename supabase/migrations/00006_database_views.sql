@@ -5,7 +5,8 @@
 -- See docs/system-design.md §8.3.
 -- ============================================================================
 
-CREATE VIEW character_timeline_view AS
+CREATE VIEW character_timeline_view
+  WITH (security_invoker = true) AS
 SELECT
   c.id AS character_id,
   c.name AS character_name,
@@ -22,7 +23,8 @@ JOIN events e ON ec.event_id = e.id
 LEFT JOIN timelines t ON e.timeline_id = t.id
 ORDER BY c.id, e.sort_order_years;
 
-CREATE VIEW character_network_view AS
+CREATE VIEW character_network_view
+  WITH (security_invoker = true) AS
 SELECT
   cr.id AS relationship_id,
   c1.id AS character_id,
@@ -37,7 +39,8 @@ FROM character_relationships cr
 JOIN characters c1 ON cr.character_id = c1.id
 JOIN characters c2 ON cr.related_character_id = c2.id;
 
-CREATE VIEW event_participants_view AS
+CREATE VIEW event_participants_view
+  WITH (security_invoker = true) AS
 SELECT
   e.id AS event_id,
   e.title,

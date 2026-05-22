@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(28);
+select plan(31);
 
 -- ============================================================================
 -- Views and key columns exist
@@ -10,6 +10,22 @@ select plan(28);
 select has_view('public', 'character_timeline_view', 'character_timeline_view exists');
 select has_view('public', 'character_network_view', 'character_network_view exists');
 select has_view('public', 'event_participants_view', 'event_participants_view exists');
+
+select ok(
+  (select reloptions from pg_class where relname = 'character_timeline_view')
+    @> array['security_invoker=true'],
+  'character_timeline_view has security_invoker = true'
+);
+select ok(
+  (select reloptions from pg_class where relname = 'character_network_view')
+    @> array['security_invoker=true'],
+  'character_network_view has security_invoker = true'
+);
+select ok(
+  (select reloptions from pg_class where relname = 'event_participants_view')
+    @> array['security_invoker=true'],
+  'event_participants_view has security_invoker = true'
+);
 
 select has_column('public', 'character_timeline_view', 'character_id', 'character_timeline_view.character_id exists');
 select has_column('public', 'character_timeline_view', 'event_id', 'character_timeline_view.event_id exists');
