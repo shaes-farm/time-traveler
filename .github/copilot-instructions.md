@@ -98,7 +98,7 @@ Run these in order — all must pass:
 2. `pnpm run check-types` — TypeScript must compile with no errors
 3. `pnpm run lint` — zero ESLint errors or warnings
 4. `pnpm run build` — must produce a successful Next.js build
-5. `pnpm run test:db` — if you made database schema changes
+5. `pnpm run db:test` — if you made database schema changes
 
 ## Important Rules & Conventions
 
