@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(24);
+select plan(28);
 
 -- ============================================================================
 -- Views and key columns exist
@@ -56,6 +56,13 @@ insert into events (user_id, slug, title, temporal_data, timeline_id) values
     'battle-event',
     'Battle Event',
     '{"year": 1200, "era": "CE"}'::jsonb,
+    (select id from timelines where slug='main-timeline')
+  ),
+  (
+    'abababab-abab-abab-abab-abababababab',
+    'quiet-event',
+    'Quiet Event',
+    '{"year": 1300, "era": "CE"}'::jsonb,
     (select id from timelines where slug='main-timeline')
   );
 
@@ -140,6 +147,20 @@ select is(
   'character_network_view includes relationship type'
 );
 
+select ok(
+  (
+    select start_temporal from character_network_view where character_name='Hero'
+  ) = '{"year": 1190, "era": "CE"}'::jsonb,
+  'character_network_view includes start_temporal scope'
+);
+
+select ok(
+  (
+    select end_temporal from character_network_view where character_name='Hero'
+  ) = '{"year": 1210, "era": "CE"}'::jsonb,
+  'character_network_view includes end_temporal scope'
+);
+
 -- ============================================================================
 -- event_participants_view aggregation behavior
 -- ============================================================================
@@ -161,6 +182,18 @@ select ok(
     select participants::jsonb from event_participants_view where title='Battle Event'
   ) @> '[{"name":"Rival","type":"human","role":"antagonist","significance":"secondary"}]'::jsonb,
   'event_participants_view includes Rival participant details'
+);
+
+select is(
+  (select participant_count from event_participants_view where title='Quiet Event'),
+  0::bigint,
+  'event_participants_view reports zero participants for events without event_characters rows'
+);
+
+select is(
+  (select participants from event_participants_view where title='Quiet Event'),
+  '[]'::json,
+  'event_participants_view returns empty JSON array for events without participants'
 );
 
 -- ============================================================================

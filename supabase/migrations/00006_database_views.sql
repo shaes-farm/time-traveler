@@ -43,14 +43,17 @@ SELECT
   e.title,
   e.sort_order_years,
   COUNT(ec.character_id) AS participant_count,
-  json_agg(
-    json_build_object(
-      'id', c.id,
-      'name', c.name,
-      'type', c.character_type,
-      'role', ec.role,
-      'significance', ec.significance
-    ) ORDER BY ec.significance, c.name
+  COALESCE(
+    json_agg(
+      json_build_object(
+        'id', c.id,
+        'name', c.name,
+        'type', c.character_type,
+        'role', ec.role,
+        'significance', ec.significance
+      ) ORDER BY ec.significance, c.name
+    ) FILTER (WHERE c.id IS NOT NULL),
+    '[]'::json
   ) AS participants
 FROM events e
 LEFT JOIN event_characters ec ON e.id = ec.event_id
