@@ -734,7 +734,7 @@ computed_start_date TIMESTAMPTZ GENERATED ALWAYS AS (
 Temporal data validation is enforced at the application layer (TypeScript) via Zod schemas, not via PostgreSQL CHECK constraints on JSONB. This is because JSONB CHECK constraints are verbose and hard to maintain, Zod provides much better developer experience with typed errors, and validation can be shared between form input, API calls, and seed scripts.
 
 ```typescript
-// lib/schemas/temporal.ts
+// packages/services/src/schemas/temporal.ts
 import { z } from "zod";
 
 export const temporalDataSchema = z.object({
@@ -822,7 +822,7 @@ await supabase.from("events").update({ title: newTitle }).eq("id", eventId);
 Some operations require multiple inserts (e.g., creating an event with categories, media, and character assignments). These are handled by a thin TypeScript service layer:
 
 ```typescript
-// lib/services/eventService.ts
+// packages/services/src/modules/eventService.ts
 export async function createEventWithRelations(
   supabase: SupabaseClient,
   eventData: EventInput,
@@ -1127,7 +1127,7 @@ const channel = supabase
 All temporal logic lives in TypeScript, not in the database:
 
 ```typescript
-// lib/services/temporalService.ts
+// packages/services/src/modules/temporalService.ts
 export class TemporalService {
   static toSortableYears(t: TemporalData): number {
     switch (t.era) {
@@ -1554,82 +1554,84 @@ GitHub Actions:
 ## 11. Project Structure
 
 ```
-time-traveler/
-├── src/
-│   ├── app/                              # Next.js App Router
-│   │   ├── (public)/                     # Public routes (no auth required)
-│   │   │   ├── timelines/[slug]/
-│   │   │   ├── events/[slug]/
-│   │   │   └── characters/[slug]/
-│   │   ├── (protected)/                  # Auth-required routes
-│   │   │   ├── dashboard/
-│   │   │   ├── timelines/create/
-│   │   │   ├── events/create/
-│   │   │   ├── characters/create/
-│   │   │   ├── library/                  # Curated content library browser
-│   │   │   └── notifications/            # User notification center
-│   │   ├── (admin)/                      # Admin-only routes (is_admin() check)
-│   │   │   ├── dashboard/                # Admin dashboard, usage metrics
-│   │   │   ├── library/                  # Manage curated content library
-│   │   │   ├── moderation/               # Content reports and moderation
-│   │   │   └── users/                    # User management, role assignment
-│   │   └── auth/
-│   ├── components/
-│   │   ├── timeline/                     # Timeline, FractalView, Renderer
-│   │   ├── event/                        # EventCard, EventDetail, EventForm
-│   │   ├── character/                    # Profile, Timeline, RelationshipNetwork
-│   │   ├── temporal/                     # TemporalInput, PrehistoricTimeline
-│   │   ├── showcase/                     # MediaGallery, Uploader
-│   │   ├── admin/                        # Admin-specific components
-│   │   └── ui/                           # shadcn/ui
-│   ├── lib/
-│   │   ├── supabase/
-│   │   │   ├── client.ts                 # Browser client
-│   │   │   ├── server.ts                 # Server component client
-│   │   │   └── types.ts                  # Generated database types
-│   │   ├── services/
-│   │   │   ├── eventService.ts           # CRUD + junction management
-│   │   │   ├── timelineService.ts
-│   │   │   ├── characterService.ts
-│   │   │   ├── storyService.ts
-│   │   │   ├── temporalService.ts        # Era conversion, formatting
-│   │   │   ├── notificationService.ts    # Create/read/mark-read notifications
-│   │   │   └── libraryService.ts         # Curated content import logic
-│   │   ├── schemas/
-│   │   │   ├── temporal.ts               # Zod schemas for TemporalData
-│   │   │   ├── event.ts                  # Zod schemas for event forms
-│   │   │   └── character.ts
-│   │   └── utils/
-│   │       ├── slug.ts                   # Slug generation
-│   │       └── visualization.ts          # Scale calculations
-│   ├── hooks/
-│   │   ├── useEvents.ts                  # TanStack Query hooks
-│   │   ├── useCharacters.ts
-│   │   ├── useTimelines.ts
-│   │   ├── useNotifications.ts           # Notification polling/realtime
-│   │   └── useRealtime.ts               # Realtime subscription hooks
-│   ├── stores/
-│   │   ├── navigationStore.ts            # Zoom, view mode, timeline selection
-│   │   └── uiStore.ts                    # Sidebar, modal state
-│   └── types/
-│       └── index.ts                      # App-level type augmentations
+time-traveler/                              # pnpm + Turborepo monorepo
+├── apps/
+│   ├── admin/                              # Next.js 16 admin app (port 3000)
+│   │   └── src/
+│   │       ├── app/                        # Next.js App Router
+│   │       │   ├── (public)/               # Public routes (no auth required)
+│   │       │   │   ├── timelines/[slug]/
+│   │       │   │   ├── events/[slug]/
+│   │       │   │   └── characters/[slug]/
+│   │       │   ├── (protected)/            # Auth-required routes
+│   │       │   │   ├── dashboard/
+│   │       │   │   ├── timelines/create/
+│   │       │   │   ├── events/create/
+│   │       │   │   ├── characters/create/
+│   │       │   │   ├── library/            # Curated content library browser
+│   │       │   │   └── notifications/      # User notification center
+│   │       │   ├── (admin)/                # Admin-only routes (is_admin() check)
+│   │       │   │   ├── dashboard/          # Admin dashboard, usage metrics
+│   │       │   │   ├── library/            # Manage curated content library
+│   │       │   │   ├── moderation/         # Content reports and moderation
+│   │       │   │   └── users/              # User management, role assignment
+│   │       │   └── auth/
+│   │       ├── components/
+│   │       │   ├── timeline/               # Timeline, FractalView, Renderer
+│   │       │   ├── event/                  # EventCard, EventDetail, EventForm
+│   │       │   ├── character/              # Profile, Timeline, RelationshipNetwork
+│   │       │   ├── temporal/               # TemporalInput, PrehistoricTimeline
+│   │       │   ├── showcase/               # MediaGallery, Uploader
+│   │       │   └── admin/                  # Admin-specific components
+│   │       ├── hooks/                      # TanStack Query hooks
+│   │       │   ├── useEvents.ts
+│   │       │   ├── useCharacters.ts
+│   │       │   ├── useTimelines.ts
+│   │       │   ├── useNotifications.ts     # Notification polling/realtime
+│   │       │   └── useRealtime.ts          # Realtime subscription hooks
+│   │       ├── stores/                     # Zustand stores
+│   │       │   ├── navigationStore.ts      # Zoom, view mode, timeline selection
+│   │       │   └── uiStore.ts              # Sidebar, modal state
+│   │       ├── lib/utils/                  # App-specific utilities
+│   │       │   ├── slug.ts                 # Slug generation
+│   │       │   └── visualization.ts        # Scale calculations
+│   │       └── middleware.ts               # Auth route protection
+│   └── docs/                               # Next.js 16 docs app (port 3001)
+├── packages/
+│   ├── services/                           # @repo/services — Supabase clients, types, schemas, service modules
+│   │   └── src/
+│   │       ├── supabase/
+│   │       │   ├── client.ts               # createBrowserClient (browser)
+│   │       │   ├── server.ts               # createServerClient (cookies-aware)
+│   │       │   └── types.ts                # generated by `pnpm run db:gen:types`
+│   │       ├── schemas/                    # Zod schemas
+│   │       │   ├── temporal.ts             # Zod schemas for TemporalData
+│   │       │   ├── event.ts                # Zod schemas for event forms
+│   │       │   └── character.ts
+│   │       └── modules/                    # Service modules
+│   │           ├── eventService.ts         # CRUD + junction management
+│   │           ├── timelineService.ts
+│   │           ├── characterService.ts
+│   │           ├── storyService.ts
+│   │           ├── temporalService.ts      # Era conversion, formatting
+│   │           ├── notificationService.ts  # Create/read/mark-read notifications
+│   │           └── libraryService.ts       # Curated content import logic
+│   ├── ui/                                 # @repo/ui — shared React components (shadcn/ui)
+│   ├── eslint-config/                      # @repo/eslint-config
+│   └── typescript-config/                  # @repo/typescript-config
 ├── supabase/
-│   ├── migrations/
-│   │   └── 00001_initial_schema.sql      # Single greenfield migration
-│   ├── functions/
+│   ├── migrations/                         # Numbered SQL migrations (00001_*.sql, …)
+│   ├── tests/database/                     # pgTAP tests, one per migration (00001_*_test.sql, …)
+│   ├── functions/                          # Edge Functions (Deno)
 │   │   ├── bulk-import/index.ts
 │   │   ├── export-timeline/index.ts
-│   │   ├── library-import/index.ts       # Curated content import
-│   │   ├── geocode/index.ts              # Location → spatial_data
+│   │   ├── library-import/index.ts         # Curated content import
+│   │   ├── geocode/index.ts                # Location → spatial_data
 │   │   ├── process-media/index.ts
 │   │   └── publish/index.ts
 │   ├── seed.sql
 │   └── config.toml
-├── tests/
-│   ├── services/                         # Unit tests for service layer
-│   ├── schemas/                          # Zod schema tests
-│   └── e2e/                              # Playwright E2E tests
-└── middleware.ts                          # Auth route protection
+└── tests/e2e/                              # Playwright E2E tests (cross-app)
 ```
 
 ---

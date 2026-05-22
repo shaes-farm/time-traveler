@@ -15,7 +15,7 @@
     "db:sync": "supabase db pull",
     "db:test": "supabase test db",
     "db:gen:migration": "supabase migration new",
-    "db:gen:types": "supabase gen types typescript --local > ./packages/service/src/models/supabase-model.ts"
+    "db:gen:types": "supabase gen types typescript --local > ./packages/services/src/supabase/types.ts"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

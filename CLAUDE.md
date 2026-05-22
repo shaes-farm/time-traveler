@@ -54,7 +54,7 @@ pnpm run db:test               # run pgTAP database tests (supabase/tests/databa
 pnpm run db:deploy             # supabase db push to remote
 pnpm run db:sync               # supabase db pull
 pnpm run db:gen:migration <n>  # scaffold a new migration
-pnpm run db:gen:types          # regenerate ./packages/service/src/models/supabase-model.ts
+pnpm run db:gen:types          # regenerate ./packages/services/src/supabase/types.ts
 ```
 
 **No test framework is configured.** There is no `test` script in any `package.json`. Do not invent `pnpm test`.
