@@ -98,6 +98,7 @@ Run these in order — all must pass:
 2. `pnpm run check-types` — TypeScript must compile with no errors
 3. `pnpm run lint` — zero ESLint errors or warnings
 4. `pnpm run build` — must produce a successful Next.js build
+5. `pnpm run test:db` — if you made database schema changes
 
 ## Important Rules & Conventions
 
@@ -116,3 +117,7 @@ Run these in order — all must pass:
 - If a task requires credentials, secrets, or tokens you don't have — leave a placeholder with `// NEEDS: [credential description]`. Never hardcode, generate, or invent values.
 - If you're unsure about the correct business logic — do not guess. Add `// DECISION NEEDED: [describe the ambiguity]` and implement the most conservative path.
 - If a pattern conflicts with existing project conventions — follow the existing convention. Flag the conflict with a comment, don't silently override it.
+
+## When You Find a Spec or Upstream Bug
+
+If implementing a task reveals a bug in the spec (`docs/system-design.md`, PRD), schema, or another upstream artifact, do not silently work around it. File a separate GitHub issue documenting the bug, its evidence, the workaround applied in code, and the recommended upstream fix. Reference the tracking issue in the workaround comment if the workaround is non-obvious. See #73 for an example.
