@@ -1,0 +1,57 @@
+version: 2
+
+updates:
+  # pnpm monorepo — root pnpm-lock.yaml covers all workspace packages
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    groups:
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      next-ecosystem:
+        patterns:
+          - "next"
+          - "@next/*"
+      supabase-ecosystem:
+        patterns:
+          - "@supabase/*"
+          - "supabase"
+      typescript-toolchain:
+        patterns:
+          - "typescript"
+          - "@types/node"
+          - "eslint"
+          - "@typescript-eslint/*"
+          - "prettier"
+          - "turbo"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: scope
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: America/New_York
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore"
+      include: scope
