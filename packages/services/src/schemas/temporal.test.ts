@@ -220,6 +220,8 @@ describe("temporalDataSchema — additional coverage", () => {
       display_format: "timeline",
     });
     expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toContain("display_format");
+    expect(result.error?.issues[0]?.message).toBeTruthy();
   });
 
   // optional metadata fields
@@ -259,6 +261,7 @@ describe("temporalDataSchema — additional coverage", () => {
     });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toContain("year");
+    expect(result.error?.issues[0]?.message).toContain("CE year must be >= 1");
   });
 
   // BYA year boundary

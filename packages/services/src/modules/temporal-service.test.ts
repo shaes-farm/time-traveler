@@ -45,12 +45,15 @@ describe("TemporalService.toSortableYears", () => {
     );
   });
 
-  it("1 BCE is adjacent to 1 CE (no year 0 gap)", () => {
+  it("1 BCE maps to -1 and 1 CE maps to +1 — 2-unit gap mirrors DB convention (no year 0 in CE/BCE system)", () => {
     const oneBCE = TemporalService.toSortableYears(bce(1));
     const oneCE = TemporalService.toSortableYears(ce(1));
     expect(oneBCE).toBe(-1);
     expect(oneCE).toBe(1);
-    expect(oneCE - oneBCE).toBe(2); // 2-unit gap is the expected convention
+    // The 2-unit gap is intentional: 1 BCE (−1) and 1 CE (+1) are consecutive
+    // in the conventional calendar but skip 0, matching the sort_order_years
+    // generated column in the migration.
+    expect(oneCE - oneBCE).toBe(2);
   });
 
   it("Big Bang scale (13 BYA) stays within Number.MAX_SAFE_INTEGER", () => {
