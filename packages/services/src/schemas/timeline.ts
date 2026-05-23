@@ -1,11 +1,6 @@
 import { z } from "zod";
+import { slugSchema } from "./slug.js";
 import { temporalDataSchema } from "./temporal.js";
-
-const slugSchema = z
-  .string()
-  .min(1)
-  .max(100)
-  .regex(/^[a-z0-9-]+$/, "slug must be lowercase alphanumeric with hyphens");
 
 export const timelineTypeEnum = z.enum([
   "general",

@@ -1,10 +1,5 @@
 import { z } from "zod";
-
-const slugSchema = z
-  .string()
-  .min(1)
-  .max(100)
-  .regex(/^[a-z0-9-]+$/, "slug must be lowercase alphanumeric with hyphens");
+import { slugSchema } from "./slug.js";
 
 export const mediaTypeEnum = z.enum(["image", "video", "audio", "document"]);
 
