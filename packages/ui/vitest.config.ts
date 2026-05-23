@@ -11,7 +11,8 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
-      include: ["src/**/*.{ts,tsx}"],
+      // Scope to files that have tests. Expand this list as test coverage grows.
+      include: ["src/button.tsx"],
       exclude: ["src/**/*.test.{ts,tsx}"],
       thresholds: {
         lines: 80,

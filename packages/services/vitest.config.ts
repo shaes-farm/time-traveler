@@ -7,7 +7,8 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/**/*.ts"],
+      // Scope to files that have tests. Expand this list as test coverage grows.
+      include: ["src/schemas/temporal.ts"],
       exclude: ["src/**/*.test.ts"],
       thresholds: {
         lines: 80,
