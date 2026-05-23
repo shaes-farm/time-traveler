@@ -180,3 +180,223 @@ describe("temporalRangeSchema", () => {
     expect(result.error?.issues[0]?.path).toContain("end");
   });
 });
+
+describe("temporalDataSchema — additional coverage", () => {
+  // precision field
+  it.each([
+    "exact",
+    "circa",
+    "approximate",
+    "estimated",
+    "geological",
+  ] as const)("accepts precision '%s'", (precision) => {
+    const result = temporalDataSchema.safeParse({
+      year: 2000,
+      era: "CE",
+      precision,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  // display_format field
+  it.each(["standard", "scientific", "geological", "cosmological"] as const)(
+    "accepts display_format '%s'",
+    (display_format) => {
+      const result = temporalDataSchema.safeParse({
+        year: 65,
+        era: "MYA",
+        precision: "estimated",
+        display_format,
+      });
+      expect(result.success).toBe(true);
+    },
+  );
+
+  it("rejects an invalid display_format", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 2000,
+      era: "CE",
+      precision: "exact",
+      display_format: "timeline",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toContain("display_format");
+    expect(result.error?.issues[0]?.message).toBeTruthy();
+  });
+
+  // optional metadata fields
+  it.each([
+    "geological_period",
+    "geological_epoch",
+    "cosmological_epoch",
+    "dating_method",
+    "source",
+  ] as const)("accepts optional metadata field '%s'", (field) => {
+    const result = temporalDataSchema.safeParse({
+      year: 65,
+      era: "MYA",
+      precision: "geological",
+      [field]: "test value",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts explicit null for optional metadata fields", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 65,
+      era: "MYA",
+      precision: "geological",
+      cosmological_epoch: null,
+      geological_period: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  // CE year 0
+  it("rejects CE year 0 (distinct from BCE year 0)", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 0,
+      era: "CE",
+      precision: "exact",
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toContain("year");
+    expect(result.error?.issues[0]?.message).toContain("CE year must be >= 1");
+  });
+
+  // BYA year boundary
+  it("accepts BYA year at the cap boundary (100)", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 100,
+      era: "BYA",
+      precision: "estimated",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects BYA year just above cap boundary (101)", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 101,
+      era: "BYA",
+      precision: "estimated",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  // CE/BCE year boundary
+  it("accepts CE year at cap boundary (1_000_000_000)", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 1_000_000_000,
+      era: "CE",
+      precision: "approximate",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects CE year just above cap boundary (1_000_000_001)", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 1_000_000_001,
+      era: "CE",
+      precision: "approximate",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  // second field
+  it("accepts fractional second value (0.5)", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 2024,
+      month: 3,
+      day: 15,
+      hour: 12,
+      minute: 0,
+      second: 0.5,
+      era: "CE",
+      precision: "exact",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects second value >= 60", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 2024,
+      month: 3,
+      day: 15,
+      hour: 12,
+      minute: 0,
+      second: 60,
+      era: "CE",
+      precision: "exact",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  // uncertainty field
+  it("accepts zero uncertainty", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 65,
+      era: "MYA",
+      precision: "estimated",
+      uncertainty: 0,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts fractional uncertainty", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 65,
+      era: "MYA",
+      precision: "estimated",
+      uncertainty: 0.5,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects negative uncertainty", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 65,
+      era: "MYA",
+      precision: "estimated",
+      uncertainty: -1,
+    });
+    expect(result.success).toBe(false);
+  });
+
+  // CE full datetime precision
+  it("accepts CE date with full datetime precision", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 1969,
+      month: 7,
+      day: 20,
+      hour: 20,
+      minute: 17,
+      second: 40,
+      era: "CE",
+      precision: "exact",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  // hour without day rejected
+  it("rejects hour without day", () => {
+    const result = temporalDataSchema.safeParse({
+      year: 2024,
+      month: 3,
+      hour: 12,
+      era: "CE",
+      precision: "exact",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  // prehistoric rejects day and time fields individually
+  it.each(["KYA", "MYA", "BYA"] as const)("%s rejects month field", (era) => {
+    const result = temporalDataSchema.safeParse({
+      year: 12,
+      era,
+      precision: "estimated",
+      month: 6,
+    });
+    expect(result.success).toBe(false);
+  });
+});

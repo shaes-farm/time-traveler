@@ -10,6 +10,7 @@
     "check-types": "turbo run check-types",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
+    "verify": "pnpm format:check && pnpm lint && pnpm check-types && pnpm test:coverage && pnpm build",
     "db:deploy": "supabase db push",
     "db:reset": "supabase db reset",
     "db:start": "supabase start",
