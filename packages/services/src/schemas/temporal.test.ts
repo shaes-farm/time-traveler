@@ -28,13 +28,21 @@ describe("temporalDataSchema", () => {
   });
 
   it("rejects CE year 0", () => {
-    const result = temporalDataSchema.safeParse({ year: 0, era: "CE", precision: "exact" });
+    const result = temporalDataSchema.safeParse({
+      year: 0,
+      era: "CE",
+      precision: "exact",
+    });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]?.path).toContain("year");
   });
 
   it("rejects BCE year 0", () => {
-    const result = temporalDataSchema.safeParse({ year: 0, era: "BCE", precision: "exact" });
+    const result = temporalDataSchema.safeParse({
+      year: 0,
+      era: "BCE",
+      precision: "exact",
+    });
     expect(result.success).toBe(false);
   });
 

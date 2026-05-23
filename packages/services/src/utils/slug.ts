@@ -16,7 +16,9 @@ import { MAX_SLUG_LENGTH, slugSchema } from "../schemas/slug.js";
  */
 export function generateSlug(title: string): string {
   if (title.trim().length === 0) {
-    throw new Error("slug cannot be generated from empty or whitespace-only input");
+    throw new Error(
+      "slug cannot be generated from empty or whitespace-only input",
+    );
   }
 
   const normalized = title
@@ -64,13 +66,15 @@ export function resolveCollision(
     );
   }
 
-  const taken = existingSlugs instanceof Set ? existingSlugs : new Set(existingSlugs);
+  const taken =
+    existingSlugs instanceof Set ? existingSlugs : new Set(existingSlugs);
   if (!taken.has(baseSlug)) return baseSlug;
 
   for (let n = 2; ; n++) {
     const suffix = `-${n}`;
     const room = MAX_SLUG_LENGTH - suffix.length;
-    const truncated = baseSlug.length > room ? truncateAtBoundary(baseSlug, room) : baseSlug;
+    const truncated =
+      baseSlug.length > room ? truncateAtBoundary(baseSlug, room) : baseSlug;
     const candidate = `${truncated}${suffix}`;
     if (!taken.has(candidate)) return candidate;
   }

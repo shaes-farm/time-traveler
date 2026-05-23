@@ -757,8 +757,8 @@ BIGINT GENERATED ALWAYS AS (
 ) STORED
 ```
 
-| Era | Example   | sort_order_years |
-| --- | --------- | ---------------- |
+| Era | Example    | sort_order_years |
+| --- | ---------- | ---------------- |
 | CE  | year: 2024 | 2,024            |
 | BCE | year: 44   | −44              |
 | KYA | year: 12   | −12,000          |
@@ -1110,7 +1110,8 @@ Duplicates curated library content to a user's account per PRD Section 4.14 and 
 
 ```typescript
 serve(async (req) => {
-  const { sourceTimelineId, eventIds, mode, targetTimelineId } = await req.json();
+  const { sourceTimelineId, eventIds, mode, targetTimelineId } =
+    await req.json();
   // mode: 'customize' | 'readonly'
   // eventIds: null (entire timeline) or array (cherry-pick)
   // targetTimelineId: null (create new) or UUID (add to existing)
@@ -1226,13 +1227,13 @@ export class TemporalService {
 
 ### 6.2 Display Formats
 
-| Input                                   | Format       | Output                 |
-| --------------------------------------- | ------------ | ---------------------- |
-| year: 2024, month: 8, day: 11, era: CE  | standard     | August 11, 2024        |
-| year: 44, month: 3, day: 15, era: BCE   | standard     | March 15, 44 BCE       |
-| year: 66, era: MYA, geol: "K-Pg"        | geological   | 66 MYA (K-Pg boundary) |
-| year: 5, era: BYA, ±500M                | scientific   | ~4.5 ± 0.5 BYA         |
-| year: 14, era: BYA, epoch: "Big Bang"   | cosmological | Big Bang (~13.8 BYA)   |
+| Input                                  | Format       | Output                 |
+| -------------------------------------- | ------------ | ---------------------- |
+| year: 2024, month: 8, day: 11, era: CE | standard     | August 11, 2024        |
+| year: 44, month: 3, day: 15, era: BCE  | standard     | March 15, 44 BCE       |
+| year: 66, era: MYA, geol: "K-Pg"       | geological   | 66 MYA (K-Pg boundary) |
+| year: 5, era: BYA, ±500M               | scientific   | ~4.5 ± 0.5 BYA         |
+| year: 14, era: BYA, epoch: "Big Bang"  | cosmological | Big Bang (~13.8 BYA)   |
 
 ### 6.3 Logarithmic Scale for Visualization
 
@@ -1843,8 +1844,8 @@ serve(async (req) => {
   // mode: 'customize' (editable copies) or 'readonly' (read-only reference)
 
   const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   // 1. Fetch selected library entities (events, characters, categories)
@@ -1984,28 +1985,28 @@ Bulk import event data via Edge Function. Characters as executives, regulators, 
 
 This appendix documents key decisions and the reasoning behind them, for future reference.
 
-| # | Decision | Rationale |
-| --- | --- | --- |
-| 1 | **UUIDs over BIGINT identity** | Client-side generation for optimistic updates, natural fit with Supabase Auth, no guessable IDs |
-| 2 | **No stored procedures for CRUD** | PostgREST provides typed CRUD, cascades handle deletes, TypeScript services handle multi-step operations |
-| 3 | **SQL functions over PL/pgSQL for reads** | SQL functions are inlineable by the query optimizer; PL/pgSQL is opaque. All read functions use `LANGUAGE sql STABLE` |
-| 4 | **No user_id on junction tables** | Prevents integrity issues where junction `user_id` disagrees with parent entity ownership. RLS checks parent entity directly |
-| 5 | **Separate start/end temporal columns** | Enables proper range-overlap queries, cleaner validation, simpler TemporalService code |
-| 6 | **Zod for temporal validation, not DB constraints** | JSONB CHECK constraints are verbose and hard to maintain. Zod gives typed errors shared across form/API/seed code |
-| 7 | **Table named `events` not `historical_events`** | Brevity. `event_id` as FK name throughout the schema rather than `historical_event_id` |
-| 8 | **Published flag respected in RLS** | Prior schema allowed anon read of all content. Greenfield respects `published` — unpublished is owner-only |
-| 9 | **Edge Functions for orchestration only** | Bulk import, export, image processing, geocoding, publish workflows. Not for data access that PostgREST handles |
-| 10 | **Social links as JSONB** | More extensible than individual columns per platform. `{ "x": "...", "github": "..." }` |
-| 11 | **ON DELETE CASCADE everywhere** | Eliminates need for manual junction cleanup in stored functions or client code |
-| 12 | **TanStack Query as server state manager** | Provides caching, deduplication, background refresh, optimistic updates. Zustand handles UI-only state |
-| 13 | **Collaborator model via junction table** | `timeline_collaborators(timeline_id, user_id, role)` enables shared editing with role-based access, checked in RLS |
-| 14 | **Single greenfield migration** | No legacy migration debt. One `00001_initial_schema.sql` with all tables, indexes, policies, functions, views |
-| 15 | **Admin role on profiles, not auth metadata** | `profiles.role` column with `is_admin()` SECURITY DEFINER function. Queryable in RLS without parsing JWT claims (PRD 4.9.2) |
-| 16 | **search_vector on timelines** | PRD 4.12.1 requires full-text search across events, characters, stories, AND timelines. All four types have search_vector + GIN index |
-| 17 | **Curated library as admin-owned content** | PRD 4.14.7 Option A: reuse existing tables with `metadata.is_library_content = true`. Simpler than dedicated library tables |
-| 18 | **Notifications table for system messaging** | PRD requires collaborator invites (3.4.1), moderation alerts (3.3.2). Simple write-once table with JSONB metadata for context |
-| 19 | **Content reports with polymorphic entity ref** | `entity_type`/`entity_id` pattern keeps schema simple vs. per-entity FK columns. Admin moderation per PRD 3.3.2 |
-| 20 | **Collaborator RLS extends to all entity types** | PRD 4.9.5 requires shared timeline access to include associated entities. Junction table joins derive access transitively |
+| #   | Decision                                            | Rationale                                                                                                                             |
+| --- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **UUIDs over BIGINT identity**                      | Client-side generation for optimistic updates, natural fit with Supabase Auth, no guessable IDs                                       |
+| 2   | **No stored procedures for CRUD**                   | PostgREST provides typed CRUD, cascades handle deletes, TypeScript services handle multi-step operations                              |
+| 3   | **SQL functions over PL/pgSQL for reads**           | SQL functions are inlineable by the query optimizer; PL/pgSQL is opaque. All read functions use `LANGUAGE sql STABLE`                 |
+| 4   | **No user_id on junction tables**                   | Prevents integrity issues where junction `user_id` disagrees with parent entity ownership. RLS checks parent entity directly          |
+| 5   | **Separate start/end temporal columns**             | Enables proper range-overlap queries, cleaner validation, simpler TemporalService code                                                |
+| 6   | **Zod for temporal validation, not DB constraints** | JSONB CHECK constraints are verbose and hard to maintain. Zod gives typed errors shared across form/API/seed code                     |
+| 7   | **Table named `events` not `historical_events`**    | Brevity. `event_id` as FK name throughout the schema rather than `historical_event_id`                                                |
+| 8   | **Published flag respected in RLS**                 | Prior schema allowed anon read of all content. Greenfield respects `published` — unpublished is owner-only                            |
+| 9   | **Edge Functions for orchestration only**           | Bulk import, export, image processing, geocoding, publish workflows. Not for data access that PostgREST handles                       |
+| 10  | **Social links as JSONB**                           | More extensible than individual columns per platform. `{ "x": "...", "github": "..." }`                                               |
+| 11  | **ON DELETE CASCADE everywhere**                    | Eliminates need for manual junction cleanup in stored functions or client code                                                        |
+| 12  | **TanStack Query as server state manager**          | Provides caching, deduplication, background refresh, optimistic updates. Zustand handles UI-only state                                |
+| 13  | **Collaborator model via junction table**           | `timeline_collaborators(timeline_id, user_id, role)` enables shared editing with role-based access, checked in RLS                    |
+| 14  | **Single greenfield migration**                     | No legacy migration debt. One `00001_initial_schema.sql` with all tables, indexes, policies, functions, views                         |
+| 15  | **Admin role on profiles, not auth metadata**       | `profiles.role` column with `is_admin()` SECURITY DEFINER function. Queryable in RLS without parsing JWT claims (PRD 4.9.2)           |
+| 16  | **search_vector on timelines**                      | PRD 4.12.1 requires full-text search across events, characters, stories, AND timelines. All four types have search_vector + GIN index |
+| 17  | **Curated library as admin-owned content**          | PRD 4.14.7 Option A: reuse existing tables with `metadata.is_library_content = true`. Simpler than dedicated library tables           |
+| 18  | **Notifications table for system messaging**        | PRD requires collaborator invites (3.4.1), moderation alerts (3.3.2). Simple write-once table with JSONB metadata for context         |
+| 19  | **Content reports with polymorphic entity ref**     | `entity_type`/`entity_id` pattern keeps schema simple vs. per-entity FK columns. Admin moderation per PRD 3.3.2                       |
+| 20  | **Collaborator RLS extends to all entity types**    | PRD 4.9.5 requires shared timeline access to include associated entities. Junction table joins derive access transitively             |
 
 ---
 

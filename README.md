@@ -83,4 +83,4 @@ npm start
 
 ---
 
-*Time Traveler empowers users to explore, document, and analyze history across any scale of time, with rich semantic and relational context.*
+_Time Traveler empowers users to explore, document, and analyze history across any scale of time, with rich semantic and relational context._

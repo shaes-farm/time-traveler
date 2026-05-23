@@ -33,6 +33,7 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 ```
 
 **Key config files:**
+
 - `apps/admin/eslint.config.js`, `apps/docs/eslint.config.js` — extend `@repo/eslint-config/next-js`
 - `apps/admin/tsconfig.json`, `apps/docs/tsconfig.json` — extend `@repo/typescript-config/nextjs.json`
 - `packages/ui/tsconfig.json` — extends `@repo/typescript-config/react-library.json`
@@ -55,42 +56,55 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 **Always run `pnpm install` before building for the first time, or after changing dependencies.**
 
 ### Bootstrap
+
 ```bash
 pnpm install
 ```
+
 Installs all workspace dependencies. Takes ~3s when packages are cached.
 
 ### Build (validated ✓)
+
 ```bash
 pnpm run build
 ```
+
 Runs `turbo run build` across all packages and apps. Takes ~7s on first run; subsequent runs use Turborepo cache (~44ms, "FULL TURBO"). Outputs go to `apps/*/`.next/`.
 
 ### Lint (validated ✓ — zero warnings allowed)
+
 ```bash
 pnpm run lint
 ```
+
 Runs ESLint with `--max-warnings 0` across `packages/ui`, `apps/admin`, and `apps/docs`. **Lint failures and warnings both fail the build.** Takes ~4s first run, faster with cache.
 
 ### Type Check (validated ✓)
+
 ```bash
 pnpm run check-types
 ```
+
 Runs `next typegen && tsc --noEmit` in each Next.js app and `tsc --noEmit` in `packages/ui`. Takes ~3s.
 
 ### Format
+
 ```bash
 pnpm run format
 ```
+
 Runs `prettier --write "**/*.{ts,tsx,md}"`. Run this after editing `.ts`, `.tsx`, or `.md` files.
 
 ### Dev (starts all apps in watch mode)
+
 ```bash
 pnpm run dev
 ```
+
 Starts `apps/admin` on port 3000 and `apps/docs` on port 3001 concurrently.
 
 ### No tests currently
+
 There is no test framework configured (no jest, vitest, or cypress). The `package.json` files have no `test` script. Do not attempt to run `npm test` or `pnpm test`.
 
 ## Validation Checklist Before Submitting Changes

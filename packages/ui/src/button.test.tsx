@@ -6,7 +6,9 @@ import { Button } from "./button.js";
 describe("Button", () => {
   it("renders children", () => {
     render(<Button appName="test">Click me</Button>);
-    expect(screen.getByRole("button", { name: /click me/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /click me/i }),
+    ).toBeInTheDocument();
   });
 
   it("applies className prop", () => {
@@ -19,7 +21,9 @@ describe("Button", () => {
   });
 
   it("calls alert with appName on click", async () => {
-    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    const alertSpy = vi
+      .spyOn(window, "alert")
+      .mockImplementation(() => undefined);
     const user = userEvent.setup();
 
     render(<Button appName="admin">Go</Button>);

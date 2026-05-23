@@ -77,7 +77,13 @@ export const temporalDataSchema = z
       data.era === "KYA" || data.era === "MYA" || data.era === "BYA";
 
     if (isPrehistoric) {
-      const subYearFields = ["month", "day", "hour", "minute", "second"] as const;
+      const subYearFields = [
+        "month",
+        "day",
+        "hour",
+        "minute",
+        "second",
+      ] as const;
       for (const field of subYearFields) {
         if (data[field] != null) {
           ctx.addIssue({
@@ -185,7 +191,9 @@ export type ConfidenceLevel = z.infer<typeof confidenceLevelEnum>;
  * re-exported from TemporalService) so temporalRangeSchema's start≤end check
  * doesn't introduce a schemas→modules circular import.
  */
-export function eraToSortableYears(t: Pick<TemporalData, "era" | "year">): number {
+export function eraToSortableYears(
+  t: Pick<TemporalData, "era" | "year">,
+): number {
   switch (t.era) {
     case "CE":
       return t.year;

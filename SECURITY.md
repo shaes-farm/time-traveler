@@ -2,10 +2,10 @@
 
 ## Supported Versions
 
-| Version | Supported |
-| ------- | --------- |
-| `main` (latest) | ✅ |
-| All other branches | ❌ |
+| Version            | Supported |
+| ------------------ | --------- |
+| `main` (latest)    | ✅        |
+| All other branches | ❌        |
 
 Only the `main` branch receives security fixes. Pre-release and feature branches are not supported.
 
@@ -23,12 +23,12 @@ Report vulnerabilities privately using [GitHub Security Advisories](https://gith
 
 ### Response timeline
 
-| Milestone | Target |
-| --------- | ------ |
-| Acknowledgement | Within 72 hours |
-| Initial assessment | Within 7 days |
-| Fix or workaround | Within 30 days (critical), 90 days (others) |
-| Public disclosure | Coordinated with reporter |
+| Milestone          | Target                                      |
+| ------------------ | ------------------------------------------- |
+| Acknowledgement    | Within 72 hours                             |
+| Initial assessment | Within 7 days                               |
+| Fix or workaround  | Within 30 days (critical), 90 days (others) |
+| Public disclosure  | Coordinated with reporter                   |
 
 We aim to keep you informed throughout the process.
 
