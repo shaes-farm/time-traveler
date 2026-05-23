@@ -381,8 +381,8 @@ type TemporalData = z.infer<typeof temporalDataSchema>;
 -- Temporal sort order (converts all eras to a comparable BIGINT)
 sort_order_years BIGINT GENERATED ALWAYS AS (...) STORED
 
--- Full-text search vector
-search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('english', coalesce(title, '') || ' ' || coalesce(description, ''))) STORED
+-- Full-text search vector (must use 'english'::regconfig — the text overload is STABLE, not IMMUTABLE)
+search_vector TSVECTOR GENERATED ALWAYS AS (to_tsvector('english'::regconfig, coalesce(title, '') || ' ' || coalesce(description, ''))) STORED
 
 -- Computed date for modern CE dates only
 computed_start_date TIMESTAMPTZ GENERATED ALWAYS AS (...) STORED

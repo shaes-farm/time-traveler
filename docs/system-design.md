@@ -202,7 +202,7 @@ CREATE TABLE timelines (
   fractal_depth INTEGER DEFAULT 5,
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(title, '') || ' ' ||
       coalesce(summary, '') || ' ' ||
       coalesce(detail, ''))
@@ -273,7 +273,7 @@ CREATE TABLE events (
   timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(title, '') || ' ' ||
       coalesce(summary, '') || ' ' ||
       coalesce(detail, ''))
@@ -315,7 +315,7 @@ CREATE TABLE stories (
   ),
   tags TEXT[],
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(title, '') || ' ' ||
       coalesce(sub_title, '') || ' ' ||
       coalesce(summary, '') || ' ' ||
@@ -331,6 +331,15 @@ CREATE UNIQUE INDEX stories_slug_idx ON stories (user_id, slug);
 ```
 
 #### characters
+
+> **Prerequisite:** The `characters.search_vector` generated column references `immutable_array_to_string`, a thin SQL wrapper around `array_to_string` that is declared `IMMUTABLE`. This wrapper is required because PostgreSQL's built-in `array_to_string(anyarray, text)` is marked `STABLE` (it is polymorphic over array element types), so it cannot appear directly inside a `GENERATED ALWAYS AS` expression. For `TEXT[]` the result is fully deterministic, making the `IMMUTABLE` declaration safe. The wrapper must be created before the `characters` table:
+>
+> ```sql
+> CREATE OR REPLACE FUNCTION immutable_array_to_string(arr TEXT[], sep TEXT)
+> RETURNS TEXT LANGUAGE sql IMMUTABLE AS $$
+>   SELECT array_to_string(arr, sep);
+> $$;
+> ```
 
 ```sql
 CREATE TABLE characters (
@@ -357,10 +366,10 @@ CREATE TABLE characters (
   profile_data JSONB DEFAULT '{}',
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(name, '') || ' ' ||
       coalesce(biography, '') || ' ' ||
-      coalesce(array_to_string(aliases, ' '), ''))
+      coalesce(immutable_array_to_string(aliases, ' '), ''))
   ) STORED,
   published BOOLEAN DEFAULT false,
   published_at TIMESTAMPTZ,
@@ -457,6 +466,8 @@ CREATE UNIQUE INDEX char_rels_unique ON character_relationships
 ### 3.4 Junction Tables
 
 All junction tables use composite primary keys, no surrogate `id`, no `user_id`. RLS is enforced via parent entity ownership checks.
+
+> **Self-referential FK cycles:** `parent_event_id`, `parent_period_id`, and `parent_category_id` are unconstrained at the database level — cycles (A → B → A) are accepted by PostgreSQL. Cycle prevention is enforced in the service layer during create/update operations (#29, #31, #59, #60); the database intentionally does not attempt to detect cycles via constraints.
 
 ```sql
 -- Events ↔ Categories
@@ -699,13 +710,15 @@ BIGINT GENERATED ALWAYS AS (
 ) STORED
 ```
 
-| Era | Example    | sort_order_years |
-| --- | ---------- | ---------------- |
+| Era | Example   | sort_order_years |
+| --- | --------- | ---------------- |
 | CE  | year: 2024 | 2,024            |
 | BCE | year: 44   | −44              |
 | KYA | year: 12   | −12,000          |
 | MYA | year: 66   | −66,000,000      |
-| BYA | year: 13.8 | −13,800,000,000  |
+| BYA | year: 14   | −14,000,000,000  |
+
+> **Integer constraint required.** The `(temporal_data->>'year')::BIGINT` cast fails at the database level for fractional values such as `13.8` (error: `invalid input syntax for type bigint: "13.8"`). Year values for all eras must be whole integers. For BYA/MYA/KYA-scale dates, sub-year precision is meaningless — temporal resolution at those scales is in millions or billions of years. The integer constraint is enforced in Zod validation (#23) and the TemporalService layer (#24); the spec example has been updated from `13.8` to `14` accordingly.
 
 ### 4.5 Computed TIMESTAMPTZ for Modern Dates
 
@@ -715,19 +728,24 @@ For CE dates within PostgreSQL's range, a generated TIMESTAMPTZ column enables n
 computed_start_date TIMESTAMPTZ GENERATED ALWAYS AS (
   CASE
     WHEN (temporal_data->>'era') = 'CE'
-      AND (temporal_data->>'year')::BIGINT > -4712
-    THEN make_timestamptz(
+    THEN make_timestamp(
       (temporal_data->>'year')::INT,
       COALESCE((temporal_data->>'month')::INT, 1),
       COALESCE((temporal_data->>'day')::INT, 1),
       COALESCE((temporal_data->>'hour')::INT, 0),
       COALESCE((temporal_data->>'minute')::INT, 0),
-      COALESCE((temporal_data->>'second')::NUMERIC, 0)
-    )
+      COALESCE((temporal_data->>'second')::DOUBLE PRECISION, 0)
+    ) AT TIME ZONE 'UTC'
     ELSE NULL
   END
 ) STORED
 ```
+
+> **Why `make_timestamp(...) AT TIME ZONE 'UTC'` instead of `make_timestamptz(...)`:** Both the 6-argument and 7-argument overloads of `make_timestamptz` are marked `STABLE` in PostgreSQL, which means they cannot be used inside `GENERATED ALWAYS AS ... STORED` columns (only `IMMUTABLE` functions are permitted). `make_timestamp(...)` returns `TIMESTAMP` (no timezone) and is `IMMUTABLE`. Converting the result via `AT TIME ZONE 'UTC'` calls `timezone(text, timestamp)`, which is also `IMMUTABLE`. The `second` parameter uses `::DOUBLE PRECISION` to match `make_timestamp`'s signature directly (the function expects `double precision`, not `numeric`).
+>
+> **Upper bound:** `make_timestamp` errors for year values outside PostgreSQL's `TIMESTAMP` range (roughly year 294,276 CE). Input should be validated with a year upper-bound check in Zod (#23) to surface a clear error rather than an opaque database error.
+>
+> **Removed redundant check:** An earlier version of this spec included `AND (temporal_data->>'year')::BIGINT > -4712` in the CE branch. For `era = 'CE'` the year is positive by convention, so this check is always true and has been removed to simplify the example. No migration change is needed; the condition is cosmetic-only.
 
 ### 4.6 JSONB Validation
 
@@ -1306,6 +1324,8 @@ GROUP BY e.id, e.title, e.sort_order_years;
 ### 9.1 Authentication
 
 Supabase Auth (email/password, magic link, OAuth). Profile trigger auto-creates a row in `profiles` on signup.
+
+> **Name fallback for magic-link/OAuth signups:** `profiles.first_name` and `profiles.last_name` are `NOT NULL` with `CHECK (char_length > 1)`. Auth flows that do not supply name metadata (e.g., magic link, some OAuth providers) must use a deterministic fallback to avoid a constraint violation. The profile-creation trigger (#16) should derive names from `auth.users.email` (e.g., use the local-part before `@`) or substitute a placeholder such as `'New'`/`'User'`. The chosen fallback must be documented here once implemented.
 
 ### 9.2 RLS Pattern
 
