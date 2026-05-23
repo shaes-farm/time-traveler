@@ -114,6 +114,27 @@ export const temporalDataSchema = z
       });
     }
 
+    // Per-era upper bound. Picked to keep the scaled `sort_order_years` value
+    // well within Number.MAX_SAFE_INTEGER (≈ 9.007e15) so client-side sort,
+    // compare, and uncertainty math don't silently lose precision relative to
+    // the DB's BIGINT column. Limits are also practical: 100 BYA covers the
+    // ~14 BYA age of the universe with comfortable headroom, and KYA/MYA caps
+    // at 1000 correspond to the natural transition into the next-larger era.
+    const maxYear: Record<typeof data.era, number> = {
+      CE: 1_000_000_000,
+      BCE: 1_000_000_000,
+      KYA: 1_000,
+      MYA: 1_000,
+      BYA: 100,
+    };
+    if (data.year > maxYear[data.era]) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["year"],
+        message: `${data.era} year must be <= ${maxYear[data.era]} (keeps scaled sort key within JS safe-integer range)`,
+      });
+    }
+
     if (data.era === "CE" || data.era === "BCE") {
       // day requires month
       if (data.day != null && data.month == null) {
@@ -160,11 +181,11 @@ export type ConfidenceLevel = z.infer<typeof confidenceLevelEnum>;
 
 /**
  * Era→sortable conversion mirroring the SQL `sort_order_years` generated
- * column in supabase/migrations/00001_initial_schema.sql. Inlined here (and
+ * column in supabase/migrations/00001_initial_schema.sql. Lives here (and is
  * re-exported from TemporalService) so temporalRangeSchema's start≤end check
  * doesn't introduce a schemas→modules circular import.
  */
-function eraToSortableYears(t: Pick<TemporalData, "era" | "year">): number {
+export function eraToSortableYears(t: Pick<TemporalData, "era" | "year">): number {
   switch (t.era) {
     case "CE":
       return t.year;
@@ -179,13 +200,35 @@ function eraToSortableYears(t: Pick<TemporalData, "era" | "year">): number {
   }
 }
 
+/**
+ * Comparator consistent with the DB's `sort_order_years` column. For CE/BCE
+ * same-year ties, falls back to month/day/hour/minute/second so sub-year
+ * precision is honored both in client-side sort and in range validation.
+ * Returns < 0 if a is earlier, > 0 if later, 0 if equal.
+ */
+export function compareTemporal(a: TemporalData, b: TemporalData): number {
+  const primary = eraToSortableYears(a) - eraToSortableYears(b);
+  if (primary !== 0) return primary;
+
+  const aSubYear = a.era === "CE" || a.era === "BCE";
+  const bSubYear = b.era === "CE" || b.era === "BCE";
+  if (!aSubYear || !bSubYear) return 0;
+
+  const subYearFields = ["month", "day", "hour", "minute", "second"] as const;
+  for (const field of subYearFields) {
+    const diff = (a[field] ?? 0) - (b[field] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
 export const temporalRangeSchema = z
   .object({
     start: temporalDataSchema,
     end: temporalDataSchema,
   })
   .superRefine((data, ctx) => {
-    if (eraToSortableYears(data.start) > eraToSortableYears(data.end)) {
+    if (compareTemporal(data.start, data.end) > 0) {
       ctx.addIssue({
         code: "custom",
         path: ["end"],
