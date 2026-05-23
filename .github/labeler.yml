@@ -45,7 +45,7 @@
 "area: security":
   - changed-files:
       - any-glob-to-any-file: "SECURITY.md"
-      - any-glob-to-any-file: ".github/codeql*.yml"
+      - any-glob-to-any-file: ".github/workflows/codeql*.yml"
       - any-glob-to-any-file: "supabase/migrations/*rls*"
       - any-glob-to-any-file: "supabase/migrations/*security*"
       - any-glob-to-any-file: "supabase/migrations/*hardening*"
