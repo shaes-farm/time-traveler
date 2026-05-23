@@ -23,7 +23,7 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 - `packages/typescript-config` — `@repo/typescript-config` (`base.json`, `nextjs.json`, `react-library.json`).
 - `supabase/migrations` — numbered SQL migrations. Migration `00001_initial_schema.sql` defines core tables (profiles, characters, …); `00002_relationships_junctions.sql` defines `character_relationships` and 11 junction tables.
 - `docs/prd/PRD-0001-time-traveler-system.md` and `docs/system-design.md` are the authoritative references for feature/schema work.
-- `.squad/` and `.github/agents/squad.agent.md` configure an in-repo AI team (Squad). The only GitHub Actions workflows are Squad automation (triage, heartbeat, label sync) — **there is no CI build pipeline**, so validation is local-only.
+- There is no CI build pipeline — **validation is local-only**.
 
 ## Toolchain
 
