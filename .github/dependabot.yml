@@ -17,14 +17,23 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
+        update-types:
+          - minor
+          - patch
       next-ecosystem:
         patterns:
           - "next"
           - "@next/*"
+        update-types:
+          - minor
+          - patch
       supabase-ecosystem:
         patterns:
           - "@supabase/*"
           - "supabase"
+        update-types:
+          - minor
+          - patch
       typescript-toolchain:
         patterns:
           - "typescript"
@@ -33,6 +42,9 @@ updates:
           - "@typescript-eslint/*"
           - "prettier"
           - "turbo"
+        update-types:
+          - minor
+          - patch
     labels:
       - "dependencies"
     commit-message:
