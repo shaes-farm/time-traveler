@@ -1,3 +1,4 @@
+-- pgTAP tests for 00010_function_search_path_hardening.sql (issue #112 — security hardening)
 begin;
 create extension if not exists pgtap with schema extensions;
 
