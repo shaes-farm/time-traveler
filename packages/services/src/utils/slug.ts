@@ -1,6 +1,4 @@
-import { slugSchema } from "../schemas/slug.js";
-
-const MAX_SLUG_LENGTH = 100;
+import { MAX_SLUG_LENGTH, slugSchema } from "../schemas/slug.js";
 
 /**
  * Converts an arbitrary title to a URL-safe slug:
@@ -23,7 +21,7 @@ export function generateSlug(title: string): string {
 
   const normalized = title
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
@@ -40,7 +38,7 @@ export function generateSlug(title: string): string {
 /**
  * Returns true when `slug` matches the canonical form enforced by
  * `slugSchema`: lowercase alphanumeric segments separated by single hyphens,
- * 1–100 chars, no leading/trailing/consecutive hyphens.
+ * 1–MAX_SLUG_LENGTH chars, no leading/trailing/consecutive hyphens.
  */
 export function validateSlug(slug: string): boolean {
   return slugSchema.safeParse(slug).success;
@@ -51,11 +49,21 @@ export function validateSlug(slug: string): boolean {
  * appends the smallest numeric suffix ≥ 2 (`my-title-2`, `my-title-3`, ...)
  * that's free. Truncates the base when necessary so the suffixed result
  * stays within MAX_SLUG_LENGTH.
+ *
+ * `baseSlug` must already satisfy `slugSchema` (typically produced by
+ * `generateSlug`) — throws otherwise so callers fail fast rather than
+ * producing a colliding-but-still-invalid slug downstream.
  */
 export function resolveCollision(
   baseSlug: string,
   existingSlugs: Iterable<string>,
 ): string {
+  if (!validateSlug(baseSlug)) {
+    throw new Error(
+      `resolveCollision requires baseSlug to satisfy slugSchema — got "${baseSlug}"`,
+    );
+  }
+
   const taken = existingSlugs instanceof Set ? existingSlugs : new Set(existingSlugs);
   if (!taken.has(baseSlug)) return baseSlug;
 
