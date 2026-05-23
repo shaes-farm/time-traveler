@@ -18,7 +18,7 @@
     "db:gen:types": "supabase gen types typescript --local > ./packages/services/src/supabase/types.ts"
   },
   "devDependencies": {
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.3",
     "supabase": "^2.101.0",
     "turbo": "^2.9.14",
     "typescript": "5.9.2"
