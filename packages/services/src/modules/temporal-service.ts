@@ -115,7 +115,11 @@ export class TemporalService {
     });
   }
 
-  static createFromYear(year: number, era: Era, precision?: Precision): TemporalData {
+  static createFromYear(
+    year: number,
+    era: Era,
+    precision?: Precision,
+  ): TemporalData {
     return temporalDataSchema.parse({
       year,
       era,
@@ -131,8 +135,14 @@ export class TemporalService {
     return compareTemporal(a, b);
   }
 
-  static isInRange(point: TemporalData, start: TemporalData, end: TemporalData): boolean {
-    return compareTemporal(point, start) >= 0 && compareTemporal(point, end) <= 0;
+  static isInRange(
+    point: TemporalData,
+    start: TemporalData,
+    end: TemporalData,
+  ): boolean {
+    return (
+      compareTemporal(point, start) >= 0 && compareTemporal(point, end) <= 0
+    );
   }
 
   static getUncertaintyRange(t: TemporalData): { min: number; max: number } {

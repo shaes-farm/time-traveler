@@ -745,13 +745,11 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Arrive at dashboard**
-
    - Sees empty state: "Welcome to Time Traveler"
    - Primary action: "Create Your First Timeline"
    - Secondary action: "Explore Curated Content"
 
 2. **Click "Create Your First Timeline"**
-
    - Modal/form appears with timeline creation fields
    - Fills in:
      - Title: "The Space Race: 1955-1975"
@@ -761,14 +759,12 @@ This section provides concrete user journeys through the Time Traveler system, o
      - End date: 1975 CE
 
 3. **Submit timeline creation**
-
    - Timeline saved successfully
    - Redirected to timeline detail page
    - Sees empty timeline with temporal axis (1955-1975)
    - Primary action: "Add Your First Event"
 
 4. **Click "Add Your First Event"**
-
    - Event creation form appears
    - Fills in:
      - Title: "Sputnik 1 Launch"
@@ -779,13 +775,11 @@ This section provides concrete user journeys through the Time Traveler system, o
      - Summary: "First artificial satellite successfully placed in orbit"
 
 5. **Submit event creation**
-
    - Event appears on timeline at correct position (1957)
    - Marker sized appropriately (importance 9 = large)
    - Tooltip shows summary on hover
 
 6. **Add more events**
-
    - Repeats step 4-5 for additional events:
      - Gagarin's flight (1961)
      - Apollo 11 Moon landing (1969)
@@ -821,24 +815,20 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Navigate to "Import from Library"**
-
    - Clicks "Explore Curated Content" from dashboard
    - Sees list of ~15 curated timelines
 
 2. **Browse curated timelines**
-
    - Scrolls through list
    - Sees "Major Wars and Conflicts" timeline
    - Clicks to preview
 
 3. **Preview timeline**
-
    - Sees timeline visualization with events
    - Event list shows: WWI, WWII, Korean War, Vietnam War, etc.
    - Decides WWII events are relevant
 
 4. **Select specific events to import**
-
    - Expands "World War II" section
    - Sees sub-events: Pearl Harbor, D-Day, Battle of Stalingrad, etc.
    - Checks boxes for:
@@ -848,13 +838,11 @@ This section provides concrete user journeys through the Time Traveler system, o
      - VE Day, VJ Day
 
 5. **Choose import mode**
-
    - Selects "Import and customize" (editable copies)
    - Option to create new timeline or add to existing
    - Chooses "Create new timeline: WWII Study Guide"
 
 6. **Complete import**
-
    - Clicks "Import Selected Events"
    - Progress indicator shows import
    - Success message: "4 events imported"
@@ -890,7 +878,6 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Create character: Grandfather**
-
    - Navigates to Characters section
    - Clicks "Add Character"
    - Fills in:
@@ -901,7 +888,6 @@ This section provides concrete user journeys through the Time Traveler system, o
      - Biography: "Immigrated to Brazil in 1948..."
 
 2. **Create biographical timeline**
-
    - Clicks "Create Timeline" from character profile
    - System pre-fills:
      - Title: "Life of João Santos"
@@ -911,7 +897,6 @@ This section provides concrete user journeys through the Time Traveler system, o
    - User confirms
 
 3. **Add life events**
-
    - Birth (1920, Porto)
    - Immigration to Brazil (1948)
    - Marriage (1950)
@@ -921,13 +906,11 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Death (2010, São Paulo)
 
 4. **Associate other family members**
-
    - Creates character: "Maria da Silva Santos" (wife)
    - Creates relationship: João → Maria (family: spouse, 1950-2010)
    - Associates Maria with marriage event and children's births
 
 5. **Add media**
-
    - Uploads photos:
      - Immigration documents (1948)
      - Wedding photo (1950)
@@ -935,13 +918,11 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Attaches to corresponding events
 
 6. **Add historical context**
-
    - Searches for "Portugal 1940s" events
    - Finds curated event: "Portuguese Estado Novo regime"
    - Adds to timeline for context (explains why family left)
 
 7. **Share with family**
-
    - Sets visibility: Shared
    - Invites family members as viewers:
      - Sister: viewer role
@@ -978,7 +959,6 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Create period: Mesozoic Era**
-
    - Navigates to Periods section
    - Creates period:
      - Title: "Mesozoic Era"
@@ -988,21 +968,18 @@ This section provides concrete user journeys through the Time Traveler system, o
      - Characteristics: ["Age of Dinosaurs", "Breakup of Pangaea", "Warm climate"]
 
 2. **Create nested periods**
-
    - Creates child periods:
      - Triassic (252-201 MYA)
      - Jurassic (201-145 MYA)
      - Cretaceous (145-66 MYA)
 
 3. **Create timeline for extinctions**
-
    - Title: "Mesozoic Mass Extinctions"
    - Type: General
    - Temporal scope: 252-66 MYA
    - Associates with Mesozoic Era period
 
 4. **Add Permian-Triassic extinction event**
-
    - Uses TemporalInput component:
      - Year: 252
      - Era: MYA
@@ -1015,14 +992,12 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Importance: 10 (critical)
 
 5. **Add Triassic-Jurassic extinction**
-
    - Year: 201 MYA
    - Uncertainty: ±1 MYA
    - Dating method: "Radiometric (Ar-Ar)"
    - Geological period: "Triassic-Jurassic boundary"
 
 6. **Add K-Pg extinction (dinosaurs)**
-
    - Year: 66 MYA
    - Uncertainty: ±0.07 MYA
    - Dating method: "Radiometric (Ar-Ar on tektites)"
@@ -1032,7 +1007,6 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Add detailed description with impact theory
 
 7. **Create nested events (K-Pg)**
-
    - Parent event: "K-Pg Extinction Event"
    - Child events:
      - "Chicxulub Impact" (66.043 MYA, exact moment)
@@ -1041,7 +1015,6 @@ This section provides concrete user journeys through the Time Traveler system, o
      - "Mass die-off" (66.04-65.8 MYA, ~200,000 years)
 
 8. **Visualization review**
-
    - Views timeline in logarithmic scale
    - All three extinction events visible despite wide temporal span
    - Uncertainty ranges shown as error bars
@@ -1078,7 +1051,6 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Land on master timeline homepage**
-
    - Sees horizontal infinite scroll timeline
    - Multiple timelines visible as tracks:
      - "Big Bang to Present"
@@ -1088,26 +1060,22 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Timeline tracks filtered by importance (≥7 by default)
 
 2. **Scroll through master timeline**
-
    - Horizontal scroll to explore time periods
    - Pans from Big Bang (13.8 BYA) toward present
    - Logarithmic scale shows all eras
 
 3. **Notice "History of Computing" timeline**
-
    - Timeline highlighted (featured status)
    - Hover shows tooltip: "From Babbage to AI, 200 years of computational innovation"
    - Clicks timeline track
 
 4. **Drill into "History of Computing" timeline**
-
    - Smooth zoom transition
    - Other timelines fade out
    - Computing timeline expands to full viewport
    - Breadcrumb appears: "Home > History of Computing"
 
 5. **Browse events on timeline**
-
    - Sees events chronologically:
      - Babbage's Analytical Engine (1837)
      - First electronic computer ENIAC (1945)
@@ -1118,7 +1086,6 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Hovers over events to read summaries in tooltips
 
 6. **Click on "ENIAC Completion (1945)"**
-
    - Event detail page opens
    - Shows:
      - Full description with historical context
@@ -1129,7 +1096,6 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Related events listed: "Colossus (1943)", "UNIVAC I (1951)"
 
 7. **Explore character: John Mauchly**
-
    - Clicks character link from event
    - Character profile page shows:
      - Biography
@@ -1138,7 +1104,6 @@ This section provides concrete user journeys through the Time Traveler system, o
      - Relationship network (connected to Eckert, von Neumann)
 
 8. **Use search to find more**
-
    - Searches "transistor"
    - Results show:
      - Event: Transistor invention (1947)
@@ -1183,19 +1148,16 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Navigate to admin dashboard**
-
    - Special admin section visible
    - "Manage Curated Library" option
 
 2. **Create library timeline**
-
    - Creates timeline:
      - Title: "History of Aviation"
      - Mark as library content (metadata flag)
      - Published: true
 
 3. **Add curated events via bulk import**
-
    - Uploads CSV with 50 aviation events:
      - Wright Brothers first flight (1903)
      - First transatlantic flight (1927)
@@ -1210,14 +1172,12 @@ This section provides concrete user journeys through the Time Traveler system, o
      - Quality descriptions
 
 4. **Review and edit events**
-
    - Manually reviews each imported event
    - Verifies dates against authoritative sources
    - Ensures neutral tone and accuracy
    - Adds missing details
 
 5. **Add characters**
-
    - Creates characters for key figures:
      - Wright Brothers
      - Charles Lindbergh
@@ -1225,7 +1185,6 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Associates with relevant events
 
 6. **Publish library timeline**
-
    - Timeline now visible in curated library
    - Users can import events
 
@@ -1253,18 +1212,15 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Receive moderation alert**
-
    - Dashboard shows flagged content notification
    - User reported timeline: "Conspiracy Theories About Moon Landing"
 
 2. **Review content**
-
    - Opens timeline for review
    - Reads events and descriptions
    - Assesses accuracy and appropriateness
 
 3. **Take action**
-
    - Determines content violates quality standards (misinformation)
    - Options:
      - Unpublish (make private)
@@ -1299,12 +1255,10 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **Sarah creates timeline**
-
    - Creates "World War II: Complete Timeline"
    - Adds initial events (Pearl Harbor, D-Day, etc.)
 
 2. **Sarah invites Robert as editor**
-
    - Opens timeline settings
    - Clicks "Invite Collaborator"
    - Enters Robert's email
@@ -1312,25 +1266,21 @@ This section provides concrete user journeys through the Time Traveler system, o
    - Robert receives notification
 
 3. **Robert accepts and views timeline**
-
    - Clicks notification link
    - Timeline appears in "Shared with me" section
    - Can view and edit events
 
 4. **Simultaneous editing (Realtime)**
-
    - Sarah adds event: "Battle of Midway"
    - Robert sees event appear immediately (Realtime update)
    - Presence indicator shows "Sarah is online"
 
 5. **Robert adds complementary events**
-
    - Adds European theater events
    - Sarah focused on Pacific theater
    - Events merge seamlessly
 
 6. **Coordination via comments (future)**
-
    - Robert leaves comment: "Should we add more context about Lend-Lease?"
    - Sarah responds, adds suggested event
 
@@ -1358,19 +1308,16 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **User creates K-Pg extinction event**
-
    - Enters year: 66, era: MYA
    - Mistakenly also fills in month: March
    - Clicks Save
 
 2. **Validation error appears**
-
    - Error message: "Month and day cannot be specified for prehistoric dates (MYA). Please remove month/day fields."
    - Month field highlighted in red
    - Form does not submit
 
 3. **User corrects error**
-
    - Clears month field
    - Clicks Save again
 
@@ -1393,12 +1340,10 @@ This section provides concrete user journeys through the Time Traveler system, o
 **Steps:**
 
 1. **User creates event: "Birth of Jesus"**
-
    - Enters year: 0, era: CE
    - Clicks Save
 
 2. **Validation error**
-
    - Error: "Year 0 does not exist. Use 1 BCE or 1 CE."
    - Suggests: "Did you mean 1 CE?"
 
@@ -4067,11 +4012,11 @@ Associate with event/character
 
 #### 5.6.1 Environments
 
-| Environment | Purpose              | URL                        |
-| ----------- | -------------------- | -------------------------- |
-| Development | Local development    | [http://localhost:3000](http://localhost:3000)    |
-| Staging     | Testing, PR previews | {pr-number}.vercel.app     |
-| Production  | Live application     | timetraveler.app (example) |
+| Environment | Purpose              | URL                                            |
+| ----------- | -------------------- | ---------------------------------------------- |
+| Development | Local development    | [http://localhost:3000](http://localhost:3000) |
+| Staging     | Testing, PR previews | {pr-number}.vercel.app                         |
+| Production  | Live application     | timetraveler.app (example)                     |
 
 **Database:**
 
@@ -5365,19 +5310,16 @@ The temporal input component is the most complex and critical UI element, enabli
 **Fields:**
 
 1. **Geological Period** (text input with autocomplete)
-
    - Suggestions: "Cretaceous", "Jurassic", "Triassic", "Paleozoic", etc.
    - Optional
    - Helper text: "e.g., Cretaceous, Jurassic"
 
 2. **Geological Epoch** (text input with autocomplete)
-
    - Suggestions: "Paleocene", "Eocene", "Oligocene", etc.
    - Optional
    - Helper text: "Subdivision of period"
 
 3. **Dating Method** (text input)
-
    - Examples: "Radiometric", "Stratigraphy", "Biostratigraphy"
    - Optional
    - Helper text: "How this date was determined"

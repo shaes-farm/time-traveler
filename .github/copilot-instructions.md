@@ -33,6 +33,7 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 ```
 
 **Key config files:**
+
 - `apps/admin/eslint.config.js`, `apps/docs/eslint.config.js` — extend `@repo/eslint-config/next-js`
 - `apps/admin/tsconfig.json`, `apps/docs/tsconfig.json` — extend `@repo/typescript-config/nextjs.json`
 - `packages/ui/tsconfig.json` — extends `@repo/typescript-config/react-library.json`
@@ -55,43 +56,63 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 **Always run `pnpm install` before building for the first time, or after changing dependencies.**
 
 ### Bootstrap
+
 ```bash
 pnpm install
 ```
+
 Installs all workspace dependencies. Takes ~3s when packages are cached.
 
 ### Build (validated ✓)
+
 ```bash
 pnpm run build
 ```
+
 Runs `turbo run build` across all packages and apps. Takes ~7s on first run; subsequent runs use Turborepo cache (~44ms, "FULL TURBO"). Outputs go to `apps/*/`.next/`.
 
 ### Lint (validated ✓ — zero warnings allowed)
+
 ```bash
 pnpm run lint
 ```
+
 Runs ESLint with `--max-warnings 0` across `packages/ui`, `apps/admin`, and `apps/docs`. **Lint failures and warnings both fail the build.** Takes ~4s first run, faster with cache.
 
 ### Type Check (validated ✓)
+
 ```bash
 pnpm run check-types
 ```
+
 Runs `next typegen && tsc --noEmit` in each Next.js app and `tsc --noEmit` in `packages/ui`. Takes ~3s.
 
 ### Format
+
 ```bash
 pnpm run format
 ```
+
 Runs `prettier --write "**/*.{ts,tsx,md}"`. Run this after editing `.ts`, `.tsx`, or `.md` files.
 
 ### Dev (starts all apps in watch mode)
+
 ```bash
 pnpm run dev
 ```
+
 Starts `apps/admin` on port 3000 and `apps/docs` on port 3001 concurrently.
 
-### No tests currently
-There is no test framework configured (no jest, vitest, or cypress). The `package.json` files have no `test` script. Do not attempt to run `npm test` or `pnpm test`.
+### Tests
+
+**Vitest** is configured for `packages/ui` and `packages/services`. Run tests via Turborepo:
+
+```bash
+pnpm run test              # run all tests once
+pnpm run test:coverage     # run tests with 80% coverage threshold enforcement
+```
+
+Coverage reports are written to `packages/*/coverage/`. Do not add apps to the test workspace until there is unit-testable code in them.
 
 ## Validation Checklist Before Submitting Changes
 
@@ -101,7 +122,8 @@ Run these in order — all must pass:
 2. `pnpm run check-types` — TypeScript must compile with no errors
 3. `pnpm run lint` — zero ESLint errors or warnings
 4. `pnpm run build` — must produce a successful Next.js build
-5. `pnpm run db:test` — if you made database schema changes
+5. `pnpm run test:coverage` — all tests must pass with ≥80% coverage
+6. `pnpm run db:test` — if you made database schema changes
 
 ## Important Rules & Conventions
 
@@ -110,7 +132,7 @@ Run these in order — all must pass:
 - **ESM modules**: Both app `package.json` files have `"type": "module"`. Use ESM import/export syntax everywhere.
 - **Shared packages**: Import UI components as `@repo/ui/button`, `@repo/ui/card`, etc. (resolved via `packages/ui/src/*.tsx`). Import configs as `@repo/eslint-config/...` and `@repo/typescript-config/...`.
 - **Turborepo task graph**: `build` depends on `^build` (packages build before apps). Do not run per-app builds in isolation unless you have already built the packages.
-- **No GitHub Actions workflows configured**: `.github/workflows/` is currently absent, so validation is local via the commands above.
+- **GitHub Actions workflows**: CI runs Lint, Type Check, Build, and Test on every push/PR. All four jobs are required status checks on `main`.
 - **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work.
 - **App package names**: The app package names are `admin` and `docs`; Turborepo references them as `admin:*` and `docs:*`.
 

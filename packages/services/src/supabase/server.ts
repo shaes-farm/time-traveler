@@ -1,7 +1,4 @@
-import {
-  createServerClient,
-  type CookieMethodsServer,
-} from "@supabase/ssr";
+import { createServerClient, type CookieMethodsServer } from "@supabase/ssr";
 import type { Database } from "./types.js";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

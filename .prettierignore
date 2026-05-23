@@ -1,0 +1,6 @@
+# Generated and third-party files
+.agents/
+coverage/
+.next/
+node_modules/
+pnpm-lock.yaml
