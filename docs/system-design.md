@@ -167,10 +167,15 @@ CREATE UNIQUE INDEX profiles_username_idx ON profiles (username);
 #### is_admin() Helper Function
 
 ```sql
-CREATE OR REPLACE FUNCTION is_admin()
-RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
   SELECT EXISTS (
-    SELECT 1 FROM profiles
+    SELECT 1 FROM public.profiles
     WHERE id = auth.uid()
       AND role = 'admin'
   );
@@ -178,6 +183,48 @@ $$;
 ```
 
 > **SECURITY DEFINER** is required here because the function needs to read `profiles` regardless of the calling user's RLS context. The function is `STABLE` (no side effects) and returns a simple boolean used in RLS policy clauses.
+>
+> **Hardening rule for all SECURITY DEFINER functions in this schema:** declare with `SET search_path = ''` and use fully-qualified table references (`public.<table>`, `auth.<table>`). Without this, a malicious caller can plant shadowing objects in a schema they control and trick the function into reading attacker-supplied data. This rule applies to every SECURITY DEFINER function defined in this spec — `is_admin()` above, the timeline RLS helpers below, the profile-creation trigger in §9.1, and `get_user_metrics` in §5.4.
+
+#### Timeline RLS Helpers (is_timeline_owner, is_timeline_collaborator, is_timeline_collab_editor)
+
+These three SECURITY DEFINER predicates exist to **break an RLS recursion cycle** between the `timeline_collaborators` and `timelines` tables. The RLS policies in §9.2.2 (`read_timelines`) and §9.2.4 (`read_collaborators`) each need to check the other table's contents; an inline `EXISTS (SELECT 1 FROM <other>)` triggers the other table's RLS policy, which triggers the original's RLS policy, producing `infinite recursion detected in policy for relation "timeline_collaborators"` (SQLSTATE 42P17) whenever a non-owner non-collaborator queries either table. SECURITY DEFINER bypasses RLS inside the helper, breaking the cycle.
+
+```sql
+CREATE OR REPLACE FUNCTION public.is_timeline_owner(t_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.timelines
+    WHERE id = t_id AND user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_timeline_collaborator(t_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.timeline_collaborators
+    WHERE timeline_id = t_id AND user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_timeline_collab_editor(t_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = ''
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.timeline_collaborators
+    WHERE timeline_id = t_id
+      AND user_id = auth.uid()
+      AND role IN ('editor', 'admin')
+  );
+$$;
+```
+
+All §9.2 policies reference these helpers in place of inline `EXISTS (SELECT 1 FROM timeline_collaborators ...)` and `EXISTS (SELECT 1 FROM timelines ...)`. See §9.2.1, §9.2.2, and §9.2.4.
 
 #### timelines
 
@@ -202,7 +249,7 @@ CREATE TABLE timelines (
   fractal_depth INTEGER DEFAULT 5,
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(title, '') || ' ' ||
       coalesce(summary, '') || ' ' ||
       coalesce(detail, ''))
@@ -273,7 +320,7 @@ CREATE TABLE events (
   timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(title, '') || ' ' ||
       coalesce(summary, '') || ' ' ||
       coalesce(detail, ''))
@@ -315,7 +362,7 @@ CREATE TABLE stories (
   ),
   tags TEXT[],
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(title, '') || ' ' ||
       coalesce(sub_title, '') || ' ' ||
       coalesce(summary, '') || ' ' ||
@@ -331,6 +378,15 @@ CREATE UNIQUE INDEX stories_slug_idx ON stories (user_id, slug);
 ```
 
 #### characters
+
+> **Prerequisite:** The `characters.search_vector` generated column references `immutable_array_to_string`, a thin SQL wrapper around `array_to_string` that is declared `IMMUTABLE`. This wrapper is required because PostgreSQL's built-in `array_to_string(anyarray, text)` is marked `STABLE` (it is polymorphic over array element types), so it cannot appear directly inside a `GENERATED ALWAYS AS` expression. For `TEXT[]` the result is fully deterministic, making the `IMMUTABLE` declaration safe. The wrapper must be created before the `characters` table:
+>
+> ```sql
+> CREATE OR REPLACE FUNCTION immutable_array_to_string(arr TEXT[], sep TEXT)
+> RETURNS TEXT LANGUAGE sql IMMUTABLE AS $$
+>   SELECT array_to_string(arr, sep);
+> $$;
+> ```
 
 ```sql
 CREATE TABLE characters (
@@ -357,10 +413,10 @@ CREATE TABLE characters (
   profile_data JSONB DEFAULT '{}',
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
-    to_tsvector('english',
+    to_tsvector('english'::regconfig,
       coalesce(name, '') || ' ' ||
       coalesce(biography, '') || ' ' ||
-      coalesce(array_to_string(aliases, ' '), ''))
+      coalesce(immutable_array_to_string(aliases, ' '), ''))
   ) STORED,
   published BOOLEAN DEFAULT false,
   published_at TIMESTAMPTZ,
@@ -457,6 +513,8 @@ CREATE UNIQUE INDEX char_rels_unique ON character_relationships
 ### 3.4 Junction Tables
 
 All junction tables use composite primary keys, no surrogate `id`, no `user_id`. RLS is enforced via parent entity ownership checks.
+
+> **Self-referential FK cycles:** `parent_event_id`, `parent_period_id`, and `parent_category_id` are unconstrained at the database level — cycles (A → B → A) are accepted by PostgreSQL. Cycle prevention is enforced in the service layer during create/update operations (#29, #31, #59, #60); the database intentionally does not attempt to detect cycles via constraints.
 
 ```sql
 -- Events ↔ Categories
@@ -699,13 +757,15 @@ BIGINT GENERATED ALWAYS AS (
 ) STORED
 ```
 
-| Era | Example    | sort_order_years |
-| --- | ---------- | ---------------- |
+| Era | Example   | sort_order_years |
+| --- | --------- | ---------------- |
 | CE  | year: 2024 | 2,024            |
 | BCE | year: 44   | −44              |
 | KYA | year: 12   | −12,000          |
 | MYA | year: 66   | −66,000,000      |
-| BYA | year: 13.8 | −13,800,000,000  |
+| BYA | year: 14   | −14,000,000,000  |
+
+> **Integer constraint required.** The `(temporal_data->>'year')::BIGINT` cast fails at the database level for fractional values such as `13.8` (error: `invalid input syntax for type bigint: "13.8"`). Year values for all eras must be whole integers. For BYA/MYA/KYA-scale dates, sub-year precision is meaningless — temporal resolution at those scales is in millions or billions of years. The integer constraint is enforced in Zod validation (#23) and the TemporalService layer (#24); the spec example has been updated from `13.8` to `14` accordingly.
 
 ### 4.5 Computed TIMESTAMPTZ for Modern Dates
 
@@ -715,19 +775,24 @@ For CE dates within PostgreSQL's range, a generated TIMESTAMPTZ column enables n
 computed_start_date TIMESTAMPTZ GENERATED ALWAYS AS (
   CASE
     WHEN (temporal_data->>'era') = 'CE'
-      AND (temporal_data->>'year')::BIGINT > -4712
-    THEN make_timestamptz(
+    THEN make_timestamp(
       (temporal_data->>'year')::INT,
       COALESCE((temporal_data->>'month')::INT, 1),
       COALESCE((temporal_data->>'day')::INT, 1),
       COALESCE((temporal_data->>'hour')::INT, 0),
       COALESCE((temporal_data->>'minute')::INT, 0),
-      COALESCE((temporal_data->>'second')::NUMERIC, 0)
-    )
+      COALESCE((temporal_data->>'second')::DOUBLE PRECISION, 0)
+    ) AT TIME ZONE 'UTC'
     ELSE NULL
   END
 ) STORED
 ```
+
+> **Why `make_timestamp(...) AT TIME ZONE 'UTC'` instead of `make_timestamptz(...)`:** Both the 6-argument and 7-argument overloads of `make_timestamptz` are marked `STABLE` in PostgreSQL, which means they cannot be used inside `GENERATED ALWAYS AS ... STORED` columns (only `IMMUTABLE` functions are permitted). `make_timestamp(...)` returns `TIMESTAMP` (no timezone) and is `IMMUTABLE`. Converting the result via `AT TIME ZONE 'UTC'` calls `timezone(text, timestamp)`, which is also `IMMUTABLE`. The `second` parameter uses `::DOUBLE PRECISION` to match `make_timestamp`'s signature directly (the function expects `double precision`, not `numeric`).
+>
+> **Upper bound:** `make_timestamp` errors for year values outside PostgreSQL's `TIMESTAMP` range (roughly year 294,276 CE). Input should be validated with a year upper-bound check in Zod (#23) to surface a clear error rather than an opaque database error.
+>
+> **Removed redundant check:** An earlier version of this spec included `AND (temporal_data->>'year')::BIGINT > -4712` in the CE branch. For `era = 'CE'` the year is positive by convention, so this check is always true and has been removed to simplify the example. No migration change is needed; the condition is cosmetic-only.
 
 ### 4.6 JSONB Validation
 
@@ -937,27 +1002,30 @@ CREATE OR REPLACE FUNCTION events_shared_by_characters(
 $$;
 
 -- User metrics dashboard
-CREATE OR REPLACE FUNCTION get_user_metrics(p_user_id UUID)
-RETURNS TABLE(
-  entity_type TEXT, count BIGINT
-) LANGUAGE sql STABLE SECURITY DEFINER AS $$
-  SELECT 'events', COUNT(*) FROM events WHERE user_id = p_user_id
+CREATE OR REPLACE FUNCTION public.get_user_metrics(p_user_id UUID)
+RETURNS TABLE(entity_type TEXT, count BIGINT)
+LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT 'events'::text,     COUNT(*) FROM public.events     WHERE user_id = p_user_id
   UNION ALL
-  SELECT 'timelines', COUNT(*) FROM timelines WHERE user_id = p_user_id
+  SELECT 'timelines'::text,  COUNT(*) FROM public.timelines  WHERE user_id = p_user_id
   UNION ALL
-  SELECT 'periods', COUNT(*) FROM periods WHERE user_id = p_user_id
+  SELECT 'periods'::text,    COUNT(*) FROM public.periods    WHERE user_id = p_user_id
   UNION ALL
-  SELECT 'stories', COUNT(*) FROM stories WHERE user_id = p_user_id
+  SELECT 'stories'::text,    COUNT(*) FROM public.stories    WHERE user_id = p_user_id
   UNION ALL
-  SELECT 'characters', COUNT(*) FROM characters WHERE user_id = p_user_id
+  SELECT 'characters'::text, COUNT(*) FROM public.characters WHERE user_id = p_user_id
   UNION ALL
-  SELECT 'categories', COUNT(*) FROM categories WHERE user_id = p_user_id
+  SELECT 'categories'::text, COUNT(*) FROM public.categories WHERE user_id = p_user_id
   UNION ALL
-  SELECT 'media', COUNT(*) FROM media WHERE user_id = p_user_id;
+  SELECT 'media'::text,      COUNT(*) FROM public.media      WHERE user_id = p_user_id;
 $$;
 ```
 
 > **Note:** All functions are `LANGUAGE sql` with `STABLE` volatility, not `plpgsql`. SQL functions are inlineable by the PostgreSQL optimizer, meaning they can be folded into the calling query plan. PL/pgSQL functions are always executed as opaque blocks. For read-only queries, SQL functions are strictly better.
+>
+> **Why `get_user_metrics` is SECURITY DEFINER and accepts arbitrary `p_user_id`:** the function is designed to support public-profile use cases where any caller (including `anon`) can display per-entity counts for any user (e.g., "Author X has 47 published timelines"). Bypassing RLS ensures accurate counts independent of the caller's read access. If you want to restrict to self+admin instead, replace SECURITY DEFINER with SECURITY INVOKER and add `WHERE p_user_id = auth.uid() OR public.is_admin()` guards. The hardening rule from §3.2 applies: `SET search_path = ''` and fully-qualified table references are required.
 
 ### 5.5 Edge Functions
 
@@ -1163,8 +1231,8 @@ export class TemporalService {
 | year: 2024, month: 8, day: 11, era: CE  | standard     | August 11, 2024        |
 | year: 44, month: 3, day: 15, era: BCE   | standard     | March 15, 44 BCE       |
 | year: 66, era: MYA, geol: "K-Pg"        | geological   | 66 MYA (K-Pg boundary) |
-| year: 4.54, era: BYA, ±50M              | scientific   | 4.54 ± 0.05 BYA        |
-| year: 13.8, era: BYA, epoch: "Big Bang" | cosmological | Big Bang (13.8 BYA)    |
+| year: 5, era: BYA, ±500M                | scientific   | ~4.5 ± 0.5 BYA         |
+| year: 14, era: BYA, epoch: "Big Bang"   | cosmological | Big Bang (~13.8 BYA)   |
 
 ### 6.3 Logarithmic Scale for Visualization
 
@@ -1227,6 +1295,7 @@ CREATE INDEX idx_events_sort ON events (sort_order_years);
 CREATE INDEX idx_events_timeline_sort ON events (timeline_id, sort_order_years);
 CREATE INDEX idx_events_range ON events (sort_order_years, sort_order_end);
 CREATE INDEX idx_periods_sort ON periods (sort_order_start);
+CREATE INDEX idx_periods_range ON periods (sort_order_start, sort_order_end);
 
 -- Full-text search (all four searchable entity types per PRD Section 4.12.1)
 CREATE INDEX idx_events_search ON events USING GIN (search_vector);
@@ -1238,9 +1307,9 @@ CREATE INDEX idx_stories_search ON stories USING GIN (search_vector);
 CREATE INDEX idx_characters_type ON characters (character_type);
 CREATE INDEX idx_characters_aliases ON characters USING GIN (aliases);
 
--- Junction table performance
+-- Junction table performance (reverse-FK lookups; the composite PK's leading
+-- column already supports lookups by the first-named column for free)
 CREATE INDEX idx_event_chars_char ON event_characters (character_id);
-CREATE INDEX idx_event_chars_event ON event_characters (event_id);
 CREATE INDEX idx_char_rels_char ON character_relationships (character_id);
 CREATE INDEX idx_char_rels_related ON character_relationships (related_character_id);
 CREATE INDEX idx_timeline_events_event ON timeline_events (event_id);
@@ -1261,8 +1330,11 @@ CREATE INDEX idx_categories_parent ON categories (parent_category_id);
 
 ### 8.3 Database Views
 
+Every view is declared `WITH (security_invoker = true)` — without this, views run as the view owner and silently bypass RLS on the underlying tables (Supabase docs: [Security Invoker on Views](https://supabase.com/docs/guides/database/postgres/row-level-security#security-invoker-on-views)). With it, the calling user's RLS policies on the base tables are respected.
+
 ```sql
-CREATE VIEW character_timeline_view AS
+CREATE VIEW character_timeline_view
+  WITH (security_invoker = true) AS
 SELECT
   c.id AS character_id, c.name AS character_name,
   e.id AS event_id, e.title AS event_title,
@@ -1272,10 +1344,12 @@ SELECT
 FROM characters c
 JOIN event_characters ec ON c.id = ec.character_id
 JOIN events e ON ec.event_id = e.id
-LEFT JOIN timelines t ON e.timeline_id = t.id
-ORDER BY c.id, e.sort_order_years;
+LEFT JOIN timelines t ON e.timeline_id = t.id;
+-- Consumers should apply their own ORDER BY (e.g., ORDER BY sort_order_years);
+-- view-baked ORDER BY is not guaranteed to survive consumer WHERE/JOIN.
 
-CREATE VIEW character_network_view AS
+CREATE VIEW character_network_view
+  WITH (security_invoker = true) AS
 SELECT
   cr.id AS relationship_id,
   c1.id AS character_id, c1.name AS character_name,
@@ -1285,14 +1359,23 @@ FROM character_relationships cr
 JOIN characters c1 ON cr.character_id = c1.id
 JOIN characters c2 ON cr.related_character_id = c2.id;
 
-CREATE VIEW event_participants_view AS
+CREATE VIEW event_participants_view
+  WITH (security_invoker = true) AS
 SELECT
   e.id AS event_id, e.title, e.sort_order_years,
   COUNT(ec.character_id) AS participant_count,
-  json_agg(json_build_object(
-    'id', c.id, 'name', c.name, 'type', c.character_type,
-    'role', ec.role, 'significance', ec.significance
-  ) ORDER BY ec.significance, c.name) AS participants
+  -- FILTER + COALESCE avoid `[null]` for events with no event_characters rows;
+  -- a bare json_agg over a LEFT JOIN with no matches would emit a one-element
+  -- array containing JSON null, which is awkward for consumers.
+  COALESCE(
+    json_agg(
+      json_build_object(
+        'id', c.id, 'name', c.name, 'type', c.character_type,
+        'role', ec.role, 'significance', ec.significance
+      ) ORDER BY ec.significance, c.name
+    ) FILTER (WHERE c.id IS NOT NULL),
+    '[]'::json
+  ) AS participants
 FROM events e
 LEFT JOIN event_characters ec ON e.id = ec.event_id
 LEFT JOIN characters c ON ec.character_id = c.id
@@ -1305,15 +1388,72 @@ GROUP BY e.id, e.title, e.sort_order_years;
 
 ### 9.1 Authentication
 
-Supabase Auth (email/password, magic link, OAuth). Profile trigger auto-creates a row in `profiles` on signup.
+Supabase Auth (email/password, magic link, OAuth). The profile trigger below auto-creates a row in `profiles` on signup, deriving `first_name` and `last_name` from `raw_user_meta_data` first, then the email local-part, with a `'New'`/`'User'` literal fallback. Single-char results are padded so the `CHECK (char_length > 1)` constraint on `profiles.first_name`/`last_name` is always satisfied. The hardening rule from §3.2 applies: `SET search_path = ''` and fully-qualified table references.
+
+```sql
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  meta JSONB := COALESCE(NEW.raw_user_meta_data, '{}'::jsonb);
+  email_local TEXT := split_part(COALESCE(NEW.email, ''), '@', 1);
+  email_first TEXT;
+  email_last  TEXT;
+  fn TEXT;
+  ln TEXT;
+BEGIN
+  IF email_local ~ '[._]' THEN
+    email_first := split_part(regexp_replace(email_local, '[._]', '.', 'g'), '.', 1);
+    email_last  := split_part(regexp_replace(email_local, '[._]', '.', 'g'), '.', 2);
+  ELSE
+    email_first := email_local;
+    email_last  := NULL;
+  END IF;
+
+  fn := COALESCE(
+    NULLIF(meta->>'first_name', ''),
+    NULLIF(meta->>'given_name', ''),
+    NULLIF(email_first, ''),
+    'New'
+  );
+  ln := COALESCE(
+    NULLIF(meta->>'last_name', ''),
+    NULLIF(meta->>'family_name', ''),
+    NULLIF(email_last, ''),
+    'User'
+  );
+
+  -- Pad single-char fallbacks to satisfy CHECK (char_length > 1)
+  IF char_length(fn) < 2 THEN fn := fn || '.'; END IF;
+  IF char_length(ln) < 2 THEN ln := ln || '.'; END IF;
+
+  INSERT INTO public.profiles (id, first_name, last_name)
+    VALUES (NEW.id, fn, ln)
+    ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+```
+
+> `ON CONFLICT (id) DO NOTHING` keeps the trigger idempotent if a profile row already exists (manual pre-creation, retry, replay). Apps can prompt users with placeholder names (`'New'`/`'User'`) to update their profile on first login.
 
 ### 9.2 RLS Pattern
 
 Every content table uses the same four-clause pattern for reads: published content is public, owners see their own, admins see everything, and collaborators see shared timeline content. Write policies check ownership or admin status, with collaborator editors granted write access to shared timeline content.
 
-#### 9.2.1 Content Tables with Timeline Association (events)
+Policies in §9.2.1, §9.2.2, and §9.2.4 call the SECURITY DEFINER helpers introduced in §3.2 (`is_timeline_owner`, `is_timeline_collaborator`, `is_timeline_collab_editor`) instead of inlining `EXISTS (SELECT 1 FROM timeline_collaborators ...)` / `EXISTS (SELECT 1 FROM timelines ...)`. The helpers exist to break an otherwise-fatal RLS recursion cycle (see the §3.2 rationale).
 
-Tables that have a `timeline_id` column benefit from direct collaborator checks:
+**Global-read carve-out for organizational tables.** Three tables intentionally use `USING (true)` on SELECT and are reachable by `anon`: `categories` and `media` (organizational metadata — access control is enforced on the parent entity that references them), and `profiles` (public-display data such as username, avatar, bio). These carve-outs are deliberate exceptions to the "anonymous users read only published content" rule and are documented per-table below.
+
+#### 9.2.1 Content Tables with Timeline Association (events)
 
 ```sql
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
@@ -1323,41 +1463,24 @@ CREATE POLICY "read_events" ON events FOR SELECT USING (
   published = true
   OR user_id = auth.uid()
   OR is_admin()
-  OR EXISTS (
-    SELECT 1 FROM timeline_collaborators tc
-    WHERE tc.timeline_id = events.timeline_id
-      AND tc.user_id = auth.uid()
-  )
+  OR public.is_timeline_collaborator(events.timeline_id)
 );
 
 -- Insert: owner or admin
 CREATE POLICY "insert_events" ON events FOR INSERT TO authenticated
-  WITH CHECK (
-    user_id = auth.uid()
-    OR is_admin()
-  );
+  WITH CHECK (user_id = auth.uid() OR is_admin());
 
 -- Update: owner OR admin OR collaborator-editor
 CREATE POLICY "update_events" ON events FOR UPDATE TO authenticated
   USING (
     user_id = auth.uid()
     OR is_admin()
-    OR EXISTS (
-      SELECT 1 FROM timeline_collaborators tc
-      WHERE tc.timeline_id = events.timeline_id
-        AND tc.user_id = auth.uid()
-        AND tc.role IN ('editor', 'admin')
-    )
+    OR public.is_timeline_collab_editor(events.timeline_id)
   )
   WITH CHECK (
     user_id = auth.uid()
     OR is_admin()
-    OR EXISTS (
-      SELECT 1 FROM timeline_collaborators tc
-      WHERE tc.timeline_id = events.timeline_id
-        AND tc.user_id = auth.uid()
-        AND tc.role IN ('editor', 'admin')
-    )
+    OR public.is_timeline_collab_editor(events.timeline_id)
   );
 
 -- Delete: owner or admin only (collaborators cannot delete)
@@ -1377,11 +1500,7 @@ CREATE POLICY "read_timelines" ON timelines FOR SELECT USING (
   published = true
   OR user_id = auth.uid()
   OR is_admin()
-  OR EXISTS (
-    SELECT 1 FROM timeline_collaborators tc
-    WHERE tc.timeline_id = timelines.id
-      AND tc.user_id = auth.uid()
-  )
+  OR public.is_timeline_collaborator(timelines.id)
 );
 
 CREATE POLICY "insert_timelines" ON timelines FOR INSERT TO authenticated
@@ -1403,14 +1522,14 @@ CREATE POLICY "read_periods" ON periods FOR SELECT USING (
   OR is_admin()
   OR EXISTS (
     SELECT 1 FROM period_timelines pt
-    JOIN timeline_collaborators tc ON tc.timeline_id = pt.timeline_id
     WHERE pt.period_id = periods.id
-      AND tc.user_id = auth.uid()
+      AND public.is_timeline_collaborator(pt.timeline_id)
   )
 );
 
 CREATE POLICY "write_periods" ON periods FOR ALL TO authenticated
-  USING (user_id = auth.uid() OR is_admin());
+  USING (user_id = auth.uid() OR is_admin())
+  WITH CHECK (user_id = auth.uid() OR is_admin());
 ```
 
 ```sql
@@ -1424,14 +1543,14 @@ CREATE POLICY "read_characters" ON characters FOR SELECT USING (
   OR EXISTS (
     SELECT 1 FROM event_characters ec
     JOIN events e ON ec.event_id = e.id
-    JOIN timeline_collaborators tc ON tc.timeline_id = e.timeline_id
     WHERE ec.character_id = characters.id
-      AND tc.user_id = auth.uid()
+      AND public.is_timeline_collaborator(e.timeline_id)
   )
 );
 
 CREATE POLICY "write_characters" ON characters FOR ALL TO authenticated
-  USING (user_id = auth.uid() OR is_admin());
+  USING (user_id = auth.uid() OR is_admin())
+  WITH CHECK (user_id = auth.uid() OR is_admin());
 ```
 
 ```sql
@@ -1445,14 +1564,14 @@ CREATE POLICY "read_stories" ON stories FOR SELECT USING (
   OR EXISTS (
     SELECT 1 FROM story_events se
     JOIN events e ON se.event_id = e.id
-    JOIN timeline_collaborators tc ON tc.timeline_id = e.timeline_id
     WHERE se.story_id = stories.id
-      AND tc.user_id = auth.uid()
+      AND public.is_timeline_collaborator(e.timeline_id)
   )
 );
 
 CREATE POLICY "write_stories" ON stories FOR ALL TO authenticated
-  USING (user_id = auth.uid() OR is_admin());
+  USING (user_id = auth.uid() OR is_admin())
+  WITH CHECK (user_id = auth.uid() OR is_admin());
 ```
 
 ```sql
@@ -1497,6 +1616,8 @@ CREATE POLICY "write_event_categories" ON event_categories FOR ALL TO authentica
 
 #### 9.2.4 Collaborator Table
 
+The `read_collaborators` and `write_collaborators` policies below would deadlock against `read_timelines` (§9.2.2) using inline `EXISTS (SELECT 1 FROM timelines ...)` subqueries, because each table's RLS check would re-trigger the other table's RLS, producing `infinite recursion detected in policy for relation "timeline_collaborators"` (SQLSTATE 42P17) for any non-owner non-collaborator query. The fix is to call the SECURITY DEFINER `is_timeline_owner(t_id)` helper from §3.2, which bypasses RLS inside the helper body.
+
 ```sql
 ALTER TABLE timeline_collaborators ENABLE ROW LEVEL SECURITY;
 
@@ -1504,20 +1625,77 @@ ALTER TABLE timeline_collaborators ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "read_collaborators" ON timeline_collaborators FOR SELECT USING (
   user_id = auth.uid()
   OR is_admin()
-  OR EXISTS (
-    SELECT 1 FROM timelines WHERE id = timeline_collaborators.timeline_id
-      AND user_id = auth.uid()
-  )
+  OR public.is_timeline_owner(timeline_collaborators.timeline_id)
 );
 
 -- Write: timeline owner or admin only (owners manage their collaborators)
-CREATE POLICY "write_collaborators" ON timeline_collaborators FOR ALL TO authenticated USING (
-  is_admin()
-  OR EXISTS (
-    SELECT 1 FROM timelines WHERE id = timeline_collaborators.timeline_id
-      AND user_id = auth.uid()
+CREATE POLICY "write_collaborators" ON timeline_collaborators FOR ALL TO authenticated
+  USING (
+    is_admin()
+    OR public.is_timeline_owner(timeline_collaborators.timeline_id)
   )
-);
+  WITH CHECK (
+    is_admin()
+    OR public.is_timeline_owner(timeline_collaborators.timeline_id)
+  );
+```
+
+#### 9.2.5 Special-Case Tables
+
+Four tables don't fit the §9.2.1/§9.2.2 patterns — they need bespoke policies that aren't derived from `published`/`owner`/`collaborator`/`admin`. Each table's RLS rule is given below; the implementation is in migration `00007_rls_policies.sql`.
+
+**profiles** — globally readable (usernames, avatars, bios are public-display data); own-row-only update. The `handle_new_user` trigger from §9.1 is the sole INSERT path (SECURITY DEFINER bypasses RLS). No DELETE policy — CASCADE from `auth.users` handles removal.
+
+```sql
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_profiles" ON profiles FOR SELECT USING (true);
+
+CREATE POLICY "update_profiles" ON profiles FOR UPDATE TO authenticated
+  USING (id = auth.uid() OR is_admin())
+  WITH CHECK (id = auth.uid() OR is_admin());
+```
+
+**notifications** — own-only read and update. INSERT happens via SECURITY DEFINER paths (collaboration invites, moderation alerts) so no INSERT policy is needed. No DELETE — notifications are write-once except for `read`/`read_at`, and column-level UPDATE restriction is enforced at the service layer (a future Postgres feature could let RLS limit which columns UPDATE may touch; for now this is application-enforced).
+
+```sql
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_notifications" ON notifications FOR SELECT
+  USING (user_id = auth.uid() OR is_admin());
+
+CREATE POLICY "update_notifications" ON notifications FOR UPDATE TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+```
+
+**content_reports** — reporter-or-admin read, any authenticated user can file a report about themselves (`WITH CHECK (reporter_id = auth.uid())` prevents spoofing), admin-only update (resolves status/admin_notes/resolved_by/at). No DELETE — reports are retained for the audit trail.
+
+```sql
+ALTER TABLE content_reports ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_content_reports" ON content_reports FOR SELECT
+  USING (reporter_id = auth.uid() OR is_admin());
+
+CREATE POLICY "insert_content_reports" ON content_reports FOR INSERT TO authenticated
+  WITH CHECK (reporter_id = auth.uid());
+
+CREATE POLICY "update_content_reports" ON content_reports FOR UPDATE TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+```
+
+**character_relationships** — simple `user_id`-based ownership for both read and write. The table has its own `user_id` column (unlike most junction tables), so ownership is well-defined. AC also describes a "visible if either character is visible" alternative; that interpretation requires recursive RLS evaluation through the characters policy and is rejected here in favor of the cheaper, deterministic ownership check.
+
+```sql
+ALTER TABLE character_relationships ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "read_character_relationships" ON character_relationships FOR SELECT
+  USING (user_id = auth.uid() OR is_admin());
+
+CREATE POLICY "write_character_relationships" ON character_relationships FOR ALL TO authenticated
+  USING (user_id = auth.uid() OR is_admin())
+  WITH CHECK (user_id = auth.uid() OR is_admin());
 ```
 
 ### 9.3 Storage Policies
