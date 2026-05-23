@@ -22,10 +22,8 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 │   ├── eslint-config/  # @repo/eslint-config — shared ESLint configs (base, next, react-internal)
 │   └── typescript-config/ # @repo/typescript-config — shared tsconfig (base, nextjs, react-library)
 ├── docs/               # Project documentation (PRD, system design, historical papers)
-├── .squad/             # AI team configuration (agents, routing, skills)
 ├── .github/
-│   ├── agents/         # squad.agent.md
-│   └── workflows/      # Squad automation only (no CI build pipeline)
+│   └── workflows/      # GitHub Actions workflows (no CI build pipeline)
 ├── package.json        # Root — defines workspace-level scripts
 ├── turbo.json          # Turborepo task graph
 ├── pnpm-workspace.yaml # Workspace packages: apps/*, packages/*
@@ -79,7 +77,7 @@ Runs `next typegen && tsc --noEmit` in each Next.js app and `tsc --noEmit` in `p
 ```bash
 pnpm run format
 ```
-Runs `prettier --write "**/*.{ts,tsx,md}"`. Run this after editing `.ts`, `.tsx`, or `.md` files. Note: many `.squad/` markdown files are not formatted — this is expected and not a failure.
+Runs `prettier --write "**/*.{ts,tsx,md}"`. Run this after editing `.ts`, `.tsx`, or `.md` files.
 
 ### Dev (starts all apps in watch mode)
 ```bash
@@ -107,7 +105,7 @@ Run these in order — all must pass:
 - **ESM modules**: Both app `package.json` files have `"type": "module"`. Use ESM import/export syntax everywhere.
 - **Shared packages**: Import UI components as `@repo/ui/button`, `@repo/ui/card`, etc. (resolved via `packages/ui/src/*.tsx`). Import configs as `@repo/eslint-config/...` and `@repo/typescript-config/...`.
 - **Turborepo task graph**: `build` depends on `^build` (packages build before apps). Do not run per-app builds in isolation unless you have already built the packages.
-- **No CI pipeline**: There is no `ci.yml` GitHub Actions build workflow. The only workflows are squad automation (triage, heartbeat, label sync). Validation is done locally via the commands above.
+- **No CI pipeline**: There is no `ci.yml` GitHub Actions build workflow. Validation is done locally via the commands above.
 - **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work.
 - **App name discrepancy**: The admin app's `package.json` uses `"name": "web"` — Turborepo references it as `web:build`, `web:lint`, etc.
 
