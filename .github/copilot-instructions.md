@@ -6,7 +6,7 @@ Trust these instructions. Only search the codebase if information here is incomp
 
 **Time Traveler** is a temporal content management system for storing, visualizing, and interacting with historical events and narratives across the full span of time. Key features include fractal zoomable timelines, multi-dimensional character modeling (7 types: Human, Animal, Mythological, Fictional, Organization, Divine, Artifact), and a hybrid temporal system supporting dates from the Big Bang to the far future. The planned stack is **Next.js 16+ (App Router), React 19, TypeScript, Supabase (PostgreSQL + JSONB, Auth, Realtime, RLS), TanStack Query, Zustand, shadcn/ui, Tailwind CSS, D3.js**. Target hosting is **Vercel** (frontend) + **Supabase** (backend/database).
 
-**Current state (branch `rebuild-app-from-scratch`):** Both apps contain Turborepo boilerplate scaffolding — the Time Traveler features are not yet implemented.
+**Current state:** `apps/admin` and `apps/docs` still contain Turborepo boilerplate pages, while the Supabase layer already has nine schema/policy/function/storage migrations plus pgTAP database tests.
 
 ## Repository Layout
 
@@ -19,11 +19,13 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 │   └── docs/           # Next.js 16 docs app (port 3001) — package name: "docs"
 ├── packages/
 │   ├── ui/             # @repo/ui — shared React components (button, card, code)
+│   ├── services/       # @repo/services — shared Supabase clients, schemas, and service modules
 │   ├── eslint-config/  # @repo/eslint-config — shared ESLint configs (base, next, react-internal)
 │   └── typescript-config/ # @repo/typescript-config — shared tsconfig (base, nextjs, react-library)
 ├── docs/               # Project documentation (PRD, system design, historical papers)
+├── supabase/           # Local Supabase config, SQL migrations, and pgTAP database tests
 ├── .github/
-│   └── workflows/      # GitHub Actions workflows (no CI build pipeline)
+│   └── copilot-instructions.md # Copilot repository instructions
 ├── package.json        # Root — defines workspace-level scripts
 ├── turbo.json          # Turborepo task graph
 ├── pnpm-workspace.yaml # Workspace packages: apps/*, packages/*
@@ -34,7 +36,10 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 - `apps/admin/eslint.config.js`, `apps/docs/eslint.config.js` — extend `@repo/eslint-config/next-js`
 - `apps/admin/tsconfig.json`, `apps/docs/tsconfig.json` — extend `@repo/typescript-config/nextjs.json`
 - `packages/ui/tsconfig.json` — extends `@repo/typescript-config/react-library.json`
+- `packages/services/eslint.config.mjs` — extends `@repo/eslint-config/base`
+- `packages/services/tsconfig.json` — extends `@repo/typescript-config/base.json`
 - `packages/ui/package.json` — exports via `"./*": "./src/*.tsx"`
+- `packages/services/package.json` — exports via `"./*": "./src/*.ts"`
 
 ## Runtime & Tool Versions
 
@@ -105,9 +110,9 @@ Run these in order — all must pass:
 - **ESM modules**: Both app `package.json` files have `"type": "module"`. Use ESM import/export syntax everywhere.
 - **Shared packages**: Import UI components as `@repo/ui/button`, `@repo/ui/card`, etc. (resolved via `packages/ui/src/*.tsx`). Import configs as `@repo/eslint-config/...` and `@repo/typescript-config/...`.
 - **Turborepo task graph**: `build` depends on `^build` (packages build before apps). Do not run per-app builds in isolation unless you have already built the packages.
-- **No CI pipeline**: There is no `ci.yml` GitHub Actions build workflow. Validation is done locally via the commands above.
+- **No GitHub Actions workflows configured**: `.github/workflows/` is currently absent, so validation is local via the commands above.
 - **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work.
-- **App name discrepancy**: The admin app's `package.json` uses `"name": "web"` — Turborepo references it as `web:build`, `web:lint`, etc.
+- **App package names**: The app package names are `admin` and `docs`; Turborepo references them as `admin:*` and `docs:*`.
 
 ## When You're Blocked
 
