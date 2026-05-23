@@ -7,6 +7,8 @@
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "db:deploy": "supabase db push",
     "db:reset": "supabase db reset",
     "db:start": "supabase start",
@@ -18,10 +20,12 @@
     "db:gen:types": "supabase gen types typescript --local > ./packages/services/src/supabase/types.ts"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.7",
     "prettier": "^3.8.3",
     "supabase": "^2.101.0",
     "turbo": "^2.9.14",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.7"
   },
   "packageManager": "pnpm@11.2.2",
   "engines": {
