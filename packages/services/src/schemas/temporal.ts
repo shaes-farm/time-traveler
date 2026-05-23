@@ -153,3 +153,45 @@ export const temporalDataSchema = z
   });
 
 export type TemporalData = z.infer<typeof temporalDataSchema>;
+export type Era = z.infer<typeof eraEnum>;
+export type Precision = z.infer<typeof precisionEnum>;
+export type DisplayFormat = z.infer<typeof displayFormatEnum>;
+export type ConfidenceLevel = z.infer<typeof confidenceLevelEnum>;
+
+/**
+ * Era→sortable conversion mirroring the SQL `sort_order_years` generated
+ * column in supabase/migrations/00001_initial_schema.sql. Inlined here (and
+ * re-exported from TemporalService) so temporalRangeSchema's start≤end check
+ * doesn't introduce a schemas→modules circular import.
+ */
+function eraToSortableYears(t: Pick<TemporalData, "era" | "year">): number {
+  switch (t.era) {
+    case "CE":
+      return t.year;
+    case "BCE":
+      return -t.year;
+    case "KYA":
+      return -t.year * 1_000;
+    case "MYA":
+      return -t.year * 1_000_000;
+    case "BYA":
+      return -t.year * 1_000_000_000;
+  }
+}
+
+export const temporalRangeSchema = z
+  .object({
+    start: temporalDataSchema,
+    end: temporalDataSchema,
+  })
+  .superRefine((data, ctx) => {
+    if (eraToSortableYears(data.start) > eraToSortableYears(data.end)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["end"],
+        message: "end must be the same as or later than start",
+      });
+    }
+  });
+
+export type TemporalRange = z.infer<typeof temporalRangeSchema>;
