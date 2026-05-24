@@ -616,11 +616,26 @@ describe("updateCollaboratorRole", () => {
 // ---------------------------------------------------------------------------
 
 describe("addEventToTimeline", () => {
-  it("returns the new junction row", async () => {
-    const row = { timeline_id: "timeline-1", event_id: "event-1" };
+  it("returns the new junction row with default sort_order=0", async () => {
+    const row = {
+      timeline_id: "timeline-1",
+      event_id: "event-1",
+      sort_order: 0,
+    };
     const client = makeClient({ fromResult: { data: row, error: null } });
     const result = await addEventToTimeline(client, "timeline-1", "event-1");
     expect(result).toEqual(row);
+  });
+
+  it("accepts an explicit sort_order", async () => {
+    const row = {
+      timeline_id: "timeline-1",
+      event_id: "event-1",
+      sort_order: 5,
+    };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+    const result = await addEventToTimeline(client, "timeline-1", "event-1", 5);
+    expect(result.sort_order).toBe(5);
   });
 
   it("throws on Supabase error", async () => {

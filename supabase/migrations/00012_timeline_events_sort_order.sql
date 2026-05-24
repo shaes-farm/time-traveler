@@ -1,0 +1,22 @@
+-- ============================================================================
+-- 00012_timeline_events_sort_order.sql
+--
+-- Adds sort_order INTEGER column to the timeline_events junction table
+-- (issue #122).
+--
+-- The original spec (#28) for the addEventToTimeline service function
+-- defined a sortOrder parameter, but the timeline_events junction table
+-- created in 00002_relationships_junctions.sql omitted the corresponding
+-- column. timeline_media has the equivalent sort_order column already; this
+-- migration brings timeline_events into alignment so editors can give events
+-- a deterministic, override-able display order within a timeline (e.g., for
+-- comparative or thematic timelines that group events non-chronologically).
+--
+-- The default value of 0 is backward-compatible: existing rows receive
+-- sort_order = 0 automatically and callers that omit the sortOrder argument
+-- continue to work. When all sort_order values are equal (i.e., still unset),
+-- the application layer is expected to fall back to ordering by the joined
+-- events.sort_order_start (chronological order).
+-- ============================================================================
+
+ALTER TABLE timeline_events ADD COLUMN sort_order INTEGER DEFAULT 0;
