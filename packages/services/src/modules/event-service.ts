@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { eventSchema } from "../schemas/event.js";
+import { eventSchema, eventTypeEnum } from "../schemas/event.js";
 import type { EventInput } from "../schemas/event.js";
 import { generateSlug, resolveCollision } from "../utils/slug.js";
+import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
 import type { Database } from "../supabase/types.js";
 
 // ---------------------------------------------------------------------------
@@ -41,7 +42,7 @@ export type CharacterSignificance =
 
 /** Optional filters accepted by getEvents */
 export interface EventFilters {
-  eventType?: string;
+  eventType?: z.infer<typeof eventTypeEnum>;
   importance?: number;
   timelineId?: string;
   userId?: string;
@@ -235,8 +236,12 @@ export async function createEvent(
 
     if (insertError !== null) {
       if (insertError.code === "23505" && attempt < MAX_SLUG_RETRIES - 1) {
-        // Collision — append a random 4-char hex suffix and retry
-        attemptSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+        // Collision — append a random 4-char base-36 suffix and retry.
+        // Truncate the base slug to ensure the suffixed result stays within
+        // MAX_SLUG_LENGTH (the suffix adds 5 chars: a hyphen + 4 chars).
+        const suffix = Math.random().toString(36).slice(2, 6);
+        const truncated = slug.slice(0, MAX_SLUG_LENGTH - 5);
+        attemptSlug = `${truncated}-${suffix}`;
         continue;
       }
       // Non-collision error or exhausted retries — throw
@@ -274,9 +279,13 @@ export async function updateEvent(
 }
 
 /**
- * Permanently deletes an event. The `ON DELETE CASCADE` constraint in the DB
- * automatically removes all junction rows (event_categories, event_media,
- * event_characters) and nullifies `timeline_id` references for child events.
+ * Permanently deletes an event. The DB FK constraints on deletion are:
+ * - `event_categories`, `event_media`, `event_characters` junction rows are
+ *   removed via `ON DELETE CASCADE` on their `event_id` FK.
+ * - Child events (`parent_event_id` FK) are also deleted via `ON DELETE CASCADE`.
+ * - The event's `timeline_id` FK has `ON DELETE SET NULL` on the *timelines*
+ *   table — deleting an event does not affect the timeline, only deleting the
+ *   timeline would null out the event's `timeline_id`.
  */
 export async function deleteEvent(
   client: SupabaseClient<Database>,
@@ -486,8 +495,13 @@ export async function removeCharacterFromEvent(
 }
 
 /**
- * Returns all character participation records for an event, including role
- * and significance metadata.
+ * Returns all `event_characters` junction rows for an event, including the
+ * `role`, `significance`, and `description` fields stored on the junction.
+ *
+ * Note: this returns raw junction records — character profile data (name,
+ * type, etc.) is NOT joined. Callers that need full character details must
+ * fetch characters separately by `character_id`, or query the
+ * `event_participants_view` database view directly.
  */
 export async function getEventParticipants(
   client: SupabaseClient<Database>,
