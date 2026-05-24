@@ -144,6 +144,7 @@ describe("getStories", () => {
     expect(builder.textSearch).toHaveBeenCalledWith(
       "search_vector",
       "medieval",
+      { type: "websearch" },
     );
   });
 
@@ -243,6 +244,17 @@ describe("createStory", () => {
     });
     await expect(createStory(client, { title: "Test" })).rejects.toThrow(
       "StoryService.createStory.getUser: auth error",
+    );
+  });
+
+  it("throws when user is null despite no auth error", async () => {
+    const client = makeCreateClient({ data: null, error: null });
+    (client.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: { user: null },
+      error: null,
+    });
+    await expect(createStory(client, { title: "Test" })).rejects.toThrow(
+      "StoryService.createStory: no authenticated user",
     );
   });
 

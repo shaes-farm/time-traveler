@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { storySchema } from "../schemas/story.js";
+import { z } from "zod";
+import { storySchema, narratorTypeEnum } from "../schemas/story.js";
 import type { StoryInput } from "../schemas/story.js";
 import { generateSlug, resolveCollision } from "../utils/slug.js";
 import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
@@ -20,7 +21,7 @@ export type StoryCharacterRole =
 
 export interface StoryFilters {
   userId?: string;
-  narratorType?: string;
+  narratorType?: z.infer<typeof narratorTypeEnum>;
   search?: string;
   page?: number;
   pageSize?: number;
@@ -74,7 +75,7 @@ export async function getStories(
     query = query.eq("narrator_type", narratorType);
   }
   if (search !== undefined && search.trim().length > 0) {
-    query = query.textSearch("search_vector", search);
+    query = query.textSearch("search_vector", search, { type: "websearch" });
   }
 
   const { data, error } = await query;
@@ -142,8 +143,10 @@ export async function createStory(
     error: authError,
   } = await client.auth.getUser();
   assertNoError(authError, "createStory.getUser");
-
-  const userId = (user as { id: string }).id;
+  if (user === null) {
+    throw new Error("StoryService.createStory: no authenticated user");
+  }
+  const userId = user.id;
 
   // Pre-fetch existing slugs to resolve collisions before the insert
   const { data: existing, error: slugError } = await client

@@ -88,14 +88,14 @@ export async function getPeriods(
 export async function getPeriodById(
   client: SupabaseClient<Database>,
   id: string,
-): Promise<PeriodRow> {
+): Promise<PeriodWithRelations> {
   const { data, error } = await client
     .from("periods")
-    .select("*")
+    .select("*, child_periods:periods!parent_period_id(*)")
     .eq("id", id)
     .single();
   assertNoError(error, "getPeriodById");
-  return data;
+  return data as unknown as PeriodWithRelations;
 }
 
 /**
@@ -110,15 +110,15 @@ export async function getPeriodBySlug(
   client: SupabaseClient<Database>,
   userId: string,
   slug: string,
-): Promise<PeriodRow> {
+): Promise<PeriodWithRelations> {
   const { data, error } = await client
     .from("periods")
-    .select("*")
+    .select("*, child_periods:periods!parent_period_id(*)")
     .eq("user_id", userId)
     .eq("slug", slug)
     .single();
   assertNoError(error, "getPeriodBySlug");
-  return data;
+  return data as unknown as PeriodWithRelations;
 }
 
 /**
