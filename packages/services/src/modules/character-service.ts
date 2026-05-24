@@ -177,11 +177,15 @@ export async function createCharacter(
     throw new Error("CharacterService.createCharacter: no authenticated user");
   }
 
-  // Validate type-specific profile_data fields if provided
+  // Validate type-specific profile_data fields if provided.
+  // Spread profile_data first, then override character_type with the
+  // top-level value so a caller cannot smuggle in a different type via
+  // profile_data (e.g. { character_type: "animal", ... } inside profile_data
+  // would otherwise shadow the intended type after the spread).
   if (data.profile_data !== undefined) {
     characterTypeProfileSchema.parse({
-      character_type: data.character_type,
       ...data.profile_data,
+      character_type: data.character_type,
     });
   }
 
@@ -252,12 +256,18 @@ export async function updateCharacter(
   id: string,
   data: Partial<CharacterInput>,
 ): Promise<CharacterRow> {
-  // Validate type-specific profile_data if both character_type and profile_data
-  // are present in the partial update
+  // Validate type-specific profile_data when character_type is included in the
+  // patch. Spread profile_data first, then set character_type authoritatively so
+  // the caller cannot override the type via profile_data keys.
+  //
+  // DECISION NEEDED: when only profile_data is updated (character_type omitted),
+  // validation is skipped because we don't know the persisted type without an
+  // extra DB round-trip. Until a fetch-then-validate strategy is adopted, callers
+  // MUST include character_type whenever they patch profile_data.
   if (data.profile_data !== undefined && data.character_type !== undefined) {
     characterTypeProfileSchema.parse({
-      character_type: data.character_type,
       ...data.profile_data,
+      character_type: data.character_type,
     });
   }
 
@@ -311,19 +321,29 @@ export async function getCharacterTimeline(
   return data ?? [];
 }
 
+/** Maximum depth allowed for `getCharacterNetwork` to prevent runaway
+ * recursive CTEs. Matches the practical display limit in the UI. */
+const MAX_NETWORK_DEPTH = 5;
+
 /**
  * Returns the relationship graph centred on a character using the
  * `character_network` database function. Each row represents a directed edge
- * in the graph. `depth` controls how many hops to traverse (default: 1).
+ * in the graph. `depth` controls how many hops to traverse; the database
+ * function defaults to 2 when omitted. Clamped to [1, MAX_NETWORK_DEPTH].
  */
 export async function getCharacterNetwork(
   client: SupabaseClient<Database>,
   characterId: string,
   depth?: number,
 ): Promise<CharacterNetworkRow[]> {
+  const safeDepth =
+    depth !== undefined
+      ? Math.min(MAX_NETWORK_DEPTH, Math.max(1, Math.floor(depth)))
+      : undefined;
+
   const { data, error } = await client.rpc("character_network", {
     p_character_id: characterId,
-    ...(depth !== undefined ? { p_depth: depth } : {}),
+    ...(safeDepth !== undefined ? { p_depth: safeDepth } : {}),
   });
 
   assertNoError(error, "getCharacterNetwork");

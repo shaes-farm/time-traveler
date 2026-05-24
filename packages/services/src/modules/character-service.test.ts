@@ -449,6 +449,39 @@ describe("createCharacter", () => {
     ).rejects.toThrow();
   });
 
+  it("rejects unknown keys in profile_data (strict schemas)", async () => {
+    const client = makeCreateClient({ data: null, error: null });
+    await expect(
+      createCharacter(client, {
+        name: "Arthur Conan Doyle",
+        character_type: "human",
+        profile_data: {
+          character_type: "human",
+          nationality: "Scottish",
+          unknown_field: "should fail",
+        },
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("top-level character_type is authoritative even when profile_data contains a different character_type", async () => {
+    // profile_data.character_type is 'animal' but the top-level type is 'human'.
+    // The service must use the top-level type, so 'animal' in profile_data
+    // should NOT cause it to validate as an animal profile — it should throw
+    // because 'animal' inside profile_data is an unrecognised key for human.
+    const client = makeCreateClient({ data: null, error: null });
+    await expect(
+      createCharacter(client, {
+        name: "Test",
+        character_type: "human",
+        profile_data: {
+          character_type: "animal",
+          conservation_status: "extinct",
+        },
+      }),
+    ).rejects.toThrow();
+  });
+
   it("uses explicit slug when provided", async () => {
     const client = makeCreateClient({ data: sampleCharacter, error: null });
     const result = await createCharacter(client, {
@@ -710,6 +743,33 @@ describe("getCharacterNetwork", () => {
     await getCharacterNetwork(client, "char-1");
     expect(client.rpc).toHaveBeenCalledWith("character_network", {
       p_character_id: "char-1",
+    });
+  });
+
+  it("clamps depth above MAX_NETWORK_DEPTH (5) to 5", async () => {
+    const client = makeClient({ rpcResult: { data: [], error: null } });
+    await getCharacterNetwork(client, "char-1", 99);
+    expect(client.rpc).toHaveBeenCalledWith("character_network", {
+      p_character_id: "char-1",
+      p_depth: 5,
+    });
+  });
+
+  it("clamps depth below 1 to 1", async () => {
+    const client = makeClient({ rpcResult: { data: [], error: null } });
+    await getCharacterNetwork(client, "char-1", 0);
+    expect(client.rpc).toHaveBeenCalledWith("character_network", {
+      p_character_id: "char-1",
+      p_depth: 1,
+    });
+  });
+
+  it("floors a float depth value", async () => {
+    const client = makeClient({ rpcResult: { data: [], error: null } });
+    await getCharacterNetwork(client, "char-1", 2.9);
+    expect(client.rpc).toHaveBeenCalledWith("character_network", {
+      p_character_id: "char-1",
+      p_depth: 2,
     });
   });
 

@@ -39,84 +39,99 @@ export type CharacterInput = z.infer<typeof characterSchema>;
 // ---------------------------------------------------------------------------
 
 /**
- * Human: biographical details — nationality, occupation, optional
- * birth/death temporal overrides (in addition to the top-level fields).
+ * Human: biographical details — nationality and occupation.
+ * Birth and death dates are stored in the top-level `birth_temporal` /
+ * `death_temporal` columns and are NOT repeated here.
  */
-export const humanProfileSchema = z.object({
-  character_type: z.literal("human"),
-  nationality: z.string().max(500).optional(),
-  occupation: z.string().max(500).optional(),
-});
+export const humanProfileSchema = z
+  .object({
+    character_type: z.literal("human"),
+    nationality: z.string().max(500).optional(),
+    occupation: z.string().max(500).optional(),
+  })
+  .strict();
 
 /**
  * Animal: species classification and conservation status.
- * `species` and `habitat` are stored on the top-level row, but
+ * `species` and `breed` are stored on the top-level character row;
  * `conservation_status` lives in profile_data.
  */
-export const animalProfileSchema = z.object({
-  character_type: z.literal("animal"),
-  conservation_status: z
-    .enum([
-      "extinct",
-      "extinct_in_wild",
-      "critically_endangered",
-      "endangered",
-      "vulnerable",
-      "near_threatened",
-      "least_concern",
-      "data_deficient",
-      "not_evaluated",
-    ])
-    .optional(),
-});
+export const animalProfileSchema = z
+  .object({
+    character_type: z.literal("animal"),
+    conservation_status: z
+      .enum([
+        "extinct",
+        "extinct_in_wild",
+        "critically_endangered",
+        "endangered",
+        "vulnerable",
+        "near_threatened",
+        "least_concern",
+        "data_deficient",
+        "not_evaluated",
+      ])
+      .optional(),
+  })
+  .strict();
 
 /**
  * Mythological: mythology of origin, domain(s), and supernatural powers.
  */
-export const mythologicalProfileSchema = z.object({
-  character_type: z.literal("mythological"),
-  mythology: z.string().max(500).optional(),
-  powers: z.array(z.string()).optional(),
-});
+export const mythologicalProfileSchema = z
+  .object({
+    character_type: z.literal("mythological"),
+    mythology: z.string().max(500).optional(),
+    powers: z.array(z.string()).optional(),
+  })
+  .strict();
 
 /**
  * Fictional: source work, author, and genre.
  */
-export const fictionalProfileSchema = z.object({
-  character_type: z.literal("fictional"),
-  source_work: z.string().max(1000).optional(),
-  author: z.string().max(500).optional(),
-  genre: z.string().max(500).optional(),
-});
+export const fictionalProfileSchema = z
+  .object({
+    character_type: z.literal("fictional"),
+    source_work: z.string().max(1000).optional(),
+    author: z.string().max(500).optional(),
+    genre: z.string().max(500).optional(),
+  })
+  .strict();
 
 /**
  * Organization: organisation type and headquarters location.
  */
-export const organizationProfileSchema = z.object({
-  character_type: z.literal("organization"),
-  org_type: z.string().max(500).optional(),
-  headquarters: z.string().max(500).optional(),
-});
+export const organizationProfileSchema = z
+  .object({
+    character_type: z.literal("organization"),
+    org_type: z.string().max(500).optional(),
+    headquarters: z.string().max(500).optional(),
+  })
+  .strict();
 
 /**
  * Divine: pantheon, domain (shared top-level field), and worship period.
  */
-export const divineProfileSchema = z.object({
-  character_type: z.literal("divine"),
-  pantheon: z.string().max(500).optional(),
-  worship_period: z.string().max(500).optional(),
-});
+export const divineProfileSchema = z
+  .object({
+    character_type: z.literal("divine"),
+    pantheon: z.string().max(500).optional(),
+    worship_period: z.string().max(500).optional(),
+  })
+  .strict();
 
 /**
  * Artifact: physical type of object, material composition, and current
  * physical location.
  */
-export const artifactProfileSchema = z.object({
-  character_type: z.literal("artifact"),
-  artifact_type: z.string().max(500).optional(),
-  material: z.string().max(500).optional(),
-  current_location: z.string().max(1000).optional(),
-});
+export const artifactProfileSchema = z
+  .object({
+    character_type: z.literal("artifact"),
+    artifact_type: z.string().max(500).optional(),
+    material: z.string().max(500).optional(),
+    current_location: z.string().max(1000).optional(),
+  })
+  .strict();
 
 /**
  * Discriminated union that selects the correct profile schema based on
