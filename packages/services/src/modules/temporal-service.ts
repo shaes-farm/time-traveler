@@ -181,10 +181,9 @@ export class TemporalService {
   }
 
   /**
-   * Form is "<label> (~<year> <era>)" per the issue #24 body, with the
-   * spec/issue ordering discrepancy tracked in #111. When both fields are
-   * present, prefers `geological_epoch` over `geological_period` since epochs
-   * are more granular in the geologic time hierarchy (era > period > epoch).
+   * Form is "<label> (~<year> <era>)". When both fields are present,
+   * prefers `geological_epoch` over `geological_period` since epochs are
+   * more granular in the geologic time hierarchy (era > period > epoch).
    */
   private static formatGeological(t: TemporalData): string {
     const label = t.geological_epoch ?? t.geological_period;

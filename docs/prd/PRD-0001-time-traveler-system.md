@@ -5371,8 +5371,8 @@ The temporal input component is the most complex and critical UI element, enabli
 **Examples:**
 
 - "March 15, 44 BCE"
-- "66 ± 1 MYA (Cretaceous-Paleogene boundary)"
-- "13.8 BYA (Big Bang)"
+- "Cretaceous-Paleogene boundary (~66 MYA)"
+- "Big Bang (~14 BYA)"
 
 #### 7.3.11 Validation Feedback
 
