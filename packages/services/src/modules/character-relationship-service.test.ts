@@ -81,6 +81,19 @@ const sampleRelationship = {
   updated_at: "2024-01-01T00:00:00Z",
 };
 
+// Shape matching character_network_view (includes both character names)
+const sampleRelationshipView = {
+  relationship_id: "rel-1",
+  character_id: UUID_A,
+  character_name: "Alice",
+  related_id: UUID_B,
+  related_name: "Bob",
+  relationship_type: "friendship",
+  description: "old friends",
+  start_temporal: null,
+  end_temporal: null,
+};
+
 const sampleEvent = {
   id: "event-1",
   user_id: "user-123",
@@ -109,8 +122,15 @@ describe("getRelationships", () => {
     const client = makeClient({
       fromResult: { data: [sampleRelationship], error: null },
     });
-    const result = await getRelationships(client, "char-1");
+    const result = await getRelationships(client, UUID_A);
     expect(result).toEqual([sampleRelationship]);
+  });
+
+  it("throws when characterId is not a valid UUID", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await expect(getRelationships(client, "not-a-uuid")).rejects.toThrow(
+      "CharacterRelationshipService: characterId is not a valid UUID",
+    );
   });
 
   it("queries with OR filter covering both column positions", async () => {
@@ -152,12 +172,23 @@ describe("getRelationships", () => {
 // ---------------------------------------------------------------------------
 
 describe("getRelationshipById", () => {
-  it("returns the relationship", async () => {
+  it("returns the relationship with character details from the view", async () => {
     const client = makeClient({
-      fromResult: { data: sampleRelationship, error: null },
+      fromResult: { data: sampleRelationshipView, error: null },
     });
     const result = await getRelationshipById(client, "rel-1");
-    expect(result).toEqual(sampleRelationship);
+    expect(result).toEqual(sampleRelationshipView);
+    expect(client.from).toHaveBeenCalledWith("character_network_view");
+  });
+
+  it("filters by relationship_id", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleRelationshipView, error: null },
+    });
+    await getRelationshipById(client, "rel-1");
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("relationship_id", "rel-1");
   });
 
   it("throws on error", async () => {
@@ -320,6 +351,16 @@ describe("updateRelationship", () => {
       }),
     ).rejects.toThrow();
   });
+
+  it("does not accept character_id in the update payload (type-only check)", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    // @ts-expect-error character_id is excluded from UpdateRelationshipInput.
+    // If this type-expect-error stops being needed, UpdateRelationshipInput has
+    // been widened and the guard has been removed — that should be a deliberate
+    // decision, not an accident.
+    await updateRelationship(client, "rel-1", { character_id: UUID_A });
+    expect(true).toBe(true);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -392,12 +433,11 @@ describe("getCharacterNetwork", () => {
     expect(result).toEqual([sampleNetworkNode]);
   });
 
-  it("calls character_network RPC with default depth 2", async () => {
+  it("omits p_depth when depth is not provided (uses DB default)", async () => {
     const client = makeClient({ rpcResult: { data: [], error: null } });
     await getCharacterNetwork(client, "char-1");
     expect(client.rpc).toHaveBeenCalledWith("character_network", {
       p_character_id: "char-1",
-      p_depth: 2,
     });
   });
 
@@ -407,6 +447,24 @@ describe("getCharacterNetwork", () => {
     expect(client.rpc).toHaveBeenCalledWith("character_network", {
       p_character_id: "char-1",
       p_depth: 4,
+    });
+  });
+
+  it("clamps depth above MAX_NETWORK_DEPTH (5) to 5", async () => {
+    const client = makeClient({ rpcResult: { data: [], error: null } });
+    await getCharacterNetwork(client, "char-1", 10);
+    expect(client.rpc).toHaveBeenCalledWith("character_network", {
+      p_character_id: "char-1",
+      p_depth: 5,
+    });
+  });
+
+  it("clamps depth below 1 to 1", async () => {
+    const client = makeClient({ rpcResult: { data: [], error: null } });
+    await getCharacterNetwork(client, "char-1", 0);
+    expect(client.rpc).toHaveBeenCalledWith("character_network", {
+      p_character_id: "char-1",
+      p_depth: 1,
     });
   });
 
@@ -446,6 +504,24 @@ describe("getMutualRelationships", () => {
       ?.value as ReturnType<typeof makeBuilder>;
     expect(builder.or).toHaveBeenCalledWith(
       `and(character_id.eq.${UUID_A},related_character_id.eq.${UUID_B}),and(character_id.eq.${UUID_B},related_character_id.eq.${UUID_A})`,
+    );
+  });
+
+  it("throws when char1Id is not a valid UUID", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await expect(
+      getMutualRelationships(client, "not-a-uuid", UUID_B),
+    ).rejects.toThrow(
+      "CharacterRelationshipService: char1Id is not a valid UUID",
+    );
+  });
+
+  it("throws when char2Id is not a valid UUID", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await expect(
+      getMutualRelationships(client, UUID_A, "not-a-uuid"),
+    ).rejects.toThrow(
+      "CharacterRelationshipService: char2Id is not a valid UUID",
     );
   });
 

@@ -9,16 +9,16 @@ import type { Database } from "../supabase/types.js";
 type CharacterRelationshipRow =
   Database["public"]["Tables"]["character_relationships"]["Row"];
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
+// Use the generated return type for the character_network RPC to avoid drift
+// if the DB function signature changes.
+type CharacterNetworkRow =
+  Database["public"]["Functions"]["character_network"]["Returns"][number];
+// character_network_view joins both character names onto each relationship row.
+type CharacterNetworkViewRow =
+  Database["public"]["Views"]["character_network_view"]["Row"];
 
-/** Network node/edge returned by the character_network DB function. */
-export interface CharacterNetworkNode {
-  source_id: string;
-  target_id: string;
-  rel_type: string;
-  source_name: string;
-  target_name: string;
-  depth: number;
-}
+/** Re-export the generated network row type for consumers. */
+export type { CharacterNetworkRow };
 
 export interface RelationshipFilters {
   relationshipType?: z.infer<typeof relationshipTypeEnum>;
@@ -27,13 +27,45 @@ export interface RelationshipFilters {
 }
 
 /**
- * Input for creating a relationship. Uses z.input<> so that fields with
- * schema defaults (e.g. metadata) remain optional for callers, consistent
- * with the pattern in period-service and story-service.
+ * Input for creating a relationship. `characterRelationshipSchema` has no Zod
+ * defaults, so z.infer<> and z.input<> are equivalent here.
  */
-export type CreateRelationshipInput = z.input<
+export type CreateRelationshipInput = z.infer<
   typeof characterRelationshipSchema
 >;
+
+/**
+ * Input for updating a relationship. Restricted to mutable fields only —
+ * `character_id` and `related_character_id` are intentionally excluded to
+ * prevent "moving" a relationship to different characters, which would risk
+ * creating self-relationships or duplicates that bypass the creation guards.
+ */
+export type UpdateRelationshipInput = Partial<
+  Pick<
+    z.infer<typeof characterRelationshipSchema>,
+    | "relationship_type"
+    | "description"
+    | "start_temporal"
+    | "end_temporal"
+    | "metadata"
+  >
+>;
+
+/** RFC 4122 UUID pattern (versions 1-8, plus nil/max UUIDs). */
+const UUID_RE =
+  /^([0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/i;
+
+/**
+ * Throws if `value` is not a valid UUID. Used before constructing raw PostgREST
+ * filter strings to prevent filter-injection via crafted UUIDs.
+ */
+function assertValidUuid(value: string, paramName: string): void {
+  if (!UUID_RE.test(value)) {
+    throw new Error(
+      `CharacterRelationshipService: ${paramName} is not a valid UUID`,
+    );
+  }
+}
 
 function assertNoError(
   error: { message: string } | null,
@@ -68,6 +100,9 @@ export async function getRelationships(
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
+  // Validate UUID before embedding in raw PostgREST filter string.
+  assertValidUuid(characterId, "characterId");
+
   // Both column positions must be checked to surface all relationships
   // involving this character, since the schema uses directed column pairs
   // with no is_bidirectional flag.
@@ -97,11 +132,13 @@ export async function getRelationships(
 export async function getRelationshipById(
   client: SupabaseClient<Database>,
   id: string,
-): Promise<CharacterRelationshipRow> {
+): Promise<CharacterNetworkViewRow> {
+  // Select from character_network_view to include both characters' names
+  // alongside the relationship data, as required by the issue spec.
   const { data, error } = await client
-    .from("character_relationships")
+    .from("character_network_view")
     .select("*")
-    .eq("id", id)
+    .eq("relationship_id", id)
     .single();
   assertNoError(error, "getRelationshipById");
   return data;
@@ -181,7 +218,7 @@ export async function createRelationship(
 export async function updateRelationship(
   client: SupabaseClient<Database>,
   id: string,
-  data: Partial<CreateRelationshipInput>,
+  data: UpdateRelationshipInput,
 ): Promise<CharacterRelationshipRow> {
   const validated = characterRelationshipSchema.partial().parse(data);
   type RelationshipUpdate =
@@ -234,26 +271,43 @@ export async function getSharedEvents(
   return (data ?? []) as EventRow[];
 }
 
+/** Maximum depth allowed for getCharacterNetwork to prevent runaway recursive CTEs. */
+const MAX_NETWORK_DEPTH = 5;
+
 /**
  * Traverse the character relationship network from a starting character up to
- * `depth` hops, via the `character_network` database function.
+ * `depth` hops, via the `character_network` database function. Depth is
+ * clamped to [1, MAX_NETWORK_DEPTH]. The DB function defaults to 2 when
+ * depth is omitted.
+ *
+ * DECISION NEEDED: The `character_network` RPC only seeds traversal from the
+ * `character_id` column (i.e., relationships where the starting character is
+ * the source). Relationships where the starting character appears only in
+ * `related_character_id` are NOT traversed. If a fully bidirectional network
+ * is required, the DB function must be updated to union both directions, or
+ * this service must pre-fetch reversed edges and merge results.
  *
  * @param client - Supabase client instance
  * @param characterId - Starting character UUID
- * @param depth - Number of hops to traverse (default 2)
- * @returns Array of network nodes describing source→target edges at each depth
+ * @param depth - Number of hops to traverse; clamped to [1, 5]
+ * @returns Array of network edges describing source→target pairs at each depth
  */
 export async function getCharacterNetwork(
   client: SupabaseClient<Database>,
   characterId: string,
-  depth = 2,
-): Promise<CharacterNetworkNode[]> {
+  depth?: number,
+): Promise<CharacterNetworkRow[]> {
+  const safeDepth =
+    depth !== undefined
+      ? Math.min(MAX_NETWORK_DEPTH, Math.max(1, Math.floor(depth)))
+      : undefined;
+
   const { data, error } = await client.rpc("character_network", {
     p_character_id: characterId,
-    p_depth: depth,
+    ...(safeDepth !== undefined ? { p_depth: safeDepth } : {}),
   });
   assertNoError(error, "getCharacterNetwork");
-  return (data ?? []) as CharacterNetworkNode[];
+  return data ?? [];
 }
 
 /**
@@ -276,6 +330,10 @@ export async function getMutualRelationships(
   char1Id: string,
   char2Id: string,
 ): Promise<CharacterRelationshipRow[]> {
+  // Validate UUIDs before embedding in raw PostgREST filter string.
+  assertValidUuid(char1Id, "char1Id");
+  assertValidUuid(char2Id, "char2Id");
+
   const { data, error } = await client
     .from("character_relationships")
     .select("*")
