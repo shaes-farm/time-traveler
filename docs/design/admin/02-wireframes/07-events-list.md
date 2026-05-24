@@ -78,6 +78,8 @@
 7. **Sort default is `sort_order_years` ascending.** Chronological is the natural order for events. The cursor pagination strategy from system-design §8.2 applies here when result sets get large.
 8. **No "all eras" parent toggle.** The era filter is checkbox-multi-select. If nothing is checked, all eras are shown. Avoids the "you forgot to filter and got 13 billion years of events" footgun.
 9. **Has-chars filter** is the most common refinement when authors are auditing event participation coverage.
+10. **Show filter — fractal scope** (Batch 3 decision Q3). A 3-state radio in the filter rail between Era and Type controls visibility: `All` (default) / `Root only` (`parent_event_id IS NULL`) / `Nested only` (`parent_event_id IS NOT NULL`). Authors thinking about the fractal hierarchy use this for "show me only top-level events" or "show me only sub-events." The row nesting indicator (annotation #3) remains visible regardless of filter state. The ASCII mockup above predates this decision and does not show the Show group — it lives between Era and Type in the rail.
+11. **Categories stay on row line 3, not promoted to a column** (Batch 3 decision Q4). Line 3 only renders when categories exist; rows without categories remain 2 lines tall. The events table is the densest in the admin and cannot afford a column claimed by a frequently-empty field.
 
 ## Edge cases
 
@@ -90,7 +92,10 @@
 
 ## Open questions
 
-- Should we expose `parent_event_id` filtering ("show only root events" / "show only nested")? Current filter list has implicit handling but it's not a user-controllable filter. Probably yes.
-- The categories column lives on line 3 of each row. Authors with many categories may want it as a real column. Try with real data before committing.
-- Should the importance column visualize the number, or just label it? Tried sparkline-style bars; rejected as too noisy for a dense list. Number only.
-- How does the user filter by _which_ character participates? This is a high-value filter but it requires a character picker inside the filter rail. Deferred — likely a separate "events for [character name]" tab on the character detail screen instead.
+- Should the importance column visualize the number, or just label it? Tried sparkline-style bars; rejected as too noisy for a dense list. Number only. _(Already-resolved design choice; kept here for the record.)_
+
+> **Resolved (Batch 3):**
+>
+> - Parent-event filtering as a user control — added as a 3-state Show radio (`All` / `Root only` / `Nested only`) in the filter rail between Era and Type. See annotation #10.
+> - Categories column vs. row line 3 — line 3 stays. See annotation #11.
+> - Filter-by-participating-character — deferred to the character-detail Events tab; not added to the events-list filter rail. If filter state is URL-encoded for the rail filters that exist, a `?character=<id>` query parameter could carry character filtering as a low-cost side-effect, documented as future polish.

@@ -66,6 +66,7 @@
 7. **Published column** uses ✓ for published, `─ draft` for unpublished. Trying to make draft state subtly visible without screaming.
 8. **Pagination is offset-based for now**, with sort selector on the right. Cursor pagination on `sort_order_years` is in system-design §8.2 but the characters table doesn't have that column (only events does). Sort here uses standard ordering.
 9. **Search hits aliases.** The `search_vector` includes name + biography + aliases (per migration 00001). Aliases also have a dedicated GIN index for exact array containment.
+10. **Primary media thumbnail surfaces on hover** (Batch 3 decision Q1). The row does not have a dedicated thumbnail column — too many media-less rows would have empty cells. Hovering the name reveals a small card showing the primary `character_media` image (or a type-icon placeholder for characters without media). The `has_media` filter is the deliberate discovery affordance for "characters that still need a portrait" (Batch 3 decision Q2).
 
 ## Edge cases
 
@@ -77,7 +78,11 @@
 
 ## Open questions
 
-- Per-row primary media thumbnail — where does it go? Tried a column at left; rejected because not all characters have media. Hover-card on the name row could surface it without claiming column space.
-- Is `has_media` a useful filter, or noise? Kept it because authors often hunt for "characters that still need a portrait."
-
 > **Resolved (Batch 1):** Type filter icons + labels — labels only this fidelity pass. Iconography deferred to the visual-design step (next fidelity).
+>
+> **Resolved (Batch 3):**
+>
+> - Per-row primary media thumbnail — hover-card on the name row; no dedicated column. See annotation #10.
+> - `has_media` filter — kept; "characters that still need a portrait" is a real recurring use case for content authors.
+
+_All initial open questions resolved. Future questions may be added as the wireframe is refined._

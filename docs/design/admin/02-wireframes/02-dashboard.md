@@ -66,6 +66,7 @@
 
 ## Open questions
 
-- Is "Drafts" worth its own panel, or should it just be a filter on recent activity? Current design keeps it separate because the IA goal is "what should I finish before publishing?" — a different question than "where did I leave off?"
 - Should this surface published vs. draft ratio? Could be motivational; could also feel surveillance-y. Deferred.
 - Activity feed entry for _deleted_ entities? Probably no — the entity is gone, there's nowhere to navigate.
+
+> **Resolved (Batch 3):** Drafts panel vs. filter on Recent activity — kept as a separate panel. The two surfaces answer different questions ("what needs finishing" vs. "where did I leave off"); merging them would conflate intent.

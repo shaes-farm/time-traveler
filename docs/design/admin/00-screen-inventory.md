@@ -53,6 +53,17 @@ The following cross-cutting conventions were resolved during the first design-re
 - **Live slug preview in editor right rail** — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields stay user-controlled. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #3.
 - **Type filter icons + labels** — labels only this fidelity pass; iconography deferred to the visual-design step.
 
+## Decisions resolved in Batch 3 review
+
+List-view refinements. All single-screen decisions; lower stakes than Batches 1–2.
+
+- **Character per-row primary media thumbnail** — hover-card on the name row; no dedicated column. See [02-wireframes/03-characters-list.md](02-wireframes/03-characters-list.md) annotation #10.
+- **`has_media` filter on characters list** — kept. Real recurring use case for content authors auditing portrait coverage.
+- **Parent-event filter (Show)** — 3-state radio in events-list filter rail: `All` / `Root only` / `Nested only`. See [02-wireframes/07-events-list.md](02-wireframes/07-events-list.md) annotation #10.
+- **Categories on events list** — stay on row line 3 (rendered only when present); not promoted to a column. The events table is the densest in the admin; a column claimed by a frequently-empty field isn't a good trade. See [02-wireframes/07-events-list.md](02-wireframes/07-events-list.md) annotation #11.
+- **Filter-by-participating-character on events list** — deferred to character-detail Events tab; not added to events-list filter rail.
+- **Drafts panel vs. filter on Recent activity** — kept as a separate panel. Distinct intents: "what needs finishing" vs. "where did I leave off."
+
 ## Decisions resolved in Batch 2 review
 
 Editor-level decisions resolved during the second design-review batch. These mostly affect the relationships editor (the focal screen) and the event editor.
