@@ -53,6 +53,17 @@ The following cross-cutting conventions were resolved during the first design-re
 - **Live slug preview in editor right rail** — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields stay user-controlled. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #3.
 - **Type filter icons + labels** — labels only this fidelity pass; iconography deferred to the visual-design step.
 
+## Decisions resolved in Batch 2 review
+
+Editor-level decisions resolved during the second design-review batch. These mostly affect the relationships editor (the focal screen) and the event editor.
+
+- **Reciprocal sync depth** — dates and type sync between paired rows; description stays per-side so each character's card can carry perspective-specific text. See [02-wireframes/06-relationships-editor.md](02-wireframes/06-relationships-editor.md).
+- **Logical contradiction detection** — warn but never block on save when a contradictory relationship is detected (mutual parent_of, mutual mentor_of, etc.). Authors can override. See [02-wireframes/06-relationships-editor.md](02-wireframes/06-relationships-editor.md).
+- **`relationship_role` sub-role design** ([#119](https://github.com/shaes-farm/time-traveler/issues/119)) — Option A chosen: nullable `relationship_role` column with type-conditional CHECK. Sub-roles apply to `family`, `professional`, and `collaboration`; the other 8 types must have NULL role. Concrete sub-role taxonomy documented in the relationships-editor wireframe and in #119.
+- **Parent event picker** — searchable combobox with the parent's temporal range shown on selection. A `[ browse hierarchy ]` side-sheet tree view is documented as a future affordance but not built this pass. See [02-wireframes/09-event-editor.md](02-wireframes/09-event-editor.md) annotation #5.
+- **Primary-media single-primary enforcement** — DB-enforced via partial unique index. Tracked in [#125](https://github.com/shaes-farm/time-traveler/issues/125). Admin UI continues to do atomic swap as a UX flow; the DB index guarantees correctness under races. See [02-wireframes/04-character-detail.md](02-wireframes/04-character-detail.md) Open Questions.
+- **Inline-participant editing scalability** — always inline, section scrolls internally when long. No threshold-switch UX. Future "manage in side sheet" affordance documented for 20+-participant events but not built. See [02-wireframes/09-event-editor.md](02-wireframes/09-event-editor.md) annotation #7.
+
 ## Open questions surfaced during inventory
 
 1. **Relationship reciprocity.** `character_relationships` is directed (per system-design §3.3) but some types are inherently symmetric (`friendship`, `collaboration`, `enemy`, `rivalry`). Should the admin auto-create the reverse edge on save? Show a "reciprocal" toggle? Resolved per-screen in [02-wireframes/06-relationships-editor.md](02-wireframes/06-relationships-editor.md).

@@ -38,6 +38,17 @@ Per system-design §3.3, relationships are stored as **directed pairs** in the d
 
 This means the editor must distinguish symmetric and asymmetric types and behave differently for each — most critically, asymmetric types must surface direction explicitly in the UI ("Marie _mentors_ Pierre" not "Marie ↔ Pierre").
 
+## Sub-role taxonomy (Batch 2 decision)
+
+Per [#119](https://github.com/shaes-farm/time-traveler/issues/119), three of the eleven types accept an optional `relationship_role` sub-role; the other eight must have NULL role. Sub-roles refine direction within a type.
+
+- **family** — `spouse` (sym), `parent`/`child` (paired), `sibling` (sym), `grandparent`/`grandchild` (paired), `aunt_uncle`/`niece_nephew` (paired), `cousin` (sym), `in_law` (loosely paired), `step_parent`/`step_child` (paired), `step_sibling` (sym), `adoptive_parent`/`adoptive_child` (paired), `other`
+- **professional** — `employer`/`employee` (paired), `colleague` (sym), `supervisor`/`subordinate` (paired), `business_partner` (sym), `client`/`vendor` (paired), `other`
+- **collaboration** — `co_author`, `co_founder`, `research_partner`, `performance_partner`, `band_member`, `creative_partner` (all symmetric), `other`
+- **Other 8 types** (`friendship`, `rivalry`, `enemy`, `mentor_student`, `owner_pet`, `trainer_trainee`, `creator_creation`, `worship`) — `relationship_role` is NULL.
+
+For **paired sub-roles**, the admin auto-creates the reverse edge with the inverted role: picking "Marie parent of Pierre" stores `(Marie, Pierre, family, parent)` and `(Pierre, Marie, family, child)`. For **symmetric sub-roles** (and the symmetric flat types like `friendship`), both rows are stored with the same type+role. Reciprocal-edge creation is now **implicit** in the type/role choice — there is no longer a "reciprocal" checkbox in the editor.
+
 ## Three alternatives
 
 The wireframes below sketch three patterns. The recommendation at the end picks one and explains why; the others remain documented so future iterations can revisit if the first choice fails user testing.
@@ -124,7 +135,14 @@ Each relationship is a card with full temporal scope visible. Edits happen inlin
 │  Family relationships                                            │
 │   ( ) family                                                     │
 │  Professional                                                    │
-│   (●) collaboration       ( ) professional                       │
+│   ( ) professional                                               │
+│   (●) collaboration                                              │
+│      Role *  (●) co_author      ( ) co_founder                   │
+│              ( ) research_partner  ( ) performance_partner       │
+│              ( ) band_member    ( ) creative_partner             │
+│              ( ) other                                           │
+│      Symmetric — reciprocal pair created automatically with      │
+│      the same role.                                              │
 │  Social / personal                                               │
 │   ( ) friendship          ( ) rivalry                            │
 │  Antagonistic                                                    │
@@ -141,14 +159,13 @@ Each relationship is a card with full temporal scope visible. Edits happen inlin
 │  End    [ 1906 CE (exact)  ▾]                                    │
 │  ─ Leave end empty for ongoing or unknown                        │
 │                                                                  │
-│  Description (optional)                                          │
+│  Description from Marie's perspective (optional)                 │
 │  ┌────────────────────────────────────────────────────────────┐  │
-│  │ Married 1895; collaborated on radioactivity research…      │  │
+│  │ Co-authored discovery of radioactivity with Pierre…        │  │
 │  └────────────────────────────────────────────────────────────┘  │
 │                                                                  │
-│  ☑ Also create the reciprocal edge (Pierre → Marie, same type   │
-│    and dates)                                                    │
-│    ─ Available only for symmetric types                          │
+│  Reciprocal edge will be created with description blank. Add     │
+│  Pierre's perspective from his character page if desired.        │
 │                                                                  │
 │              [ Cancel ]                          [ Save ]        │
 └──────────────────────────────────────────────────────────────────┘
@@ -160,8 +177,8 @@ Each relationship is a card with full temporal scope visible. Edits happen inlin
 2. **Card layout reads the temporal range visually.** A horizontal range bar between start and end dates makes "1895–1906 CE" legible at a glance. "Ongoing" renders as an open right edge. For pre-CE dates, the era is in the labels.
 3. **Direction is rendered as narrative text on the card.** "Marie is mother of Irène" instead of an arrow. The grammar makes asymmetric types unambiguous.
 4. **Add sheet is a right-side slide-out**, not a modal. This makes it easier to reference the current relationships while adding a new one.
-5. **Type picker groups by family** (same groups used in the list). Asymmetric types render as paired radios — picking "Marie mentors Pierre" stores `(Marie, Pierre, mentor_student)`; picking "Pierre mentors Marie" stores `(Pierre, Marie, mentor_student)`. The user never sees the column name; they see the semantic relationship.
-6. **Reciprocal checkbox** appears only for symmetric types. Default on. On save, two inserts go out: `(Marie, Pierre, family)` and `(Pierre, Marie, family)`.
+5. **Type picker groups by family** (same groups used in the list). For `family`, `professional`, and `collaboration`, picking a type reveals an inline sub-role chooser ([#119](https://github.com/shaes-farm/time-traveler/issues/119); Batch 2 decision Q3). Asymmetric types render as paired radios — picking "Marie mentors Pierre" stores `(Marie, Pierre, mentor_student)`; picking "Pierre mentors Marie" stores `(Pierre, Marie, mentor_student)`. The user never sees the column names; they see the semantic relationship.
+6. **Reciprocal-edge creation is implicit** in the type/role choice — there is no longer a "reciprocal" checkbox (Batch 2 decision Q1). For paired sub-roles (`parent`/`child`, `grandparent`/`grandchild`, `employer`/`employee`, etc.) the system stores both rows with inverted roles. For symmetric sub-roles and symmetric flat types (`friendship`, `rivalry`, `enemy`, `collaboration` with a symmetric role), both rows are stored with the same type+role. **Description does not sync** between the two rows — each character's card carries its own perspective text. Dates and type/role sync between paired rows; future edits to dates propagate, edits to description do not.
 7. **Type picker uses radio rather than select** because the user benefits from seeing all 11 types at once when choosing — the wrong type is a common error and selects hide that.
 8. **Other-character search** is a combobox that excludes the focal character (`Marie`) and any character already linked by the currently-chosen type (to avoid the unique-index violation before save).
 9. **The `[⋯]` per card** opens: Edit, Duplicate as different type, Delete.
@@ -251,15 +268,19 @@ Defer Alternative A (table view) until a power-user requests it. Defer Alternati
 - **Unique-index violation on save** (race condition where another tab added the same pair-type). DB rejects; toast: "This relationship already exists. View existing?" with link.
 - **Self-relationship.** Other-character picker excludes the focal character. DB has `CHECK (character_id != related_character_id)` as backstop.
 - **Reciprocal save partial failure.** If the forward edge inserts but the reverse fails (RLS, network), surface "Forward relationship saved, reverse failed. Retry?"
-- **Editing reciprocal pairs.** Editing a date on the Marie→Pierre side should optionally propagate to Pierre→Marie. Default: edit _both_ (changes to date range and description sync to the reverse); changing type or removing direction does not propagate. Make the propagation visible via a "synced reciprocal" badge on the card.
-- **Deleting reciprocal pairs.** Same default — delete both, with the same "synced reciprocal" affordance and an opt-out.
+- **Editing reciprocal pairs.** Date and type changes sync between the two rows (Batch 2 Q1). Description does **not** sync — each card edits its own description independently. Sub-role changes sync only when the role pairing is preserved (e.g., changing `parent` → `adoptive_parent` propagates the new pairing `child` → `adoptive_child` to the reverse row). Make the date/type sync visible via a "synced reciprocal" badge on the card.
+- **Deleting reciprocal pairs.** Delete both rows by default. The "synced reciprocal" affordance has a "delete only this side" opt-out for users who want to keep the reverse-direction record (rare; mostly useful when one side of an asymmetric paired role is being intentionally orphaned).
+- **Logical contradictions** (Batch 2 Q2). When saving, the system checks for existing relationships that would contradict the new one — most commonly mutual paired sub-roles like `parent` in both directions (Marie parent of Irène + Irène parent of Marie). Surface a soft warning: "This appears contradictory with Irène's existing `parent` relationship to Marie. Continue?" — but never block the save. Author can override; the system trusts them.
 - **Ongoing relationships.** End date empty renders as "ongoing or unknown." When the focal character has a death date, the editor could prompt: "Marie died in 1934. Set this relationship to end then?" Soft prompt only.
 - **Loading.** Skeleton cards in each group; group headers + counts render immediately.
 
 ## Open questions
 
-- **Family role granularity.** `family` is one type for parent/child/sibling/spouse/etc. This is a known PRD gap. The card description field carries the nuance ("mother of", "spouse"). Should we add a `relationship_role` column on `character_relationships`? Worth filing as a separate spec issue per CLAUDE.md guidance.
-- **Reciprocal sync depth.** Should description text also sync? Today's design: yes, syncs by default; user can decouple via a "decouple reciprocals" affordance. Confirm with users.
-- **Cross-relationship dependencies.** "Marie mentors Pierre" + "Pierre is friend of Marie" — independent, no constraint. But "Marie is mother of Irène" + "Irène is mother of Marie" — would be a logical contradiction the system doesn't detect. Acceptable for first pass; not a real risk in practice.
-- **Relationship-derived event suggestions.** If Marie and Pierre have a `family` relationship from 1895, the editor could offer "Add 'Marriage' event?" Powerful but speculative — defer until we know if users want it.
-- **How does this surface when the related character isn't the user's own?** Today's RLS assumes the user owns both. Collaboration scenarios with shared timelines need separate thinking.
+- **Relationship-derived event suggestions.** If Marie and Pierre have a `family/spouse` relationship from 1895, the editor could offer "Add 'Marriage' event?" Powerful but speculative — defer until we know if users want it. (Tier 4 — defer until implementation surfaces real demand.)
+- **Cross-user collaboration scenarios.** Today's RLS assumes the user owns both characters in the relationship. Collaboration scenarios with shared timelines need separate thinking. (Tier 4 — defer.)
+
+> **Resolved (Batch 2):**
+>
+> - Sub-role taxonomy ([#119](https://github.com/shaes-farm/time-traveler/issues/119)) — Option A. See the [Sub-role taxonomy](#sub-role-taxonomy-batch-2-decision) section above.
+> - Reciprocal sync depth — dates and type/role sync; description stays per-side. See edge cases and annotation #6.
+> - Logical contradiction detection — warn but never block. See edge cases.

@@ -136,4 +136,5 @@
 
 - Should the temporal-scope section include a small inline timeline visualization? Useful for characters with very long lifespans (divine, mythological). Defer to next fidelity — needs design language for the timeline visual first.
 - Should we surface "events this character witnessed" (role=witness) separately from "events this character protagonized"? Currently flat list with role label. Could split by role group if users want it.
-- "Set primary media" UX — replace the existing primary atomically or require unset first? The schema has no constraint preventing multiple primaries (`is_primary BOOLEAN DEFAULT false`); the editor should enforce single-primary on save.
+
+> **Resolved (Batch 2):** Primary-media atomicity. The DB will enforce single-primary via a partial unique index (`CREATE UNIQUE INDEX ... ON character_media (character_id) WHERE is_primary = true`). Tracked in [#125](https://github.com/shaes-farm/time-traveler/issues/125). The admin UI does atomic swap as a UX flow — unset existing primary, set new — but the DB is the source of truth for the invariant.
