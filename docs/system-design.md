@@ -1275,6 +1275,19 @@ Progressive disclosure (detail reveals on zoom), contextual actions (tools based
 
 Adapts form fields by era: CE/BCE shows year, month, day, optional time. KYA/MYA/BYA hides month/day, shows geological period, dating method, uncertainty, confidence level. Live preview via `TemporalService.formatDisplay()`. Precision selector always visible.
 
+### 7.5 Admin App Design (Fidelity-1 Wireframes)
+
+Concrete information-architecture wireframes for the admin app are documented in [`docs/design/admin/`](design/admin/). Scope of the fidelity-1 pass:
+
+- Characters and Events full CRUD
+- The `character_relationships` editor (temporally-scoped many-to-many with sub-role taxonomy)
+- Inline junction editing for `event_characters`, `event_categories`, `event_media`, `character_media`
+- The reusable temporal input control (the system primitive described in §7.4 above)
+
+The wireframes resolve 29 admin-interaction decisions across cross-cutting conventions (chip-input array editors, slug locked-by-default on edit, debounced live slug preview), editor load-bearing patterns (relationship card stream, sub-role enum taxonomy from #119, parent-event picker UX), and detail-view refinements. They serve as the IA + interaction spec for fidelity-2 (in-tree React in `apps/admin`).
+
+This document remains the authoritative spec for schema, services, RLS, and API design. The admin design docs are downstream — they refine UX within the constraints established here. Reconciliation work between the wireframes and PRD §7.11 (Admin Interface) is tracked in #127.
+
 ---
 
 ## 8. Indexing & Performance Strategy

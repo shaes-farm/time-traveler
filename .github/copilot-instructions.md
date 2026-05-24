@@ -22,7 +22,7 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 │   ├── services/       # @repo/services — shared Supabase clients, schemas, and service modules
 │   ├── eslint-config/  # @repo/eslint-config — shared ESLint configs (base, next, react-internal)
 │   └── typescript-config/ # @repo/typescript-config — shared tsconfig (base, nextjs, react-library)
-├── docs/               # Project documentation (PRD, system design, historical papers)
+├── docs/               # Project documentation (PRD, system design, admin design wireframes, historical papers)
 ├── supabase/           # Local Supabase config, SQL migrations, and pgTAP database tests
 ├── .github/
 │   └── copilot-instructions.md # Copilot repository instructions
@@ -133,7 +133,7 @@ Run these in order — all must pass:
 - **Shared packages**: Import UI components as `@repo/ui/button`, `@repo/ui/card`, etc. (resolved via `packages/ui/src/*.tsx`). Import configs as `@repo/eslint-config/...` and `@repo/typescript-config/...`.
 - **Turborepo task graph**: `build` depends on `^build` (packages build before apps). Do not run per-app builds in isolation unless you have already built the packages.
 - **GitHub Actions workflows**: CI runs Lint, Type Check, Build, and Test on every push/PR. All four jobs are required status checks on `main`.
-- **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work.
+- **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work. `docs/design/admin/` contains the fidelity-1 wireframes for the admin app (characters + events CRUD plus the relationships editor) — read these alongside PRD §7.11 when doing UI work in `apps/admin`. Divergences between the wireframes and PRD §7.11 are tracked in #127.
 - **App package names**: The app package names are `admin` and `docs`; Turborepo references them as `admin:*` and `docs:*`.
 
 ## When You're Blocked
