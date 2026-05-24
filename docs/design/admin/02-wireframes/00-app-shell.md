@@ -51,7 +51,7 @@
 4. **Quick-create button** (⊕) opens the same command palette pre-filtered to "Create…". This is the primary way to start a new entity from anywhere.
 5. **Breadcrumb is route-derived**, not hand-authored. Each segment links to its parent.
 6. **User menu** shows display name. Sign-out, profile edit, theme toggle (dark default), and an "admin tools" link if `profiles.role = 'admin'`.
-7. **No nav badges on counts in the sidebar** unless we have a reason to call attention to them. Per `system-design §8.2` the metrics RPC exists but pushing counts into the chrome adds noise. Deferred decision.
+7. **No nav badges on counts in the sidebar.** Per `system-design §8.2` the metrics RPC exists but pushing counts into the chrome adds noise. The dashboard count cards are the canonical surface for entity counts; the rail stays clean. If "you have N unpublished drafts" becomes a real signal later, surface it as a dashboard highlight or topbar indicator — not as per-nav-item clutter. (Decided in Batch 1 review.)
 
 ## Edge cases
 
@@ -62,5 +62,4 @@
 
 ## Open questions
 
-- Should the sidebar surface entity counts? They're cheap (one RPC), but they create visual noise and they can be wrong-feeling when stale.
 - Where does the "switch timeline context" affordance live, once timelines are in scope? Topbar? Above breadcrumb? Inside the events list?

@@ -106,7 +106,7 @@ Birth/death temporal for divine and mythological characters is often blank or "e
 
 1. **Two-column layout.** Left column is the main form. Right column is identity-adjacent metadata: slug, significance, publish state. Right column is fixed-width (~280px) and doesn't scroll.
 2. **Character type is a radio set, not a select.** With only 7 options and meaningful labels, radios are scannable and the visual shows the user every type at once. Picking type early matters because it controls the form shape.
-3. **Slug auto-generation runs on name change** when slug is empty or matches the previous auto-generated value. Once the user edits slug manually, the link is broken and `[regenerate]` is the only path back.
+3. **Slug auto-generation is live with a 300ms debounce.** As the user types the name, the slug regenerates from it. Once the user edits slug manually, the live link is broken and `[regenerate]` is the only path back. On the **edit form** for an existing character, the slug field is visible but **locked by default**; clicking the `[edit slug]` affordance unlocks it with a warning: "Changing the slug will break existing links to this character." (Decided in Batch 1 review.)
 4. **Slug collision** is handled by the existing `resolveCollision` utility (per recent commits). If the auto-generated slug already exists for this user, append `-2`, `-3`, etc. Show the resolved slug in the field so the user knows.
 5. **Aliases and cultural_context use chip input.** Each chip is a separate array element. Backspace deletes the last chip. Comma or Enter adds a new chip from the input.
 6. **Temporal scope uses the temporal input control** ([10-temporal-input.md](10-temporal-input.md)). Empty state is `[ + Add date ]`; populated state shows the formatted display + opens the control on click.
@@ -126,6 +126,7 @@ Birth/death temporal for divine and mythological characters is often blank or "e
 
 ## Open questions
 
-- Should the right-column metadata persist as the user types in the left column (live), or should it stay static until save? Live is cooler but slug changing live can be confusing. Defer; build static first.
 - "Save and add another" — does it preserve any fields, or fully clear? Probably clear, but cultural_context and significance often repeat. Worth a toggle later.
 - Where do `profile_data` and `metadata` editing surfaces live longer term? JSON editor now; once we know what fields users actually use, promote them to first-class form fields.
+
+> **Resolved (Batch 1):** Right-column live updates — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields (significance, importance, publish toggle) are user-controlled and stay static.

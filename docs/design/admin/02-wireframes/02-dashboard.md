@@ -60,7 +60,7 @@
 
 ## Edge cases
 
-- **First-time user (all zero counts).** Replace the entire content area with an onboarding panel: "Welcome to Time Traveler. Start by creating a character or event." Two big CTAs. No fake "0" cards.
+- **First-time user (all zero counts).** Replace the entire content area with a substantive welcome panel: "Welcome to Time Traveler" with 2–3 CTAs (start a character, start an event, optional link to docs). No fake "0" cards. Per Batch 1 decision: this is the only place onboarding-level guidance lives — there is no multi-step onboarding flow. Lists and other empty states stay simple.
 - **No recent activity.** Show empty state in the recent activity panel: "Nothing edited recently. Create something to see it here."
 - **Counts loading.** Skeleton placeholders in each card. Total dashboard render should not block on counts.
 

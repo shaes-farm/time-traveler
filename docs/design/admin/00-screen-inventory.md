@@ -42,13 +42,21 @@ From `supabase/migrations/00001_initial_schema.sql` and `00002_relationships_jun
 - `event_media` — simple junction with `sort_order`; basic attachment UX in event editor
 - `character_media` — simple junction with `is_primary`; basic attachment UX in character editor
 
+## Conventions decided in Batch 1 review
+
+The following cross-cutting conventions were resolved during the first design-review batch. They are documented inline in the wireframes they affect; this list serves as an index.
+
+- **Array field editors** (`aliases`, `cultural_context`, `characteristics`, `tags`) — chip input, one element per chip. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #5.
+- **Slug behavior on edit** — slug field visible but locked by default; manual `[edit slug]` unlock surfaces a warning about breaking existing links. Live 300ms debounced regeneration on the create form. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #3.
+- **Empty-state philosophy** — simple per-screen empty states with a single CTA; dashboard zero-state shows a substantive welcome panel with 2–3 CTAs. No dedicated multi-step onboarding flow. See [02-wireframes/02-dashboard.md](02-wireframes/02-dashboard.md) Edge Cases.
+- **Sidebar entity counts** — no count badges in the rail; dashboard count cards are the canonical surface. See [02-wireframes/00-app-shell.md](02-wireframes/00-app-shell.md) annotation #7.
+- **Live slug preview in editor right rail** — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields stay user-controlled. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #3.
+- **Type filter icons + labels** — labels only this fidelity pass; iconography deferred to the visual-design step.
+
 ## Open questions surfaced during inventory
 
 1. **Relationship reciprocity.** `character_relationships` is directed (per system-design §3.3) but some types are inherently symmetric (`friendship`, `collaboration`, `enemy`, `rivalry`). Should the admin auto-create the reverse edge on save? Show a "reciprocal" toggle? Resolved per-screen in [02-wireframes/06-relationships-editor.md](02-wireframes/06-relationships-editor.md).
-2. **Array field editors.** `aliases`, `cultural_context`, `characteristics`, `tags` are `TEXT[]` columns. Tag-style chip input vs. comma-separated text vs. line-per-value textarea? Default chosen in editors; flagged for review.
-3. **Slug edit vs. auto-generate.** Slug is unique per user. On edit, do we surface the slug field, allow override, or auto-regenerate from title with a "regenerate" affordance? Current default: auto-generate on create, editable but locked-by-default on update.
-4. **Parent event picker.** `parent_event_id` is a self-FK. With a deeply nested fractal tree, picking a parent is a tree-browse problem, not a flat-select. Default in this pass: searchable single-select with breadcrumb display of the chosen parent's lineage.
-5. **Empty-state guidance.** First-time users will see empty lists everywhere. How aggressive should the dashboard onboarding be? Current default: simple "no X yet" empty states with a single create CTA; not running an onboarding flow.
+2. **Parent event picker.** `parent_event_id` is a self-FK. With a deeply nested fractal tree, picking a parent is a tree-browse problem, not a flat-select. Default in this pass: searchable single-select with breadcrumb display of the chosen parent's lineage. (Slated for Batch 2.)
 
 ## Reading order
 

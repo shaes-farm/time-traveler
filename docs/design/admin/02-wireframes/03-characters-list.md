@@ -77,6 +77,7 @@
 
 ## Open questions
 
-- Should the type filter use icons in addition to labels? Consistent across the app or local to this list?
 - Per-row primary media thumbnail — where does it go? Tried a column at left; rejected because not all characters have media. Hover-card on the name row could surface it without claiming column space.
 - Is `has_media` a useful filter, or noise? Kept it because authors often hunt for "characters that still need a portrait."
+
+> **Resolved (Batch 1):** Type filter icons + labels — labels only this fidelity pass. Iconography deferred to the visual-design step (next fidelity).

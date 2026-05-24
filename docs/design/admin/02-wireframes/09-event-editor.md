@@ -106,7 +106,7 @@ Plus junction data managed inline:
 
 ## Annotations
 
-1. **Same two-column shell** as the character editor. Left: narrative + relationships. Right: identity-adjacent metadata.
+1. **Same two-column shell** as the character editor. Left: narrative + relationships. Right: identity-adjacent metadata. Slug behavior matches the character editor (live 300ms debounced regeneration on create; locked-by-default with `[edit slug]` unlock affordance on update) — see [05-character-editor.md](05-character-editor.md) annotation #3.
 2. **Importance is a slider** on the right rail. 1–10 with integer steps. Live numeric label.
 3. **When/Where/Lineage sectioning.** Three named sections in the left column structure the form so it doesn't feel like an unbroken wall of inputs.
 4. **End date defaults to "point event"** — the schema makes end_temporal optional. Most events are point events; range events are the exception. Affordance shows the current state as an empty button so the user knows it's settable.
