@@ -355,7 +355,7 @@ export async function updateCollaboratorRole(
  * // DECISION NEEDED: The issue spec mentions a `sortOrder` parameter but the
  * //  `timeline_events` junction table has no `sort_order` column (unlike
  * //  `timeline_media`). This function omits sortOrder until the schema is
- * //  updated or a decision is made to add the column.
+ * //  updated or a decision is made to add the column. Tracked in #122.
  */
 export async function addEventToTimeline(
   client: SupabaseClient<Database>,
