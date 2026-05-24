@@ -46,7 +46,15 @@ select lives_ok(
       v_event_id uuid;
       v_sort_order integer;
     begin
-      -- Minimal setup: insert a timeline and an event owned by a synthetic user.
+      -- Seed a corresponding auth.users row for FK integrity.
+      insert into auth.users (id, instance_id, email, encrypted_password,
+                              email_confirmed_at, created_at, updated_at, aud, role)
+        values (v_user_id,
+                '00000000-0000-0000-0000-000000000000'::uuid,
+                'timeline-events-122@local', '', now(), now(), now(),
+                'authenticated', 'authenticated');
+
+      -- Minimal setup: insert a timeline and an event owned by the synthetic user.
       insert into public.timelines (user_id, slug, title)
         values (v_user_id, 'tl-test-122', 'Timeline 00012 test')
         returning id into v_timeline_id;
