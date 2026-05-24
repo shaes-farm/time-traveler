@@ -72,15 +72,22 @@ function assertNoError(
 
 /**
  * Returns a page of timelines, optionally filtered by visibility, owner, or
- * full-text search against the `search_vector` generated column.
+ * full-text search using the `search_vector` GIN index.
+ *
+ * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
  */
 export async function getTimelines(
   client: SupabaseClient<Database>,
   filters: TimelineFilters = {},
 ): Promise<TimelineRow[]> {
-  const { visibility, userId, search, page = 1, pageSize = 20 } = filters;
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+  const { visibility, userId, search } = filters;
+  const safePage = Math.max(1, Math.floor(filters.page ?? 1));
+  const safePageSize = Math.min(
+    100,
+    Math.max(1, Math.floor(filters.pageSize ?? 20)),
+  );
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
 
   let query = client.from("timelines").select("*");
 
@@ -91,7 +98,8 @@ export async function getTimelines(
     query = query.eq("user_id", userId);
   }
   if (search !== undefined && search.length > 0) {
-    query = query.ilike("title", `%${search}%`);
+    // Use PostgREST full-text search to leverage the GIN index on search_vector
+    query = query.textSearch("search_vector", search, { type: "websearch" });
   }
 
   query = query.range(from, to).order("sort_order_start", { ascending: true });
@@ -122,11 +130,15 @@ export async function getTimelineById(
 }
 
 /**
- * Fetches a single timeline by slug, including collaborators, linked events,
- * and linked media.
+ * Fetches a single timeline by (userId, slug), including collaborators, linked
+ * events, and linked media.
+ *
+ * Both `userId` and `slug` are required because the DB uniqueness constraint is
+ * `UNIQUE (user_id, slug)` — slug alone is not globally unique.
  */
 export async function getTimelineBySlug(
   client: SupabaseClient<Database>,
+  userId: string,
   slug: string,
 ): Promise<TimelineWithRelations> {
   const { data, error } = await client
@@ -134,6 +146,7 @@ export async function getTimelineBySlug(
     .select(
       "*, timeline_collaborators(*), timeline_events(*), timeline_media(*)",
     )
+    .eq("user_id", userId)
     .eq("slug", slug)
     .single();
 
@@ -176,18 +189,43 @@ export async function createTimeline(
       : generateSlug(data.title);
   const slug = resolveCollision(baseSlug, existingSlugs);
 
-  // Full validation via Zod (includes slug now that we've generated it)
-  const validated = timelineSchema.parse({ ...data, slug });
-
   type TimelineInsert = Database["public"]["Tables"]["timelines"]["Insert"];
-  const { data: row, error } = await client
-    .from("timelines")
-    .insert({ ...(validated as unknown as TimelineInsert), user_id: user.id })
-    .select()
-    .single();
 
-  assertNoError(error, "createTimeline");
-  return row as TimelineRow;
+  // Retry up to 3 times on unique-violation (23505) — guards against the race
+  // where two concurrent createTimeline calls compute the same available slug
+  // and one wins the DB insert.
+  const MAX_SLUG_RETRIES = 3;
+  let attemptSlug = slug;
+
+  for (let attempt = 0; attempt < MAX_SLUG_RETRIES; attempt++) {
+    const attemptValidated = timelineSchema.parse({
+      ...data,
+      slug: attemptSlug,
+    });
+    const { data: row, error: insertError } = await client
+      .from("timelines")
+      .insert({
+        ...(attemptValidated as unknown as TimelineInsert),
+        user_id: user.id,
+      })
+      .select()
+      .single();
+
+    if (insertError !== null) {
+      if (insertError.code === "23505" && attempt < MAX_SLUG_RETRIES - 1) {
+        // Collision — append a random 4-char hex suffix and retry
+        attemptSlug = `${slug}-${Math.random().toString(36).slice(2, 6)}`;
+        continue;
+      }
+      // Non-collision error or exhausted retries — throw
+      assertNoError(insertError, "createTimeline");
+    }
+
+    return row as TimelineRow;
+  }
+
+  // Unreachable: loop always returns or assertNoError throws
+  throw new Error("TimelineService.createTimeline: unreachable");
 }
 
 /**
@@ -267,12 +305,13 @@ export async function unpublishTimeline(
 // ---------------------------------------------------------------------------
 
 /**
- * Lists all collaborators for a timeline. The `profiles` table is NOT joined
- * here because `timeline_collaborators` has no FK to `profiles` in the current
- * schema — callers that need display names must fetch profiles separately.
+ * Lists all collaborators for a timeline.
  *
- * // DECISION NEEDED: Should this join profiles via auth.users once a
- * //  public profiles view or FK is available?
+ * ⚠️ Known limitation: profile data (display names, avatars) is NOT joined
+ * because `timeline_collaborators` has no FK to a public `profiles` table in
+ * the current schema. Callers that need display names must fetch profiles
+ * separately by `user_id`. This is intentional pending issue #23 or a
+ * dedicated collaborator view — update this function once that work lands.
  */
 export async function getCollaborators(
   client: SupabaseClient<Database>,

@@ -37,6 +37,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     ilike: vi.fn().mockReturnThis(),
+    textSearch: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
@@ -142,12 +143,43 @@ describe("getTimelines", () => {
     expect(builder.eq).toHaveBeenCalledWith("user_id", "user-abc");
   });
 
-  it("applies search filter via ilike", async () => {
+  it("applies search filter via full-text search", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await getTimelines(client, { search: "ancient" });
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.ilike).toHaveBeenCalledWith("title", "%ancient%");
+    expect(builder.textSearch).toHaveBeenCalledWith(
+      "search_vector",
+      "ancient",
+      { type: "websearch" },
+    );
+  });
+
+  it("clamps page=0 to page=1", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getTimelines(client, { page: 0, pageSize: 10 });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    // page clamped to 1: from=0, to=9
+    expect(builder.range).toHaveBeenCalledWith(0, 9);
+  });
+
+  it("clamps pageSize=0 to pageSize=1", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getTimelines(client, { page: 1, pageSize: 0 });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    // pageSize clamped to 1: from=0, to=0
+    expect(builder.range).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("clamps pageSize>100 to 100", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getTimelines(client, { page: 1, pageSize: 999 });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    // pageSize clamped to 100: from=0, to=99
+    expect(builder.range).toHaveBeenCalledWith(0, 99);
   });
 
   it("throws on Supabase error", async () => {
@@ -200,7 +232,7 @@ describe("getTimelineBySlug", () => {
       timeline_media: [],
     };
     const client = makeClient({ fromResult: { data: full, error: null } });
-    const result = await getTimelineBySlug(client, "my-timeline");
+    const result = await getTimelineBySlug(client, "user-123", "my-timeline");
     expect(result).toEqual(full);
   });
 
@@ -208,9 +240,9 @@ describe("getTimelineBySlug", () => {
     const client = makeClient({
       fromResult: { data: null, error: { message: "not found" } },
     });
-    await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
-      "TimelineService.getTimelineBySlug: not found",
-    );
+    await expect(
+      getTimelineBySlug(client, "user-123", "missing"),
+    ).rejects.toThrow("TimelineService.getTimelineBySlug: not found");
   });
 });
 
@@ -262,12 +294,19 @@ describe("createTimeline", () => {
       { data: { ...sampleTimeline, slug: "ancient-rome" }, error: null },
     ];
 
-    const insertMock = vi.fn();
+    let capturedInsertArg: unknown = undefined;
     const client = {
       from: vi.fn().mockImplementation(() => {
         const result = fromResults[callIndex++] ?? { data: null, error: null };
         const builder = makeQuery(result);
-        if (callIndex === 2) insertMock.mockImplementation(() => builder);
+        // On the second call (insert), spy on insert() to capture the argument
+        if (callIndex === 2) {
+          const originalInsert = builder.insert.bind(builder);
+          builder.insert = vi.fn().mockImplementation((arg: unknown) => {
+            capturedInsertArg = arg;
+            return originalInsert(arg);
+          });
+        }
         return builder;
       }),
       auth: {
@@ -278,9 +317,9 @@ describe("createTimeline", () => {
       },
     } as unknown as SupabaseClient<Database>;
 
-    const result = await createTimeline(client, minimalCreateInput);
-    // slug must be derived from the title
-    expect(result.slug).toMatch(/^[a-z0-9-]+$/);
+    await createTimeline(client, minimalCreateInput);
+    // Assert the slug inserted into the DB was derived from the title
+    expect(capturedInsertArg).toMatchObject({ slug: "ancient-rome" });
   });
 
   it("resolves slug collision by appending suffix", async () => {
