@@ -237,10 +237,11 @@ export async function createEvent(
     if (insertError !== null) {
       if (insertError.code === "23505" && attempt < MAX_SLUG_RETRIES - 1) {
         // Collision — append a random 4-char base-36 suffix and retry.
-        // Truncate the base slug to ensure the suffixed result stays within
-        // MAX_SLUG_LENGTH (the suffix adds 5 chars: a hyphen + 4 chars).
+        // Truncate the base slug to fit the suffix (hyphen + 4 chars = 5),
+        // then strip any trailing hyphens so the result never contains
+        // consecutive or leading/trailing hyphens that would fail slugSchema.
         const suffix = Math.random().toString(36).slice(2, 6);
-        const truncated = slug.slice(0, MAX_SLUG_LENGTH - 5);
+        const truncated = slug.slice(0, MAX_SLUG_LENGTH - 5).replace(/-+$/, "");
         attemptSlug = `${truncated}-${suffix}`;
         continue;
       }
