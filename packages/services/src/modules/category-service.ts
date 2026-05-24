@@ -136,8 +136,11 @@ export async function createCategory(
     error: authError,
   } = await client.auth.getUser();
   assertNoError(authError, "createCategory.getUser");
+  if (user === null) {
+    throw new Error("CategoryService.createCategory: no authenticated user");
+  }
 
-  const userId = (user as { id: string }).id;
+  const userId = user.id;
 
   // Pre-fetch existing slugs to resolve collisions before the insert
   const { data: existing, error: slugError } = await client

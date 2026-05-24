@@ -27,6 +27,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     is: vi.fn().mockReturnThis(),
+    ilike: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
@@ -151,6 +152,22 @@ describe("getPeriods", () => {
     expect(builder.is).toHaveBeenCalledWith("parent_period_id", null);
   });
 
+  it("applies search filter via ilike on title", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getPeriods(client, { search: "middle" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.ilike).toHaveBeenCalledWith("title", "%middle%");
+  });
+
+  it("does not apply ilike when search string is empty", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getPeriods(client, { search: "  " });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.ilike).not.toHaveBeenCalled();
+  });
+
   it("throws on query error", async () => {
     const client = makeClient({
       fromResult: { data: null, error: { message: "db error" } },
@@ -268,6 +285,20 @@ describe("createPeriod", () => {
       // @ts-expect-error intentionally omitting required field
       createPeriod(client, { title: "Test" }),
     ).rejects.toThrow();
+  });
+
+  it("throws when user is null despite no auth error", async () => {
+    const client = makeCreateClient({ data: null, error: null });
+    (client.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: { user: null },
+      error: null,
+    });
+    await expect(
+      createPeriod(client, {
+        title: "Test",
+        temporal_data: sampleTemporalData,
+      }),
+    ).rejects.toThrow("PeriodService.createPeriod: no authenticated user");
   });
 });
 

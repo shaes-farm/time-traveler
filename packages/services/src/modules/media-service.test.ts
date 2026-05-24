@@ -459,7 +459,10 @@ describe("getSignedUrl", () => {
   it("returns the signed URL string", async () => {
     // Call 1: fetch storage_path via .select().eq().single()
     const fetchBuilder = makeBuilder({
-      data: { storage_path: "user-123/private.jpg" },
+      data: {
+        storage_path: "user-123/private.jpg",
+        url: "https://cdn.example.com/private.jpg",
+      },
       error: null,
     });
     const bucket = makeStorageBucket({
@@ -489,7 +492,10 @@ describe("getSignedUrl", () => {
 
   it("respects a custom expiresIn value", async () => {
     const fetchBuilder = makeBuilder({
-      data: { storage_path: "user-123/private.jpg" },
+      data: {
+        storage_path: "user-123/private.jpg",
+        url: "https://cdn.example.com/private.jpg",
+      },
       error: null,
     });
     const bucket = makeStorageBucket({});
@@ -522,7 +528,10 @@ describe("getSignedUrl", () => {
 
   it("throws when createSignedUrl fails", async () => {
     const fetchBuilder = makeBuilder({
-      data: { storage_path: "user-123/private.jpg" },
+      data: {
+        storage_path: "user-123/private.jpg",
+        url: "https://cdn.example.com/private.jpg",
+      },
       error: null,
     });
     const bucket = makeStorageBucket({
@@ -542,5 +551,28 @@ describe("getSignedUrl", () => {
     await expect(getSignedUrl(client, "media-1")).rejects.toThrow(
       "MediaService.getSignedUrl.createSignedUrl: signing failed",
     );
+  });
+
+  it("returns the public URL directly for external media", async () => {
+    const externalUrl = "https://external.com/image.jpg";
+    const fetchBuilder = makeBuilder({
+      data: { storage_path: externalUrl, url: externalUrl },
+      error: null,
+    });
+    const bucket = makeStorageBucket({});
+    const client = {
+      from: vi.fn().mockReturnValue(fetchBuilder),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+      storage: { from: vi.fn().mockReturnValue(bucket) },
+    } as unknown as SupabaseClient<Database>;
+
+    const url = await getSignedUrl(client, "media-2");
+    expect(url).toBe(externalUrl);
+    expect(bucket.createSignedUrl).not.toHaveBeenCalled();
   });
 });

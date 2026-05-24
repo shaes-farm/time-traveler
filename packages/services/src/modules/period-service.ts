@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { periodSchema } from "../schemas/period.js";
 import type { PeriodInput } from "../schemas/period.js";
@@ -21,7 +22,9 @@ export interface PeriodWithRelations extends PeriodRow {
   child_periods?: PeriodRow[];
 }
 
-export type CreatePeriodInput = Omit<PeriodInput, "slug"> & { slug?: string };
+export type CreatePeriodInput = Omit<z.input<typeof periodSchema>, "slug"> & {
+  slug?: string;
+};
 
 function assertNoError(
   error: { message: string } | null,
@@ -43,7 +46,7 @@ export async function getPeriods(
   client: SupabaseClient<Database>,
   filters: PeriodFilters = {},
 ): Promise<PeriodRow[]> {
-  const { userId, parentPeriodId, page, pageSize } = filters;
+  const { userId, parentPeriodId, search, page, pageSize } = filters;
 
   const safePage = Math.max(1, Math.floor(page ?? 1));
   const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize ?? 20)));
@@ -65,6 +68,9 @@ export async function getPeriods(
     } else {
       query = query.eq("parent_period_id", parentPeriodId);
     }
+  }
+  if (search !== undefined && search.trim().length > 0) {
+    query = query.ilike("title", `%${search}%`);
   }
 
   const { data, error } = await query;
@@ -132,8 +138,11 @@ export async function createPeriod(
     error: authError,
   } = await client.auth.getUser();
   assertNoError(authError, "createPeriod.getUser");
+  if (user === null) {
+    throw new Error("PeriodService.createPeriod: no authenticated user");
+  }
 
-  const userId = (user as { id: string }).id;
+  const userId = user.id;
 
   // Pre-fetch existing slugs to resolve collisions before the insert
   const { data: existing, error: slugError } = await client

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { mediaSchema } from "../schemas/media.js";
+import { z } from "zod";
+import { mediaSchema, mediaTypeEnum } from "../schemas/media.js";
 import type { MediaInput } from "../schemas/media.js";
 import { generateSlug, resolveCollision } from "../utils/slug.js";
 import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
@@ -12,7 +13,7 @@ const MEDIA_BUCKET = "media";
 
 export interface MediaFilters {
   userId?: string;
-  mediaType?: string;
+  mediaType?: z.infer<typeof mediaTypeEnum>;
   page?: number;
   pageSize?: number;
 }
@@ -25,6 +26,7 @@ export interface UploadMediaInput {
   fileName: string;
   altText?: string;
   caption?: string;
+  mediaType?: z.infer<typeof mediaTypeEnum>;
   mimeType?: string;
   width?: number;
   height?: number;
@@ -130,8 +132,11 @@ export async function uploadMedia(
     error: authError,
   } = await client.auth.getUser();
   assertNoError(authError, "uploadMedia.getUser");
+  if (user === null) {
+    throw new Error("MediaService.uploadMedia: no authenticated user");
+  }
 
-  const userId = (user as { id: string }).id;
+  const userId = user.id;
   const storagePath = `${userId}/${input.fileName}`;
 
   const { error: uploadError } = await client.storage
@@ -169,6 +174,7 @@ export async function uploadMedia(
       url: publicUrl,
       alt_text: input.altText,
       caption: input.caption,
+      media_type: input.mediaType,
       mime_type: input.mimeType,
       width: input.width,
       height: input.height,
@@ -219,8 +225,11 @@ export async function createExternalMedia(
     error: authError,
   } = await client.auth.getUser();
   assertNoError(authError, "createExternalMedia.getUser");
+  if (user === null) {
+    throw new Error("MediaService.createExternalMedia: no authenticated user");
+  }
 
-  const userId = (user as { id: string }).id;
+  const userId = user.id;
 
   // Pre-fetch existing slugs to resolve collisions before the insert
   const { data: existing, error: slugError } = await client
@@ -358,10 +367,16 @@ export async function getSignedUrl(
 ): Promise<string> {
   const { data: row, error: fetchError } = await client
     .from("media")
-    .select("storage_path")
+    .select("storage_path, url")
     .eq("id", mediaId)
     .single();
   assertNoError(fetchError, "getSignedUrl.fetch");
+
+  // External media records have storage_path === url (no hosted object).
+  // Return the public URL directly rather than attempting a signed URL.
+  if (row.storage_path === row.url) {
+    return row.url;
+  }
 
   const { data, error } = await client.storage
     .from(MEDIA_BUCKET)
