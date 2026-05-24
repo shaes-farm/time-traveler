@@ -66,7 +66,11 @@
 
 ## Open questions
 
-- Should this surface published vs. draft ratio? Could be motivational; could also feel surveillance-y. Deferred.
-- Activity feed entry for _deleted_ entities? Probably no — the entity is gone, there's nowhere to navigate.
-
 > **Resolved (Batch 3):** Drafts panel vs. filter on Recent activity — kept as a separate panel. The two surfaces answer different questions ("what needs finishing" vs. "where did I leave off"); merging them would conflate intent.
+>
+> **Resolved (Batch 5):**
+>
+> - Publish vs. draft ratio — not surfaced. The Drafts panel covers the actionable "what needs finishing" question; a ratio adds judgment without action.
+> - Activity-feed entries for deleted entities — omitted. Without soft-delete (`deleted_at` columns are not in the current schema), a tombstone has no nav target and pretends the entity still exists. Soft-delete is a separate architectural question, out of scope for this design pass but worth revisiting if the data model evolves.
+
+_All initial open questions resolved. Future questions may be added as the wireframe is refined._

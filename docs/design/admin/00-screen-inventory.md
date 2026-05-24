@@ -53,6 +53,16 @@ The following cross-cutting conventions were resolved during the first design-re
 - **Live slug preview in editor right rail** — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields stay user-controlled. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #3.
 - **Type filter icons + labels** — labels only this fidelity pass; iconography deferred to the visual-design step.
 
+## Decisions resolved in Batch 5 review
+
+Workflow polish — the final batch in the design review. Closes out the 29 in-scope open questions.
+
+- **Publish vs. draft ratio on dashboard** — not surfaced. The Drafts panel covers the actionable "what needs finishing" question; a ratio adds judgment without action. See [02-wireframes/02-dashboard.md](02-wireframes/02-dashboard.md) Open Questions.
+- **Activity-feed entries for deleted entities** — omitted. Without soft-delete (`deleted_at` columns; not in the current schema), a tombstone has no nav target. Soft-delete is a separate architectural question, out of scope for this design pass. See [02-wireframes/02-dashboard.md](02-wireframes/02-dashboard.md) Open Questions.
+- **"Save and add another" field persistence** — curated set persists between consecutive creates. Character editor: `character_type`, `significance`, `cultural_context`. Event editor: `event_type`, `timeline_id`, `parent_event_id`, `categories`. Inline note after save reports what was cleared vs. persisted. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #9 and [02-wireframes/09-event-editor.md](02-wireframes/09-event-editor.md) annotation #13.
+- **Duplicate event affordance** — deferred until users request it. The persistence-based "Save and add another" handles the bulk-create case. See [02-wireframes/09-event-editor.md](02-wireframes/09-event-editor.md) annotation #13.
+- **Temporal-scope inline timeline on character detail** — formally deferred to fidelity-2 (Tier 4). Needs visual design language for the timeline visual to land first. See [02-wireframes/04-character-detail.md](02-wireframes/04-character-detail.md) Open Questions.
+
 ## Decisions resolved in Batch 4 review
 
 Detail-view refinements. Mix of temporal-display semantics and surface-level affordances.
@@ -88,9 +98,20 @@ Editor-level decisions resolved during the second design-review batch. These mos
 
 ## Open questions surfaced during inventory
 
-1. **Relationship reciprocity.** `character_relationships` is directed (per system-design §3.3) but some types are inherently symmetric (`friendship`, `collaboration`, `enemy`, `rivalry`). Should the admin auto-create the reverse edge on save? Show a "reciprocal" toggle? Resolved per-screen in [02-wireframes/06-relationships-editor.md](02-wireframes/06-relationships-editor.md).
-2. **Parent event picker.** `parent_event_id` is a self-FK. With a deeply nested fractal tree, picking a parent is a tree-browse problem, not a flat-select. Default in this pass: searchable single-select with breadcrumb display of the chosen parent's lineage. (Slated for Batch 2.)
+> **All initial inventory-level questions resolved:**
+>
+> 1. Relationship reciprocity — resolved per-screen in [02-wireframes/06-relationships-editor.md](02-wireframes/06-relationships-editor.md) (Alternative B card-stream with type-grouping). Further refined in Batch 2: reciprocal-edge creation became implicit in the type/role choice via the [#119](https://github.com/shaes-farm/time-traveler/issues/119) sub-role taxonomy.
+> 2. Parent event picker — resolved in Batch 2: searchable combobox with documented future hierarchy-browse side-sheet affordance. See [02-wireframes/09-event-editor.md](02-wireframes/09-event-editor.md) annotation #5.
 
 ## Reading order
 
 Read in numeric order: inventory → user flows → individual wireframes → aesthetic notes. The relationships editor wireframe ([06](02-wireframes/06-relationships-editor.md)) is the most opinionated and benefits from reading the user flows first.
+
+## Design review complete
+
+All 29 in-scope open questions across Batches 1–5 are resolved or formally deferred. Two follow-up issues were filed during the review:
+
+- [#119](https://github.com/shaes-farm/time-traveler/issues/119) — `relationship_role` sub-role enum design (concrete proposal documented in the issue and in the relationships editor wireframe).
+- [#125](https://github.com/shaes-farm/time-traveler/issues/125) — `character_media` single-primary partial unique index.
+
+The wireframes serve as the IA + interaction spec for fidelity-2 (in-tree React in `apps/admin`). Tier-4 deferrals listed in each wireframe's Open Questions section get revisited at that next step.

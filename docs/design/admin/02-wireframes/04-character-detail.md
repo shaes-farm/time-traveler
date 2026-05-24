@@ -134,8 +134,10 @@
 
 ## Open questions
 
-- Should the temporal-scope section include a small inline timeline visualization? Useful for characters with very long lifespans (divine, mythological). Defer to next fidelity — needs design language for the timeline visual first.
-
 > **Resolved (Batch 2):** Primary-media atomicity. The DB will enforce single-primary via a partial unique index (`CREATE UNIQUE INDEX ... ON character_media (character_id) WHERE is_primary = true`). Tracked in [#125](https://github.com/shaes-farm/time-traveler/issues/125). The admin UI does atomic swap as a UX flow — unset existing primary, set new — but the DB is the source of truth for the invariant.
 >
 > **Resolved (Batch 4):** Events tab role grouping — keep flat with role label per row. Chronology is the dominant reading; the role chip per row is sufficient signal. No grouping, no filter added this pass.
+>
+> **Resolved (Batch 5):** Temporal-scope inline timeline visualization — formally deferred to fidelity-2 (Tier 4). Needs visual design language for the timeline visual to land first. Decision unlocked when the next fidelity step picks up the temporal-display patterns.
+
+_All initial open questions resolved or formally deferred. Future questions may be added as the wireframe is refined._

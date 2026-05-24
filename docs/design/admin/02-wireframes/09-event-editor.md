@@ -119,6 +119,8 @@ Plus junction data managed inline:
 11. **Media is a thumbnail grid + add affordance.** Reordering and detaching happen in the event detail view, not in the editor (avoids a second drag-reorder surface).
 12. **Coordinates** are split into two number inputs. No map widget in this pass.
 
+13. **Save dropdown for events** (Batch 5 decisions Q3, Q4). Primary action: "Save". Dropdown: "Save and add another" (create flow only). **"Save and add another" persists a curated set**: `event_type`, `timeline_id`, `parent_event_id`, `categories` carry forward to the next blank form. Cleared: title, slug, summary, detail, temporal data, location, coordinates, participants, media. An inline note after save reports what was cleared vs. persisted. **No "Duplicate" option** in the dropdown — deferred until real user demand surfaces (Q4); the persistence-based pattern handles the bulk-create case without an explicit duplicate.
+
 ## Save flow
 
 Per system-design §5.3, `createEventWithRelations` issues the event insert and parallel junction inserts. The editor:
@@ -141,8 +143,16 @@ Per system-design §5.3, `createEventWithRelations` issues the event insert and 
 
 ## Open questions
 
-- Could a "duplicate event" affordance live in the save dropdown? Useful for repeated events with small variations (e.g., a series of conflicts). Defer until users ask.
-- Coordinates as a map picker — when does this become required? Probably when the project commits to a spatial visualization view. Until then, text inputs are fine.
-- Participant inline editing vs. modal. Inline is faster for power users but the row gets visually busy with role/significance/description all visible. Test with 5+ participants on one event before committing.
-- For range events spanning multiple eras (rare but possible, e.g., "the cooling of the Earth"), the temporal control needs to be aware. Out of scope but flagged.
-- Should the "Save" dropdown include "Save and publish"? Or is "Publish" only a toggle on the right rail? Currently the right-rail toggle is canonical; the dropdown is a shortcut.
+- Coordinates as a map picker — when does this become required? Probably when the project commits to a spatial visualization view. Until then, text inputs are fine. (Tier 4 — defer until implementation surfaces real demand.)
+- For range events spanning multiple eras (rare but possible, e.g., "the cooling of the Earth"), the temporal control needs to be aware. Out of scope but flagged. (Tier 4.)
+- Should the "Save" dropdown include "Save and publish"? Or is "Publish" only a toggle on the right rail? Currently the right-rail toggle is canonical; the dropdown is a shortcut. _(Minor cleanup item; not in the in-scope review.)_
+
+> **Resolved (Batch 2):**
+>
+> - Parent event picker UX — combobox with documented future hierarchy-browse side-sheet affordance. See annotation #5.
+> - Inline-participant editing scalability — always inline with internal scroll; no threshold-switch. See annotation #7.
+>
+> **Resolved (Batch 5):**
+>
+> - Duplicate event affordance — deferred until users request it. The persistence-based "Save and add another" handles the bulk-create case. See annotation #13.
+> - "Save and add another" field persistence — curated set: `event_type`, `timeline_id`, `parent_event_id`, `categories`. See annotation #13.

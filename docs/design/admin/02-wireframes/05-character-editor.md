@@ -112,7 +112,7 @@ Birth/death temporal for divine and mythological characters is often blank or "e
 6. **Temporal scope uses the temporal input control** ([10-temporal-input.md](10-temporal-input.md)). Empty state is `[ + Add date ]`; populated state shows the formatted display + opens the control on click.
 7. **Profile media is single-image in this view.** Multiple images live in the Media tab on the detail view. The editor sets the primary; additional media is a detail-view concern.
 8. **Advanced section** (collapsed by default) exposes `profile_data` and `metadata` as JSON editors. Power users only — most users will never expand this.
-9. **Save button is split.** Primary action: "Save". Dropdown: "Save and add another" (create flow only), "Save as draft" if currently publishing, "Save and publish" if currently draft.
+9. **Save button is split.** Primary action: "Save". Dropdown: "Save and add another" (create flow only), "Save as draft" if currently publishing, "Save and publish" if currently draft. **"Save and add another" persists a curated set** (Batch 5 decision Q3): `character_type`, `significance`, `cultural_context` carry forward to the next blank form. Cleared: name, slug, biography, aliases, physical_description, dates, profile media. An inline note appears after save: "Cleared: name, biography, aliases, dates, media. Persisted: type, significance, cultural context."
 10. **Dirty state warning.** Cancel with unsaved changes prompts: "Discard unsaved changes?"
 
 ## Edge cases
@@ -126,8 +126,10 @@ Birth/death temporal for divine and mythological characters is often blank or "e
 
 ## Open questions
 
-- "Save and add another" — does it preserve any fields, or fully clear? Probably clear, but cultural_context and significance often repeat. Worth a toggle later. (Slated for Batch 5.)
-
 > **Resolved (Batch 1):** Right-column live updates — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields (significance, importance, publish toggle) are user-controlled and stay static.
 >
 > **Resolved (Batch 4):** Long-term home for `profile_data` / `metadata` JSON editors — keep behind the Advanced disclosure as an escape hatch. Recurring keys should be promoted to first-class form fields and dedicated schema columns in a future iteration, once usage patterns emerge from real authoring.
+>
+> **Resolved (Batch 5):** "Save and add another" field persistence — a curated set persists between consecutive creates (`character_type`, `significance`, `cultural_context`). Other fields clear. Inline note after save reports what was cleared vs. persisted. See annotation #9.
+
+_All initial open questions resolved. Future questions may be added as the wireframe is refined._
