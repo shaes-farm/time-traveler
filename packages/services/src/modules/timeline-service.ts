@@ -390,20 +390,24 @@ export async function updateCollaboratorRole(
 
 /**
  * Links an event to a timeline via the `timeline_events` junction table.
- *
- * // DECISION NEEDED: The issue spec mentions a `sortOrder` parameter but the
- * //  `timeline_events` junction table has no `sort_order` column (unlike
- * //  `timeline_media`). This function omits sortOrder until the schema is
- * //  updated or a decision is made to add the column. Tracked in #122.
+ * `sortOrder` defaults to 0; when all rows for a timeline share the default,
+ * consumers should fall back to ordering by the joined `events.sort_order_start`
+ * (chronological order). Set a non-zero value to enforce an editorial ordering
+ * (e.g., for comparative or thematic timelines).
  */
 export async function addEventToTimeline(
   client: SupabaseClient<Database>,
   timelineId: string,
   eventId: string,
+  sortOrder = 0,
 ): Promise<TimelineEventRow> {
   const { data, error } = await client
     .from("timeline_events")
-    .insert({ timeline_id: timelineId, event_id: eventId })
+    .insert({
+      timeline_id: timelineId,
+      event_id: eventId,
+      sort_order: sortOrder,
+    })
     .select()
     .single();
 

@@ -1099,14 +1099,17 @@ export type Database = {
       timeline_events: {
         Row: {
           event_id: string;
+          sort_order: number | null;
           timeline_id: string;
         };
         Insert: {
           event_id: string;
+          sort_order?: number | null;
           timeline_id: string;
         };
         Update: {
           event_id?: string;
+          sort_order?: number | null;
           timeline_id?: string;
         };
         Relationships: [
