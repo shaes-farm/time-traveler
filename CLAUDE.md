@@ -23,6 +23,7 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 - `packages/typescript-config` — `@repo/typescript-config` (`base.json`, `nextjs.json`, `react-library.json`).
 - `supabase/migrations` — numbered SQL migrations. Migration `00001_initial_schema.sql` defines core tables (profiles, characters, …); `00002_relationships_junctions.sql` defines `character_relationships` and 11 junction tables.
 - `docs/prd/PRD-0001-time-traveler-system.md` and `docs/system-design.md` are the authoritative references for feature/schema work.
+- `docs/design/admin/` contains the fidelity-1 wireframes for the admin app (characters + events CRUD plus the relationships editor). When doing UI work in `apps/admin`, these are the IA + interaction spec — read alongside PRD §7.11 (some divergences are tracked in #127).
 - There is no CI build pipeline — **validation is local-only**.
 
 ## Toolchain
