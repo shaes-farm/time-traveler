@@ -514,6 +514,19 @@ CREATE UNIQUE INDEX char_rels_unique ON character_relationships
 
 All junction tables use composite primary keys, no surrogate `id`, no `user_id`. RLS is enforced via parent entity ownership checks.
 
+> **Single-primary junction flag pattern:** When a junction table exposes an `is_primary BOOLEAN` flag
+> that must be unique per group (e.g., "one primary media per character"), enforce it with a partial
+> unique index rather than a trigger or application-layer check:
+>
+> ```sql
+> CREATE UNIQUE INDEX <table>_one_primary
+>   ON <table> (<group_column>)
+>   WHERE is_primary = true;
+> ```
+>
+> Applied to `character_media` via migration `00012` (issue #125). If `event_media` or `timeline_media`
+> later grow a primary flag, apply the same pattern.
+
 > **Self-referential FK cycles:** `parent_event_id`, `parent_period_id`, and `parent_category_id` are unconstrained at the database level — cycles (A → B → A) are accepted by PostgreSQL. Cycle prevention is enforced in the service layer during create/update operations (#29, #31, #59, #60); the database intentionally does not attempt to detect cycles via constraints.
 
 ```sql
@@ -593,6 +606,12 @@ CREATE TABLE character_media (
   PRIMARY KEY (character_id, media_id)
 );
 
+-- Single-primary enforcement: at most one row per character_id may have is_primary = true.
+-- Applied via migration 00012 (issue #125).
+CREATE UNIQUE INDEX IF NOT EXISTS character_media_one_primary
+  ON public.character_media (character_id)
+  WHERE is_primary = true;
+
 -- Timelines ↔ Collaborators
 CREATE TABLE timeline_collaborators (
   timeline_id UUID REFERENCES timelines(id) ON DELETE CASCADE,
@@ -611,7 +630,7 @@ CREATE TABLE timeline_collaborators (
 > - `ON DELETE CASCADE` on all FKs.
 > - Added `event_media.sort_order` for controlling display order.
 > - Added `story_events` (stories linked directly to events, not just via periods).
-> - Added `character_media` for character profile images.
+> - Added `character_media` for character profile images; `is_primary` is enforced single-per-character via a partial unique index (`character_media_one_primary`, migration `00012`).
 > - Added `timeline_collaborators` for shared timeline access.
 > - Added `timeline_media` for timeline cover images and header media (per PRD Section 4.8.5).
 
