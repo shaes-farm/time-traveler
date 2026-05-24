@@ -2,13 +2,18 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   characterRelationshipSchema,
+  characterRelationshipBaseSchema,
   relationshipTypeEnum,
 } from "../schemas/character-relationship.js";
 import type { Database } from "../supabase/types.js";
 
 type CharacterRelationshipRow =
   Database["public"]["Tables"]["character_relationships"]["Row"];
-type EventRow = Database["public"]["Tables"]["events"]["Row"];
+// Use the generated RPC return type instead of the events table row to avoid
+// drift if the function's SELECT list changes (it includes computed columns
+// not present on the raw table).
+type SharedEventRow =
+  Database["public"]["Functions"]["events_shared_by_characters"]["Returns"][number];
 // Use the generated return type for the character_network RPC to avoid drift
 // if the DB function signature changes.
 type CharacterNetworkRow =
@@ -220,7 +225,20 @@ export async function updateRelationship(
   id: string,
   data: UpdateRelationshipInput,
 ): Promise<CharacterRelationshipRow> {
-  const validated = characterRelationshipSchema.partial().parse(data);
+  // Use a schema restricted to the mutable fields so that — even if a caller
+  // bypasses TypeScript via `any` — `character_id` and `related_character_id`
+  // are never forwarded to Supabase. Uses the base schema (without superRefine)
+  // because Zod v4 does not support .pick() on refined schemas.
+  const mutableSchema = characterRelationshipBaseSchema
+    .pick({
+      relationship_type: true,
+      description: true,
+      start_temporal: true,
+      end_temporal: true,
+      metadata: true,
+    })
+    .partial();
+  const validated = mutableSchema.parse(data);
   type RelationshipUpdate =
     Database["public"]["Tables"]["character_relationships"]["Update"];
   const { data: updated, error } = await client
@@ -263,12 +281,12 @@ export async function getSharedEvents(
   client: SupabaseClient<Database>,
   char1Id: string,
   char2Id: string,
-): Promise<EventRow[]> {
+): Promise<SharedEventRow[]> {
   const { data, error } = await client.rpc("events_shared_by_characters", {
     p_character_ids: [char1Id, char2Id],
   });
   assertNoError(error, "getSharedEvents");
-  return (data ?? []) as EventRow[];
+  return (data ?? []) as SharedEventRow[];
 }
 
 /** Maximum depth allowed for getCharacterNetwork to prevent runaway recursive CTEs. */

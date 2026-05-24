@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   relationshipTypeEnum,
   characterRelationshipSchema,
+  characterRelationshipBaseSchema,
 } from "./character-relationship.js";
 
 // ---------------------------------------------------------------------------
@@ -121,8 +122,37 @@ describe("characterRelationshipSchema", () => {
     ).toThrow();
   });
 
-  it("allows partial via .partial()", () => {
-    const partial = characterRelationshipSchema.partial();
+  it("allows partial via .partial() on the base schema", () => {
+    const partial = characterRelationshipBaseSchema.partial();
     expect(() => partial.parse({ description: "updated" })).not.toThrow();
+  });
+
+  it("accepts when start_temporal is before end_temporal", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        start_temporal: { era: "CE", year: 1800, precision: "approximate" },
+        end_temporal: { era: "CE", year: 1900, precision: "approximate" },
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects when start_temporal is after end_temporal", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        start_temporal: { era: "CE", year: 1900, precision: "approximate" },
+        end_temporal: { era: "CE", year: 1800, precision: "approximate" },
+      }),
+    ).toThrow("start_temporal must not be later than end_temporal");
+  });
+
+  it("accepts when only start_temporal is provided (no end bound)", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        start_temporal: { era: "CE", year: 1900, precision: "approximate" },
+      }),
+    ).not.toThrow();
   });
 });
