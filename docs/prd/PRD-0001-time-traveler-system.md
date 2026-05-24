@@ -6587,6 +6587,8 @@ Buttons: [Cancel] [Delete Event]
 
 ### 7.11 Admin Interface
 
+> **Note:** Concrete information-architecture wireframes for the admin interface (characters + events CRUD + relationships editor) are documented in [`docs/design/admin/`](../design/admin/). The wireframes are fidelity-1 (IA + interaction) and serve as the IA spec for fidelity-2 (in-tree React in `apps/admin`). Some divergences between the wireframes and the specifications below have been identified — including auto-save, card view alternative, the "Shared" status badge, and mobile/tablet responsive design — and are tracked in [#127](https://github.com/shaes-farm/time-traveler/issues/127) for reconciliation before fidelity-2 implementation begins.
+
 #### 7.11.1 Layout
 
 **Two-column desktop layout:**
