@@ -1227,13 +1227,13 @@ export class TemporalService {
 
 ### 6.2 Display Formats
 
-| Input                                  | Format       | Output                 |
-| -------------------------------------- | ------------ | ---------------------- |
-| year: 2024, month: 8, day: 11, era: CE | standard     | August 11, 2024        |
-| year: 44, month: 3, day: 15, era: BCE  | standard     | March 15, 44 BCE       |
-| year: 66, era: MYA, geol: "K-Pg"       | geological   | 66 MYA (K-Pg boundary) |
-| year: 5, era: BYA, ±500M               | scientific   | ~4.5 ± 0.5 BYA         |
-| year: 14, era: BYA, epoch: "Big Bang"  | cosmological | Big Bang (~13.8 BYA)   |
+| Input                                                    | Format       | Output                    |
+| -------------------------------------------------------- | ------------ | ------------------------- |
+| year: 2024, month: 8, day: 11, era: CE                   | standard     | August 11, 2024           |
+| year: 44, month: 3, day: 15, era: BCE                    | standard     | March 15, 44 BCE          |
+| year: 66, era: MYA, geological_period: "Late Cretaceous" | geological   | Late Cretaceous (~66 MYA) |
+| year: 5, era: BYA, ±500M                                 | scientific   | 5 ± 0.5 BYA               |
+| year: 14, era: BYA, epoch: "Big Bang"                    | cosmological | Big Bang (~14 BYA)        |
 
 ### 6.3 Logarithmic Scale for Visualization
 
