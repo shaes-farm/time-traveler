@@ -17,6 +17,7 @@ export default defineConfig({
         "src/modules/temporal-service.ts",
         "src/modules/timeline-service.ts",
         "src/modules/event-service.ts",
+        "src/modules/character-service.ts",
         "src/utils/slug.ts",
       ],
       exclude: ["src/**/*.test.ts"],
