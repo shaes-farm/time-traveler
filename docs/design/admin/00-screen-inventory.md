@@ -53,6 +53,17 @@ The following cross-cutting conventions were resolved during the first design-re
 - **Live slug preview in editor right rail** — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields stay user-controlled. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #3.
 - **Type filter icons + labels** — labels only this fidelity pass; iconography deferred to the visual-design step.
 
+## Decisions resolved in Batch 4 review
+
+Detail-view refinements. Mix of temporal-display semantics and surface-level affordances.
+
+- **Sibling-event ordering** on event detail — chronological proximity (`ABS(this.sort_order_years - sibling.sort_order_years)`); importance is not used as secondary sort. See [02-wireframes/08-event-detail.md](02-wireframes/08-event-detail.md) annotation #7.
+- **Range-bar visualization** on event detail — triggered rendering only: uncertainty > 100 years OR range > 1000 years OR spans an era boundary. Trivial CE ranges get no bar. See [02-wireframes/08-event-detail.md](02-wireframes/08-event-detail.md) annotation #5.
+- **Duration display** on event detail — always shown when end is set, with era-aware formatting. CE/BCE: "lived 66 years" / "spans 300 years". KYA: "spans 4,000 years". MYA: "spans 79 million years". BYA: rounded significant digits. See [02-wireframes/08-event-detail.md](02-wireframes/08-event-detail.md) annotation #5.
+- **Media edit affordances** on event detail — overflow menu (`⋯`) per media item. Edit caption, Reorder, Detach all live in the menu. Clean default; scales as media count grows. See [02-wireframes/08-event-detail.md](02-wireframes/08-event-detail.md) annotation #12.
+- **Events tab role grouping** on character detail — keep flat with role label per row. No grouping, no filter added. See [02-wireframes/04-character-detail.md](02-wireframes/04-character-detail.md) Open Questions.
+- **JSON editors for `profile_data` / `metadata`** on character editor — keep behind the Advanced disclosure as an escape hatch. Recurring keys promoted to first-class fields in a future iteration. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) Open Questions.
+
 ## Decisions resolved in Batch 3 review
 
 List-view refinements. All single-screen decisions; lower stakes than Batches 1–2.

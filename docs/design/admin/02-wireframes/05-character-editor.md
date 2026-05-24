@@ -126,7 +126,8 @@ Birth/death temporal for divine and mythological characters is often blank or "e
 
 ## Open questions
 
-- "Save and add another" — does it preserve any fields, or fully clear? Probably clear, but cultural_context and significance often repeat. Worth a toggle later.
-- Where do `profile_data` and `metadata` editing surfaces live longer term? JSON editor now; once we know what fields users actually use, promote them to first-class form fields.
+- "Save and add another" — does it preserve any fields, or fully clear? Probably clear, but cultural_context and significance often repeat. Worth a toggle later. (Slated for Batch 5.)
 
 > **Resolved (Batch 1):** Right-column live updates — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields (significance, importance, publish toggle) are user-controlled and stay static.
+>
+> **Resolved (Batch 4):** Long-term home for `profile_data` / `metadata` JSON editors — keep behind the Advanced disclosure as an escape hatch. Recurring keys should be promoted to first-class form fields and dedicated schema columns in a future iteration, once usage patterns emerge from real authoring.

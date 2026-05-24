@@ -83,13 +83,14 @@
 2. **Two-column overview.** Left: narrative content (summary, detail). Right: structured metadata (temporal, location, lineage, timeline). Right column is fixed-width and doesn't scroll.
 3. **Importance is in the header, near the type.** Both are categorical identifiers of the event.
 4. **Temporal block shows the era explicitly.** "July 1898 CE (exact)" not "July 1898". For MYA/KYA events, era + precision dominate.
-5. **Range vs. point.** If `end_temporal_data` is null, render "point event". If present, render "1895–1898 CE" with the inferred duration.
+5. **Range vs. point.** If `end_temporal_data` is null, render "point event". If present, render "1895–1898 CE" with the inferred duration. **Duration is always shown** with era-aware formatting (Batch 4 decision Q3): CE/BCE renders "lived 66 years" or "spans 300 years"; KYA renders "spans 4,000 years"; MYA renders "spans 79 million years"; BYA rounds to significant digits. **A visual range bar renders only when** uncertainty > 100 years OR the range spans > 1000 years OR the range crosses an era boundary (Batch 4 decision Q2) — trivial CE ranges get no bar; "66 MYA ±1M" or "12 KYA – 8 KYA" get one. Exact thresholds and visual treatment refined at the next fidelity step.
 6. **Lineage section** surfaces parent, siblings (other events with same parent), and children. This is the navigation surface for the fractal model — it's how authors traverse the tree.
-7. **Sibling events** is a high-value affordance for fractal browsing — "what else happened in this research arc?" Cap at 5 visible; "see all" if more.
+7. **Sibling events** is a high-value affordance for fractal browsing — "what else happened in this research arc?" Cap at 5 visible; "see all" if more. **Ordered by chronological proximity** to the current event (Batch 4 decision Q1) — `ABS(this.sort_order_years - sibling.sort_order_years) ASC`. Importance is not used as secondary sort; the importance dimension is served on the events list, not here.
 8. **Tabs below for the junction data.** Participants is the most active tab; Categories and Media are simpler.
 9. **Participant rows show role + significance** as labels, not icons. The 11 roles are too many to encode with glyphs.
 10. **Per-participant edit action** opens the inline participant editor (a sheet) — it edits only that one row.
 11. **Spatial data** has a lat/lng pair shown as text. No map embed in this pass. Out of scope, but the data is there.
+12. **Media per-item actions live in an overflow menu** (`⋯`) — Edit caption, Reorder, Detach (Batch 4 decision Q4). Always-visible inline buttons clutter at scale and none of these actions are frequent enough to claim per-row space. Standard admin-tool pattern.
 
 ## Tab variations
 
@@ -110,8 +111,8 @@ Categories are simple tags. Removal is `×` per chip. Add opens a multi-select d
   ───────────────────────────────────────────────────────────────────
   ╔════════════════╗
   ║                ║   First page of the Curies' polonium discovery paper
-  ║   [thumbnail]  ║   sort_order: 0
-  ║                ║   [ Edit caption ] [ Reorder ] [ Detach ]
+  ║   [thumbnail]  ║   sort_order: 0                          [⋯]
+  ║                ║
   ╚════════════════╝
 ```
 
@@ -128,7 +129,11 @@ Media in `event_media` has `sort_order` for explicit ordering. Drag to reorder.
 
 ## Open questions
 
-- Should the temporal block render a small visual range bar when range is wide? For "1895–1898" probably not. For "68–66 MYA" with ±1M uncertainty, a range bar would clarify uncertainty visually. Defer.
-- Sibling events: how do we pick which 5 to show? Closest in time? Most important? Currently arbitrary (creation order). Should be intentional.
-- The "Edit caption" / "Reorder" / "Detach" affordances on media — overflow menu (⋯) or always-visible? Always-visible reads cluttered; overflow risks hiding key actions. Test with real data.
-- For events with end_temporal_data, surface duration ("3 years 2 months")? Useful for human-scale events, meaningless for MYA. Show only when era is CE/BCE and range is < 200 years.
+> **Resolved (Batch 4):**
+>
+> - Sibling-event ordering — chronological proximity. See annotation #7.
+> - Range-bar visualization — triggered rendering (uncertainty > 100 yr OR range > 1000 yr OR spans era boundary). See annotation #5.
+> - Duration display — always shown with era-aware formatting. See annotation #5.
+> - Media per-item affordances — overflow menu (`⋯`). See annotation #12.
+
+_All initial open questions resolved. Future questions may be added as the wireframe is refined._
