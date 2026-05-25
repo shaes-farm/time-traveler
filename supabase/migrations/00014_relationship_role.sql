@@ -18,9 +18,11 @@
 -- The unique index is extended to include `relationship_role` so that rare
 -- but real cases (e.g., adoptive + biological parent of the same child) can
 -- coexist as multiple rows for the same (character_id, related_character_id,
--- type) triple. PostgreSQL's default NULL-as-distinct semantics handle
--- backwards compat: an existing NULL-role row and a future specific-role row
--- coexist for the same pair+type.
+-- type) triple. The index uses NULLS NOT DISTINCT (PostgreSQL 15+) so that
+-- two NULL-role rows for the same pair+type are still treated as duplicates
+-- — preserving the original "one of each (pair, type)" guarantee for legacy
+-- data — while a NULL-role row and a specific-role row remain distinct
+-- (NULL ≠ "parent" regardless of the option).
 --
 -- Sub-role taxonomy: see #119 comment and
 -- docs/design/admin/02-wireframes/06-relationships-editor.md.
@@ -58,10 +60,14 @@ ALTER TABLE character_relationships
   );
 
 -- Extend the unique index to include relationship_role.
+-- NULLS NOT DISTINCT keeps duplicate NULL-role rows blocked while still
+-- letting a NULL-role row coexist with a specific-role row for the same
+-- pair+type (legacy compat).
 DROP INDEX char_rels_unique;
 CREATE UNIQUE INDEX char_rels_unique
   ON character_relationships
-  (character_id, related_character_id, relationship_type, relationship_role);
+  (character_id, related_character_id, relationship_type, relationship_role)
+  NULLS NOT DISTINCT;
 
 -- Refresh character_network_view to expose relationship_role. CREATE OR REPLACE
 -- VIEW requires the existing column list to remain in the same position; new
