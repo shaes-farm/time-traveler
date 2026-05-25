@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
-    "./*": "./src/*.tsx"
+    "./*": "./src/*.tsx",
+    "./hooks": "./src/hooks/index.tsx",
+    "./hooks/*": "./src/hooks/*.tsx"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -29,7 +31,12 @@
     "vitest": "^4.1.7"
   },
   "dependencies": {
+    "@repo/services": "workspace:*",
+    "@tanstack/react-query": "^5.80.5",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": ">=2"
   }
 }
