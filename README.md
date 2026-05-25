@@ -1,7 +1,9 @@
 # Time Traveler
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/ci.yml?branch=main)](https://github.com/shaes-farm/time-traveler/actions)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/codeql.yml?branch=main&label=CodeQL)](https://github.com/shaes-farm/time-traveler/actions/workflows/codeql.yml)
 [![Coverage Status](https://img.shields.io/codecov/c/github/shaes-farm/time-traveler/main.svg)](https://codecov.io/gh/shaes-farm/time-traveler)
+[![Snyk](https://snyk.io/test/github/shaes-farm/time-traveler/badge.svg)](https://snyk.io/test/github/shaes-farm/time-traveler)
 [![License](https://img.shields.io/github/license/shaes-farm/time-traveler.svg)](LICENSE)
 
 A temporal content management system for storing, visualizing, and interacting with historical events across the full span of time — from the Big Bang through the speculative future.
@@ -19,28 +21,28 @@ For the product specification, see [`docs/prd/PRD-0001-time-traveler-system.md`]
 
 ## Status
 
-**Greenfield, mid-development.** The Supabase layer is largely complete: 11 numbered migrations cover schema, RLS, indexes, views, functions, and storage, with pgTAP tests for the database surface. The two Next.js apps under `apps/` are currently Turborepo boilerplate — the admin app's fidelity-1 IA + interaction wireframes are documented in [`docs/design/admin/`](docs/design/admin/) and ready for implementation.
+**Greenfield, mid-development.** The Supabase layer is largely complete: 13 numbered migrations cover schema, RLS, indexes, views, functions, storage, and follow-up data integrity fixes, with pgTAP tests for the database surface. The two Next.js apps under `apps/` are currently Turborepo boilerplate — the admin app's fidelity-1 IA + interaction wireframes are documented in [`docs/design/admin/`](docs/design/admin/) and ready for implementation.
 
 ## Stack
 
-| Layer         | Technology                                                      |
-| ------------- | --------------------------------------------------------------- |
-| Frontend      | Next.js 16 (App Router), React 19, TypeScript 5.9               |
-| UI            | Tailwind CSS, shadcn/ui, Recharts, D3.js                        |
-| Server state  | TanStack Query                                                  |
-| Client state  | Zustand                                                         |
-| Backend / API | Supabase PostgREST (auto-generated REST), Edge Functions (Deno) |
-| Database      | Supabase PostgreSQL 17 with JSONB temporal storage and RLS      |
-| Auth          | Supabase Auth (email, magic link, OAuth)                        |
-| Realtime      | Supabase Realtime (Postgres Changes, Broadcast, Presence)       |
-| Storage       | Supabase Storage                                                |
-| Hosting       | Vercel (frontend) + Supabase Cloud (backend / database)         |
+| Layer         | Technology                                                                         |
+| ------------- | ---------------------------------------------------------------------------------- |
+| Frontend      | Next.js 16 (App Router), React 19, TypeScript 6.0                                  |
+| UI            | CSS Modules, global CSS, shared React components in `@repo/ui`                     |
+| Server state  | Planned: TanStack Query                                                            |
+| Client state  | Planned: Zustand                                                                   |
+| Backend / API | Supabase PostgREST (auto-generated REST), `@supabase/supabase-js`, `@supabase/ssr` |
+| Database      | Supabase PostgreSQL 17 with JSONB temporal storage and RLS                         |
+| Auth          | Supabase Auth (email, magic link, OAuth)                                           |
+| Realtime      | Supabase Realtime (Postgres Changes, Broadcast, Presence)                          |
+| Storage       | Supabase Storage                                                                   |
+| Hosting       | Vercel (frontend) + Supabase Cloud (backend / database)                            |
 
-Toolchain: **Node ≥24** (pinned via `.nvmrc`), **pnpm 9.0.0**, **Turborepo 2.x**, **Supabase CLI ^2.101**.
+Toolchain: **Node ≥24** (pinned via `.nvmrc`), **pnpm 11.2.2**, **Turborepo 2.9.14**, **TypeScript 6.0.3**, **Supabase CLI ^2.101**.
 
 ## Repository layout
 
-```
+```text
 apps/
   admin/                       # Next.js admin app (port 3000)
   docs/                        # Next.js docs app (port 3001)
@@ -50,7 +52,7 @@ packages/
   eslint-config/               # @repo/eslint-config — shared ESLint configs
   typescript-config/           # @repo/typescript-config — shared tsconfig presets
 supabase/
-  migrations/                  # numbered SQL migrations (00001 → 00011)
+  migrations/                  # numbered SQL migrations (00001 → 00013)
   tests/database/              # pgTAP database tests
 docs/
   prd/                         # product requirements (authoritative)
@@ -64,7 +66,7 @@ docs/
 ### Prerequisites
 
 - Node.js ≥24 (`nvm use` if using nvm)
-- pnpm 9.0.0 (`corepack enable` or `npm install -g pnpm@9`)
+- pnpm 11.2.2 (`corepack enable` or `npm install -g pnpm@11`)
 - Supabase CLI ≥2.101 (for local development)
 
 ### Install
