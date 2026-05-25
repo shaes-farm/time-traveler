@@ -49,6 +49,7 @@ export type UpdateRelationshipInput = Partial<
   Pick<
     z.infer<typeof characterRelationshipSchema>,
     | "relationship_type"
+    | "relationship_role"
     | "description"
     | "start_temporal"
     | "end_temporal"
@@ -81,6 +82,115 @@ function assertNoError(
       `CharacterRelationshipService.${context}: ${error.message}`,
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Reciprocal-edge support (#119 / Batch 2 design)
+// ---------------------------------------------------------------------------
+
+/**
+ * Relationship types that store direction by type alone — no reciprocal row
+ * is created or expected. For these, "Marie mentors Pierre" is a single row;
+ * "Pierre mentors Marie" would be a separate, independent assertion the user
+ * must opt into explicitly. See `06-relationships-editor.md` for the
+ * design rationale.
+ */
+const ASYMMETRIC_TYPES: ReadonlySet<string> = new Set([
+  "mentor_student",
+  "owner_pet",
+  "trainer_trainee",
+  "creator_creation",
+  "worship",
+]);
+
+/**
+ * Maps each sub-role to the role its reciprocal row should carry. Paired
+ * roles invert (parent ↔ child); symmetric roles map to themselves
+ * (spouse ↔ spouse). Roles not in this map are treated as "no role on
+ * reciprocal" — i.e., the reciprocal carries `relationship_role = null`.
+ */
+const ROLE_INVERSE: Readonly<Record<string, string>> = {
+  // Paired (asymmetric within type)
+  parent: "child",
+  child: "parent",
+  grandparent: "grandchild",
+  grandchild: "grandparent",
+  aunt_uncle: "niece_nephew",
+  niece_nephew: "aunt_uncle",
+  step_parent: "step_child",
+  step_child: "step_parent",
+  adoptive_parent: "adoptive_child",
+  adoptive_child: "adoptive_parent",
+  employer: "employee",
+  employee: "employer",
+  supervisor: "subordinate",
+  subordinate: "supervisor",
+  client: "vendor",
+  vendor: "client",
+  // Symmetric sub-roles (map to themselves)
+  spouse: "spouse",
+  sibling: "sibling",
+  cousin: "cousin",
+  in_law: "in_law",
+  step_sibling: "step_sibling",
+  colleague: "colleague",
+  business_partner: "business_partner",
+  co_author: "co_author",
+  co_founder: "co_founder",
+  research_partner: "research_partner",
+  performance_partner: "performance_partner",
+  band_member: "band_member",
+  creative_partner: "creative_partner",
+  other: "other",
+};
+
+type RelationshipInsert =
+  Database["public"]["Tables"]["character_relationships"]["Insert"];
+
+/**
+ * Given a freshly-inserted (or fetched) relationship row, compute the
+ * reciprocal insert payload — or return `null` if no reciprocal applies.
+ *
+ * - Asymmetric types (`mentor_student`, etc.) return null: single-row by design.
+ * - Self-relationships return null defensively (the DB also rejects them).
+ * - For paired or symmetric sub-roles, characters swap and the role inverts via `ROLE_INVERSE`.
+ * - For symmetric type-only (`friendship`, `rivalry`, `enemy`, and `professional`/`collaboration` without role), characters swap and type/role carry through unchanged.
+ *
+ * `description` is intentionally NOT carried to the reciprocal — each card holds
+ * its own perspective text per Batch 2 Q1.
+ */
+export function computeReciprocalRow(row: {
+  user_id: string;
+  character_id: string;
+  related_character_id: string;
+  relationship_type: string;
+  relationship_role: string | null;
+  start_temporal: unknown;
+  end_temporal: unknown;
+  metadata?: unknown;
+}): RelationshipInsert | null {
+  if (ASYMMETRIC_TYPES.has(row.relationship_type)) {
+    return null;
+  }
+  if (row.character_id === row.related_character_id) {
+    return null;
+  }
+  const reverseRole =
+    row.relationship_role !== null
+      ? (ROLE_INVERSE[row.relationship_role] ?? null)
+      : null;
+  return {
+    user_id: row.user_id,
+    character_id: row.related_character_id,
+    related_character_id: row.character_id,
+    relationship_type: row.relationship_type,
+    relationship_role: reverseRole,
+    start_temporal: (row.start_temporal ??
+      null) as RelationshipInsert["start_temporal"],
+    end_temporal: (row.end_temporal ??
+      null) as RelationshipInsert["end_temporal"],
+    metadata: (row.metadata ?? undefined) as RelationshipInsert["metadata"],
+  };
 }
 
 /**
@@ -183,9 +293,6 @@ export async function createRelationship(
 
   const validated = characterRelationshipSchema.parse(data);
 
-  type RelationshipInsert =
-    Database["public"]["Tables"]["character_relationships"]["Insert"];
-
   const { data: row, error: insertError } = await client
     .from("character_relationships")
     .insert({
@@ -209,7 +316,29 @@ export async function createRelationship(
     assertNoError(insertError, "createRelationship");
   }
 
-  return row as CharacterRelationshipRow;
+  const primary = row as CharacterRelationshipRow;
+
+  // Reciprocal-edge creation per Batch 2 design (#119). The reciprocal
+  // insert is best-effort: if it fails, the primary stays committed and the
+  // caller is told to retry. This matches the multi-step pattern documented
+  // in system-design §5.3.
+  const reciprocal = computeReciprocalRow(primary);
+  if (reciprocal !== null) {
+    const { error: recipError } = await client
+      .from("character_relationships")
+      .insert(reciprocal)
+      .select()
+      .single();
+    if (recipError !== null && recipError.code !== "23505") {
+      // 23505 means the reciprocal already exists — design intent is met,
+      // so swallow it. Any other error is a genuine failure to report.
+      throw new Error(
+        `CharacterRelationshipService.createRelationship: primary saved (id=${primary.id}); reciprocal insert failed: ${recipError.message}`,
+      );
+    }
+  }
+
+  return primary;
 }
 
 /**
@@ -232,6 +361,7 @@ export async function updateRelationship(
   const mutableSchema = characterRelationshipBaseSchema
     .pick({
       relationship_type: true,
+      relationship_role: true,
       description: true,
       start_temporal: true,
       end_temporal: true,
@@ -241,6 +371,17 @@ export async function updateRelationship(
   const validated = mutableSchema.parse(data);
   type RelationshipUpdate =
     Database["public"]["Tables"]["character_relationships"]["Update"];
+
+  // Fetch the current row so we know how to find the reciprocal (the find
+  // uses the CURRENT type/role; the sync writes the NEW type/role).
+  const { data: current, error: fetchError } = await client
+    .from("character_relationships")
+    .select("*")
+    .eq("id", id)
+    .single();
+  assertNoError(fetchError, "updateRelationship.fetchCurrent");
+
+  // Update primary.
   const { data: updated, error } = await client
     .from("character_relationships")
     .update(validated as unknown as RelationshipUpdate)
@@ -248,7 +389,85 @@ export async function updateRelationship(
     .select()
     .single();
   assertNoError(error, "updateRelationship");
+
+  // Sync the reciprocal row per Batch 2 Q1: dates and type/role mirror,
+  // description does NOT. Asymmetric types have no reciprocal. If the fetch
+  // returned no row (legacy or test mocks), skip sync gracefully.
+  if (current !== null && !ASYMMETRIC_TYPES.has(current.relationship_type)) {
+    await syncReciprocalUpdate(client, current, validated);
+  }
+
   return updated;
+}
+
+/**
+ * Sync mutable fields (type, role, dates, metadata) to the reciprocal row.
+ * Description is intentionally NOT synced per Batch 2 Q1.
+ *
+ * The lookup uses the CURRENT row's type and inverted role (so we can find
+ * the existing reciprocal even if the user is changing type/role in this
+ * update). Missing reciprocal is silently ignored — legacy single-row data
+ * stays single-row.
+ */
+async function syncReciprocalUpdate(
+  client: SupabaseClient<Database>,
+  current: CharacterRelationshipRow,
+  partial: Partial<{
+    relationship_type: string;
+    relationship_role: string | null | undefined;
+    start_temporal: unknown;
+    end_temporal: unknown;
+    metadata: unknown;
+  }>,
+): Promise<void> {
+  const syncFields: Record<string, unknown> = {};
+  if ("relationship_type" in partial) {
+    syncFields.relationship_type = partial.relationship_type;
+  }
+  if ("relationship_role" in partial) {
+    const newRole = partial.relationship_role ?? null;
+    syncFields.relationship_role =
+      newRole !== null ? (ROLE_INVERSE[newRole] ?? null) : null;
+  }
+  if ("start_temporal" in partial) {
+    syncFields.start_temporal = partial.start_temporal;
+  }
+  if ("end_temporal" in partial) {
+    syncFields.end_temporal = partial.end_temporal;
+  }
+  if ("metadata" in partial) {
+    syncFields.metadata = partial.metadata;
+  }
+  if (Object.keys(syncFields).length === 0) {
+    return; // Nothing to sync — the partial update only touched description.
+  }
+
+  const oldReciprocalRole =
+    current.relationship_role !== null
+      ? (ROLE_INVERSE[current.relationship_role] ?? null)
+      : null;
+
+  type RelationshipUpdate =
+    Database["public"]["Tables"]["character_relationships"]["Update"];
+
+  let query = client
+    .from("character_relationships")
+    .update(syncFields as RelationshipUpdate)
+    .eq("character_id", current.related_character_id)
+    .eq("related_character_id", current.character_id)
+    .eq("relationship_type", current.relationship_type);
+
+  query =
+    oldReciprocalRole === null
+      ? query.is("relationship_role", null)
+      : query.eq("relationship_role", oldReciprocalRole);
+
+  const { error } = await query;
+  if (error !== null) {
+    throw new Error(
+      `CharacterRelationshipService.updateRelationship: primary updated, reciprocal sync failed: ${error.message}`,
+    );
+  }
 }
 
 /**
@@ -260,12 +479,55 @@ export async function updateRelationship(
 export async function deleteRelationship(
   client: SupabaseClient<Database>,
   id: string,
+  options: { deleteReciprocal?: boolean } = {},
 ): Promise<void> {
+  const { deleteReciprocal = true } = options;
+
+  // Fetch first so we can find the reciprocal after the primary is gone. If
+  // `deleteReciprocal` is false we still fetch — it's cheap, and it gives us
+  // a clearer error if the id is invalid.
+  const { data: current, error: fetchError } = await client
+    .from("character_relationships")
+    .select("*")
+    .eq("id", id)
+    .single();
+  assertNoError(fetchError, "deleteRelationship.fetchCurrent");
+
   const { error } = await client
     .from("character_relationships")
     .delete()
     .eq("id", id);
   assertNoError(error, "deleteRelationship");
+
+  // Reciprocal delete is enabled by default (Batch 2 design). The opt-out
+  // covers the rare "one-sided orphan" case from the wireframe.
+  if (!deleteReciprocal) return;
+  if (current === null) return;
+  if (ASYMMETRIC_TYPES.has(current.relationship_type)) return;
+
+  const reciprocalRole =
+    current.relationship_role !== null
+      ? (ROLE_INVERSE[current.relationship_role] ?? null)
+      : null;
+
+  let query = client
+    .from("character_relationships")
+    .delete()
+    .eq("character_id", current.related_character_id)
+    .eq("related_character_id", current.character_id)
+    .eq("relationship_type", current.relationship_type);
+
+  query =
+    reciprocalRole === null
+      ? query.is("relationship_role", null)
+      : query.eq("relationship_role", reciprocalRole);
+
+  const { error: recipError } = await query;
+  if (recipError !== null) {
+    throw new Error(
+      `CharacterRelationshipService.deleteRelationship: primary deleted, reciprocal delete failed: ${recipError.message}`,
+    );
+  }
 }
 
 /**

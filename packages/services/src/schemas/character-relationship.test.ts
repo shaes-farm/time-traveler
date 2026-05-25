@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   relationshipTypeEnum,
+  familyRoleEnum,
+  professionalRoleEnum,
+  collaborationRoleEnum,
+  typeAcceptsRole,
+  validateTypeRoleCombination,
   characterRelationshipSchema,
   characterRelationshipBaseSchema,
 } from "./character-relationship.js";
@@ -152,6 +157,206 @@ describe("characterRelationshipSchema", () => {
       characterRelationshipSchema.parse({
         ...base,
         start_temporal: { era: "CE", year: 1900, precision: "approximate" },
+      }),
+    ).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sub-role enums (#119)
+// ---------------------------------------------------------------------------
+
+describe("familyRoleEnum", () => {
+  it.each([
+    "spouse",
+    "parent",
+    "child",
+    "sibling",
+    "grandparent",
+    "grandchild",
+    "aunt_uncle",
+    "niece_nephew",
+    "cousin",
+    "in_law",
+    "step_parent",
+    "step_child",
+    "step_sibling",
+    "adoptive_parent",
+    "adoptive_child",
+    "other",
+  ])("accepts %s", (role) => {
+    expect(() => familyRoleEnum.parse(role)).not.toThrow();
+  });
+
+  it("rejects unknown role", () => {
+    expect(() => familyRoleEnum.parse("ally")).toThrow();
+  });
+});
+
+describe("professionalRoleEnum", () => {
+  it.each([
+    "employer",
+    "employee",
+    "colleague",
+    "supervisor",
+    "subordinate",
+    "business_partner",
+    "client",
+    "vendor",
+    "other",
+  ])("accepts %s", (role) => {
+    expect(() => professionalRoleEnum.parse(role)).not.toThrow();
+  });
+
+  it("rejects family-only role", () => {
+    expect(() => professionalRoleEnum.parse("spouse")).toThrow();
+  });
+});
+
+describe("collaborationRoleEnum", () => {
+  it.each([
+    "co_author",
+    "co_founder",
+    "research_partner",
+    "performance_partner",
+    "band_member",
+    "creative_partner",
+    "other",
+  ])("accepts %s", (role) => {
+    expect(() => collaborationRoleEnum.parse(role)).not.toThrow();
+  });
+
+  it("rejects professional-only role", () => {
+    expect(() => collaborationRoleEnum.parse("employer")).toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// typeAcceptsRole / validateTypeRoleCombination helpers
+// ---------------------------------------------------------------------------
+
+describe("typeAcceptsRole", () => {
+  it("returns true for the three sub-roled types", () => {
+    expect(typeAcceptsRole("family")).toBe(true);
+    expect(typeAcceptsRole("professional")).toBe(true);
+    expect(typeAcceptsRole("collaboration")).toBe(true);
+  });
+
+  it("returns false for the other 8 types", () => {
+    for (const t of [
+      "friendship",
+      "rivalry",
+      "enemy",
+      "mentor_student",
+      "owner_pet",
+      "trainer_trainee",
+      "creator_creation",
+      "worship",
+    ] as const) {
+      expect(typeAcceptsRole(t)).toBe(false);
+    }
+  });
+});
+
+describe("validateTypeRoleCombination", () => {
+  it("returns null when role is null or undefined", () => {
+    expect(validateTypeRoleCombination("family", null)).toBeNull();
+    expect(validateTypeRoleCombination("family", undefined)).toBeNull();
+    expect(validateTypeRoleCombination("mentor_student", null)).toBeNull();
+  });
+
+  it("accepts valid (type, role) pairs", () => {
+    expect(validateTypeRoleCombination("family", "parent")).toBeNull();
+    expect(validateTypeRoleCombination("professional", "employer")).toBeNull();
+    expect(
+      validateTypeRoleCombination("collaboration", "co_author"),
+    ).toBeNull();
+  });
+
+  it("rejects role for types that do not accept sub-roles", () => {
+    expect(validateTypeRoleCombination("friendship", "spouse")).toMatch(
+      /must be null/,
+    );
+    expect(validateTypeRoleCombination("mentor_student", "parent")).toMatch(
+      /must be null/,
+    );
+  });
+
+  it("rejects role from a different type's enum", () => {
+    expect(validateTypeRoleCombination("family", "employer")).toMatch(
+      /not a valid family sub-role/,
+    );
+    expect(validateTypeRoleCombination("professional", "spouse")).toMatch(
+      /not a valid professional sub-role/,
+    );
+    expect(validateTypeRoleCombination("collaboration", "parent")).toMatch(
+      /not a valid collaboration sub-role/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// characterRelationshipSchema with role validation
+// ---------------------------------------------------------------------------
+
+describe("characterRelationshipSchema role refinement (#119)", () => {
+  const base = {
+    character_id: "11111111-1111-4111-8111-111111111111",
+    related_character_id: "22222222-2222-4222-8222-222222222222",
+  };
+
+  it("accepts family with a valid family sub-role", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        relationship_type: "family",
+        relationship_role: "parent",
+      }),
+    ).not.toThrow();
+  });
+
+  it("accepts family with null role (backwards compat)", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        relationship_type: "family",
+        relationship_role: null,
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects family with a professional sub-role", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        relationship_type: "family",
+        relationship_role: "employer",
+      }),
+    ).toThrow(/not a valid family sub-role/);
+  });
+
+  it("rejects friendship with any non-null sub-role", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        relationship_type: "friendship",
+        relationship_role: "spouse",
+      }),
+    ).toThrow(/must be null/);
+  });
+
+  it("accepts friendship with null role (or omitted)", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        relationship_type: "friendship",
+      }),
+    ).not.toThrow();
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        relationship_type: "friendship",
+        relationship_role: null,
       }),
     ).not.toThrow();
   });
