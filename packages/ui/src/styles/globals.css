@@ -1,0 +1,46 @@
+/**
+ * Time Traveler admin design system — global styles entry point.
+ *
+ * Apps in this monorepo (currently `apps/admin`) consume this file to
+ * pick up Tailwind 4 plus the design tokens.
+ *
+ * Dark mode is the default per docs/design/admin/03-aesthetic-notes.md.
+ */
+
+@import "tailwindcss";
+@import "./tokens.css";
+
+/* Scan packages/ui source files for Tailwind class names. The path is
+ * relative to this file's location, walking up to the monorepo root and
+ * down into packages/ui. */
+@source "../**/*.{ts,tsx}";
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-body);
+    font-feature-settings: "tnum" 1; /* tabular numerals for year columns */
+  }
+
+  /* Heading defaults — display family with sensible weight; specific
+   * sizes come from Tailwind utilities at the call site. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+  }
+
+  /* Mono usage — IDs, slugs, JSONB previews per aesthetic notes. */
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+  }
+}
