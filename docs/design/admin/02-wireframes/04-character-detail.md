@@ -129,7 +129,8 @@
 - **No events / no relationships.** The corresponding tab shows an empty state with a single CTA.
 - **Character has unpublished events but is itself published.** Subtle indicator in the Events tab: "2 events not yet published."
 - **Character is referenced by a `subject_character_id` (biographical timeline) or `perspective_character_id` (story).** Surface a "Featured in" subsection in the Overview tab.
-- **Permissions: viewing another user's published character.** Same view, but Edit / Publish / Delete actions are hidden. Read-only mode.
+- **Permissions: viewing a shared character** (another user's character that's reachable because you collaborate on a timeline featuring it, per PRD §7.11.5; #127 reconciliation). Header status badge shows `⇄ Shared`. Edit and Publish actions are gated by collaborator role on the parent timeline — visible for collaborator-editor, hidden for collaborator-viewer. Delete is always hidden for shared characters (only the owner or an admin can delete). Read-only mode is the default for collaborator-viewers.
+- **Permissions: viewing another user's published character** (no collaboration relationship). Same view, but Edit / Publish / Delete actions are hidden. Read-only mode.
 - **Loading.** Skeleton header + tab skeletons; main entity loads first, junction tabs lazy-load on activation.
 
 ## Open questions

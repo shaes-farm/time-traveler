@@ -80,6 +80,7 @@
 9. **Has-chars filter** is the most common refinement when authors are auditing event participation coverage.
 10. **Show filter — fractal scope** (Batch 3 decision Q3). A 3-state radio in the filter rail between Era and Type controls visibility: `All` (default) / `Root only` (`parent_event_id IS NULL`) / `Nested only` (`parent_event_id IS NOT NULL`). Authors thinking about the fractal hierarchy use this for "show me only top-level events" or "show me only sub-events." The row nesting indicator (annotation #3) remains visible regardless of filter state. The ASCII mockup above predates this decision and does not show the Show group — it lives between Era and Type in the rail.
 11. **Categories stay on row line 3, not promoted to a column** (Batch 3 decision Q4). Line 3 only renders when categories exist; rows without categories remain 2 lines tall. The events table is the densest in the admin and cannot afford a column claimed by a frequently-empty field.
+12. **Status column** shows three states (per PRD §7.11.5; #127 reconciliation): `✓ Published`, `─ draft` for Draft, and `⇄ shared` for events reachable to the user via `timeline_collaborators` (the event belongs to another user's timeline but is visible because the current user collaborates on that timeline). The Shared state is a permission-context marker. Specific colors (green / gray / blue per PRD §7.11.5) and icons applied at fidelity-2 visual design.
 
 ## Edge cases
 

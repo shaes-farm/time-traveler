@@ -120,6 +120,7 @@ Plus junction data managed inline:
 12. **Coordinates** are split into two number inputs. No map widget in this pass.
 
 13. **Save dropdown for events** (Batch 5 decisions Q3, Q4). Primary action: "Save". Dropdown: "Save and add another" (create flow only). **"Save and add another" persists a curated set**: `event_type`, `timeline_id`, `parent_event_id`, `categories` carry forward to the next blank form. Cleared: title, slug, summary, detail, temporal data, location, coordinates, participants, media. An inline note after save reports what was cleared vs. persisted. **No "Duplicate" option** in the dropdown — deferred until real user demand surfaces (Q4); the persistence-based pattern handles the bulk-create case without an explicit duplicate.
+14. **Auto-save to draft state every 30 seconds** (per PRD §7.11.3; #127 reconciliation). Same pattern as the character editor — see [05-character-editor.md](05-character-editor.md) annotation #11. The top-right of the editor toolbar shows `Draft saved at H:MM PM` after each successful auto-save. Auto-save never publishes; the explicit Save button is still required for Draft → Published.
 
 ## Save flow
 
