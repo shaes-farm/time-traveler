@@ -144,6 +144,7 @@ export type Database = {
           id: string;
           metadata: Json | null;
           related_character_id: string;
+          relationship_role: string | null;
           relationship_type: string;
           start_temporal: Json | null;
           updated_at: string | null;
@@ -157,6 +158,7 @@ export type Database = {
           id?: string;
           metadata?: Json | null;
           related_character_id: string;
+          relationship_role?: string | null;
           relationship_type: string;
           start_temporal?: Json | null;
           updated_at?: string | null;
@@ -170,6 +172,7 @@ export type Database = {
           id?: string;
           metadata?: Json | null;
           related_character_id?: string;
+          relationship_role?: string | null;
           relationship_type?: string;
           start_temporal?: Json | null;
           updated_at?: string | null;
@@ -1288,6 +1291,7 @@ export type Database = {
           related_id: string | null;
           related_name: string | null;
           relationship_id: string | null;
+          relationship_role: string | null;
           relationship_type: string | null;
           start_temporal: Json | null;
         };
