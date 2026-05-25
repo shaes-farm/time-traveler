@@ -162,7 +162,7 @@ export function useCreateCharacter(client: ServiceClient) {
   });
 }
 
-/** Update a character with optimistic update and rollback on error. */
+/** Update a character. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdateCharacter(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

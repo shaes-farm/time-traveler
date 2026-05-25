@@ -162,7 +162,7 @@ export function useCreateRelationship(client: ServiceClient) {
   });
 }
 
-/** Update a relationship with optimistic update and rollback on error. */
+/** Update a relationship. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdateRelationship(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

@@ -153,7 +153,7 @@ export function useCreateEvent(client: ServiceClient) {
   });
 }
 
-/** Update an event with optimistic update and rollback on error. */
+/** Update an event. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdateEvent(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

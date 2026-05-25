@@ -37,7 +37,9 @@ export const mediaKeys = {
   list: (filters: MediaFilters) => [...mediaKeys.lists(), filters] as const,
   details: () => [...mediaKeys.all, "detail"] as const,
   detail: (id: string) => [...mediaKeys.details(), id] as const,
-  signedUrl: (id: string) => [...mediaKeys.all, "signedUrl", id] as const,
+  /** Cache key includes expiresInSeconds so different expiry windows never collide. */
+  signedUrl: (id: string, expiresInSeconds: number) =>
+    [...mediaKeys.all, "signedUrl", id, expiresInSeconds] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -89,7 +91,7 @@ export function useMediaSignedUrl(
   >,
 ) {
   return useQuery({
-    queryKey: mediaKeys.signedUrl(mediaId),
+    queryKey: mediaKeys.signedUrl(mediaId, expiresInSeconds),
     queryFn: () => getSignedUrl(client, mediaId, expiresInSeconds),
     // Signed URLs expire — stale after half the expiry window
     staleTime: (expiresInSeconds * 1000) / 2,
@@ -124,7 +126,7 @@ export function useCreateExternalMedia(client: ServiceClient) {
   });
 }
 
-/** Update a media record with optimistic update and rollback on error. */
+/** Update a media record. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdateMedia(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

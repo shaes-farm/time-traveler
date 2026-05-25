@@ -41,6 +41,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.80.5
         version: 5.100.14(react@19.2.6)
+      '@tanstack/react-query-devtools':
+        specifier: ^5.80.5
+        version: 5.100.14(@tanstack/react-query@5.100.14(react@19.2.6))(react@19.2.6)
       next:
         specifier: 16.2.6
         version: 16.2.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -57,9 +60,6 @@ importers:
       '@repo/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
-      '@tanstack/react-query-devtools':
-        specifier: ^5.80.5
-        version: 5.100.14(@tanstack/react-query@5.100.14(react@19.2.6))(react@19.2.6)
       '@types/node':
         specifier: ^25.9.1
         version: 25.9.1

@@ -218,10 +218,11 @@ describe("mediaKeys", () => {
     expect(mediaKeys.all).toEqual(["media"]);
     expect(mediaKeys.lists()).toEqual(["media", "list"]);
     expect(mediaKeys.detail("media-1")).toEqual(["media", "detail", "media-1"]);
-    expect(mediaKeys.signedUrl("media-1")).toEqual([
+    expect(mediaKeys.signedUrl("media-1", 3600)).toEqual([
       "media",
       "signedUrl",
       "media-1",
+      3600,
     ]);
   });
 });

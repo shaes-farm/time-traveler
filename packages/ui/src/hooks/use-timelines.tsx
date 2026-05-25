@@ -134,7 +134,7 @@ export function useCreateTimeline(client: ServiceClient) {
   });
 }
 
-/** Update a timeline with optimistic update and rollback on error. */
+/** Update a timeline. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdateTimeline(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

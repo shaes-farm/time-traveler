@@ -112,7 +112,7 @@ export function useCreateStory(client: ServiceClient) {
   });
 }
 
-/** Update a story with optimistic update and rollback on error. */
+/** Update a story. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdateStory(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

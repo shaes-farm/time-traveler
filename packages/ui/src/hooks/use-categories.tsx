@@ -131,7 +131,7 @@ export function useCreateCategory(client: ServiceClient) {
   });
 }
 
-/** Update a category with optimistic update and rollback on error. */
+/** Update a category. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdateCategory(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

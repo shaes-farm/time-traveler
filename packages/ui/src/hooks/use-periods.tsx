@@ -126,7 +126,7 @@ export function useCreatePeriod(client: ServiceClient) {
   });
 }
 
-/** Update a period with optimistic update and rollback on error. */
+/** Update a period. Snapshots the current cache entry for rollback if the mutation fails. */
 export function useUpdatePeriod(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
