@@ -96,6 +96,19 @@ describe("zoomOut", () => {
     useNavigationStore.getState().zoomOut();
     expect(useNavigationStore.getState().zoomLevel).toBe(1);
   });
+
+  it("floors to an integer step for non-power-of-two starting values", () => {
+    // Guards against a fractional zoomLevel coming out of a rehydrated
+    // non-power-of-two value (e.g., a future schema change or a manual
+    // override that lands at 3). Without flooring, 3 / 2 = 1.5 — which
+    // would break invertibility with zoomIn (1.5 → 3 → 1.5 only by luck).
+    useNavigationStore.setState({ zoomLevel: 3 });
+    useNavigationStore.getState().zoomOut();
+    expect(useNavigationStore.getState().zoomLevel).toBe(1);
+    expect(Number.isInteger(useNavigationStore.getState().zoomLevel)).toBe(
+      true,
+    );
+  });
 });
 
 describe("panTo", () => {

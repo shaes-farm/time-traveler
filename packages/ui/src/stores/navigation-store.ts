@@ -1,3 +1,5 @@
+"use client";
+
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
@@ -75,7 +77,11 @@ export const useNavigationStore = create<NavigationStore>()(
 
         zoomOut: () =>
           set(
-            { zoomLevel: Math.max(get().zoomLevel / 2, 1) },
+            // Floor to keep zoomLevel a discrete integer step. Without this
+            // a non-power-of-two value rehydrated from persistence (e.g.
+            // zoomLevel=3 from a future schema) would produce 1.5 here and
+            // break invertibility with zoomIn.
+            { zoomLevel: Math.max(Math.floor(get().zoomLevel / 2), 1) },
             false,
             "zoomOut",
           ),
