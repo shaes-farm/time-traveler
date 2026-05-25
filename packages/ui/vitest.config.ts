@@ -23,6 +23,8 @@ export default defineConfig({
         "src/hooks/use-periods.tsx",
         "src/hooks/use-stories.tsx",
         "src/hooks/use-timelines.tsx",
+        "src/stores/navigation-store.ts",
+        "src/stores/ui-store.ts",
       ],
       exclude: ["src/**/*.test.{ts,tsx}"],
       thresholds: {
