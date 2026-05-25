@@ -11,6 +11,7 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
       provider: "v8",
+      reporter: ["text", "html", "lcov"],
       // Scope to files that have tests. Expand this list as test coverage grows.
       include: [
         "src/button.tsx",
