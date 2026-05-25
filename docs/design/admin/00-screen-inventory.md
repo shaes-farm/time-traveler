@@ -109,9 +109,10 @@ Read in numeric order: inventory → user flows → individual wireframes → ae
 
 ## Design review complete
 
-All 29 in-scope open questions across Batches 1–5 are resolved or formally deferred. Two follow-up issues were filed during the review:
+All 29 in-scope open questions across Batches 1–5 are resolved or formally deferred. Three follow-up issues were filed during the review and integration phases:
 
-- [#119](https://github.com/shaes-farm/time-traveler/issues/119) — `relationship_role` sub-role enum design (concrete proposal documented in the issue and in the relationships editor wireframe).
-- [#125](https://github.com/shaes-farm/time-traveler/issues/125) — `character_media` single-primary partial unique index.
+- [#119](https://github.com/shaes-farm/time-traveler/issues/119) — `relationship_role` sub-role enum design (concrete proposal documented in the issue and in the relationships editor wireframe). Open; awaiting implementation.
+- [#125](https://github.com/shaes-farm/time-traveler/issues/125) — `character_media` single-primary partial unique index. Closed by [#133](https://github.com/shaes-farm/time-traveler/pull/133).
+- [#127](https://github.com/shaes-farm/time-traveler/issues/127) — PRD §7.11 vs wireframes reconciliation. **Resolved**: auto-save and the "Shared" status badge adopted into the wireframes (see [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #11 and [02-wireframes/03-characters-list.md](02-wireframes/03-characters-list.md) annotation #7); sidebar collapse-to-64px specified (see [02-wireframes/00-app-shell.md](02-wireframes/00-app-shell.md) annotation #8); card view dropped and responsive design deferred via PRD §7.11.1 / §7.11.2 updates.
 
 The wireframes serve as the IA + interaction spec for fidelity-2 (in-tree React in `apps/admin`). Tier-4 deferrals listed in each wireframe's Open Questions section get revisited at that next step.

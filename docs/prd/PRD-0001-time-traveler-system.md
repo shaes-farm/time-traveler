@@ -6587,7 +6587,7 @@ Buttons: [Cancel] [Delete Event]
 
 ### 7.11 Admin Interface
 
-> **Note:** Concrete information-architecture wireframes for the admin interface (characters + events CRUD + relationships editor) are documented in [`docs/design/admin/`](../design/admin/). The wireframes are fidelity-1 (IA + interaction) and serve as the IA spec for fidelity-2 (in-tree React in `apps/admin`). Some divergences between the wireframes and the specifications below have been identified — including auto-save, card view alternative, the "Shared" status badge, and mobile/tablet responsive design — and are tracked in [#127](https://github.com/shaes-farm/time-traveler/issues/127) for reconciliation before fidelity-2 implementation begins.
+> **Note:** Concrete information-architecture wireframes for the admin interface (characters + events CRUD + relationships editor) are documented in [`docs/design/admin/`](../design/admin/). The wireframes are fidelity-1 (IA + interaction) and serve as the IA spec for fidelity-2 (in-tree React in `apps/admin`). Divergences between the wireframes and this section have been reconciled (#127): auto-save and the "Shared" status badge were adopted into the wireframes, the card view alternative was dropped from this section (see §7.11.2), and mobile/tablet responsive specifics were deferred to a future fidelity step (see §7.11.1).
 
 #### 7.11.1 Layout
 
@@ -6597,35 +6597,29 @@ Buttons: [Cancel] [Delete Event]
 - Main content: remaining width
 - Header: full width above sidebar and content
 
-**Responsive:**
-
-- Mobile (<768px): sidebar becomes drawer (slide-in)
-- Tablet (768-1024px): sidebar auto-collapses (icons only)
+> **Responsive design deferred.** Mobile (<768px drawer) and tablet (768–1024px auto-collapse) layouts are not in scope for the initial admin implementation. The fidelity-1 wireframes are desktop-first ([`docs/design/admin/02-wireframes/00-app-shell.md`](../design/admin/02-wireframes/00-app-shell.md)). Responsive layout specifics will be revisited when usage patterns justify the additional surface. (Reconciled in #127.)
 
 #### 7.11.2 Entity Lists
 
 **Structure:**
 
 - Header with title, filters, search, create button
-- Table or card grid (user preference)
+- Table layout (see admin design wireframes for the canonical row patterns)
 - Pagination or infinite scroll footer
+
+> **Card view deferred.** Entity lists in the admin carry 6+ filter axes plus rich metadata (era + uncertainty, importance, participant count, category badges); a card grid degrades these into less-scannable tiles. The fidelity-1 wireframes commit to table-only ([`docs/design/admin/03-aesthetic-notes.md`](../design/admin/03-aesthetic-notes.md) — "Tables are the primary list pattern"). Revisit if and when a use case emerges where cards add value over tables. (Reconciled in #127.)
 
 **Table columns (events example):**
 
 - Title (with link to detail)
 - Temporal data (formatted)
 - Timeline (with link)
-- Published status (badge)
+- Status (badge — Published / Draft / Shared per §7.11.5)
 - Actions (edit, delete icons)
-
-**Card view:**
-
-- Event card: title, temporal, summary, thumbnail
-- Grid: 2 columns (mobile), 3-4 columns (desktop)
 
 **Actions:**
 
-- Hover row/card: show action buttons
+- Hover row: show action buttons
 - Checkbox for multi-select
 - Bulk actions toolbar appears when items selected
 
