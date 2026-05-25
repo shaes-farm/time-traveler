@@ -42,7 +42,7 @@ Toolchain: **Node ≥24** (pinned via `.nvmrc`), **pnpm 11.2.2**, **Turborepo 2.
 
 ## Repository layout
 
-```
+```text
 apps/
   admin/                       # Next.js admin app (port 3000)
   docs/                        # Next.js docs app (port 3001)
