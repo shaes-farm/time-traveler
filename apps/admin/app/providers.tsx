@@ -1,6 +1,10 @@
 "use client";
 
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  QueryCache,
+} from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState, type ReactNode } from "react";
 
@@ -8,10 +12,17 @@ import { useState, type ReactNode } from "react";
  * Global QueryClient defaults:
  * - 30s staleTime for list queries (overridden per-hook as needed)
  * - Retry once on failure (avoids hammering the API on transient errors)
- * - Log errors in development; swap for a toast handler once toast infra lands
+ * - Log errors (queries and mutations) in development; swap for a toast handler once toast infra lands
  */
 function makeQueryClient() {
   return new QueryClient({
+    queryCache: new QueryCache({
+      onError: (error) => {
+        if (process.env.NODE_ENV === "development") {
+          console.error("[QueryClient] query error:", error);
+        }
+      },
+    }),
     defaultOptions: {
       queries: {
         staleTime: 30_000,

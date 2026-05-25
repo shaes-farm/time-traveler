@@ -134,15 +134,22 @@ export function useCreateTimeline(client: ServiceClient) {
   });
 }
 
-/** Update a timeline. Snapshots the current cache entry for rollback if the mutation fails. */
+/** Update a timeline. Optimistically merges the update into the cache and rolls back if the mutation fails. */
 export function useUpdateTimeline(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: TimelineUpdateData }) =>
       updateTimeline(client, id, data),
-    onMutate: async ({ id }) => {
+    onMutate: async ({ id, data }) => {
       await queryClient.cancelQueries({ queryKey: timelineKeys.detail(id) });
       const previous = queryClient.getQueryData(timelineKeys.detail(id));
+      // Optimistically merge the update into the cached detail entry.
+      if (previous !== undefined) {
+        queryClient.setQueryData(timelineKeys.detail(id), (old: unknown) => ({
+          ...(old as object),
+          ...data,
+        }));
+      }
       return { previous, id };
     },
     onError: (_err, { id }, context) => {
@@ -150,9 +157,9 @@ export function useUpdateTimeline(client: ServiceClient) {
         queryClient.setQueryData(timelineKeys.detail(id), context.previous);
       }
     },
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix to keep bySlug and collaborator queries consistent.
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }
@@ -164,7 +171,8 @@ export function useDeleteTimeline(client: ServiceClient) {
     mutationFn: (id: string) => deleteTimeline(client, id),
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: timelineKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.lists() });
+      // Invalidate by prefix to keep lists, bySlug, and collaborator queries consistent.
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }
@@ -174,9 +182,9 @@ export function usePublishTimeline(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => publishTimeline(client, id),
-    onSuccess: (_data, id) => {
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix to keep lists, bySlug, and collaborator queries consistent.
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }
@@ -186,9 +194,9 @@ export function useUnpublishTimeline(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => unpublishTimeline(client, id),
-    onSuccess: (_data, id) => {
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: timelineKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix to keep lists, bySlug, and collaborator queries consistent.
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }

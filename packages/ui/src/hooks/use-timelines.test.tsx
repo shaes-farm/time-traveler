@@ -207,10 +207,7 @@ describe("usePublishTimeline", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
-    );
-    expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: timelineKeys.lists() }),
+      expect.objectContaining({ queryKey: timelineKeys.all }),
     );
   });
 });
@@ -231,7 +228,7 @@ describe("useUnpublishTimeline", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
+      expect.objectContaining({ queryKey: timelineKeys.all }),
     );
   });
 });
