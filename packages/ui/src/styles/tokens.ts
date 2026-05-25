@@ -1,0 +1,58 @@
+/**
+ * Design tokens — TypeScript source-of-truth for the Time Traveler admin
+ * design system (per docs/design/admin/fidelity-2-plan.md).
+ *
+ * The companion `tokens.css` holds the same values inside a Tailwind 4
+ * `@theme` block. Keep the two files in sync manually; a generator script
+ * may replace the dual maintenance in a later batch once the token count
+ * justifies it.
+ *
+ * Conventions:
+ * - Dark-mode default per docs/design/admin/03-aesthetic-notes.md.
+ * - Colors expressed in OKLCH (the color space Tailwind 4 uses internally).
+ *   Reference values mirror Tailwind 4's zinc palette.
+ * - Accent slots (era hues, status badges, importance gradient) are
+ *   intentionally absent and crystallize in Batch B / C / D when the
+ *   primitives that need them are designed.
+ */
+
+export const colors = {
+  // Surface / chrome
+  background: "oklch(0.141 0.005 285.823)", // zinc-950 — main canvas
+  surface: "oklch(0.21 0.006 285.885)", // zinc-900 — cards, popovers
+  surface2: "oklch(0.274 0.006 286.033)", // zinc-800 — raised surfaces
+
+  // Text
+  foreground: "oklch(0.985 0 0)", // zinc-50 — primary text
+  foregroundMuted: "oklch(0.705 0.015 286.067)", // zinc-400 — secondary text
+  foregroundSubtle: "oklch(0.552 0.016 285.938)", // zinc-500 — placeholder / dim
+
+  // Lines + structure
+  border: "oklch(0.274 0.006 286.033)", // zinc-800
+  borderMuted: "oklch(0.21 0.006 285.885)", // zinc-900 — fainter dividers
+
+  // Primary accent — placeholder; finalized when Batch B (temporal primitive)
+  // crystallizes the accent role.
+  primary: "oklch(0.985 0 0)", // zinc-50 (high contrast)
+  primaryForeground: "oklch(0.141 0.005 285.823)", // zinc-950
+} as const;
+
+export const fonts = {
+  // Bound to Google Fonts via `next/font` in apps/admin/app/layout.tsx, which
+  // sets the underlying `--font-instrument-serif` / `--font-inter-tight` /
+  // `--font-jetbrains-mono` CSS variables on <html>. Swapping fonts later
+  // means updating both the next/font import and these variable names.
+  display: "var(--font-instrument-serif), serif",
+  body: "var(--font-inter-tight), sans-serif",
+  mono: "var(--font-jetbrains-mono), ui-monospace, monospace",
+} as const;
+
+export const radii = {
+  sm: "0.25rem",
+  md: "0.5rem",
+  lg: "0.75rem",
+} as const;
+
+export type ColorToken = keyof typeof colors;
+export type FontToken = keyof typeof fonts;
+export type RadiusToken = keyof typeof radii;

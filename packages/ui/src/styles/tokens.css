@@ -1,0 +1,59 @@
+/**
+ * Design tokens — Tailwind 4 @theme block for the Time Traveler admin
+ * design system (per docs/design/admin/fidelity-2-plan.md).
+ *
+ * Source-of-truth lives in `tokens.ts`. Keep these two files in sync
+ * manually; a generator script may replace the dual maintenance later.
+ *
+ * Dark-mode default. Accent slots (era hues, status badges, importance
+ * gradient) are intentionally absent until Batch B / C / D fill them.
+ */
+
+@theme {
+  /* ------------------------------------------------------------------ */
+  /* Color tokens — semantic names mapping to Tailwind 4 zinc palette   */
+  /* ------------------------------------------------------------------ */
+
+  /* Surface / chrome */
+  --color-background: oklch(0.141 0.005 285.823); /* zinc-950 */
+  --color-surface: oklch(0.21 0.006 285.885); /* zinc-900 */
+  --color-surface-2: oklch(0.274 0.006 286.033); /* zinc-800 */
+
+  /* Text */
+  --color-foreground: oklch(0.985 0 0); /* zinc-50 */
+  --color-foreground-muted: oklch(0.705 0.015 286.067); /* zinc-400 */
+  --color-foreground-subtle: oklch(0.552 0.016 285.938); /* zinc-500 */
+
+  /* Lines + structure */
+  --color-border: oklch(0.274 0.006 286.033); /* zinc-800 */
+  --color-border-muted: oklch(0.21 0.006 285.885); /* zinc-900 */
+
+  /* Primary accent — placeholder; finalized in Batch B */
+  --color-primary: oklch(0.985 0 0); /* zinc-50 (high contrast) */
+  --color-primary-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
+
+  /* ------------------------------------------------------------------ */
+  /* Typography                                                         */
+  /* Bound to Google Fonts via next/font (apps/admin/app/layout.tsx).   */
+  /* ------------------------------------------------------------------ */
+
+  --font-display: var(--font-instrument-serif), serif;
+  --font-body: var(--font-inter-tight), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* ------------------------------------------------------------------ */
+  /* Radii                                                              */
+  /* ------------------------------------------------------------------ */
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+
+  /* ------------------------------------------------------------------ */
+  /* Accent placeholders — filled in later batches                      */
+  /* ------------------------------------------------------------------ */
+
+  /* Era treatment (CE / BCE / KYA / MYA / BYA) — Batch B          */
+  /* Status badges (Published / Draft / Shared)   — Batch C          */
+  /* Importance gradient (1–10 single-hue scale)  — Batch D          */
+}
