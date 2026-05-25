@@ -4,6 +4,7 @@ import {
   characterRelationshipSchema,
   characterRelationshipBaseSchema,
   relationshipTypeEnum,
+  validateTypeRoleCombination,
 } from "../schemas/character-relationship.js";
 import type { Database } from "../supabase/types.js";
 
@@ -381,6 +382,28 @@ export async function updateRelationship(
     .single();
   assertNoError(fetchError, "updateRelationship.fetchCurrent");
 
+  // Cross-validate the resulting (type, role) combination before hitting the
+  // DB. The Zod mutable schema (used above) cannot run the cross-field
+  // refinement because Zod v4 doesn't support .pick() on refined schemas; so
+  // an invalid combination like (professional, parent) would otherwise pass
+  // Zod and surface as an opaque 23514 from the DB CHECK. Compute the
+  // effective values (new fields if provided, current values otherwise),
+  // skipping `undefined` so it means "not provided" rather than "clear".
+  if (current !== null) {
+    const effectiveType = (validated.relationship_type ??
+      current.relationship_type) as z.infer<typeof relationshipTypeEnum>;
+    const effectiveRole =
+      validated.relationship_role !== undefined
+        ? validated.relationship_role
+        : current.relationship_role;
+    const roleError = validateTypeRoleCombination(effectiveType, effectiveRole);
+    if (roleError !== null) {
+      throw new Error(
+        `CharacterRelationshipService.updateRelationship: ${roleError}`,
+      );
+    }
+  }
+
   // Update primary.
   const { data: updated, error } = await client
     .from("character_relationships")
@@ -420,26 +443,32 @@ async function syncReciprocalUpdate(
     metadata: unknown;
   }>,
 ): Promise<void> {
+  // For each potentially-synced field, distinguish "not provided" (undefined)
+  // from "explicitly cleared" (null). PostgREST drops undefined keys when
+  // serializing the update, so the primary's column is unchanged in that
+  // case; the reciprocal sync must match by also skipping the field. Only
+  // explicit values (null included) are synced.
   const syncFields: Record<string, unknown> = {};
-  if ("relationship_type" in partial) {
+  if (partial.relationship_type !== undefined) {
     syncFields.relationship_type = partial.relationship_type;
   }
-  if ("relationship_role" in partial) {
-    const newRole = partial.relationship_role ?? null;
+  if (partial.relationship_role !== undefined) {
+    const newRole = partial.relationship_role;
     syncFields.relationship_role =
       newRole !== null ? (ROLE_INVERSE[newRole] ?? null) : null;
   }
-  if ("start_temporal" in partial) {
+  if (partial.start_temporal !== undefined) {
     syncFields.start_temporal = partial.start_temporal;
   }
-  if ("end_temporal" in partial) {
+  if (partial.end_temporal !== undefined) {
     syncFields.end_temporal = partial.end_temporal;
   }
-  if ("metadata" in partial) {
+  if (partial.metadata !== undefined) {
     syncFields.metadata = partial.metadata;
   }
   if (Object.keys(syncFields).length === 0) {
-    return; // Nothing to sync — the partial update only touched description.
+    return; // Nothing to sync — the partial update only touched description
+    // (or only contained explicit undefineds, which are no-ops).
   }
 
   const oldReciprocalRole =

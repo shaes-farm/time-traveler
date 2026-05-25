@@ -1019,6 +1019,111 @@ describe("updateRelationship reciprocal sync", () => {
 
     expect(builder.update).toHaveBeenCalledTimes(1);
   });
+
+  it("rejects updates that would produce an invalid (type, role) combination", async () => {
+    // Current row is (family, parent). User tries to switch the type to
+    // professional without updating the role. The base schema's .partial()
+    // doesn't run the cross-field superRefine, so without explicit
+    // cross-validation this would slip past Zod and surface as an opaque
+    // 23514 from the DB. Verify the descriptive error fires before any
+    // primary update is attempted.
+    const familyParentRow = {
+      ...sampleRelationship,
+      relationship_type: "family",
+      relationship_role: "parent",
+    };
+    const builder = {
+      ...makeBuilder({ data: familyParentRow, error: null }),
+    };
+    const client = {
+      from: vi.fn().mockReturnValue(builder),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await expect(
+      updateRelationship(client, "rel-1", {
+        relationship_type: "professional",
+      }),
+    ).rejects.toThrow(/not a valid professional sub-role/);
+
+    // No primary update should have been attempted.
+    expect(builder.update).not.toHaveBeenCalled();
+  });
+
+  it("accepts clearing role on a sub-roled type", async () => {
+    // (family, parent) → (family, null) is valid; legacy NULL-role compat.
+    const familyParentRow = {
+      ...sampleRelationship,
+      relationship_type: "family",
+      relationship_role: "parent",
+    };
+    const builder = {
+      ...makeBuilder({ data: familyParentRow, error: null }),
+    };
+    const client = {
+      from: vi.fn().mockReturnValue(builder),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await expect(
+      updateRelationship(client, "rel-1", {
+        relationship_role: null,
+      }),
+    ).resolves.toBeDefined();
+  });
+
+  it("treats explicit relationship_role:undefined as no-op, not as clear-to-null", async () => {
+    // If the caller spreads a partial object that ends up with an explicit
+    // `undefined`, PostgREST drops it on the primary update (column
+    // unchanged). The reciprocal sync must match — it must NOT clear the
+    // reciprocal's role. This guards against a primary/reciprocal mismatch.
+    const familyParentRow = {
+      ...sampleRelationship,
+      relationship_type: "family",
+      relationship_role: "parent",
+    };
+    const builder = {
+      ...makeBuilder({ data: familyParentRow, error: null }),
+    };
+    const client = {
+      from: vi.fn().mockReturnValue(builder),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await updateRelationship(client, "rel-1", {
+      relationship_role: undefined,
+      start_temporal: { era: "CE", year: 1900, precision: "exact" },
+    });
+
+    expect(builder.update).toHaveBeenCalledTimes(2);
+    const reciprocalSyncFields = builder.update.mock.calls[1]?.[0] as Record<
+      string,
+      unknown
+    >;
+    // Only the explicitly-set field is synced; relationship_role is absent.
+    expect(reciprocalSyncFields).toEqual({
+      start_temporal: { era: "CE", year: 1900, precision: "exact" },
+    });
+    expect(reciprocalSyncFields).not.toHaveProperty("relationship_role");
+  });
 });
 
 // ---------------------------------------------------------------------------

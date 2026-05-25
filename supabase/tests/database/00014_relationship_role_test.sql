@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(16);
 
 -- ============================================================================
 -- Column presence + type
@@ -176,7 +176,7 @@ select throws_ok(
 select lives_ok(
   $$
     -- A NULL-role row coexists with a specific-role row for the same pair+type
-    -- (PostgreSQL's NULL-as-distinct semantics).
+    -- because NULL ≠ "parent" under both NULLS DISTINCT and NULLS NOT DISTINCT.
     insert into public.character_relationships
       (user_id, character_id, related_character_id, relationship_type, relationship_role)
       values ('00000000-0000-0000-0000-000000000000',
@@ -185,6 +185,23 @@ select lives_ok(
               'family', null);
   $$,
   'NULL role coexists with specific role for same pair+type (legacy compat)'
+);
+
+select throws_ok(
+  $$
+    -- A second NULL-role row for the same pair+type is blocked under
+    -- NULLS NOT DISTINCT, preserving the original "one of each (pair, type)"
+    -- guarantee for legacy data.
+    insert into public.character_relationships
+      (user_id, character_id, related_character_id, relationship_type, relationship_role)
+      values ('00000000-0000-0000-0000-000000000000',
+              (select id from public.characters where slug = 'char-a-119'),
+              (select id from public.characters where slug = 'char-b-119'),
+              'family', null);
+  $$,
+  23505,
+  null,
+  'duplicate NULL-role row blocked by NULLS NOT DISTINCT'
 );
 
 -- ============================================================================
