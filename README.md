@@ -2,7 +2,7 @@
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/ci.yml?branch=main)](https://github.com/shaes-farm/time-traveler/actions)
 [![CodeQL](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/codeql.yml?branch=main&label=CodeQL)](https://github.com/shaes-farm/time-traveler/actions/workflows/codeql.yml)
-[![Coverage Status](https://coveralls.io/repos/github/shaes-farm/time-traveler/badge.svg?branch=feature/add-coverage-reporting)](https://coveralls.io/github/shaes-farm/time-traveler?branch=feature/add-coverage-reporting)
+[![Coverage Status](https://coveralls.io/repos/github/shaes-farm/time-traveler/badge.svg?branch=feature/add-coverage-reporting)](https://coveralls.io/github/shaes-farm/time-traveler)
 [![Snyk](https://snyk.io/test/github/shaes-farm/time-traveler/badge.svg)](https://snyk.io/test/github/shaes-farm/time-traveler)
 [![License](https://img.shields.io/github/license/shaes-farm/time-traveler.svg)](LICENSE)
 
