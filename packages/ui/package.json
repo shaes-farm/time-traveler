@@ -5,7 +5,9 @@
   "exports": {
     "./*": "./src/*.tsx",
     "./hooks": "./src/hooks/index.tsx",
-    "./hooks/*": "./src/hooks/*.tsx"
+    "./hooks/*": "./src/hooks/*.tsx",
+    "./stores": "./src/stores/index.ts",
+    "./stores/*": "./src/stores/*.ts"
   },
   "scripts": {
     "lint": "eslint . --max-warnings 0",
@@ -34,7 +36,8 @@
     "@repo/services": "workspace:*",
     "@tanstack/react-query": "^5.80.5",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "zustand": "^5.0.5"
   },
   "peerDependencies": {
     "@supabase/supabase-js": ">=2"
