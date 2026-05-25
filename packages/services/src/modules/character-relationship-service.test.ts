@@ -25,6 +25,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
     or: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
@@ -1124,6 +1125,112 @@ describe("updateRelationship reciprocal sync", () => {
     });
     expect(reciprocalSyncFields).not.toHaveProperty("relationship_role");
   });
+
+  it("transitions sym → asym: deletes the orphan reciprocal (case 2)", async () => {
+    // Current: family/spouse (reciprocal-producing). User changes type to
+    // mentor_student and clears role. The existing reciprocal at (b, a,
+    // family, spouse) is now an orphan and must be deleted.
+    const familySpouseRow = {
+      ...sampleRelationship,
+      relationship_type: "family",
+      relationship_role: "spouse",
+    };
+    const builder = {
+      ...makeBuilder({ data: familySpouseRow, error: null }),
+    };
+    const client = {
+      from: vi.fn().mockReturnValue(builder),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await updateRelationship(client, "rel-1", {
+      relationship_type: "mentor_student",
+      relationship_role: null,
+    });
+
+    // Primary update fires once; orphan reciprocal cleanup fires once.
+    // No additional sync update is issued.
+    expect(builder.update).toHaveBeenCalledTimes(1);
+    expect(builder.delete).toHaveBeenCalledTimes(1);
+  });
+
+  it("transitions asym → sym: creates a new reciprocal (case 3)", async () => {
+    // Current: mentor_student (asymmetric, no reciprocal). User changes
+    // type to friendship. A new reciprocal at (b, a, friendship, null)
+    // must be created to avoid leaving the relationship half-bidirectional.
+    const mentorRow = {
+      ...sampleRelationship,
+      relationship_type: "mentor_student",
+      relationship_role: null,
+    };
+    const builder = {
+      ...makeBuilder({ data: mentorRow, error: null }),
+    };
+    const client = {
+      from: vi.fn().mockReturnValue(builder),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await updateRelationship(client, "rel-1", {
+      relationship_type: "friendship",
+    });
+
+    expect(builder.update).toHaveBeenCalledTimes(1);
+    expect(builder.insert).toHaveBeenCalledTimes(1);
+    const newReciprocal = builder.insert.mock.calls[0]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(newReciprocal).toMatchObject({
+      character_id: UUID_B,
+      related_character_id: UUID_A,
+      relationship_type: "friendship",
+      relationship_role: null,
+    });
+  });
+
+  it("transitions asym → asym: no reciprocal action (case 4)", async () => {
+    // mentor_student → owner_pet. Both asymmetric; no reciprocal in
+    // either state. Only the primary update fires.
+    const mentorRow = {
+      ...sampleRelationship,
+      relationship_type: "mentor_student",
+      relationship_role: null,
+    };
+    const builder = {
+      ...makeBuilder({ data: mentorRow, error: null }),
+    };
+    const client = {
+      from: vi.fn().mockReturnValue(builder),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await updateRelationship(client, "rel-1", {
+      relationship_type: "owner_pet",
+    });
+
+    expect(builder.update).toHaveBeenCalledTimes(1);
+    expect(builder.insert).not.toHaveBeenCalled();
+    expect(builder.delete).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1182,7 +1289,14 @@ describe("deleteRelationship reciprocal delete", () => {
     expect(builder.delete).toHaveBeenCalledTimes(1);
   });
 
-  it("skips reciprocal delete for asymmetric types", async () => {
+  it("attempts reciprocal delete unconditionally — self-healing for orphans, even on asymmetric types", async () => {
+    // Previously deleteRelationship short-circuited on asymmetric types.
+    // After the Copilot review feedback on update-path type transitions,
+    // that early return was removed: the reciprocal lookup is always
+    // attempted. For asymmetric types without orphans, the lookup runs
+    // and matches zero rows (no-op); for any orphan reciprocal left by a
+    // prior write, the lookup cleans it up. Either way the system stays
+    // consistent.
     const mentorRow = {
       ...sampleRelationship,
       relationship_type: "mentor_student",
@@ -1204,7 +1318,8 @@ describe("deleteRelationship reciprocal delete", () => {
 
     await deleteRelationship(client, "rel-1");
 
-    expect(builder.delete).toHaveBeenCalledTimes(1);
+    // Primary delete + reciprocal lookup-and-delete = 2 calls.
+    expect(builder.delete).toHaveBeenCalledTimes(2);
   });
 
   it("uses inverted role to find the reciprocal (parent → child)", async () => {

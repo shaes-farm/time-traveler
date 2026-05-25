@@ -413,14 +413,138 @@ export async function updateRelationship(
     .single();
   assertNoError(error, "updateRelationship");
 
-  // Sync the reciprocal row per Batch 2 Q1: dates and type/role mirror,
-  // description does NOT. Asymmetric types have no reciprocal. If the fetch
-  // returned no row (legacy or test mocks), skip sync gracefully.
-  if (current !== null && !ASYMMETRIC_TYPES.has(current.relationship_type)) {
-    await syncReciprocalUpdate(client, current, validated);
+  // Handle the reciprocal based on the type-transition between current and
+  // effective values (Batch 2 Q1 + Copilot review feedback on type
+  // transitions). Four cases:
+  //
+  //   1. wasReciprocal && willBeReciprocal  → sync existing reciprocal
+  //   2. wasReciprocal && !willBeReciprocal → delete the orphan reciprocal
+  //                                           (transition to asymmetric)
+  //   3. !wasReciprocal && willBeReciprocal → create a new reciprocal
+  //                                           (transition from asymmetric)
+  //   4. !wasReciprocal && !willBeReciprocal → no reciprocal in either state
+  //
+  // Skip entirely if the fetch returned no row (legacy / test mocks).
+  if (current !== null) {
+    const effectiveType = (validated.relationship_type ??
+      current.relationship_type) as z.infer<typeof relationshipTypeEnum>;
+    const effectiveRole =
+      validated.relationship_role !== undefined
+        ? validated.relationship_role
+        : current.relationship_role;
+    const wasReciprocal = !ASYMMETRIC_TYPES.has(current.relationship_type);
+    const willBeReciprocal = !ASYMMETRIC_TYPES.has(effectiveType);
+
+    if (wasReciprocal && willBeReciprocal) {
+      await syncReciprocalUpdate(client, current, validated);
+    } else if (wasReciprocal && !willBeReciprocal) {
+      // Transition to asymmetric — the old reciprocal row is now an orphan.
+      await deleteReciprocalRow(client, current);
+    } else if (!wasReciprocal && willBeReciprocal) {
+      // Transition from asymmetric — primary became a reciprocal-producing
+      // type, but no reciprocal existed before. Create one now using the
+      // effective values so the relationship isn't left half-bidirectional.
+      await createReciprocalForUpdatedPrimary(
+        client,
+        current,
+        effectiveType,
+        effectiveRole,
+        validated,
+      );
+    }
+    // 4th case (!wasReciprocal && !willBeReciprocal): nothing to do.
   }
 
   return updated;
+}
+
+/**
+ * Delete the reciprocal row that pairs with `current`. The lookup uses
+ * `current.relationship_type` and the inverted `current.relationship_role`.
+ * Missing reciprocal is silently ignored — legacy single-row data and orphan
+ * states stay safe.
+ */
+async function deleteReciprocalRow(
+  client: SupabaseClient<Database>,
+  current: CharacterRelationshipRow,
+): Promise<void> {
+  const reciprocalRole =
+    current.relationship_role !== null
+      ? (ROLE_INVERSE[current.relationship_role] ?? null)
+      : null;
+
+  let query = client
+    .from("character_relationships")
+    .delete()
+    .eq("character_id", current.related_character_id)
+    .eq("related_character_id", current.character_id)
+    .eq("relationship_type", current.relationship_type);
+
+  query =
+    reciprocalRole === null
+      ? query.is("relationship_role", null)
+      : query.eq("relationship_role", reciprocalRole);
+
+  const { error } = await query;
+  if (error !== null) {
+    throw new Error(
+      `CharacterRelationshipService.deleteReciprocalRow: ${error.message}`,
+    );
+  }
+}
+
+/**
+ * Create a fresh reciprocal row for a primary that just transitioned from an
+ * asymmetric type into a reciprocal-producing type. Builds the reciprocal
+ * insert payload from the effective values (new type/role; new dates/metadata
+ * when provided in the update, else current row's values).
+ *
+ * 23505 from the insert is swallowed (an orphan reciprocal from a prior write
+ * already occupies the slot); any other error is surfaced with a clear
+ * partial-failure message per system-design §5.3.
+ */
+async function createReciprocalForUpdatedPrimary(
+  client: SupabaseClient<Database>,
+  current: CharacterRelationshipRow,
+  effectiveType: z.infer<typeof relationshipTypeEnum>,
+  effectiveRole: string | null | undefined,
+  partial: Partial<{
+    start_temporal: unknown;
+    end_temporal: unknown;
+    metadata: unknown;
+  }>,
+): Promise<void> {
+  const reciprocal = computeReciprocalRow({
+    user_id: current.user_id,
+    character_id: current.character_id,
+    related_character_id: current.related_character_id,
+    relationship_type: effectiveType,
+    relationship_role: effectiveRole ?? null,
+    start_temporal:
+      partial.start_temporal !== undefined
+        ? partial.start_temporal
+        : current.start_temporal,
+    end_temporal:
+      partial.end_temporal !== undefined
+        ? partial.end_temporal
+        : current.end_temporal,
+    metadata:
+      partial.metadata !== undefined ? partial.metadata : current.metadata,
+  });
+  if (reciprocal === null) {
+    // Defensive: caller only invokes this when willBeReciprocal is true.
+    return;
+  }
+  const { error } = await client
+    .from("character_relationships")
+    .insert(reciprocal)
+    .select()
+    .single();
+  if (error !== null && error.code !== "23505") {
+    throw new Error(
+      `CharacterRelationshipService.updateRelationship: primary updated (id=${current.id}); reciprocal create failed: ${error.message}`,
+    );
+  }
 }
 
 /**
@@ -530,31 +654,24 @@ export async function deleteRelationship(
 
   // Reciprocal delete is enabled by default (Batch 2 design). The opt-out
   // covers the rare "one-sided orphan" case from the wireframe.
+  //
+  // Note: we no longer short-circuit on `ASYMMETRIC_TYPES.has(current.relationship_type)`.
+  // Aligning delete behavior with actual presence (rather than expected
+  // presence by type) makes the system self-healing against orphan
+  // reciprocals from any prior buggy write — and the lookup is a no-op
+  // (zero rows affected) when no reciprocal exists, which is the common
+  // case for asymmetric types.
   if (!deleteReciprocal) return;
   if (current === null) return;
-  if (ASYMMETRIC_TYPES.has(current.relationship_type)) return;
-
-  const reciprocalRole =
-    current.relationship_role !== null
-      ? (ROLE_INVERSE[current.relationship_role] ?? null)
-      : null;
-
-  let query = client
-    .from("character_relationships")
-    .delete()
-    .eq("character_id", current.related_character_id)
-    .eq("related_character_id", current.character_id)
-    .eq("relationship_type", current.relationship_type);
-
-  query =
-    reciprocalRole === null
-      ? query.is("relationship_role", null)
-      : query.eq("relationship_role", reciprocalRole);
-
-  const { error: recipError } = await query;
-  if (recipError !== null) {
+  try {
+    await deleteReciprocalRow(client, current);
+  } catch (e) {
+    // Re-throw with the deleteRelationship context so callers see where
+    // they were in the flow.
+    const msg = e instanceof Error ? e.message : String(e);
     throw new Error(
-      `CharacterRelationshipService.deleteRelationship: primary deleted, reciprocal delete failed: ${recipError.message}`,
+      `CharacterRelationshipService.deleteRelationship: primary deleted, ${msg}`,
+      { cause: e },
     );
   }
 }
