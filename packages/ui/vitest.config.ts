@@ -12,7 +12,17 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       // Scope to files that have tests. Expand this list as test coverage grows.
-      include: ["src/button.tsx"],
+      include: [
+        "src/button.tsx",
+        "src/hooks/use-categories.tsx",
+        "src/hooks/use-character-relationships.tsx",
+        "src/hooks/use-characters.tsx",
+        "src/hooks/use-events.tsx",
+        "src/hooks/use-media.tsx",
+        "src/hooks/use-periods.tsx",
+        "src/hooks/use-stories.tsx",
+        "src/hooks/use-timelines.tsx",
+      ],
       exclude: ["src/**/*.test.{ts,tsx}"],
       thresholds: {
         lines: 80,
