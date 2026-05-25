@@ -105,7 +105,7 @@ Editor-level decisions resolved during the second design-review batch. These mos
 
 ## Reading order
 
-Read in numeric order: inventory → user flows → individual wireframes → aesthetic notes. The relationships editor wireframe ([06](02-wireframes/06-relationships-editor.md)) is the most opinionated and benefits from reading the user flows first.
+Read in numeric order: inventory → user flows → individual wireframes → aesthetic notes → fidelity-2 plan. The relationships editor wireframe ([06](02-wireframes/06-relationships-editor.md)) is the most opinionated and benefits from reading the user flows first.
 
 ## Design review complete
 
@@ -116,3 +116,7 @@ All 29 in-scope open questions across Batches 1–5 are resolved or formally def
 - [#127](https://github.com/shaes-farm/time-traveler/issues/127) — PRD §7.11 vs wireframes reconciliation. **Resolved**: auto-save and the "Shared" status badge adopted into the wireframes (see [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #11 and [02-wireframes/03-characters-list.md](02-wireframes/03-characters-list.md) annotation #7); sidebar collapse-to-64px specified (see [02-wireframes/00-app-shell.md](02-wireframes/00-app-shell.md) annotation #8); card view dropped and responsive design deferred via PRD §7.11.1 / §7.11.2 updates.
 
 The wireframes serve as the IA + interaction spec for fidelity-2 (in-tree React in `apps/admin`). Tier-4 deferrals listed in each wireframe's Open Questions section get revisited at that next step.
+
+## Next: fidelity-2
+
+The fidelity-2 implementation plan — design tokens, shadcn-based primitives, Storybook workbench, batched delivery — is documented in [`fidelity-2-plan.md`](fidelity-2-plan.md).
