@@ -114,6 +114,7 @@ Birth/death temporal for divine and mythological characters is often blank or "e
 8. **Advanced section** (collapsed by default) exposes `profile_data` and `metadata` as JSON editors. Power users only — most users will never expand this.
 9. **Save button is split.** Primary action: "Save". Dropdown: "Save and add another" (create flow only), "Save as draft" if currently publishing, "Save and publish" if currently draft. **"Save and add another" persists a curated set** (Batch 5 decision Q3): `character_type`, `significance`, `cultural_context` carry forward to the next blank form. Cleared: name, slug, biography, aliases, physical_description, dates, profile media. An inline note appears after save: "Cleared: name, biography, aliases, dates, media. Persisted: type, significance, cultural context."
 10. **Dirty state warning.** Cancel with unsaved changes prompts: "Discard unsaved changes?"
+11. **Auto-save to draft state every 30 seconds** (per PRD §7.11.3; #127 reconciliation). The top-right of the editor toolbar shows `Draft saved at H:MM PM` after each successful auto-save. Auto-save fires only when the form is dirty; clean forms are not re-saved. The Save button is still required to transition Draft → Published — auto-save never publishes. Concurrent edits from another tab trigger a refresh prompt rather than silently overwriting.
 
 ## Edge cases
 

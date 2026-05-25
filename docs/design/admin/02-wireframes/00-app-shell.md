@@ -40,7 +40,7 @@
 │              │                                                               │
 └──────────────┴───────────────────────────────────────────────────────────────┘
    ↑ left rail                                ↑ content viewport
-   220–256px fixed                            fluid; max content width 1280px
+   240px (collapsible to 64px)                fluid; max content width 1280px
 ```
 
 ## Annotations
@@ -52,6 +52,7 @@
 5. **Breadcrumb is route-derived**, not hand-authored. Each segment links to its parent.
 6. **User menu** shows display name. Sign-out, profile edit, theme toggle (dark default), and an "admin tools" link if `profiles.role = 'admin'`.
 7. **No nav badges on counts in the sidebar.** Per `system-design §8.2` the metrics RPC exists but pushing counts into the chrome adds noise. The dashboard count cards are the canonical surface for entity counts; the rail stays clean. If "you have N unpublished drafts" becomes a real signal later, surface it as a dashboard highlight or topbar indicator — not as per-nav-item clutter. (Decided in Batch 1 review.)
+8. **Sidebar collapse to 64px icon rail** (per PRD §7.11.1; #127 reconciliation). The expanded 240px rail can collapse to a 64px icon-only state via a header-mounted toggle. Collapse state is persisted per-user (localStorage). Group headers ("Content", "Library") hide in collapsed state; tooltips on hover replace the labels. Active-route indicator (`▸`) remains visible at 64px.
 
 ## Edge cases
 

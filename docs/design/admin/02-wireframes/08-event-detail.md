@@ -124,7 +124,7 @@ Media in `event_media` has `sort_order` for explicit ordering. Drag to reorder.
 - **Event at root of fractal tree (no parent).** Lineage section omits the Parent subsection; sibling list shows "other root events" or omits entirely depending on UX testing.
 - **Event with many children.** Show first 5; "see all 23 child events" link opens the events list pre-filtered.
 - **Event with no timeline.** Timeline section shows "Not in any timeline" with a link to add.
-- **Permissions: collaborator viewing.** Edit appears only if the user is a collaborator-editor on the parent timeline (per system-design §9.2.1 RLS). Delete is hidden for collaborators (only owner + admin can delete).
+- **Permissions: collaborator viewing a shared event** (per PRD §7.11.5; #127 reconciliation). Header status badge shows `⇄ Shared`. Edit appears only if the user is a collaborator-editor on the parent timeline (per system-design §9.2.1 RLS). Delete is hidden for collaborators (only owner + admin can delete).
 - **Computed start/end date out of CE range.** The `computed_start_date` column is NULL for non-CE events. UI uses `temporal_data` directly for display in those cases.
 
 ## Open questions
