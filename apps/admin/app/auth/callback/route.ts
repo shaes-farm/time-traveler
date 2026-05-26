@@ -14,11 +14,14 @@ export const GET = async (request: NextRequest): Promise<NextResponse> => {
   const code = url.searchParams.get("code");
   const rawNext = url.searchParams.get("next") ?? "/dashboard";
 
-  // Guard against open-redirect: only allow same-origin relative paths.
-  // Must start with "/" but not "//" (protocol-relative URL) and must
-  // contain no scheme characters. Fall back to /dashboard if invalid.
+  // Guard against open-redirect: require a same-origin relative path.
+  // A value that starts with exactly one "/" cannot carry a scheme and
+  // will always resolve relative to url.origin via `new URL(next, base)`.
+  // "//…" (protocol-relative) is the only single-slash form that escapes
+  // origin, so we reject it explicitly. No regex needed — and avoiding
+  // one removes the ReDoS surface flagged by CodeQL.
   const isSafeRelativePath = (s: string) =>
-    s.startsWith("/") && !s.startsWith("//") && !/[a-z][a-z0-9+\-.]*:/i.test(s);
+    s.startsWith("/") && !s.startsWith("//");
   const next = isSafeRelativePath(rawNext) ? rawNext : "/dashboard";
 
   if (!code) {
