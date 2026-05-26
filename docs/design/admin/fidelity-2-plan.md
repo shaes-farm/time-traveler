@@ -1,6 +1,6 @@
 # Fidelity-2 Implementation Plan
 
-Status: draft 1 — ready for execution
+Status: draft 2 — reordered to close foundational issues before the temporal primitive
 Scope: the visual design system + screen mockups + production primitives that consume the fidelity-1 wireframes ([`02-wireframes/`](02-wireframes/))
 
 ## Context
@@ -20,91 +20,196 @@ Fidelity-2 turns those constraints into:
 
 1. A typed design token system
 2. shadcn-based primitives with a heavily customized theme
-3. Composite Storybook mockups for every wireframed screen
-4. Production-ready route stubs in `apps/admin` that consume the design system
+3. A working app shell + auth flows so the admin app stops being Turborepo boilerplate
+4. Composite Storybook mockups for every wireframed screen
+5. Production-ready route stubs in `apps/admin` that consume the design system
 
 The fidelity-1 design review filed three follow-up issues; all are resolved or open with concrete proposals. The wireframes are stable; this plan implements them.
+
+## Issue tracking
+
+The original fidelity-2 outline didn't reference the foundational GitHub issues that gate the admin app's bootstrap. This revision aligns each batch with the open issues it closes, so the work shows up against the project plan and doesn't grow a parallel paper trail.
+
+| Batch                                  | Closes / advances                                                                                                                                                              | Status                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| **[A](#batch-a--foundations)**         | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                         | A.1, A.2 done; A.3 next |
+| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                       | not started             |
+| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth setup), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (route-protection middleware) | not started             |
+| **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                                     | not started             |
+| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                                    | not started             |
+| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                             | not started             |
+| **[G](#batch-g--editor-primitives)**   | originally Batch E                                                                                                                                                             | not started             |
+| **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                             | not started             |
+
+Why app shell + auth before the temporal primitive: the TemporalDisplay primitive is the highest-leverage component visually, but every later batch (lists, editors, relationships) renders inside the protected shell. Building the chrome first means later composite stories can mount their primitives in a real shell context instead of a Storybook-only frame, and the auth + middleware work unblocks any future "go look at the running admin app" verification step. The TemporalDisplay still lands before list/editor work, which is where it actually gets consumed.
 
 ## Locked-in stack
 
 Decisions captured before execution begins:
 
-| Decision            | Pick                                                                                                            | Rationale                                                                                                                                      |
-| ------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| CSS framework       | **Tailwind 4** in `packages/ui` and `apps/admin`                                                                | shadcn implies Tailwind; CSS-first config (no `tailwind.config.js`); existing CSS Modules code stays where it makes sense (route-level layout) |
-| Component workbench | **Storybook 10 + Vite preset** in `packages/ui`                                                                 | Vite is lighter than the Next.js preset; pairs with existing Vitest tooling. Primitives stay framework-agnostic                                |
-| Token system        | **TypeScript source-of-truth** emitting CSS variables + Tailwind theme via build script                         | Single source; tokens are typed and importable from React when needed                                                                          |
-| Icons               | **lucide-react**                                                                                                | shadcn's default; free, neutral, comprehensive                                                                                                 |
-| Color base          | **Tailwind zinc neutrals**; accent colors (era hues, status badges, importance gradient) crystallize in Batch B | Avoids picking palette in the abstract; lets the temporal primitive drive accent decisions                                                     |
-| Display typeface    | **Instrument Serif** (Google Fonts)                                                                             | Substitute for licensed picks (GT Sectra / Tiempos) listed in aesthetic notes. Editorial character without licensing cost. Final pick deferred |
-| Body typeface       | **Inter Tight** (Google Fonts)                                                                                  | Acknowledged "slop-tier" but acceptable per aesthetic notes when licensed alternatives are out of budget. Tabular numerals verified            |
-| Mono typeface       | **JetBrains Mono** (Google Fonts)                                                                               | Per aesthetic notes; for IDs, slugs, JSONB previews                                                                                            |
-| Bespoke primitives  | **Tree only** per [aesthetic notes](03-aesthetic-notes.md) — every other primitive comes from shadcn            | DataTable uses tanstack-table + shadcn `Table` markup                                                                                          |
+| Decision            | Pick                                                                                                       | Rationale                                                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| CSS framework       | **Tailwind 4** in `packages/ui` and `apps/admin`                                                           | shadcn implies Tailwind; CSS-first config (no `tailwind.config.js`); existing CSS Modules code stays where it makes sense (route-level layout) |
+| Component workbench | **Storybook 10 + Vite preset** in `packages/ui`                                                            | Vite is lighter than the Next.js preset; pairs with existing Vitest tooling. Primitives stay framework-agnostic                                |
+| Token system        | **TypeScript source-of-truth** (`tokens.ts`) hand-synced with the Tailwind 4 `@theme` block (`tokens.css`) | Single conceptual source; the two files are tiny and a build-step indirection isn't worth the complexity until they diverge                    |
+| Icons               | **lucide-react**                                                                                           | shadcn's default; free, neutral, comprehensive                                                                                                 |
+| Color base          | **Tailwind zinc neutrals (OKLCH)**; accents defer to Batch E                                               | Lets the temporal primitive drive accent decisions. Diverges from #37's "warm tones" — flagged in the PR closing that issue                    |
+| Dark mode strategy  | **`color-scheme: dark` default**, no light-mode toggle in fidelity-2                                       | Aesthetic notes commit dark-default; deferring a class-based light toggle keeps the token surface small. Diverges from #37 — flagged           |
+| Display typeface    | **Instrument Serif** (Google Fonts)                                                                        | Substitute for licensed picks (GT Sectra / Tiempos) listed in aesthetic notes. Editorial character without licensing cost. Final pick deferred |
+| Body typeface       | **Inter Tight** (Google Fonts)                                                                             | Acknowledged "slop-tier" but acceptable per aesthetic notes when licensed alternatives are out of budget. Tabular numerals verified            |
+| Mono typeface       | **JetBrains Mono** (Google Fonts)                                                                          | Per aesthetic notes; for IDs, slugs, JSONB previews                                                                                            |
+| Bespoke primitives  | **Tree only** per [aesthetic notes](03-aesthetic-notes.md) — every other primitive comes from shadcn       | DataTable uses tanstack-table + shadcn `Table` markup                                                                                          |
+| shadcn location     | **`packages/ui`**, not `apps/admin`                                                                        | Monorepo-correct: primitives are shared infrastructure. Diverges from #37's "init in `apps/admin`" instruction — flagged                       |
 
 ## Where things live
 
-| Concern                                   | Location                                                                                  | Notes                                                          |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| Design primitives (shadcn + custom theme) | `packages/ui/src/components/`                                                             | Exported via `@repo/ui/*`                                      |
-| Design tokens                             | `packages/ui/src/styles/tokens.ts` (TS source) + emitted CSS variables and Tailwind theme | Build step emits both forms                                    |
-| Storybook                                 | `packages/ui/.storybook/`                                                                 | Runs via `pnpm run storybook` in `packages/ui`                 |
-| Stories                                   | colocated next to components (`*.stories.tsx`)                                            | Same workspace, same lint/check-types rules                    |
-| Composite "page" mockups                  | Storybook composite stories under a `Pages > *` hierarchy                                 | Real route counterparts ship later in `apps/admin`             |
-| Production routes                         | `apps/admin/app/*`                                                                        | Consume `@repo/ui` primitives; replace placeholder boilerplate |
+| Concern                                   | Location                                                                 | Notes                                                          |
+| ----------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| Design primitives (shadcn + custom theme) | `packages/ui/src/components/`                                            | Exported via `@repo/ui/components/*`                           |
+| Design tokens                             | `packages/ui/src/styles/tokens.ts` + `packages/ui/src/styles/tokens.css` | TS + CSS hand-synced; small enough to live without codegen     |
+| Storybook                                 | `packages/ui/.storybook/`                                                | Runs via `pnpm run storybook` in `packages/ui`                 |
+| Stories                                   | colocated next to components (`*.stories.tsx`)                           | Same workspace, same lint/check-types rules                    |
+| Composite "page" mockups                  | Storybook composite stories under a `Pages > *` hierarchy                | Real route counterparts ship later in `apps/admin`             |
+| App shell + route groups                  | `apps/admin/app/{(public),(protected),(admin),auth}/`                    | Consume `@repo/ui` primitives                                  |
+| Auth utilities                            | `apps/admin/lib/auth/` + `apps/admin/middleware.ts`                      | `@supabase/ssr` clients, callback route, route-protection gate |
 
 Mockup screens that don't yet have a production route live as Storybook composite stories. When a screen graduates to interactive/data-driven, the route moves to `apps/admin` and the composite story stays as a visual snapshot.
+
+## Aesthetic principles applied throughout
+
+These pull from [`03-aesthetic-notes.md`](03-aesthetic-notes.md) and apply to every batch unless an individual batch overrides:
+
+- **Density and speed over delight.** Genre is Notion/Linear/Sanity, not Awwwards. No scroll-driven animation, no custom cursors, no magnetic buttons.
+- **Dark mode is the default and the only mode in fidelity-2.** A class-based light-mode toggle is deferred.
+- **Tables before cards.** Cards only when a single visual element (face, image) dominates.
+- **Era + precision wherever a date appears.** TemporalDisplay enforces this; non-temporal screens still respect it for character birth/death and event dates.
+- **Tabular figures mandatory** wherever numbers align (years, importance, counts).
+- **No purple gradients.** Explicit anti-pattern from `frontend-design` skill guidance.
+- **Era and status differentiate via hue, not saturation alone.** Must satisfy red-green colorblindness; tested before committing era hues in Batch E.
+- **Motion serves affordance.** Sheet/dialog entrances 150–200ms ease-out. Destructive confirms feel weighty, not jumpy.
 
 ## Batches
 
 Each batch ends with a reviewable visual deliverable. Each depends only on the previous.
 
-| Batch                                  | Theme               | Deliverables                                                                                                                                                                                                                                       |
-| -------------------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **[A](#batch-a--foundations)**         | Foundations         | Tailwind 4 + Storybook 10 + tokens.ts; first trivial story; Foundations stories (Colors, Typography, Spacing, Era treatment)                                                                                                                       |
-| **[B](#batch-b--temporal-primitive)**  | Temporal primitive  | `TemporalDisplay` component with variant matrix in Storybook; character-detail composite story consuming it; era + uncertainty tokens crystallized                                                                                                 |
-| **[C](#batch-c--app-shell)**           | App shell           | Sidebar (240/64px collapsed per [#127](https://github.com/shaes-farm/time-traveler/issues/127)), topbar, breadcrumb, layout grid; status-badge primitives (Published/Draft/Shared); the chrome that wraps every future mockup                      |
-| **[D](#batch-d--list-primitives)**     | List primitives     | DataTable (shadcn + tanstack-table); left-rail filter group; row-layout patterns (multi-line, era + uncertainty inline, importance numeric); composite stories for characters list + events list                                                   |
-| **[E](#batch-e--editor-primitives)**   | Editor primitives   | Chip input, slug field with locked-by-default, temporal input control (composite popover using TemporalDisplay), curated-set save dropdown; composite stories for character editor + event editor                                                  |
-| **[F](#batch-f--relationship-editor)** | Relationship editor | Card stream layout, sub-role picker ([#119](https://github.com/shaes-farm/time-traveler/issues/119) taxonomy), reciprocity-aware add sheet, contradiction warning; composite story for the relationships editor (Alternative B from the wireframe) |
-
-After Batch F, every fidelity-1 wireframe has a visual realization. Simpler screens (sign-in, dashboard, list/detail variants that reuse existing primitives) can be assembled directly as routes in `apps/admin` without a dedicated batch.
-
 ### Batch A — Foundations
 
-Three PRs land Batch A.
+Closes [#37](https://github.com/shaes-farm/time-traveler/issues/37). Three PRs land Batch A.
 
-**PR A.1 — Tailwind 4 + tokens setup**
+**PR A.1 — Tailwind 4 + tokens setup** ✅ landed in [#149](https://github.com/shaes-farm/time-traveler/pull/149)
 
-- Install Tailwind 4, `class-variance-authority`, `tailwind-merge` in `packages/ui` and `apps/admin`
-- `packages/ui/src/styles/tokens.ts` — TypeScript source-of-truth for colors (zinc + transparent accent placeholders), type scale, spacing, radii
-- Build script emits `tokens.css` (CSS variables) and `tailwind-tokens.ts` (theme extension)
-- `packages/ui/src/styles/globals.css` imports `tokens.css` and Tailwind base + components + utilities layers
-- `apps/admin/app/globals.css` re-imports from `@repo/ui/styles/globals.css`
-- Google Fonts loaded via `next/font` in `apps/admin/app/layout.tsx`; `@repo/ui` consumes them via CSS variables
-- shadcn CLI initialized in `packages/ui` (`components.json` configured to use our tokens, not stock defaults)
-- Validation suite green
+- Tailwind 4 installed in `packages/ui` and `apps/admin`
+- `class-variance-authority`, `tailwind-merge`, `clsx`, `lucide-react` installed
+- `packages/ui/src/styles/tokens.ts` — TS source-of-truth (zinc OKLCH + font + radius tokens)
+- `packages/ui/src/styles/tokens.css` — Tailwind 4 `@theme` block (hand-synced from `tokens.ts`)
+- `packages/ui/src/styles/globals.css` — entry point; sets `color-scheme: dark`, body defaults, font-feature-settings for tabular numerals
+- `apps/admin/app/globals.css` re-imports `@repo/ui/styles/globals.css`
+- Google Fonts loaded via `next/font` in `apps/admin/app/layout.tsx`, bound to `--font-instrument-serif` / `--font-inter-tight` / `--font-jetbrains-mono`
+- `components.json` configured in `packages/ui` (not `apps/admin`) — aliases point at `@repo/ui/components`, `@repo/ui/lib/utils`
 
-**PR A.2 — Storybook 10 + Vite setup**
+**PR A.2 — Storybook 10 + Vite + first shadcn-style primitive** ⏳ open in [#150](https://github.com/shaes-farm/time-traveler/pull/150)
 
-- `packages/ui/.storybook/` with Vite preset
-- `pnpm run storybook` script
-- Loads `@repo/ui` global styles so stories render with theme
-- First trivial story: shadcn `Button` with custom theme overrides — proves the token pipeline
-- Validation suite green
+- `packages/ui/.storybook/` with `@storybook/react-vite` framework (Storybook 10 ships docs/controls/actions in core — no addons needed)
+- `pnpm run storybook` and `pnpm run build-storybook` scripts
+- Preview loads `@repo/ui` global styles and Google Fonts CDN import so stories render with theme
+- First shadcn-style primitive: `Button` with cva variants (primary / secondary / ghost × sm / md / lg), forwarding ref, `cn()` helper
+- Vitest tests for the Button (variants, sizes, ref, disabled, onClick)
+- `storybook-static/` added to `.gitignore` and to ESLint ignores
 
-**PR A.3 — Foundations stories**
+**PR A.3 — shadcn primitives + Foundations stories** ⏭ next
 
-- `Foundations > Colors` story with zinc neutrals as swatches (copy-to-clipboard for hex), placeholder accent slots
-- `Foundations > Typography` story with type specimens at each scale, tabular-figure verification
+- Install the shadcn primitives the next four batches consume, into `packages/ui/src/components/`:
+  - **App shell (Batch B):** `separator`, `scroll-area`, `sheet`, `tabs`, `avatar`, `tooltip`, `dropdown-menu`, `breadcrumb`, `command`
+  - **Auth UI (Batch D):** `input`, `label`, `form`, `card`, `sonner` (replacement for legacy `toast`)
+  - **Common across many surfaces:** `badge`, `alert`, `dialog`, `skeleton`, `popover`
+  - Deferred until consumers exist: `textarea`, `select`, `checkbox`, `radio-group`, `switch`, `progress`, `navigation-menu`, `table`, `hover-card`
+- Radix UI peer dependencies pulled in by the shadcn CLI
+- All primitives pass through `tokens.css` — no stock shadcn defaults survive
+- `Foundations > Colors` story with zinc OKLCH swatches (copy-to-clipboard for the CSS variable name), placeholder accent slots stubbed (era hues, status, importance) — values fill in Batch E
+- `Foundations > Typography` story with type specimens at each scale, tabular-figure verification at 14/16/18px
 - `Foundations > Spacing` story showing the ramp visually
-- `Foundations > Era treatment` story documenting the (currently empty) era-color slot — to be filled in Batch B
-- First commitments to actual hex values, type metrics, and spacing scale
+- Each new primitive ships a minimal `*.stories.tsx` covering default + the variants the wireframes call for
+- PR description flags the divergences from #37: shadcn lives in `packages/ui` (not `apps/admin`); zinc neutrals (not warm tones — warmth, if any, comes via era accents in Batch E); dark-mode-default via `color-scheme` (no class-based toggle this batch)
 
-### Batch B — Temporal primitive
+### Batch B — App shell
 
-Two PRs.
+Closes [#38](https://github.com/shaes-farm/time-traveler/issues/38).
 
-**PR B.1 — `TemporalDisplay` primitive**
+- Route group scaffolding in `apps/admin/app/`:
+
+  ```text
+  app/
+  ├── layout.tsx               # root: providers + font variables on <html>
+  ├── (public)/
+  │   └── timelines/[slug]/page.tsx     # placeholder
+  ├── (protected)/
+  │   ├── layout.tsx                    # Shell layout
+  │   ├── dashboard/page.tsx            # placeholder
+  │   ├── timelines/page.tsx            # placeholder
+  │   ├── events/page.tsx               # placeholder
+  │   ├── characters/page.tsx           # placeholder
+  │   ├── periods/page.tsx              # placeholder
+  │   ├── stories/page.tsx              # placeholder
+  │   ├── categories/page.tsx           # placeholder
+  │   └── media/page.tsx                # placeholder
+  ├── (admin)/
+  │   └── layout.tsx                    # admin gate (cooperates with #36 middleware)
+  └── not-found.tsx
+  ```
+
+- `Shell` layout (sidebar + topbar + breadcrumb + content slot) — lives in `packages/ui/src/components/shell/` so the composite stories in Batch E–H can mount the same chrome
+- Sidebar: 240/64 collapsed per [#127](https://github.com/shaes-farm/time-traveler/issues/127); active-route highlighting; user avatar + sign-out at the bottom; collapsed state wired to `useUiStore` from [#138](https://github.com/shaes-farm/time-traveler/pull/138)
+- Topbar: global search trigger (`⌘K`, opens shadcn `command`), quick-create button, user menu (lucide icons + dropdown-menu)
+- Breadcrumb derives from route segments
+- Mobile: sidebar collapses into a `sheet`
+- Providers component (`components/providers.tsx`): TanStack Query, future ThemeProvider hook (dark-only for now), Zustand bridging if needed
+- Status-badge primitive lands here: Published (✓ + green), Draft (─ + zinc), Shared (⇄ + blue) per PRD §7.11.5 — used in placeholder pages so the chrome doesn't read empty
+- Composite Storybook story: `Pages > Shell` with a dashboard-like content slot
+
+### Batch C — Auth infrastructure
+
+Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](https://github.com/shaes-farm/time-traveler/issues/36). Headless plumbing; no UI in this batch (Batch D consumes it).
+
+- `apps/admin/lib/auth/` utilities backed by `@supabase/ssr`:
+  - `createBrowserClient()` / `createServerClient()`
+  - `signUp` / `signIn` / `signInWithMagicLink` / `signOut`
+  - `resetPassword` / `updatePassword`
+  - `getSession()` / `getUser()` (server-only)
+- `apps/admin/app/auth/callback/route.ts` — exchanges the code from magic-link / password-reset emails for a session
+- `apps/admin/middleware.ts` — route protection gates:
+  - `/auth/*` → public; redirects to `/dashboard` if already authenticated
+  - `(public)/*` → public
+  - `(protected)/*` → requires session, redirects to `/auth/login`
+  - `(admin)/*` → requires session **and** `profiles.is_admin = true`
+  - Session-cookie refresh on every request
+- Supabase project dashboard configured: email/password and magic-link providers, custom email templates, redirect URLs for localhost + production
+- Profile auto-creation trigger (#16) verified end-to-end against this flow — if it's not already in place, this batch surfaces that gap
+- Manual smoke-test plan in the PR description: register → confirm email → sign in → sign out → magic link → password reset → admin gate
+
+**Design for extraction.** A future public reader app (D3-based, deferred) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `middleware.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
+
+### Batch D — Auth UI
+
+Closes [#39](https://github.com/shaes-farm/time-traveler/issues/39).
+
+- `AuthLayout` shared component (centered card, no sidebar/header) — lives in `apps/admin/app/auth/layout.tsx`
+- `AuthForm` wrapper handling loading + error state, using `react-hook-form` + `@hookform/resolvers` with Zod schemas
+- Pages:
+  - `app/auth/login/page.tsx` — email/password + "Sign in with magic link" alternative + "Forgot password?" + "Register" links
+  - `app/auth/register/page.tsx` — email + password + confirm + display name; success screen "Check your email for confirmation"
+  - `app/auth/magic-link/page.tsx` — email-only; success screen "Check your email for sign-in link"
+  - `app/auth/reset-password/page.tsx` — email-only request form
+  - `app/auth/update-password/page.tsx` — new password + confirm, accessible from reset email
+- Form validation with clear inline errors; aesthetic notes say errors should explain, not just decorate
+- Loading states on every submit button
+- Redirect to `/dashboard` on successful auth, honoring `?redirect=` if middleware sent the user here
+- Storybook composite story: `Pages > Auth > Login` and the four siblings, so the visual surface is reviewable without spinning up Supabase
+
+### Batch E — Temporal primitive
+
+Originally Batch B. Two PRs.
+
+**PR E.1 — `TemporalDisplay` primitive**
 
 - `packages/ui/src/components/temporal-display/` with stories
 - Props: `value: TemporalData`, optional `endValue` for ranges, `format?: "inline" | "block" | "compact"`
@@ -114,32 +219,26 @@ Two PRs.
 - Tabular numerals enforced for year columns
 - Vitest unit tests for `TemporalService.formatDisplay` integration
 
-**PR B.2 — Character detail composite story**
+**PR E.2 — Character detail composite story**
 
-- `Pages > Character Detail` composite story consuming `TemporalDisplay`
+- `Pages > Character Detail` composite story mounting the Shell from Batch B and consuming `TemporalDisplay`
 - Tests the primitive's layout against narrative text (biography) and structured metadata (temporal scope block)
 - Surfaces any token gaps that didn't appear in isolation
-- Validation suite green
-- Tokens in `tokens.ts` updated with whatever Batch B crystallized
+- Tokens in `tokens.ts` / `tokens.css` updated with whatever Batch E crystallized — era hues, importance ramp, uncertainty treatment
 
-### Batch C — App shell
+### Batch F — List primitives
 
-- `Shell` layout component (sidebar + topbar + breadcrumb + content slot)
-- Sidebar collapse state (240 → 64px) wired to the existing `useUiStore` from [#138](https://github.com/shaes-farm/time-traveler/pull/138)
-- Topbar: global search trigger, quick-create button, user menu (lucide icons)
-- Breadcrumb derives from route segments
-- Status-badge primitive: Published (✓ + green), Draft (─ + zinc), Shared (⇄ + blue) per PRD §7.11.5
-- Composite story for the shell + a dashboard-like content slot
-
-### Batch D — List primitives
+Originally Batch D.
 
 - `DataTable` wrapping shadcn `Table` + tanstack-table; row virtualization for events list
 - `FilterRail` — left-rail layout with grouped checkbox sets, range sliders, 3-state radios
 - Row-layout patterns from wireframes: multi-line rows, era + uncertainty inline, importance as right-aligned tabular number
-- Composite stories: `Pages > Characters List`, `Pages > Events List`
+- Composite stories: `Pages > Characters List`, `Pages > Events List` (mounted in the Shell)
 - Per the [wireframe decisions](02-wireframes/03-characters-list.md): hover-card thumbnails (no dedicated thumbnail column), labels-only filter chips this fidelity, no card view (per [#127](https://github.com/shaes-farm/time-traveler/issues/127))
 
-### Batch E — Editor primitives
+### Batch G — Editor primitives
+
+Originally Batch E.
 
 - `ChipInput` for `TEXT[]` fields (aliases, cultural_context, characteristics, tags)
 - `SlugField` with locked-by-default + manual unlock + warning per Batch 1 decision
@@ -148,14 +247,18 @@ Two PRs.
 - Auto-save toolbar indicator ("Draft saved at H:MM PM") per [#127](https://github.com/shaes-farm/time-traveler/issues/127) reconciliation
 - Composite stories: `Pages > Character Editor`, `Pages > Event Editor`
 
-### Batch F — Relationship editor
+### Batch H — Relationship editor
 
-- Card stream layout with type-grouped sections (Family / Professional / Social-personal / Antagonistic / Asymmetric)
+Originally Batch F.
+
+- Card stream layout with type-grouped sections (Family / Professional / Social-personal / Antagonistic / Asymmetric) per the validated card-stream pattern
 - Sub-role picker per the [#119](https://github.com/shaes-farm/time-traveler/issues/119) taxonomy — three sub-roled types reveal an inline sub-role selector
 - Add-relationship sheet (right-side slide-out) with reciprocity-aware semantics
 - Contradiction warning surface
 - Composite story: `Pages > Relationships Editor`
 - This is the highest-stakes screen visually; budget for iteration
+
+After Batch H, every fidelity-1 wireframe has a visual realization. Simpler screens (sign-in, dashboard, list/detail variants that reuse existing primitives) can be assembled directly as routes in `apps/admin` without a dedicated batch.
 
 ## Verification per batch
 
@@ -163,28 +266,31 @@ Two PRs.
 - Vitest unit tests on every primitive (props, accessibility roles, keyboard interactions where applicable)
 - Validation suite green: `pnpm run format:check`, `check-types`, `lint`, `build`, `test:coverage`
 - A composite story or screen mockup consuming the new primitives in real layout context
-- Tokens in `tokens.ts` only contain values that an active primitive consumes — no speculative token sprawl
+- Tokens in `tokens.ts` / `tokens.css` only contain values that an active primitive consumes — no speculative token sprawl
 
-Visual regression testing is deferred. Worth revisiting after Batch C lands if drift becomes a problem.
+Visual regression testing is deferred. Worth revisiting after Batch B lands if drift becomes a problem.
 
 ## Risks
 
-- **Token rework risk.** Tokens picked in Batch B may need refactoring once Batch C tests them at a different scale. Mitigation: keep Batch A's initial token set deliberately minimal; only commit values the active primitive demands.
-- **Tailwind 4 + Storybook 10 compatibility.** Both are current majors. Worth confirming the Vite preset works with Tailwind 4's CSS-first config before installation. Fallback: Tailwind 3 + Storybook 9 is the conservative pairing.
+- **Token rework risk.** Tokens picked in Batch E may need refactoring once Batch F tests them at a different scale. Mitigation: keep Batch A's initial token set deliberately minimal; only commit values the active primitive demands.
+- **Auth-batch dependency on Supabase project config.** Batch C requires the remote Supabase project to have email/password + magic link enabled and email templates approved. If the project's email domain isn't verified, magic links bounce. Mitigation: verify provider config first thing in the batch; fall back to email+password only if magic link setup blocks.
+- **Middleware + route group interactions.** Next.js 16 middleware running on the edge has stricter constraints than Node — no `node:` imports, careful with cookies. Mitigation: `@supabase/ssr` is edge-safe; the route-group `matcher` is the load-bearing piece and gets explicit tests.
+- **Tailwind 4 + Storybook 10 compatibility.** Confirmed working in Batches A.1/A.2.
 - **Next.js 16 + Storybook Vite preset.** Storybook's Next.js preset has historically lagged behind Next major releases. The Vite preset is more reliable but means primitives can't use Next-specific APIs (`next/image`, `next/link`) inside stories. Mitigation: primitives stay framework-agnostic; `apps/admin` route code wraps them in Next-specific adapters when needed.
 - **Google Fonts substitution drift.** Instrument Serif and Inter Tight are credible substitutes but visually distinct from the licensed picks (GT Sectra, Söhne) named in aesthetic notes. The system may need refactoring when licensed picks land. Mitigation: typeface tokens are abstract (`--font-display`, `--font-body`, `--font-mono`); only the CSS `@font-face` rules and the Google-Fonts loader change when faces are swapped.
-- **Scope creep on the relationship editor.** Batch F is the most ambiguous batch — card stream, sub-role taxonomy, reciprocity all converge. Budget for two passes. If Batch F runs long, the carve-out is to ship the basic card stream first and defer the sub-role picker + add sheet to a B follow-up batch.
+- **Scope creep on the relationship editor.** Batch H is the most ambiguous batch — card stream, sub-role taxonomy, reciprocity all converge. Budget for two passes. If Batch H runs long, the carve-out is to ship the basic card stream first and defer the sub-role picker + add sheet to a follow-up batch.
 
 ## Open questions to revisit during the work
 
 These don't block Batch A but will need answers as later batches progress:
 
-- **Per-era color decisions.** Specific hue + saturation per CE / BCE / KYA / MYA / BYA. Must satisfy red-green colorblindness accessibility per aesthetic notes. Decide during Batch B.
-- **Importance gradient.** 1–10 importance and 4-level significance both lean toward sequential single-hue scales. Specific hue + lightness ramp decided during Batch D when the events list surfaces importance prominently.
-- **Visual range bar.** Triggered rendering rule decided in [Batch 4](02-wireframes/08-event-detail.md) (uncertainty > 100 yr OR range > 1000 yr OR spans era boundary). Visual treatment — hairline, gradient, solid — decided during Batch B or D depending on which primitive surfaces it first.
-- **Sidebar collapse persistence.** The `useUiStore` from [#138](https://github.com/shaes-farm/time-traveler/pull/138) already supports it; UX decision is whether collapse is per-tab or cross-tab (localStorage scope). Decide during Batch C.
-- **Empty-state illustrations.** Deferred in aesthetic notes; may be decided ad-hoc during list batches or stay as plain-text empty states throughout fidelity-2.
-- **Visual regression testing.** Deferred; revisit after Batch C lands.
+- **Per-era color decisions.** Specific hue + saturation per CE / BCE / KYA / MYA / BYA. Must satisfy red-green colorblindness accessibility per aesthetic notes. Decide during Batch E.
+- **Importance gradient.** 1–10 importance and 4-level significance both lean toward sequential single-hue scales. Specific hue + lightness ramp decided during Batch F when the events list surfaces importance prominently.
+- **Visual range bar.** Triggered rendering rule decided in [Batch 4](02-wireframes/08-event-detail.md) (uncertainty > 100 yr OR range > 1000 yr OR spans era boundary). Visual treatment — hairline, gradient, solid — decided during Batch E or F depending on which primitive surfaces it first.
+- **Sidebar collapse persistence.** The `useUiStore` from [#138](https://github.com/shaes-farm/time-traveler/pull/138) already supports it; UX decision is whether collapse is per-tab or cross-tab (localStorage scope). Decide during Batch B.
+- **Light-mode toggle.** Deferred from fidelity-2 to keep the token surface small. Revisit only if a user-research signal demands it.
+- **Empty-state illustrations.** Deferred in aesthetic notes; may be decided ad-hoc during list batches (Batch F) or stay as plain-text empty states throughout fidelity-2.
+- **Visual regression testing.** Deferred; revisit after Batch B lands.
 
 ## Cross-references
 
@@ -192,4 +298,5 @@ These don't block Batch A but will need answers as later batches progress:
 - Design-review decisions log: [`00-screen-inventory.md`](00-screen-inventory.md) "Conventions decided" and "Decisions resolved" sections
 - Aesthetic-notes parking lot: [`03-aesthetic-notes.md`](03-aesthetic-notes.md)
 - Follow-up issues: [#119](https://github.com/shaes-farm/time-traveler/issues/119) (open), [#125](https://github.com/shaes-farm/time-traveler/issues/125) (closed by #133), [#127](https://github.com/shaes-farm/time-traveler/issues/127) (closed by #135)
+- Foundational app-bootstrap issues this plan closes: [#35](https://github.com/shaes-farm/time-traveler/issues/35), [#36](https://github.com/shaes-farm/time-traveler/issues/36), [#37](https://github.com/shaes-farm/time-traveler/issues/37), [#38](https://github.com/shaes-farm/time-traveler/issues/38), [#39](https://github.com/shaes-farm/time-traveler/issues/39)
 - Existing client state: `packages/ui/src/stores/` (Zustand stores from #138)
