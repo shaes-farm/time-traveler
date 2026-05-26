@@ -31,7 +31,7 @@ Admin users want **density, speed, and trustworthy data display**. The aesthetic
 
 Following `frontend-design` skill guidance to avoid generic AI defaults (Inter, Roboto, system fonts):
 
-- **Display / headlines**: a typeface with editorial character — candidates to test: GT Sectra, Söhne Breit, Tiempos Headline, or a strong slab like Söhne Schmal. Avoid generic geometric sans.
+- **Display / headlines**: a typeface with editorial character — candidates to test: GT Sectra, Söhne Breit, Tiempos Headline, or a strong slab like Söhne Schmal. Avoid generic geometric sans. **Fidelity-2 substitute: Fraunces** (Google Fonts) — variable serif standing in for GT Sectra; licensed pick remains the long-term aspiration.
 - **Body / forms**: needs to be highly legible at 14–16px in dense tables. Candidates: Söhne, Inter Tight (yes, this is the slop-tier choice — call out only if budget rules out alternatives), or a variable like Recursive Sans. Final pick deferred.
 - **Numeric / temporal**: tabular figures are mandatory. Year columns must align. The numeric variant of the body face needs verified tabular numerals.
 - **Mono**: for IDs, slugs, JSONB previews in admin tools. JetBrains Mono or Berkeley Mono. Not a hot path; light usage.
