@@ -49,9 +49,12 @@ export const getProfile = async (
     .eq("id", userId)
     .maybeSingle();
   if (error || !data) return null;
+  // `profiles.role` is nullable in the schema — normalise null to 'editor'
+  // so downstream role checks always work against the non-null union type.
+  const rawRole = data.role as "editor" | "admin" | null;
   return {
     id: data.id as string,
-    role: data.role as "editor" | "admin",
+    role: rawRole ?? "editor",
     firstName: data.first_name as string,
     lastName: data.last_name as string,
   };

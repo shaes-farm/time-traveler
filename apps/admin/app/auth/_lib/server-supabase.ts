@@ -17,8 +17,15 @@ export const getServerSupabaseClient = async (): Promise<SupabaseClient> => {
         for (const { name, value, options } of toSet) {
           store.set({ name, value, ...(options ?? {}) });
         }
-      } catch {
-        // Server Components can't mutate cookies; proxy.ts handles refresh.
+      } catch (err) {
+        // Next.js throws synchronously when cookies are mutated from a
+        // Server Component. That's expected — the proxy refreshes the
+        // session on the next request. Re-throw anything else so real
+        // failures (e.g. in Server Actions or Route Handlers) surface.
+        const message = err instanceof Error ? err.message : String(err);
+        if (!message.includes("Cookies can only be modified")) {
+          throw err;
+        }
       }
     },
   });

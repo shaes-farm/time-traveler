@@ -15,10 +15,21 @@ import { getServerSupabaseClient } from "../_lib/server-supabase";
 
 /**
  * Build the absolute callback URL the server-side Supabase APIs need
- * (e.g. `emailRedirectTo`). Reads `x-forwarded-*` headers when behind
- * a proxy, falling back to the request's `host` header.
+ * (e.g. `emailRedirectTo`).
+ *
+ * Prefer the env-driven `NEXT_PUBLIC_APP_URL` (e.g.
+ * `https://admin.example.com`) so the origin is an allowlisted,
+ * operator-controlled value. Only fall back to the request headers in
+ * development (when `NEXT_PUBLIC_APP_URL` is unset), where spoofed
+ * headers cause no meaningful harm. Never trust `x-forwarded-*` for
+ * building redirect targets in production.
  */
 const callbackUrl = async (path = "/auth/callback"): Promise<string> => {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl) {
+    return `${appUrl.replace(/\/$/, "")}${path}`;
+  }
+  // Development fallback: derive origin from request headers.
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";

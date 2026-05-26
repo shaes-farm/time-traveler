@@ -34,10 +34,13 @@ const isAuthRoute = (path: string) =>
   path === AUTH_PREFIX || path.startsWith(`${AUTH_PREFIX}/`);
 
 const isPublicRoute = (path: string) => {
-  if (isAuthRoute(path)) return true;
-  if (path === "/timelines") return false; // protected list
-  if (path === "/timelines/new") return false; // protected new-page stub
-  return PUBLIC_TIMELINE_DETAIL.test(path);
+  // Normalise trailing slash so /timelines/new/ can't bypass the explicit
+  // deny below by slipping through the PUBLIC_TIMELINE_DETAIL regex.
+  const p = path.length > 1 ? path.replace(/\/$/, "") : path;
+  if (isAuthRoute(p)) return true;
+  if (p === "/timelines") return false; // protected list
+  if (p === "/timelines/new") return false; // protected new-page stub
+  return PUBLIC_TIMELINE_DETAIL.test(p);
 };
 
 const isAdminRoute = (path: string) =>
