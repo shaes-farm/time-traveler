@@ -17,19 +17,29 @@ import { getServerSupabaseClient } from "../_lib/server-supabase";
  * Build the absolute callback URL the server-side Supabase APIs need
  * (e.g. `emailRedirectTo`).
  *
- * Prefer the env-driven `NEXT_PUBLIC_APP_URL` (e.g.
- * `https://admin.example.com`) so the origin is an allowlisted,
- * operator-controlled value. Only fall back to the request headers in
- * development (when `NEXT_PUBLIC_APP_URL` is unset), where spoofed
- * headers cause no meaningful harm. Never trust `x-forwarded-*` for
- * building redirect targets in production.
+ * Uses the env-driven `NEXT_PUBLIC_APP_URL` (e.g. `https://admin.example.com`)
+ * so the origin is an allowlisted, operator-controlled value. This variable
+ * MUST be set in all non-development environments; the function throws if it
+ * is absent outside `development` so a misconfigured deployment is caught
+ * early rather than silently sending auth emails with attacker-influenced
+ * origins derived from spoofable `x-forwarded-*` request headers.
+ *
+ * In local development (`NODE_ENV === 'development'`) an unset `APP_URL`
+ * is acceptable — spoofed headers in that context cause no meaningful harm,
+ * and the fallback avoids the need to set the variable for every dev machine.
  */
 const callbackUrl = async (path = "/auth/callback"): Promise<string> => {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (appUrl) {
     return `${appUrl.replace(/\/$/, "")}${path}`;
   }
-  // Development fallback: derive origin from request headers.
+  if (process.env.NODE_ENV !== "development") {
+    throw new Error(
+      "NEXT_PUBLIC_APP_URL must be set in non-development environments. " +
+        "Add it to your Vercel (or equivalent) environment variables.",
+    );
+  }
+  // Development-only fallback: derive origin from request headers.
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? "http";

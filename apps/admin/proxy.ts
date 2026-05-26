@@ -2,10 +2,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerSupabaseClient } from "./lib/auth";
 
 /**
- * Next.js 16 renamed `middleware.ts` → `proxy.ts`. This file runs on
- * the edge runtime for every request matched by `config.matcher`.
+ * Next.js 16 edge proxy (replaces `middleware.ts` from Next ≤15).
  *
- * Responsibilities:
+ * ## How Next.js discovers this file
+ * Next 16 looks for `proxy.ts` (or `proxy.js`) at the root of the app
+ * directory — the same auto-discovery convention that previously applied
+ * to `middleware.ts`. No entry in `next.config.js` is required.
+ * The required exports are:
+ *   - `proxy` — async function `(request: NextRequest) => NextResponse`
+ *     (analogous to the default export in the old middleware API).
+ *   - `config.matcher` — path patterns this file runs against.
+ * Both are present at the bottom of this file.
+ *
+ * ## Responsibilities
  *  1. Refresh the Supabase session cookie on every request (the SDK
  *     rotates JWTs; without a refresh the user is silently logged out
  *     when the access token expires).

@@ -1806,7 +1806,7 @@ time-traveler/                              # pnpm + Turborepo monorepo
 │   │       ├── lib/utils/                  # App-specific utilities
 │   │       │   ├── slug.ts                 # Slug generation
 │   │       │   └── visualization.ts        # Scale calculations
-│   │       └── middleware.ts               # Auth route protection
+│   │       └── proxy.ts                    # Auth route protection (Next 16 edge proxy; replaces middleware.ts)
 │   └── docs/                               # Next.js 16 docs app (port 3001)
 ├── packages/
 │   ├── services/                           # @repo/services — Supabase clients, types, schemas, service modules
