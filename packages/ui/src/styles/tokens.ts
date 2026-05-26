@@ -40,6 +40,18 @@ export const colors = {
   // Mirrors Tailwind 4 red-500 in OKLCH for delete/dangerous actions.
   destructive: "oklch(0.637 0.237 25.331)", // red-500
   destructiveForeground: "oklch(0.985 0 0)", // zinc-50 (white on red)
+
+  // Era accents — TemporalDisplay primitive. Hues spread across the wheel
+  // with consistent lightness so each reads as a peer in lists/tables. Low
+  // chroma keeps the dark canvas calm and avoids the "no purple gradients"
+  // anti-pattern. CE/BCE/KYA/MYA/BYA satisfy red-green colorblindness
+  // *together with* the typographic mono accent the primitive layers on —
+  // hue alone is not the load-bearing signal.
+  eraCe: "oklch(0.78 0.10 60)", // warm amber — modern era
+  eraBce: "oklch(0.78 0.10 100)", // gold — historical
+  eraKya: "oklch(0.74 0.09 200)", // teal — ancient
+  eraMya: "oklch(0.74 0.09 260)", // blue — deep historical
+  eraBya: "oklch(0.74 0.10 320)", // magenta — cosmic
 } as const;
 
 export const fonts = {

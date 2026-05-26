@@ -15,6 +15,7 @@ export default defineConfig({
       // Scope to files that have tests. Expand this list as test coverage grows.
       include: [
         "src/components/button.tsx",
+        "src/components/temporal-display.tsx",
         "src/hooks/use-categories.tsx",
         "src/hooks/use-character-relationships.tsx",
         "src/hooks/use-characters.tsx",
