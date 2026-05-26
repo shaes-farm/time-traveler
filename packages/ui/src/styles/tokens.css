@@ -63,7 +63,7 @@
   /* Bound to Google Fonts via next/font (apps/admin/app/layout.tsx).   */
   /* ------------------------------------------------------------------ */
 
-  --font-display: var(--font-instrument-serif), serif;
+  --font-display: var(--font-fraunces), serif;
   --font-body: var(--font-inter-tight), sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 

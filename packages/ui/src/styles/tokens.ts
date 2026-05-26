@@ -44,10 +44,10 @@ export const colors = {
 
 export const fonts = {
   // Bound to Google Fonts via `next/font` in apps/admin/app/layout.tsx, which
-  // sets the underlying `--font-instrument-serif` / `--font-inter-tight` /
+  // sets the underlying `--font-fraunces` / `--font-inter-tight` /
   // `--font-jetbrains-mono` CSS variables on <html>. Swapping fonts later
   // means updating both the next/font import and these variable names.
-  display: "var(--font-instrument-serif), serif",
+  display: "var(--font-fraunces), serif",
   body: "var(--font-inter-tight), sans-serif",
   mono: "var(--font-jetbrains-mono), ui-monospace, monospace",
 } as const;

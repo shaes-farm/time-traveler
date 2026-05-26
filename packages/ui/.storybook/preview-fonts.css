@@ -2,18 +2,17 @@
  * Google Fonts loaded for Storybook only.
  *
  * In `apps/admin`, the same fonts are loaded via `next/font/google`, which
- * sets the `--font-instrument-serif` / `--font-inter-tight` /
- * `--font-jetbrains-mono` CSS variables on <html>. Storybook doesn't run
- * inside Next.js, so we load them via the Google Fonts CDN and bind the
- * same variable names here.
+ * sets the `--font-fraunces` / `--font-inter-tight` / `--font-jetbrains-mono`
+ * CSS variables on <html>. Storybook doesn't run inside Next.js, so we load
+ * them via the Google Fonts CDN and bind the same variable names here.
  *
  * Keep the family list in sync with apps/admin/app/layout.tsx.
  */
 
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@400&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
-  --font-instrument-serif: "Instrument Serif", serif;
+  --font-fraunces: "Fraunces", serif;
   --font-inter-tight: "Inter Tight", sans-serif;
   --font-jetbrains-mono: "JetBrains Mono", ui-monospace, monospace;
 }
