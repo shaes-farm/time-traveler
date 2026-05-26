@@ -11,7 +11,7 @@ import {
   useCharacterTimeline,
   useCharacterNetwork,
   characterKeys,
-} from "./use-characters.js";
+} from "./use-characters";
 
 // ---------------------------------------------------------------------------
 // Mock the character service

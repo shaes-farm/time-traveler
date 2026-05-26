@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useForm } from "react-hook-form";
-import { Button } from "./button.js";
+import { Button } from "./button";
 import {
   Form,
   FormControl,
@@ -9,8 +9,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "./form.js";
-import { Input } from "./input.js";
+} from "./form";
+import { Input } from "./input";
 
 const meta: Meta = {
   title: "Components/Form",

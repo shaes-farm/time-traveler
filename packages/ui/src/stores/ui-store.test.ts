@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { useUiStore, type UiState, type Toast } from "./ui-store.js";
+import { useUiStore, type UiState, type Toast } from "./ui-store";
 
 // Reset store to initial state before each test to ensure isolation.
 beforeEach(() => {
