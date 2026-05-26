@@ -1,6 +1,6 @@
 # Fidelity-2 Implementation Plan
 
-Status: draft 2 — reordered to close foundational issues before the temporal primitive
+Status: draft 2 — reordered to close foundational issues before the temporal primitive  
 Scope: the visual design system + screen mockups + production primitives that consume the fidelity-1 wireframes ([`02-wireframes/`](02-wireframes/))
 
 ## Context
@@ -30,18 +30,18 @@ The fidelity-1 design review filed three follow-up issues; all are resolved or o
 
 The original fidelity-2 outline didn't reference the foundational GitHub issues that gate the admin app's bootstrap. This revision aligns each batch with the open issues it closes, so the work shows up against the project plan and doesn't grow a parallel paper trail.
 
-| Batch                                  | Closes / advances                                                                                                                                                              | Status                  |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| **[A](#batch-a--foundations)**         | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                         | A.1, A.2 done; A.3 next |
-| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                       | not started             |
-| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth setup), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (route-protection middleware) | not started             |
-| **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                                     | not started             |
-| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                                    | not started             |
-| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                             | not started             |
-| **[G](#batch-g--editor-primitives)**   | originally Batch E                                                                                                                                                             | not started             |
-| **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                             | not started             |
+| Batch                                  | Closes / advances                                                                                                                                                        | Status                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| **[A](#batch-a--foundations)**         | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                   | A.1, A.2 done; A.3 next |
+| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | not started             |
+| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | not started             |
+| **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | not started             |
+| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | not started             |
+| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | not started             |
+| **[G](#batch-g--editor-primitives)**   | originally Batch E                                                                                                                                                       | not started             |
+| **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                       | not started             |
 
-Why app shell + auth before the temporal primitive: the TemporalDisplay primitive is the highest-leverage component visually, but every later batch (lists, editors, relationships) renders inside the protected shell. Building the chrome first means later composite stories can mount their primitives in a real shell context instead of a Storybook-only frame, and the auth + middleware work unblocks any future "go look at the running admin app" verification step. The TemporalDisplay still lands before list/editor work, which is where it actually gets consumed.
+Why app shell + auth before the temporal primitive: the TemporalDisplay primitive is the highest-leverage component visually, but every later batch (lists, editors, relationships) renders inside the protected shell. Building the chrome first means later composite stories can mount their primitives in a real shell context instead of a Storybook-only frame, and the auth + proxy work unblocks any future "go look at the running admin app" verification step. The TemporalDisplay still lands before list/editor work, which is where it actually gets consumed.
 
 ## Locked-in stack
 
@@ -71,7 +71,7 @@ Decisions captured before execution begins:
 | Stories                                   | colocated next to components (`*.stories.tsx`)                           | Same workspace, same lint/check-types rules                    |
 | Composite "page" mockups                  | Storybook composite stories under a `Pages > *` hierarchy                | Real route counterparts ship later in `apps/admin`             |
 | App shell + route groups                  | `apps/admin/app/{(public),(protected),(admin),auth}/`                    | Consume `@repo/ui` primitives                                  |
-| Auth utilities                            | `apps/admin/lib/auth/` + `apps/admin/middleware.ts`                      | `@supabase/ssr` clients, callback route, route-protection gate |
+| Auth utilities                            | `apps/admin/lib/auth/` + `apps/admin/proxy.ts`                           | `@supabase/ssr` clients, callback route, route-protection gate |
 
 Mockup screens that don't yet have a production route live as Storybook composite stories. When a screen graduates to interactive/data-driven, the route moves to `apps/admin` and the composite story stays as a visual snapshot.
 
@@ -107,7 +107,7 @@ Closes [#37](https://github.com/shaes-farm/time-traveler/issues/37). Three PRs l
 - Google Fonts loaded via `next/font` in `apps/admin/app/layout.tsx`, bound to `--font-instrument-serif` / `--font-inter-tight` / `--font-jetbrains-mono`
 - `components.json` configured in `packages/ui` (not `apps/admin`) — aliases point at `@repo/ui/components`, `@repo/ui/lib/utils`
 
-**PR A.2 — Storybook 10 + Vite + first shadcn-style primitive** ⏳ open in [#150](https://github.com/shaes-farm/time-traveler/pull/150)
+**PR A.2 — Storybook 10 + Vite + first shadcn-style primitive** ✅ landed in [#150](https://github.com/shaes-farm/time-traveler/pull/150)
 
 - `packages/ui/.storybook/` with `@storybook/react-vite` framework (Storybook 10 ships docs/controls/actions in core — no addons needed)
 - `pnpm run storybook` and `pnpm run build-storybook` scripts
@@ -153,7 +153,7 @@ Closes [#38](https://github.com/shaes-farm/time-traveler/issues/38).
   │   ├── categories/page.tsx           # placeholder
   │   └── media/page.tsx                # placeholder
   ├── (admin)/
-  │   └── layout.tsx                    # admin gate (cooperates with #36 middleware)
+  │   └── layout.tsx                    # admin gate (cooperates with #36 proxy)
   └── not-found.tsx
   ```
 
@@ -176,7 +176,7 @@ Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](ht
   - `resetPassword` / `updatePassword`
   - `getSession()` / `getUser()` (server-only)
 - `apps/admin/app/auth/callback/route.ts` — exchanges the code from magic-link / password-reset emails for a session
-- `apps/admin/middleware.ts` — route protection gates:
+- `apps/admin/proxy.ts` — route protection gates (Next.js 16 renamed `middleware.ts` → `proxy.ts`; #36's title predates the rename):
   - `/auth/*` → public; redirects to `/dashboard` if already authenticated
   - `(public)/*` → public
   - `(protected)/*` → requires session, redirects to `/auth/login`
@@ -186,7 +186,7 @@ Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](ht
 - Profile auto-creation trigger (#16) verified end-to-end against this flow — if it's not already in place, this batch surfaces that gap
 - Manual smoke-test plan in the PR description: register → confirm email → sign in → sign out → magic link → password reset → admin gate
 
-**Design for extraction.** A future public reader app (D3-based, deferred) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `middleware.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
+**Design for extraction.** A future public reader app (D3-based, deferred) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `proxy.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
 
 ### Batch D — Auth UI
 
@@ -202,7 +202,7 @@ Closes [#39](https://github.com/shaes-farm/time-traveler/issues/39).
   - `app/auth/update-password/page.tsx` — new password + confirm, accessible from reset email
 - Form validation with clear inline errors; aesthetic notes say errors should explain, not just decorate
 - Loading states on every submit button
-- Redirect to `/dashboard` on successful auth, honoring `?redirect=` if middleware sent the user here
+- Redirect to `/dashboard` on successful auth, honoring `?redirect=` if the proxy sent the user here
 - Storybook composite story: `Pages > Auth > Login` and the four siblings, so the visual surface is reviewable without spinning up Supabase
 
 ### Batch E — Temporal primitive
@@ -274,7 +274,7 @@ Visual regression testing is deferred. Worth revisiting after Batch B lands if d
 
 - **Token rework risk.** Tokens picked in Batch E may need refactoring once Batch F tests them at a different scale. Mitigation: keep Batch A's initial token set deliberately minimal; only commit values the active primitive demands.
 - **Auth-batch dependency on Supabase project config.** Batch C requires the remote Supabase project to have email/password + magic link enabled and email templates approved. If the project's email domain isn't verified, magic links bounce. Mitigation: verify provider config first thing in the batch; fall back to email+password only if magic link setup blocks.
-- **Middleware + route group interactions.** Next.js 16 middleware running on the edge has stricter constraints than Node — no `node:` imports, careful with cookies. Mitigation: `@supabase/ssr` is edge-safe; the route-group `matcher` is the load-bearing piece and gets explicit tests.
+- **Proxy + route group interactions.** Next.js 16 renamed `middleware.ts` to `proxy.ts`; the file still runs on the edge with the same stricter constraints than Node — no `node:` imports, careful with cookies. Mitigation: `@supabase/ssr` is edge-safe; the route-group `matcher` is the load-bearing piece and gets explicit tests. Worth re-reading the Next 16 migration notes before starting Batch C in case the rename came with semantic changes beyond the file name.
 - **Tailwind 4 + Storybook 10 compatibility.** Confirmed working in Batches A.1/A.2.
 - **Next.js 16 + Storybook Vite preset.** Storybook's Next.js preset has historically lagged behind Next major releases. The Vite preset is more reliable but means primitives can't use Next-specific APIs (`next/image`, `next/link`) inside stories. Mitigation: primitives stay framework-agnostic; `apps/admin` route code wraps them in Next-specific adapters when needed.
 - **Google Fonts substitution drift.** Instrument Serif and Inter Tight are credible substitutes but visually distinct from the licensed picks (GT Sectra, Söhne) named in aesthetic notes. The system may need refactoring when licensed picks land. Mitigation: typeface tokens are abstract (`--font-display`, `--font-body`, `--font-mono`); only the CSS `@font-face` rules and the Google-Fonts loader change when faces are swapped.

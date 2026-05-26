@@ -1,0 +1,39 @@
+import type { Meta, StoryObj } from "@storybook/react-vite";
+import { Badge } from "./badge.js";
+
+const meta = {
+  title: "Components/Badge",
+  component: Badge,
+  parameters: { layout: "centered" },
+  argTypes: {
+    variant: {
+      control: "select",
+      options: ["default", "secondary", "destructive", "outline"],
+    },
+  },
+} satisfies Meta<typeof Badge>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Default: Story = { args: { children: "Badge" } };
+export const Secondary: Story = {
+  args: { variant: "secondary", children: "Draft" },
+};
+export const Destructive: Story = {
+  args: { variant: "destructive", children: "Deleted" },
+};
+export const Outline: Story = {
+  args: { variant: "outline", children: "Outline" },
+};
+
+export const AllVariants: Story = {
+  render: () => (
+    <div className="flex gap-3">
+      <Badge>Published</Badge>
+      <Badge variant="secondary">Draft</Badge>
+      <Badge variant="destructive">Deleted</Badge>
+      <Badge variant="outline">Outline</Badge>
+    </div>
+  ),
+};

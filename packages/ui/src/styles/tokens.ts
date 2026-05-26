@@ -35,6 +35,11 @@ export const colors = {
   // crystallizes the accent role.
   primary: "oklch(0.985 0 0)", // zinc-50 (high contrast)
   primaryForeground: "oklch(0.141 0.005 285.823)", // zinc-950
+
+  // Destructive — only fresh value introduced by the shadcn primitive layer.
+  // Mirrors Tailwind 4 red-500 in OKLCH for delete/dangerous actions.
+  destructive: "oklch(0.637 0.237 25.331)", // red-500
+  destructiveForeground: "oklch(0.985 0 0)", // zinc-50 (white on red)
 } as const;
 
 export const fonts = {
