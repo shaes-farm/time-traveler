@@ -5,4 +5,5 @@ packages:
 # Protects against supply-chain attacks while not blocking packages older than 10 minutes.
 minimumReleaseAge: 10
 allowBuilds:
+  esbuild: true
   sharp: true

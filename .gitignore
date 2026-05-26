@@ -25,7 +25,7 @@ coverage
 out/
 build
 dist
-
+storybook-static
 
 # Debug
 npm-debug.log*
@@ -35,10 +35,3 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
-# Squad: ignore runtime state (logs, inbox, sessions)
-.squad/orchestration-log/
-.squad/log/
-.squad/decisions/inbox/
-.squad/sessions/
-# Squad: SubSquad activation file (local to this machine)
-.squad-workstream
