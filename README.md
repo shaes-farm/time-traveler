@@ -1,9 +1,15 @@
 # Time Traveler
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/ci.yml?branch=main)](https://github.com/shaes-farm/time-traveler/actions)
-[![CodeQL](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/codeql.yml?branch=main&label=CodeQL)](https://github.com/shaes-farm/time-traveler/actions/workflows/codeql.yml)
-[![Coverage Status](https://coveralls.io/repos/github/shaes-farm/time-traveler/badge.svg?branch=main)](https://coveralls.io/github/shaes-farm/time-traveler?branch=main)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/ci.yml?style=flat&branch=main)](https://github.com/shaes-farm/time-traveler/actions)
+[![CodeQL](https://img.shields.io/github/actions/workflow/status/shaes-farm/time-traveler/codeql.yml?style=flat&branch=main&label=CodeQL)](https://github.com/shaes-farm/time-traveler/actions/workflows/codeql.yml)
+[![Coverage Status](https://coveralls.io/repos/github/shaes-farm/time-traveler/badge.svg?style=flat&branch=main)](https://coveralls.io/github/shaes-farm/time-traveler?branch=main)
 [![Snyk](https://snyk.io/test/github/shaes-farm/time-traveler/badge.svg)](https://snyk.io/test/github/shaes-farm/time-traveler)
+
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat&logo=nextdotjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6?style=flat&logo=typescript&logoColor=white)
+![Turborepo](https://img.shields.io/badge/Turborepo-2.x-EF4444?style=flat&logo=turborepo&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Auth-3FCF8E?style=flat&logo=supabase&logoColor=white)
 
 A temporal content management system for storing, visualizing, and interacting with historical events across the full span of time — from the Big Bang through the speculative future.
 
