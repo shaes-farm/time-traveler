@@ -31,6 +31,8 @@ type Values = z.infer<typeof schema>;
 
 export interface AuthUpdatePasswordFormProps {
   action: (input: { password: string }) => Promise<AuthActionResult>;
+  /** Pre-seed the error alert — useful for Storybook error stories. */
+  initialError?: string;
 }
 
 /**
@@ -39,8 +41,11 @@ export interface AuthUpdatePasswordFormProps {
  */
 export function AuthUpdatePasswordForm({
   action,
+  initialError,
 }: AuthUpdatePasswordFormProps) {
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(
+    initialError ?? null,
+  );
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
@@ -52,7 +57,8 @@ export function AuthUpdatePasswordForm({
   async function onSubmit(values: Values) {
     setServerError(null);
     const result = await action({ password: values.password });
-    // ok === true means server action redirected; only runs on failure.
+    // redirect() throws inside the server action so this await only
+    // resolves on failure; handle the error message.
     if (!result.ok) {
       setServerError(result.error.message);
     }

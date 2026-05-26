@@ -55,8 +55,8 @@ export function AuthLoginForm({ action, initialError }: AuthLoginFormProps) {
   async function onSubmit(values: Values) {
     setServerError(null);
     const result = await action(values);
-    // ok === true means the server action redirected; this branch only
-    // runs if something unexpected returned without redirecting.
+    // redirect() throws inside the server action so this await only
+    // resolves on failure; handle the error message.
     if (!result.ok) {
       setServerError(result.error.message);
     }
