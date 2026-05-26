@@ -14,7 +14,7 @@ export default defineConfig({
       reporter: ["text", "html", "lcov"],
       // Scope to files that have tests. Expand this list as test coverage grows.
       include: [
-        "src/button.tsx",
+        "src/components/button.tsx",
         "src/hooks/use-categories.tsx",
         "src/hooks/use-character-relationships.tsx",
         "src/hooks/use-characters.tsx",

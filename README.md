@@ -86,6 +86,7 @@ pnpm run db:start      # boot local Supabase stack (Postgres 17 + Auth + Storage
 Run all four; each must pass:
 
 ```bash
+pnpm run format:check     # Prettier format check
 pnpm run check-types      # TypeScript: next typegen + tsc --noEmit
 pnpm run lint             # ESLint with --max-warnings 0 (warnings fail)
 pnpm run build            # Turborepo: build all packages and apps
