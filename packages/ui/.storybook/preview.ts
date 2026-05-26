@@ -5,8 +5,8 @@ import "../src/styles/globals.css";
 /**
  * Global Storybook configuration.
  *
- * - Loads Google Fonts (Instrument Serif / Inter Tight / JetBrains Mono)
- *   via preview-fonts.css since next/font is unavailable here.
+ * - Loads Google Fonts (Fraunces / Inter Tight / JetBrains Mono) via
+ *   preview-fonts.css since next/font is unavailable here.
  * - Imports the design system's global styles (Tailwind 4 + tokens).
  * - Backgrounds default to the dark-mode canvas defined in tokens.
  */
