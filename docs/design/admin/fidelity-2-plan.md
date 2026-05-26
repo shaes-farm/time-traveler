@@ -33,8 +33,8 @@ The original fidelity-2 outline didn't reference the foundational GitHub issues 
 | Batch                                  | Closes / advances                                                                                                                                                        | Status      |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
 | **[A](#batch-a--foundations)**         | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                   | done        |
-| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | next        |
-| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | not started |
+| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | done        |
+| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | next        |
 | **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | not started |
 | **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | not started |
 | **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | not started |
@@ -184,11 +184,21 @@ Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](ht
   - `/auth/*` → public; redirects to `/dashboard` if already authenticated
   - `(public)/*` → public
   - `(protected)/*` → requires session, redirects to `/auth/login`
-  - `(admin)/*` → requires session **and** `profiles.is_admin = true`
+  - `(admin)/*` → requires session **and** `profiles.role = 'admin'` — note the schema column is `role`, not `is_admin = true` as #36's text says; closing PR will flag the issue-vs-code mismatch
   - Session-cookie refresh on every request
+
+**Shell user wiring.** `(protected)/layout.tsx` becomes async, calls `getUser()` from `lib/auth/` server-side, and passes the user to `<Shell user={...}>`. Sign-out is a Server Action wired to the user menu via `onSignOut`. No client-side auth context provider in Batch C — Server Components are SSR-friendly and the design-for-extraction note keeps `lib/auth/` Next-agnostic.
+
+**Server Actions, not client SDK calls.** All write-side auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `signOut`, `resetPassword`, `updatePassword`) ship as plain async functions in `lib/auth/` and as thin Server Action wrappers in `app/auth/_actions/` that Batch D's forms post to. Server-side cookie setting means SSR + proxy see the new session on the next request without a manual `router.refresh()`. The reader app can wrap the same `lib/auth/` functions with whatever submission pattern it prefers.
+
+**(admin) stays structural.** `(admin)/layout.tsx` enforces the `role = 'admin'` gate (verified end-to-end via a placeholder protected stub the layout points at). No admin-specific pages in this batch — that's product surface a later batch designs intentionally.
+
+**Email confirmation flow uses Inbucket.** Local Supabase keeps email confirmation on; Inbucket (the local SMTP catcher Supabase ships) receives the confirmation emails. Smoke-test plan exercises the full round-trip: register → check Inbucket → click confirm link → callback route exchanges code → session usable.
+
 - Supabase project dashboard configured: email/password and magic-link providers, custom email templates, redirect URLs for localhost + production
-- Profile auto-creation trigger (#16) verified end-to-end against this flow — if it's not already in place, this batch surfaces that gap
-- Manual smoke-test plan in the PR description: register → confirm email → sign in → sign out → magic link → password reset → admin gate
+- Profile auto-creation trigger (#16) verified end-to-end against this flow — already lives in `00004_is_admin_and_profile_trigger.sql`
+- `apps/admin/.env.local` set up by the developer (gitignored); mirrors `.env.local.example` at the repo root. Next.js reads from the app's directory, not the repo root
+- Manual smoke-test plan in the PR description: register → confirm via Inbucket → sign in → sign out → magic link → password reset → admin gate
 
 **Design for extraction.** A future public reader app (D3-based, deferred) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `proxy.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
 

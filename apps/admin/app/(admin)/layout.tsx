@@ -1,12 +1,34 @@
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { getProfile, getUser } from "../../lib/auth";
+import { getServerSupabaseClient } from "../auth/_lib/server-supabase";
 
 /**
- * Admin route group. Real gate lives in `proxy.ts` (Batch C / #36),
- * which checks `profiles.is_admin = true` server-side. This layout is a
- * structural placeholder so the route group resolves and Batch C has
- * something to wire — `(admin)/*` pages reuse `(protected)/*`'s Shell
- * by living inside it via parallel route mounting in a later batch.
+ * Admin route group gate. Belt-and-suspenders with `proxy.ts`'s edge-
+ * level role check — the proxy stops most requests, but this layout
+ * runs in the Node runtime where the same `role = 'admin'` check is a
+ * defence against the proxy being misconfigured or skipped.
+ *
+ * Schema note: #36's text says `is_admin = true`. The profiles table
+ * uses `role VARCHAR(20)` with values `'editor' | 'admin'`; this gate
+ * follows the schema. Closing PR will flag the issue-vs-code mismatch.
+ *
+ * Admin pages are intentionally not shipped in Batch C — this is the
+ * gate only. Product surface gets designed in a later batch.
  */
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const client = await getServerSupabaseClient();
+  const user = await getUser(client);
+  if (!user) redirect("/auth/login");
+
+  const profile = await getProfile(client, user.id);
+  if (profile?.role !== "admin") {
+    redirect("/dashboard?error=forbidden");
+  }
+
   return <>{children}</>;
 }
