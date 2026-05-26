@@ -7,7 +7,7 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "./command.js";
+} from "./command";
 
 const meta = {
   title: "Components/Command",

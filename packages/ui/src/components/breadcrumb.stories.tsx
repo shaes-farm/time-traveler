@@ -6,7 +6,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "./breadcrumb.js";
+} from "./breadcrumb";
 
 const meta = {
   title: "Components/Breadcrumb",

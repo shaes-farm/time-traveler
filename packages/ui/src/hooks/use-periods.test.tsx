@@ -12,7 +12,7 @@ import {
   useAddPeriodToTimeline,
   useRemovePeriodFromTimeline,
   periodKeys,
-} from "./use-periods.js";
+} from "./use-periods";
 
 vi.mock("@repo/services/period-service.js", () => ({
   getPeriods: vi.fn(),

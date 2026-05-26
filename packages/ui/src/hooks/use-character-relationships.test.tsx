@@ -12,7 +12,7 @@ import {
   useUpdateRelationship,
   useDeleteRelationship,
   relationshipKeys,
-} from "./use-character-relationships.js";
+} from "./use-character-relationships";
 
 vi.mock("@repo/services/character-relationship-service.js", () => ({
   getRelationships: vi.fn(),

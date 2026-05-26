@@ -50,6 +50,9 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.80.5
         version: 5.100.14(@tanstack/react-query@5.100.14(react@19.2.6))(react@19.2.6)
+      lucide-react:
+        specifier: ^0.469.0
+        version: 0.469.0(react@19.2.6)
       next:
         specifier: 16.2.6
         version: 16.2.6(react-dom@19.2.6(react@19.2.6))(react@19.2.6)

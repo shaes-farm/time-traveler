@@ -15,7 +15,7 @@ import {
   useAddPeriodToStory,
   useRemovePeriodFromStory,
   storyKeys,
-} from "./use-stories.js";
+} from "./use-stories";
 
 vi.mock("@repo/services/story-service.js", () => ({
   getStories: vi.fn(),

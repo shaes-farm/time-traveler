@@ -10,7 +10,7 @@ import {
   useUpdateCategory,
   useDeleteCategory,
   categoryKeys,
-} from "./use-categories.js";
+} from "./use-categories";
 
 vi.mock("@repo/services/category-service.js", () => ({
   getCategories: vi.fn(),

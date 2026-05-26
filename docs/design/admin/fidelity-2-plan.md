@@ -30,16 +30,16 @@ The fidelity-1 design review filed three follow-up issues; all are resolved or o
 
 The original fidelity-2 outline didn't reference the foundational GitHub issues that gate the admin app's bootstrap. This revision aligns each batch with the open issues it closes, so the work shows up against the project plan and doesn't grow a parallel paper trail.
 
-| Batch                                  | Closes / advances                                                                                                                                                        | Status                  |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| **[A](#batch-a--foundations)**         | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                   | A.1, A.2 done; A.3 next |
-| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | not started             |
-| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | not started             |
-| **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | not started             |
-| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | not started             |
-| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | not started             |
-| **[G](#batch-g--editor-primitives)**   | originally Batch E                                                                                                                                                       | not started             |
-| **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                       | not started             |
+| Batch                                  | Closes / advances                                                                                                                                                        | Status      |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| **[A](#batch-a--foundations)**         | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                   | done        |
+| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | next        |
+| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | not started |
+| **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | not started |
+| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | not started |
+| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | not started |
+| **[G](#batch-g--editor-primitives)**   | originally Batch E                                                                                                                                                       | not started |
+| **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                       | not started |
 
 Why app shell + auth before the temporal primitive: the TemporalDisplay primitive is the highest-leverage component visually, but every later batch (lists, editors, relationships) renders inside the protected shell. Building the chrome first means later composite stories can mount their primitives in a real shell context instead of a Storybook-only frame, and the auth + proxy work unblocks any future "go look at the running admin app" verification step. The TemporalDisplay still lands before list/editor work, which is where it actually gets consumed.
 
@@ -116,7 +116,7 @@ Closes [#37](https://github.com/shaes-farm/time-traveler/issues/37). Three PRs l
 - Vitest tests for the Button (variants, sizes, ref, disabled, onClick)
 - `storybook-static/` added to `.gitignore` and to ESLint ignores
 
-**PR A.3 — shadcn primitives + Foundations stories** ⏭ next
+**PR A.3 — shadcn primitives + Foundations stories** ✅ landed in [#151](https://github.com/shaes-farm/time-traveler/pull/151)
 
 - Install the shadcn primitives the next four batches consume, into `packages/ui/src/components/`:
   - **App shell (Batch B):** `separator`, `scroll-area`, `sheet`, `tabs`, `avatar`, `tooltip`, `dropdown-menu`, `breadcrumb`, `command`
@@ -158,8 +158,12 @@ Closes [#38](https://github.com/shaes-farm/time-traveler/issues/38).
   ```
 
 - `Shell` layout (sidebar + topbar + breadcrumb + content slot) — lives in `packages/ui/src/components/shell/` so the composite stories in Batch E–H can mount the same chrome
-- Sidebar: 240/64 collapsed per [#127](https://github.com/shaes-farm/time-traveler/issues/127); active-route highlighting; user avatar + sign-out at the bottom; collapsed state wired to `useUiStore` from [#138](https://github.com/shaes-farm/time-traveler/pull/138)
-- Topbar: global search trigger (`⌘K`, opens shadcn `command`), quick-create button, user menu (lucide icons + dropdown-menu)
+- Scope: **chrome only**. Every protected route ships a minimal placeholder page (heading + sub copy + a few Skeleton stand-ins). #38's acceptance criteria tick via navigation + collapse + responsive behavior; real content lands in later batches.
+- Sidebar: 240/64 collapsed per [#127](https://github.com/shaes-farm/time-traveler/issues/127); active-route highlighting; user avatar + sign-out at the bottom; collapsed state wired to `useUiStore` from [#138](https://github.com/shaes-farm/time-traveler/pull/138), **persisted to `localStorage` cross-tab** so the preference survives reload
+- Topbar:
+  - Global search trigger (`⌘K`, opens shadcn `command`)
+  - Quick-create button: dropdown listing all 8 entity types (Character / Event / Period / Story / Timeline / Category / Media / Relationship); each item links to `/<entity>/new` (which 404-stubs until Batch G's editor primitives land)
+  - User menu: **placeholder user** (hardcoded avatar fallback + name + email), inert menu items (Profile / Settings / Sign out) — visible but non-functional in Batch B. Wired to real auth in Batch C/D
 - Breadcrumb derives from route segments
 - Mobile: sidebar collapses into a `sheet`
 - Providers component (`components/providers.tsx`): TanStack Query, future ThemeProvider hook (dark-only for now), Zustand bridging if needed

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { colors } from "./tokens.js";
+import { colors } from "./tokens";
 
 type Swatch = {
   cssVar: string;

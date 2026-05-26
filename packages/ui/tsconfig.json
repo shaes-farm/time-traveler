@@ -3,7 +3,9 @@
   "compilerOptions": {
     "outDir": "dist",
     "strictNullChecks": true,
-    "types": ["node", "react", "react-dom"]
+    "types": ["node", "react", "react-dom"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler"
   },
   "include": ["src", "vitest.setup.ts"],
   "exclude": ["node_modules", "dist"]

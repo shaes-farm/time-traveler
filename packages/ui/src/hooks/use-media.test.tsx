@@ -11,7 +11,7 @@ import {
   useUpdateMedia,
   useDeleteMedia,
   mediaKeys,
-} from "./use-media.js";
+} from "./use-media";
 
 vi.mock("@repo/services/media-service.js", () => ({
   getMedia: vi.fn(),

@@ -1,8 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import {
-  useNavigationStore,
-  type NavigationState,
-} from "./navigation-store.js";
+import { useNavigationStore, type NavigationState } from "./navigation-store";
 
 // Reset store to initial state before each test to ensure isolation.
 beforeEach(() => {

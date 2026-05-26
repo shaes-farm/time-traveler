@@ -12,7 +12,7 @@ import {
   useUnpublishTimeline,
   useTimelineCollaborators,
   timelineKeys,
-} from "./use-timelines.js";
+} from "./use-timelines";
 
 vi.mock("@repo/services/timeline-service.js", () => ({
   getTimelines: vi.fn(),

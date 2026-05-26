@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Button } from "./button.js";
+import { Button } from "./button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,7 +7,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./dropdown-menu.js";
+} from "./dropdown-menu";
 
 const meta = {
   title: "Components/DropdownMenu",

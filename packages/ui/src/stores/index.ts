@@ -7,7 +7,7 @@ export {
   type NavigationActions,
   type ViewMode,
   type VisibleRange,
-} from "./navigation-store.js";
+} from "./navigation-store";
 
 export {
   useUiStore,
@@ -16,4 +16,4 @@ export {
   type UiActions,
   type Toast,
   type ToastVariant,
-} from "./ui-store.js";
+} from "./ui-store";

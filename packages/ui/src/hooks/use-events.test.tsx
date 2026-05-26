@@ -17,7 +17,7 @@ import {
   useAddMediaToEvent,
   useRemoveMediaFromEvent,
   eventKeys,
-} from "./use-events.js";
+} from "./use-events";
 
 vi.mock("@repo/services/event-service.js", () => ({
   getEvents: vi.fn(),
