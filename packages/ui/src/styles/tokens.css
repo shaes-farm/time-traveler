@@ -32,6 +32,32 @@
   --color-primary: oklch(0.985 0 0); /* zinc-50 (high contrast) */
   --color-primary-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
 
+  /* Destructive — fresh value introduced for delete/dangerous actions */
+  --color-destructive: oklch(0.637 0.237 25.331); /* red-500 */
+  --color-destructive-foreground: oklch(0.985 0 0); /* zinc-50 */
+
+  /* ------------------------------------------------------------------ */
+  /* shadcn vocabulary aliases                                          */
+  /* The shadcn primitive registry uses a fixed semantic vocabulary     */
+  /* (card / popover / muted / accent / secondary / input / ring).      */
+  /* We bridge that vocabulary onto our own semantic tokens above so    */
+  /* primitives ship with our values, not stock shadcn defaults, and    */
+  /* stay updatable via the shadcn CLI in later batches.                */
+  /* ------------------------------------------------------------------ */
+
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-foreground);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-foreground);
+  --color-muted: var(--color-surface-2);
+  --color-muted-foreground: var(--color-foreground-muted);
+  --color-accent: var(--color-surface-2);
+  --color-accent-foreground: var(--color-foreground);
+  --color-secondary: var(--color-surface);
+  --color-secondary-foreground: var(--color-foreground);
+  --color-input: var(--color-border);
+  --color-ring: var(--color-foreground);
+
   /* ------------------------------------------------------------------ */
   /* Typography                                                         */
   /* Bound to Google Fonts via next/font (apps/admin/app/layout.tsx).   */
