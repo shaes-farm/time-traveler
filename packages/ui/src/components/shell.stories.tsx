@@ -86,13 +86,15 @@ const PlaceholderContent = ({
   </div>
 );
 
+const shellLoaders = [
+  async () => {
+    resetShellUiState();
+    return {};
+  },
+];
+
 export const Dashboard: Story = {
-  decorators: [
-    (Story) => {
-      resetShellUiState();
-      return <Story />;
-    },
-  ],
+  loaders: shellLoaders,
   args: {
     nav: NAV,
     currentPath: "/dashboard",
@@ -108,7 +110,7 @@ export const Dashboard: Story = {
 };
 
 export const Characters: Story = {
-  decorators: Dashboard.decorators,
+  loaders: shellLoaders,
   args: {
     ...Dashboard.args,
     currentPath: "/characters",
@@ -122,7 +124,7 @@ export const Characters: Story = {
 };
 
 export const DeepBreadcrumb: Story = {
-  decorators: Dashboard.decorators,
+  loaders: shellLoaders,
   args: {
     ...Dashboard.args,
     currentPath: "/characters/curie-marie",

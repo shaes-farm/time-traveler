@@ -212,23 +212,31 @@ const PointDisplay = ({
       : null;
 
   if (format === "block") {
+    const showEraCode = !hideEra;
+    const showPrecisionMod =
+      !hidePrecision &&
+      PRECISION_LABEL[value.precision] != null &&
+      (value.precision !== "exact" || showExact);
+    const hasSecondRow = showEraCode || showPrecisionMod;
     return (
-      <span className="flex flex-col gap-0.5">
+      <span className={cn("flex flex-col", hasSecondRow && "gap-0.5")}>
         <span className="tabular-nums">
           {dateText}
           {uncertaintyText && (
             <span className="text-foreground-muted"> ± {uncertaintyText}</span>
           )}
         </span>
-        <span className="flex items-center gap-1.5">
-          {!hideEra && <EraCode era={value.era} />}
-          {!hidePrecision && (
-            <PrecisionModifier
-              precision={value.precision}
-              showExact={showExact}
-            />
-          )}
-        </span>
+        {hasSecondRow && (
+          <span className="flex items-center gap-1.5">
+            {showEraCode && <EraCode era={value.era} />}
+            {showPrecisionMod && (
+              <PrecisionModifier
+                precision={value.precision}
+                showExact={showExact}
+              />
+            )}
+          </span>
+        )}
       </span>
     );
   }
