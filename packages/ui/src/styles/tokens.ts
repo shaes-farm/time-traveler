@@ -52,6 +52,14 @@ export const colors = {
   eraKya: "oklch(0.74 0.09 200)", // teal — ancient
   eraMya: "oklch(0.74 0.09 260)", // blue — deep historical
   eraBya: "oklch(0.74 0.10 320)", // magenta — cosmic
+
+  // Importance gradient — DataTable / FilterRail. Single amber hue (55),
+  // rising lightness and chroma across four brackets so the 1–10 scale
+  // reads as a single ramp. Colorblind-safe: label + icon carry the signal.
+  importanceLow: "oklch(0.55 0.05 55)", // 1–3 — dim, low chroma
+  importanceMedium: "oklch(0.65 0.09 55)", // 4–6 — mid amber
+  importanceHigh: "oklch(0.74 0.14 55)", // 7–8 — bright amber
+  importanceCritical: "oklch(0.81 0.18 55)", // 9–10 — saturated gold
 } as const;
 
 export const fonts = {

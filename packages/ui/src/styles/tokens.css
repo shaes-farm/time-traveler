@@ -45,6 +45,14 @@
   --color-era-mya: oklch(0.74 0.09 260); /* blue — deep historical */
   --color-era-bya: oklch(0.74 0.1 320); /* magenta — cosmic */
 
+  /* Importance gradient — DataTable / FilterRail (Batch F). Single amber
+     hue (55), rising lightness and chroma across 4 brackets. Colorblind-
+     safe: label + icon carry the signal; hue is a layer on top. */
+  --color-importance-low: oklch(0.55 0.05 55); /* 1–3 */
+  --color-importance-medium: oklch(0.65 0.09 55); /* 4–6 */
+  --color-importance-high: oklch(0.74 0.14 55); /* 7–8 */
+  --color-importance-critical: oklch(0.81 0.18 55); /* 9–10 */
+
   /* ------------------------------------------------------------------ */
   /* shadcn vocabulary aliases                                          */
   /* The shadcn primitive registry uses a fixed semantic vocabulary     */
@@ -84,11 +92,4 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
 
-  /* ------------------------------------------------------------------ */
-  /* Accent placeholders — filled in later batches                      */
-  /* ------------------------------------------------------------------ */
-
-  /* Era treatment (CE / BCE / KYA / MYA / BYA) — Batch B          */
-  /* Status badges (Published / Draft / Shared)   — Batch C          */
-  /* Importance gradient (1–10 single-hue scale)  — Batch D          */
 }
