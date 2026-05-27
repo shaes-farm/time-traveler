@@ -266,7 +266,7 @@ function DatingMethodSourceDisclosure({
 }) {
   return (
     <DisclosureSection title="Dating method & source (optional)">
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3">
         <label className="space-y-1 text-sm">
           <span className="block font-medium">Method</span>
           <Input
@@ -525,7 +525,7 @@ export function TemporalInput({
               <Separator />
 
               {/* Era + Precision row */}
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 text-sm">
                   <span className="block font-medium">Era</span>
                   <EraSelectField
@@ -551,7 +551,7 @@ export function TemporalInput({
 
               {/* Year + (Month/Day for CE/BCE) or (Uncertainty for prehistoric) */}
               {draft.era === "CE" || draft.era === "BCE" ? (
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid grid-cols-3 gap-3">
                   <label className="space-y-1 text-sm">
                     <span className="block font-medium">Year</span>
                     <Input
@@ -606,7 +606,7 @@ export function TemporalInput({
                   </label>
                 </div>
               ) : (
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="grid grid-cols-2 gap-3">
                   <label className="space-y-1 text-sm">
                     <span className="block font-medium">Year</span>
                     <Input
@@ -655,7 +655,7 @@ export function TemporalInput({
               {(draft.era === "CE" || draft.era === "BCE") && (
                 <div className="space-y-3">
                   <DisclosureSection title="Time of day (optional)">
-                    <div className="grid gap-3 md:grid-cols-3">
+                    <div className="grid grid-cols-3 gap-3">
                       <label className="space-y-1 text-sm">
                         <span className="block font-medium">Hour</span>
                         <Input
