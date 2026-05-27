@@ -6,10 +6,9 @@ import { cn } from "../lib/utils";
  * Button — the first design-system primitive (smoke test for the
  * Tailwind 4 + token pipeline).
  *
- * Variants currently cover only the foundational tokens defined in
- * `packages/ui/src/styles/tokens.css`. Additional variants
- * (destructive, link, etc.) will land alongside the screens that need
- * them in later batches.
+ * Variants currently cover the foundational tokens defined in
+ * `packages/ui/src/styles/tokens.css`. Additional variants land alongside
+ * the screens and primitives that need them.
  */
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 disabled:pointer-events-none disabled:opacity-50",
@@ -19,6 +18,8 @@ const buttonVariants = cva(
         primary: "bg-primary text-primary-foreground hover:bg-primary/90",
         secondary:
           "border border-border bg-surface text-foreground hover:bg-surface-2",
+        destructive:
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         ghost: "text-foreground hover:bg-surface",
       },
       size: {

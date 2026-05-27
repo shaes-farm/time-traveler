@@ -24,6 +24,11 @@ describe("Button", () => {
     expect(screen.getByRole("button")).toHaveClass("bg-surface");
   });
 
+  it("applies the destructive variant", () => {
+    render(<Button variant="destructive">Delete</Button>);
+    expect(screen.getByRole("button")).toHaveClass("bg-destructive");
+  });
+
   it("applies the ghost variant", () => {
     render(<Button variant="ghost">Skip</Button>);
     expect(screen.getByRole("button")).toHaveClass("hover:bg-surface");

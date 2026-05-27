@@ -14,8 +14,13 @@ export default defineConfig({
       reporter: ["text", "html", "lcov"],
       // Scope to files that have tests. Expand this list as test coverage grows.
       include: [
+        "src/components/autosave-indicator.tsx",
+        "src/components/chip-input.tsx",
         "src/components/button.tsx",
+        "src/components/save-dropdown.tsx",
+        "src/components/slug-field.tsx",
         "src/components/temporal-display.tsx",
+        "src/components/temporal-input.tsx",
         "src/hooks/use-categories.tsx",
         "src/hooks/use-character-relationships.tsx",
         "src/hooks/use-characters.tsx",
