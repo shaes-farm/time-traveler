@@ -57,6 +57,7 @@ export function DataTable<TData, TValue>({
                 <TableHead key={header.id}>
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
                     <button
+                      type="button"
                       className="flex items-center gap-1 text-foreground-muted hover:text-foreground transition-colors"
                       onClick={header.column.getToggleSortingHandler()}
                     >

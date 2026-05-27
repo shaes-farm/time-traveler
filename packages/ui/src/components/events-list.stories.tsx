@@ -139,8 +139,8 @@ const EVENTS: EventRow[] = [
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 
-const COLUMNS: ColumnDef<EventRow, string>[] = [
-  createSelectColumn<EventRow>() as ColumnDef<EventRow, string>,
+const COLUMNS: ColumnDef<EventRow>[] = [
+  createSelectColumn<EventRow>(),
   {
     accessorKey: "title",
     header: "Title",
@@ -153,7 +153,7 @@ const COLUMNS: ColumnDef<EventRow, string>[] = [
     header: "Type",
     cell: ({ getValue }) => (
       <Badge variant="outline" className="text-xs capitalize">
-        {getValue()}
+        {getValue() as string}
       </Badge>
     ),
   },
@@ -162,7 +162,7 @@ const COLUMNS: ColumnDef<EventRow, string>[] = [
     header: "Era",
     cell: ({ getValue }) => (
       <span className="font-mono text-xs text-foreground-muted">
-        {getValue()}
+        {getValue() as string}
       </span>
     ),
   },
@@ -170,7 +170,9 @@ const COLUMNS: ColumnDef<EventRow, string>[] = [
     accessorKey: "date",
     header: "Date",
     cell: ({ getValue }) => (
-      <span className="text-sm text-foreground-muted">{getValue()}</span>
+      <span className="text-sm text-foreground-muted">
+        {getValue() as string}
+      </span>
     ),
   },
   {
@@ -202,7 +204,7 @@ const COLUMNS: ColumnDef<EventRow, string>[] = [
     accessorKey: "published",
     header: "Published",
     cell: ({ getValue }) => {
-      const pub = getValue() as unknown as boolean;
+      const pub = getValue() as boolean;
       return (
         <span
           className={

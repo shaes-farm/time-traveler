@@ -128,6 +128,7 @@ function RadioGroupSection({ group }: { group: FilterRadioGroup }) {
       {options.map((option) => (
         <button
           key={option.value}
+          type="button"
           onClick={() => group.onChange(option.value)}
           className={cn(
             "flex-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
@@ -166,6 +167,7 @@ export function FilterRail({ groups, onClearAll, className }: FilterRailProps) {
         </span>
         {hasActiveFilters && onClearAll && (
           <button
+            type="button"
             onClick={onClearAll}
             className="flex items-center gap-1 text-xs text-foreground-muted transition-colors hover:text-foreground"
           >

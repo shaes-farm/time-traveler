@@ -127,8 +127,8 @@ const SIGNIFICANCE_LABEL: Record<CharacterRow["significance"], string> = {
 
 // ─── Column definitions ───────────────────────────────────────────────────────
 
-const COLUMNS: ColumnDef<CharacterRow, string>[] = [
-  createSelectColumn<CharacterRow>() as ColumnDef<CharacterRow, string>,
+const COLUMNS: ColumnDef<CharacterRow>[] = [
+  createSelectColumn<CharacterRow>(),
   {
     accessorKey: "name",
     header: "Name",
@@ -141,7 +141,7 @@ const COLUMNS: ColumnDef<CharacterRow, string>[] = [
     header: "Type",
     cell: ({ getValue }) => (
       <Badge variant="outline" className="text-xs capitalize">
-        {getValue()}
+        {getValue() as string}
       </Badge>
     ),
   },
@@ -150,7 +150,7 @@ const COLUMNS: ColumnDef<CharacterRow, string>[] = [
     header: "Era",
     cell: ({ getValue }) => (
       <span className="font-mono text-xs text-foreground-muted">
-        {getValue()}
+        {getValue() as string}
       </span>
     ),
   },
@@ -178,7 +178,7 @@ const COLUMNS: ColumnDef<CharacterRow, string>[] = [
     header: "Events",
     cell: ({ getValue }) => (
       <span className="text-sm tabular-nums text-foreground-muted">
-        {getValue()}
+        {getValue() as number}
       </span>
     ),
   },
@@ -186,7 +186,9 @@ const COLUMNS: ColumnDef<CharacterRow, string>[] = [
     accessorKey: "updatedAt",
     header: "Updated",
     cell: ({ getValue }) => (
-      <time className="text-xs text-foreground-subtle">{getValue()}</time>
+      <time className="text-xs text-foreground-subtle">
+        {getValue() as string}
+      </time>
     ),
   },
 ];
