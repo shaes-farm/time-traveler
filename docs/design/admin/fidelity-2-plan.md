@@ -131,7 +131,7 @@ Closes [#37](https://github.com/shaes-farm/time-traveler/issues/37). Three PRs l
 - Each new primitive ships a minimal `*.stories.tsx` covering default + the variants the wireframes call for
 - PR description flags the divergences from #37: shadcn lives in `packages/ui` (not `apps/admin`); zinc neutrals (not warm tones — warmth, if any, comes via era accents in Batch E); dark-mode-default via `color-scheme` (no class-based toggle this batch)
 
-### Batch B — App shell
+### Batch B — App shell ✅ landed in [#153](https://github.com/shaes-farm/time-traveler/pull/153)
 
 Closes [#38](https://github.com/shaes-farm/time-traveler/issues/38).
 
@@ -170,7 +170,7 @@ Closes [#38](https://github.com/shaes-farm/time-traveler/issues/38).
 - Status-badge primitive lands here: Published (✓ + green), Draft (─ + zinc), Shared (⇄ + blue) per PRD §7.11.5 — used in placeholder pages so the chrome doesn't read empty
 - Composite Storybook story: `Pages > Shell` with a dashboard-like content slot
 
-### Batch C — Auth infrastructure
+### Batch C — Auth infrastructure ✅ landed in [#154](https://github.com/shaes-farm/time-traveler/pull/154)
 
 Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](https://github.com/shaes-farm/time-traveler/issues/36). Headless plumbing; no UI in this batch (Batch D consumes it).
 
@@ -202,7 +202,7 @@ Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](ht
 
 **Design for extraction.** A future public reader app (D3-based, deferred) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `proxy.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
 
-### Batch D — Auth UI
+### Batch D — Auth UI ✅ landed in [#157](https://github.com/shaes-farm/time-traveler/pull/157)
 
 Closes [#39](https://github.com/shaes-farm/time-traveler/issues/39).
 
@@ -223,7 +223,7 @@ Closes [#39](https://github.com/shaes-farm/time-traveler/issues/39).
 
 Originally Batch B. Two PRs.
 
-**PR E.1 — `TemporalDisplay` primitive**
+**PR E.1 — `TemporalDisplay` primitive** ✅ landed in [#158](https://github.com/shaes-farm/time-traveler/pull/158)
 
 - `packages/ui/src/components/temporal-display/` with stories
 - Props: `value: TemporalData`, optional `endValue` for ranges, `format?: "inline" | "block" | "compact"`
@@ -233,7 +233,7 @@ Originally Batch B. Two PRs.
 - Tabular numerals enforced for year columns
 - Vitest unit tests for `TemporalService.formatDisplay` integration
 
-**PR E.2 — Character detail composite story** ✅
+**PR E.2 — Character detail composite story** ✅ landed in [#159](https://github.com/shaes-farm/time-traveler/pull/159)
 
 - `packages/ui/src/components/character-detail.stories.tsx`
 - `Pages > Character Detail` composite story (3 variants: Overview / Loading / PrehistoricCharacter) mounting the Shell from Batch B and consuming `TemporalDisplay` in two roles: compact span in the identity header, block format with `showExact` in the Temporal scope section
