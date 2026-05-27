@@ -17,6 +17,19 @@ const config: StorybookConfig = {
   typescript: {
     check: false,
   },
+  viteFinal(config) {
+    // Vite does not define `process.env` in the browser — Next.js/webpack does.
+    // Zustand's devtools middleware uses `process.env.NODE_ENV` to gate the Redux
+    // DevTools integration, so we replace it at build time here the same way
+    // webpack does it in the Next.js app.
+    config.define = {
+      ...config.define,
+      "process.env.NODE_ENV": JSON.stringify(
+        process.env["NODE_ENV"] ?? "development",
+      ),
+    };
+    return config;
+  },
 };
 
 export default config;
