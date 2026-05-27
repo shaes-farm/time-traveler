@@ -348,7 +348,14 @@ const OverviewTab = ({ character }: { character: CharacterFixture }) => (
           </div>
         )}
         {character.lifespan && (
-          <p className="text-sm text-foreground-muted">{character.lifespan}</p>
+          <div className="flex items-start gap-6">
+            <dt className="w-10 shrink-0 pt-0.5 text-sm text-foreground-muted">
+              Lifespan
+            </dt>
+            <dd className="text-sm text-foreground-muted">
+              {character.lifespan}
+            </dd>
+          </div>
         )}
       </dl>
     </section>
