@@ -34,6 +34,9 @@ export const config = [
       ...pluginReactHooks.configs.recommended.rules,
       // React scope no longer necessary with new JSX transform.
       "react/react-in-jsx-scope": "off",
+      // TypeScript types serve the same purpose as prop-types; the rule
+      // produces false positives on HTML attribute types like ThHTMLAttributes.
+      "react/prop-types": "off",
     },
   },
 ];
