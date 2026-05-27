@@ -12,8 +12,8 @@ import type { AuthActionResult } from "./auth-types";
  * its form. Action props are mocked so stories render without Supabase.
  */
 
-// Resolves immediately so forms remain interactive in Storybook (clicking
-// submit won't lock the button in isSubmitting indefinitely).
+// Resolves after a short delay so Storybook shows a realistic submitting
+// state without leaving the button locked in isSubmitting indefinitely.
 const pendingAction = (): Promise<AuthActionResult> =>
   new Promise((resolve) => setTimeout(() => resolve({ ok: true }), 800));
 
