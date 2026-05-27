@@ -36,8 +36,8 @@ The original fidelity-2 outline didn't reference the foundational GitHub issues 
 | **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | done        |
 | **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | done        |
 | **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | done        |
-| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | next        |
-| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | not started |
+| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | done        |
+| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | next        |
 | **[G](#batch-g--editor-primitives)**   | originally Batch E                                                                                                                                                       | not started |
 | **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                       | not started |
 
@@ -233,12 +233,14 @@ Originally Batch B. Two PRs.
 - Tabular numerals enforced for year columns
 - Vitest unit tests for `TemporalService.formatDisplay` integration
 
-**PR E.2 — Character detail composite story**
+**PR E.2 — Character detail composite story** ✅
 
-- `Pages > Character Detail` composite story mounting the Shell from Batch B and consuming `TemporalDisplay`
-- Tests the primitive's layout against narrative text (biography) and structured metadata (temporal scope block)
-- Surfaces any token gaps that didn't appear in isolation
-- Tokens in `tokens.ts` / `tokens.css` updated with whatever Batch E crystallized — era hues, importance ramp, uncertainty treatment
+- `packages/ui/src/components/character-detail.stories.tsx`
+- `Pages > Character Detail` composite story (3 variants: Overview / Loading / PrehistoricCharacter) mounting the Shell from Batch B and consuming `TemporalDisplay` in two roles: compact span in the identity header, block format with `showExact` in the Temporal scope section
+- Demonstrates adaptive empty-state rendering (no bio, no physical description, no death date)
+- Token findings from E.2: era hues and surface/foreground tokens cover all needs; no new tokens required. Two deferred items crystallized:
+  - **`Button` destructive variant** — blocked on inline className override in the danger zone; add the variant to `button.tsx` in Batch G (editor primitives will need it for delete confirms)
+  - **Importance gradient tokens** (1–10 single-hue scale) — significance level currently renders as plain text; tokens and visual treatment land in Batch F when the list primitive consumes them
 
 ### Batch F — List primitives
 
