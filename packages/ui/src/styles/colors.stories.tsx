@@ -83,6 +83,39 @@ const swatches: Swatch[] = [
   },
 ];
 
+const eraSwatches: Swatch[] = [
+  {
+    cssVar: "--color-era-ce",
+    tsName: "eraCe",
+    oklch: colors.eraCe,
+    role: "TemporalDisplay — CE era code",
+  },
+  {
+    cssVar: "--color-era-bce",
+    tsName: "eraBce",
+    oklch: colors.eraBce,
+    role: "TemporalDisplay — BCE era code",
+  },
+  {
+    cssVar: "--color-era-kya",
+    tsName: "eraKya",
+    oklch: colors.eraKya,
+    role: "TemporalDisplay — KYA era code",
+  },
+  {
+    cssVar: "--color-era-mya",
+    tsName: "eraMya",
+    oklch: colors.eraMya,
+    role: "TemporalDisplay — MYA era code",
+  },
+  {
+    cssVar: "--color-era-bya",
+    tsName: "eraBya",
+    oklch: colors.eraBya,
+    role: "TemporalDisplay — BYA era code",
+  },
+];
+
 const SwatchCard = ({ swatch }: { swatch: Swatch }) => (
   <button
     type="button"
@@ -133,15 +166,28 @@ export const Palette: Story = {
           <SwatchCard key={swatch.cssVar} swatch={swatch} />
         ))}
       </div>
+      <div>
+        <h3 className="mb-2 font-display text-base text-foreground">
+          Era accents (Batch E)
+        </h3>
+        <p className="mb-3 text-sm text-foreground-muted">
+          Hues spread across the wheel with consistent lightness. The
+          TemporalDisplay primitive pairs each hue with a mono typographic
+          accent so colorblind users still see the era distinction.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {eraSwatches.map((swatch) => (
+            <SwatchCard key={swatch.cssVar} swatch={swatch} />
+          ))}
+        </div>
+      </div>
       <div className="rounded-md border border-border bg-surface p-4">
         <h3 className="mb-2 font-display text-base text-foreground">
-          Accent slots
+          Remaining accent slots
         </h3>
         <p className="text-sm text-foreground-muted">
-          Era hues (CE / BCE / KYA / MYA / BYA), status badges (Published /
-          Draft / Shared), and the importance gradient (1–10) are intentionally
-          unfilled until later batches consume them — see Batches E, B, and F
-          respectively in{" "}
+          Importance gradient (1–10) is intentionally unfilled until Batch F
+          (list primitives) consumes it. See{" "}
           <code className="font-mono text-xs">
             docs/design/admin/fidelity-2-plan.md
           </code>

@@ -36,6 +36,15 @@
   --color-destructive: oklch(0.637 0.237 25.331); /* red-500 */
   --color-destructive-foreground: oklch(0.985 0 0); /* zinc-50 */
 
+  /* Era accents — TemporalDisplay primitive (Batch E). Hue alone is not
+     the load-bearing signal; the primitive also accents the era code with
+     a mono typographic treatment so colorblind users see the distinction. */
+  --color-era-ce: oklch(0.78 0.1 60); /* warm amber — modern era */
+  --color-era-bce: oklch(0.78 0.1 100); /* gold — historical */
+  --color-era-kya: oklch(0.74 0.09 200); /* teal — ancient */
+  --color-era-mya: oklch(0.74 0.09 260); /* blue — deep historical */
+  --color-era-bya: oklch(0.74 0.1 320); /* magenta — cosmic */
+
   /* ------------------------------------------------------------------ */
   /* shadcn vocabulary aliases                                          */
   /* The shadcn primitive registry uses a fixed semantic vocabulary     */
