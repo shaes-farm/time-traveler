@@ -162,14 +162,9 @@ const PrecisionModifier = ({
 const RangeBar = ({ era, endEra }: { era: Era; endEra?: Era }) => (
   <span
     aria-hidden
-    className={cn(
-      "mt-1 block h-px w-full bg-gradient-to-r opacity-60",
-      `from-${ERA_COLOR[era].replace("text-", "")}`,
-      endEra ? `to-${ERA_COLOR[endEra].replace("text-", "")}` : undefined,
-    )}
+    className="mt-1 block h-px w-full opacity-60"
     style={{
-      // Tailwind doesn't safelist dynamic from-/to- classes for our custom
-      // tokens; render the gradient via CSS variables instead.
+      // Render via CSS variables so gradients don't depend on dynamic class names.
       backgroundImage: `linear-gradient(to right, var(--color-era-${era.toLowerCase()}), var(--color-era-${(endEra ?? era).toLowerCase()}))`,
     }}
   />
@@ -281,6 +276,8 @@ export const TemporalDisplay = React.forwardRef<
 
     // Range collapses to "<start> – <end> <era>" when both share the era.
     const sharedEra = endValue && value.era === endValue.era;
+    // Preserve start precision unless we're in compact mode where brevity wins.
+    const hideStartPrecision = Boolean(sharedEra && format === "compact");
 
     return (
       <span
@@ -298,7 +295,7 @@ export const TemporalDisplay = React.forwardRef<
             format={format}
             showExact={showExact}
             hideEra={sharedEra}
-            hidePrecision={sharedEra}
+            hidePrecision={hideStartPrecision}
           />
           {endValue && (
             <>

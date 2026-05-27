@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Users,
 } from "lucide-react";
+import { useUiStore } from "@repo/ui/stores";
 import { Skeleton } from "./skeleton";
 import { Shell, type ShellNavItem, type ShellQuickCreateItem } from "./shell";
 
@@ -48,6 +49,16 @@ const USER = {
   email: "marie@example.com",
 };
 
+const resetShellUiState = () => {
+  useUiStore.setState({
+    sidebarOpen: true,
+    sidebarWidth: 280,
+    activeModal: null,
+    modalData: {},
+    toasts: [],
+  });
+};
+
 const PlaceholderContent = ({
   title,
   description,
@@ -76,6 +87,12 @@ const PlaceholderContent = ({
 );
 
 export const Dashboard: Story = {
+  decorators: [
+    (Story) => {
+      resetShellUiState();
+      return <Story />;
+    },
+  ],
   args: {
     nav: NAV,
     currentPath: "/dashboard",
@@ -91,6 +108,7 @@ export const Dashboard: Story = {
 };
 
 export const Characters: Story = {
+  decorators: Dashboard.decorators,
   args: {
     ...Dashboard.args,
     currentPath: "/characters",
@@ -104,6 +122,7 @@ export const Characters: Story = {
 };
 
 export const DeepBreadcrumb: Story = {
+  decorators: Dashboard.decorators,
   args: {
     ...Dashboard.args,
     currentPath: "/characters/curie-marie",

@@ -147,14 +147,14 @@ export const RangeSameEra: Story = {
 export const RangeOverThousandYears: Story = {
   args: {
     value: T({ year: 800, era: "CE", precision: "approximate" }),
-    endValue: T({ year: 1100, era: "CE", precision: "approximate" }),
+    endValue: T({ year: 2500, era: "CE", precision: "approximate" }),
   },
 };
 
 export const RangeCrossesEraBoundary: Story = {
   args: {
-    value: T({ year: 12, era: "KYA", precision: "approximate" }),
-    endValue: T({ year: 8, era: "KYA", precision: "approximate" }),
+    value: T({ year: 44, era: "BCE", precision: "approximate" }),
+    endValue: T({ year: 120, era: "CE", precision: "approximate" }),
   },
 };
 
