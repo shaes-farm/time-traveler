@@ -266,7 +266,7 @@ This batch tracks the refreshed scope from [#40](https://github.com/shaes-farm/t
 - Composite stories: `Pages > Character Editor`, `Pages > Event Editor`
 - Supporting stories added for newly landed primitives consumed by editor/list surfaces: `Textarea`, `Checkbox`, `Slider`, `Table`, `DataTable`, `FilterRail`
 
-### Batch H — Relationship editor
+### Batch H — Relationship editor ✅ landed in [#162](https://github.com/shaes-farm/time-traveler/pull/162)
 
 Originally Batch F.
 
