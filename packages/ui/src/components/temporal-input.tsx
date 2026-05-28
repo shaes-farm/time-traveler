@@ -104,16 +104,33 @@ const maybeParse = (draft: TemporalDraft): TemporalData | null => {
 
 type FieldErrors = Partial<Record<"year" | "era", string>>;
 
-const getFieldErrors = (draft: TemporalDraft): FieldErrors => {
+interface ValidationState {
+  fieldErrors: FieldErrors;
+  /**
+   * First non-year/era issue, formatted as "field: message". Used by the
+   * catch-all error row so users see *what* failed when validation rejects a
+   * field that has no inline error slot of its own (month/day/hour/etc.).
+   */
+  genericError: string | null;
+}
+
+const getValidationState = (draft: TemporalDraft): ValidationState => {
   const result = temporalDataSchema.safeParse(draft);
-  if (result.success) return {};
-  const errors: FieldErrors = {};
+  if (result.success) return { fieldErrors: {}, genericError: null };
+  const fieldErrors: FieldErrors = {};
+  let genericError: string | null = null;
   for (const issue of result.error.issues) {
     const key = issue.path[0];
-    if (key === "year" && !errors.year) errors.year = issue.message;
-    if (key === "era" && !errors.era) errors.era = issue.message;
+    if (key === "year" && !fieldErrors.year) {
+      fieldErrors.year = issue.message;
+    } else if (key === "era" && !fieldErrors.era) {
+      fieldErrors.era = issue.message;
+    } else if (genericError == null) {
+      genericError =
+        typeof key === "string" ? `${key}: ${issue.message}` : issue.message;
+    }
   }
-  return errors;
+  return { fieldErrors, genericError };
 };
 
 const numericInputClass = "tabular-nums";
@@ -390,8 +407,11 @@ export function TemporalInput({
 
   const candidate = React.useMemo(() => maybeParse(draft), [draft]);
   const previewValue = candidate ?? value;
-  const fieldErrors = React.useMemo(
-    () => (hasInteracted ? getFieldErrors(draft) : {}),
+  const { fieldErrors, genericError } = React.useMemo(
+    () =>
+      hasInteracted
+        ? getValidationState(draft)
+        : { fieldErrors: {} as FieldErrors, genericError: null },
     [draft, hasInteracted],
   );
 
@@ -758,13 +778,15 @@ export function TemporalInput({
                 </div>
               )}
 
-              {/* Catch-all error message — only when there's no per-field error and parse failed */}
+              {/* Catch-all error — surfaces the first non-year/era schema
+                  issue so users can recover (e.g. "day: ... invalid for month"). */}
               {hasInteracted &&
                 candidate == null &&
                 !fieldErrors.year &&
                 !fieldErrors.era && (
                   <p className="text-sm text-destructive">
                     {error ??
+                      genericError ??
                       "Complete the required fields to save this temporal value."}
                   </p>
                 )}

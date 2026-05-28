@@ -15,7 +15,6 @@ export interface ChipInputProps extends Omit<
   onChange: (value: string[]) => void;
   label?: string;
   description?: string;
-  allowDuplicates?: boolean;
 }
 
 const normalizeChip = (chip: string): string => chip.trim();
@@ -30,7 +29,6 @@ export const ChipInput = React.forwardRef<HTMLInputElement, ChipInputProps>(
       onChange,
       label,
       description,
-      allowDuplicates = false,
       className,
       id,
       onKeyDown,
@@ -74,7 +72,7 @@ export const ChipInput = React.forwardRef<HTMLInputElement, ChipInputProps>(
 
         for (const chip of chips) {
           const exists = next.some((entry) => sameChip(entry, chip));
-          if (!allowDuplicates && exists) continue;
+          if (exists) continue;
           next.push(chip);
           added += 1;
         }
@@ -83,7 +81,7 @@ export const ChipInput = React.forwardRef<HTMLInputElement, ChipInputProps>(
           commitChips(next, `${added} chip${added === 1 ? "" : "s"} added`);
         }
       },
-      [allowDuplicates, commitChips, value],
+      [commitChips, value],
     );
 
     const removeChip = React.useCallback(
