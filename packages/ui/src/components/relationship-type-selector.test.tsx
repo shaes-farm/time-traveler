@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -8,6 +8,11 @@ import {
   type RelationshipType,
 } from "./relationship-type-selector";
 
+type SelectorChange = {
+  type: RelationshipType;
+  role: string | null;
+};
+
 function Harness({
   initialType = "friendship" as RelationshipType,
   initialRole = null as string | null,
@@ -15,7 +20,7 @@ function Harness({
 }: {
   initialType?: RelationshipType;
   initialRole?: string | null;
-  onChange?: (next: { type: RelationshipType; role: string | null }) => void;
+  onChange?: (next: SelectorChange) => void;
 }) {
   const [type, setType] = useState<RelationshipType>(initialType);
   const [role, setRole] = useState<string | null>(initialRole);
@@ -33,26 +38,34 @@ function Harness({
 }
 
 describe("RelationshipTypeSelector", () => {
-  it("renders all 11 relationship types under their family legends", () => {
+  // ─── Type radios ────────────────────────────────────────────────────────────
+
+  it("renders 11 type radios total (one per relationship_type)", () => {
     render(<Harness />);
 
-    // Each fieldset legend visible
     expect(screen.getByText("Family")).toBeInTheDocument();
     expect(screen.getByText("Professional")).toBeInTheDocument();
     expect(screen.getByText("Social / Personal")).toBeInTheDocument();
     expect(screen.getByText("Antagonistic")).toBeInTheDocument();
     expect(screen.getByText("Asymmetric")).toBeInTheDocument();
 
-    // 11 radio items
     const radios = screen.getAllByRole("radio");
     expect(radios).toHaveLength(11);
   });
 
-  it("reveals the role Select when a sub-roled type is selected", async () => {
+  it("renders one radio per asymmetric type (5 rows in the Asymmetric fieldset)", () => {
+    render(<Harness />);
+    const fieldset = screen.getByTestId("relationship-type-family-asymmetric");
+    const radios = within(fieldset).getAllByRole("radio");
+    expect(radios).toHaveLength(5);
+  });
+
+  // ─── Sub-role radio group ──────────────────────────────────────────────────
+
+  it("reveals the role radio group when a sub-roled type is selected", async () => {
     const user = userEvent.setup();
     render(<Harness />);
 
-    // friendship is initial — no role select yet
     expect(
       screen.queryByTestId("relationship-type-role-select"),
     ).not.toBeInTheDocument();
@@ -64,7 +77,7 @@ describe("RelationshipTypeSelector", () => {
     ).toBeInTheDocument();
   });
 
-  it("hides the role Select for non-sub-roled types", async () => {
+  it("hides the role radio group for non-sub-roled types", async () => {
     const user = userEvent.setup();
     render(<Harness initialType="family" initialRole="spouse" />);
 
@@ -78,6 +91,63 @@ describe("RelationshipTypeSelector", () => {
       screen.queryByTestId("relationship-type-role-select"),
     ).not.toBeInTheDocument();
   });
+
+  it("renders all family sub-role radios when type is family", () => {
+    render(<Harness initialType="family" />);
+    const group = screen.getByTestId("relationship-type-role-select");
+    const radios = within(group).getAllByRole("radio");
+    expect(radios).toHaveLength(16);
+    expect(within(group).getByLabelText("spouse")).toBeInTheDocument();
+    expect(within(group).getByLabelText("parent")).toBeInTheDocument();
+    expect(within(group).getByLabelText("step parent")).toBeInTheDocument();
+  });
+
+  it("renders all professional sub-role radios when type is professional", () => {
+    render(<Harness initialType="professional" />);
+    const group = screen.getByTestId("relationship-type-role-select");
+    const radios = within(group).getAllByRole("radio");
+    expect(radios).toHaveLength(9);
+    expect(within(group).getByLabelText("employer")).toBeInTheDocument();
+    expect(within(group).getByLabelText("employee")).toBeInTheDocument();
+  });
+
+  it("updates role when selecting a sub-role radio", async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    render(<Harness initialType="family" onChange={onChange} />);
+
+    const group = screen.getByTestId("relationship-type-role-select");
+    await user.click(within(group).getByLabelText("spouse"));
+
+    expect(onChange).toHaveBeenCalledWith({
+      type: "family",
+      role: "spouse",
+    });
+  });
+
+  it("renders the sub-role group inline inside the selected type's fieldset", () => {
+    render(<Harness initialType="family" initialRole="spouse" />);
+    const familyFieldset = screen.getByTestId(
+      "relationship-type-family-family",
+    );
+    expect(
+      within(familyFieldset).getByTestId("relationship-type-role-select"),
+    ).toBeInTheDocument();
+  });
+
+  it("places the sub-role group inside the Professional fieldset when collaboration is selected", () => {
+    render(
+      <Harness initialType="collaboration" initialRole="research_partner" />,
+    );
+    const professionalFieldset = screen.getByTestId(
+      "relationship-type-family-professional",
+    );
+    expect(
+      within(professionalFieldset).getByTestId("relationship-type-role-select"),
+    ).toBeInTheDocument();
+  });
+
+  // ─── Role carry/clear logic ────────────────────────────────────────────────
 
   it("clears role when switching from a sub-roled type to a non-sub-roled type", async () => {
     const onChange = vi.fn();
@@ -97,8 +167,6 @@ describe("RelationshipTypeSelector", () => {
   it("preserves role across sub-roled types when the value is valid in both", async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
-    // "other" is a member of every sub-role enum (family, professional,
-    // collaboration), so switching between them should carry it forward.
     render(
       <Harness
         initialType="professional"
@@ -118,8 +186,6 @@ describe("RelationshipTypeSelector", () => {
   it("clears role when the current value is not valid for the next sub-roled type", async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
-    // "spouse" exists in familyRoleEnum but not in professionalRoleEnum, so
-    // switching from family/spouse to professional must drop the role.
     render(
       <Harness initialType="family" initialRole="spouse" onChange={onChange} />,
     );
@@ -132,44 +198,19 @@ describe("RelationshipTypeSelector", () => {
     });
   });
 
-  it("shows family sub-roles in the Select when type is family", async () => {
-    const user = userEvent.setup();
-    render(<Harness initialType="family" />);
+  // ─── Helper text ───────────────────────────────────────────────────────────
 
-    await user.click(screen.getByRole("combobox", { name: "Role" }));
-
+  it("shows the symmetric helper text for non-asymmetric types", () => {
+    render(<Harness initialType="friendship" />);
     expect(
-      await screen.findByRole("option", { name: "spouse" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "parent" })).toBeInTheDocument();
-  });
-
-  it("shows professional sub-roles in the Select when type is professional", async () => {
-    const user = userEvent.setup();
-    render(<Harness initialType="professional" />);
-
-    await user.click(screen.getByRole("combobox", { name: "Role" }));
-
-    expect(
-      await screen.findByRole("option", { name: "employer" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("option", { name: "employee" }),
+      screen.getByText(/a reverse entry will be created automatically/i),
     ).toBeInTheDocument();
   });
 
-  it("updates role when selecting a sub-role option", async () => {
-    const onChange = vi.fn();
-    const user = userEvent.setup();
-
-    render(<Harness initialType="family" onChange={onChange} />);
-
-    await user.click(screen.getByRole("combobox", { name: "Role" }));
-    await user.click(await screen.findByRole("option", { name: "spouse" }));
-
-    expect(onChange).toHaveBeenCalledWith({
-      type: "family",
-      role: "spouse",
-    });
+  it("shows the asymmetric helper text for asymmetric types", () => {
+    render(<Harness initialType="mentor_student" />);
+    expect(
+      screen.getByText(/no reverse entry is created/i),
+    ).toBeInTheDocument();
   });
 });

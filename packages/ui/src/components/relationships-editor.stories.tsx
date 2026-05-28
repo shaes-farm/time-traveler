@@ -116,8 +116,10 @@ const familyFor = (type: string): FamilyKey => {
   if (type === "family") return "family";
   if (type === "professional" || type === "collaboration")
     return "professional";
-  if (type === "friendship") return "social";
-  if (type === "rivalry" || type === "enemy") return "antagonistic";
+  // Rivalry sits with Social / Personal per the wireframe — it's
+  // antagonistic in tone but still a social-standing relationship.
+  if (type === "friendship" || type === "rivalry") return "social";
+  if (type === "enemy") return "antagonistic";
   return "asymmetric";
 };
 
