@@ -360,12 +360,6 @@ interface AddRelationshipFormState {
   otherCharacterId: string;
   type: RelationshipType;
   role: string | null;
-  /**
-   * Direction intent — only meaningful for the five asymmetric types.
-   * The selector emits this on each onChange; the consumer maps it to
-   * row ordering when persisting (character_id vs related_character_id).
-   */
-  isReversed: boolean;
   start: TemporalData | null;
   end: TemporalData | null;
   description: string;
@@ -375,7 +369,6 @@ const EMPTY_FORM: AddRelationshipFormState = {
   otherCharacterId: "",
   type: "friendship",
   role: null,
-  isReversed: false,
   start: null,
   end: null,
   description: "",
@@ -408,12 +401,6 @@ function AddRelationshipSheet({
   ) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const canSave = form.otherCharacterId !== "" && form.type !== undefined;
-
-  // The selector needs the other character's display name to interpolate
-  // its paired asymmetric radio labels ("Marie mentors Pierre" etc.).
-  const otherCharacterName = AVAILABLE_CHARACTERS.find(
-    (c) => c.id === form.otherCharacterId,
-  )?.name;
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -459,16 +446,9 @@ function AddRelationshipSheet({
             <RelationshipTypeSelector
               type={form.type}
               role={form.role}
-              isReversed={form.isReversed}
-              focalCharacterName="Marie Curie"
-              otherCharacterName={otherCharacterName}
               onChange={(next) => {
-                setForm((prev) => ({
-                  ...prev,
-                  type: next.type,
-                  role: next.role,
-                  isReversed: next.isReversed,
-                }));
+                set("type", next.type);
+                set("role", next.role);
               }}
             />
           </div>
@@ -721,7 +701,6 @@ export const AddSheetOpen: Story = {
           otherCharacterId: "",
           type: "family",
           role: "spouse",
-          isReversed: false,
           start: null,
           end: null,
           description: "",

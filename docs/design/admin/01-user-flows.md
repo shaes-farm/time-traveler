@@ -54,7 +54,7 @@ Edge cases:
 
 - **Duplicate type.** If the user picks a type that already exists for this pair, the DB rejects via the unique index. Editor catches the constraint violation and surfaces "Marie already has a `family` relationship with Pierre — edit the existing one?" with a link.
 - **Self-relationship.** DB rejects (`CHECK (character_id != related_character_id)`). Editor disables the "self" option in the picker before submit.
-- **Asymmetric types.** `mentor_student`, `creator_creation`, `owner_pet`, `trainer_trainee`, `worship` are directional. The selector renders these as **paired radios** under the Asymmetric fieldset ("Marie mentors Pierre" / "Pierre mentors Marie") so direction is picked explicitly. No reciprocal row is created for asymmetric types — the chosen direction is the only row stored.
+- **Asymmetric types.** `mentor_student`, `creator_creation`, `owner_pet`, `trainer_trainee`, `worship` are directional. The selector renders one radio per asymmetric type and stores the row with the focal character as `character_id` and the other character as `related_character_id` (the focal-is-subject convention). No reciprocal row is created — direction lives in column position. To record the reverse direction (e.g., "Pierre mentored Marie"), the author switches to Pierre's editor and creates the relationship from there.
 
 ## Flow D — Edit a character that owns published events (permission edge)
 
