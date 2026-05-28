@@ -43,18 +43,18 @@ Persona: Biographer adding the Marie/Pierre marriage relationship.
 1. From **Character detail** ("Marie Curie"), click into the **Relationships** section.
 2. **Relationships editor** opens scoped to Marie. User clicks **Add relationship**.
 3. Picker: pick the other character ("Pierre Curie"). User searches by name.
-4. Pick `relationship_type`. User picks `family`. (Note: "spouse" is not in the enum — `family` is the closest. This is a spec friction point worth flagging.)
+4. Pick `relationship_type`. User picks `family`, then picks `spouse` from the inline sub-role radios that appear (the family / professional / collaboration types reveal a sub-role chooser per issue #119; `spouse` is one of 16 family sub-roles).
 5. Enter description: "Married 1895; collaborated on radioactivity research until Pierre's death in 1906."
 6. Enter **Start temporal**: 1895 CE.
 7. Enter **End temporal**: 1906 CE (Pierre's death). System-design treats end-of-relationship as optional — leaving it empty means "ongoing or unknown."
-8. **Reciprocity check.** `family` is treated as symmetric. The editor offers a checkbox: **Also create the reverse edge (Pierre → Marie, family, same dates)**. Default: checked. On save, two inserts go out.
-9. User adds a second relationship for the same pair: `relationship_type = collaboration`, same dates. The unique index `(character_id, related_character_id, relationship_type)` permits this because the type differs.
+8. **Reciprocity is implicit.** There is no longer a "create the reverse edge" checkbox — the wireframe's Batch 2 Q1 decision made reciprocal-edge creation automatic based on the type/role choice. `family/spouse` is symmetric, so on save the service writes two rows: `(Marie, Pierre, family, spouse)` and `(Pierre, Marie, family, spouse)`. Paired sub-roles like `parent`/`child` write the inverted role on the reverse row; symmetric flat types like `friendship` write a same-type reverse. See `02-wireframes/06-relationships-editor.md` for the full taxonomy.
+9. User adds a second relationship for the same pair: `relationship_type = collaboration`, same dates. The unique index `(character_id, related_character_id, relationship_type, relationship_role)` permits this because the type/role tuple differs.
 
 Edge cases:
 
 - **Duplicate type.** If the user picks a type that already exists for this pair, the DB rejects via the unique index. Editor catches the constraint violation and surfaces "Marie already has a `family` relationship with Pierre — edit the existing one?" with a link.
 - **Self-relationship.** DB rejects (`CHECK (character_id != related_character_id)`). Editor disables the "self" option in the picker before submit.
-- **Asymmetric types.** `mentor_student`, `creator_creation`, `owner_pet`, `trainer_trainee`, `worship` are directional. Reciprocity checkbox is hidden for these; the role label in the editor shows direction explicitly ("Marie _mentors_ Pierre" not "Marie ↔ Pierre, mentor_student").
+- **Asymmetric types.** `mentor_student`, `creator_creation`, `owner_pet`, `trainer_trainee`, `worship` are directional. The selector renders one radio per asymmetric type and stores the row with the focal character as `character_id` and the other character as `related_character_id` (the focal-is-subject convention). No reciprocal row is created — direction lives in column position. To record the reverse direction (e.g., "Pierre mentored Marie"), the author switches to Pierre's editor and creates the relationship from there.
 
 ## Flow D — Edit a character that owns published events (permission edge)
 

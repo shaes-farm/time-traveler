@@ -36,7 +36,7 @@ Per system-design §3.3, relationships are stored as **directed pairs** in the d
 | `worship`          | **Asymmetric**                                        | No                                                          |
 | `mentor_student`   | **Asymmetric**                                        | No                                                          |
 
-This means the editor must distinguish symmetric and asymmetric types and behave differently for each — most critically, asymmetric types must surface direction explicitly in the UI ("Marie _mentors_ Pierre" not "Marie ↔ Pierre").
+This means the editor must distinguish symmetric and asymmetric types and behave differently for each. For asymmetric types the convention is "focal character is the subject of the verb" — the row is always stored from the perspective of whichever character's editor is being used. Cards then surface direction via narrative text ("Marie _mentors_ Pierre" instead of "Marie ↔ Pierre"). Symmetric types create a reciprocal row automatically (paired sub-roles get the inverted role; symmetric sub-roles and symmetric flat types keep the same role).
 
 ## Sub-role taxonomy (Batch 2 decision)
 
@@ -147,12 +147,12 @@ Each relationship is a card with full temporal scope visible. Edits happen inlin
 │   ( ) friendship          ( ) rivalry                            │
 │  Antagonistic                                                    │
 │   ( ) enemy                                                      │
-│  Asymmetric (direction matters)                                  │
-│   ( ) Marie mentors Pierre  ( ) Pierre mentors Marie             │
-│   ( ) Marie created Pierre  ( ) Pierre created Marie             │
-│   ( ) Marie trains Pierre   ( ) Pierre trains Marie              │
-│   ( ) Marie owns Pierre     ( ) Pierre owns Marie                │
-│   ( ) Marie worships Pierre ( ) Pierre worships Marie            │
+│  Asymmetric (focal character is subject of the verb)             │
+│   ( ) mentor / student                                           │
+│   ( ) creator / creation                                         │
+│   ( ) trainer / trainee                                          │
+│   ( ) owner / pet                                                │
+│   ( ) worship                                                    │
 │                                                                  │
 │  Date range                                                      │
 │  Start  [ 1895 CE (exact)  ▾]                                    │
@@ -177,7 +177,7 @@ Each relationship is a card with full temporal scope visible. Edits happen inlin
 2. **Card layout reads the temporal range visually.** A horizontal range bar between start and end dates makes "1895–1906 CE" legible at a glance. "Ongoing" renders as an open right edge. For pre-CE dates, the era is in the labels.
 3. **Direction is rendered as narrative text on the card.** "Marie is mother of Irène" instead of an arrow. The grammar makes asymmetric types unambiguous.
 4. **Add sheet is a right-side slide-out**, not a modal. This makes it easier to reference the current relationships while adding a new one.
-5. **Type picker groups by family** (same groups used in the list). For `family`, `professional`, and `collaboration`, picking a type reveals an inline sub-role chooser ([#119](https://github.com/shaes-farm/time-traveler/issues/119); Batch 2 decision Q3). Asymmetric types render as paired radios — picking "Marie mentors Pierre" stores `(Marie, Pierre, mentor_student)`; picking "Pierre mentors Marie" stores `(Pierre, Marie, mentor_student)`. The user never sees the column names; they see the semantic relationship.
+5. **Type picker groups by family** (same groups used in the list). For `family`, `professional`, and `collaboration`, picking a type reveals an inline sub-role chooser ([#119](https://github.com/shaes-farm/time-traveler/issues/119); Batch 2 decision Q3). Asymmetric types render as a single radio per type. The implementation convention is **focal character is the subject of the verb** — picking `mentor_student` from Marie's editor stores `(Marie, Pierre, mentor_student)` ("Marie mentors Pierre"). To record the reverse direction ("Pierre mentored Marie"), the author switches to Pierre's editor and creates the relationship from there; direction lives implicitly in column ordering. An earlier iteration of this wireframe specified paired radios per asymmetric type with name interpolation; that approach was implemented (PR #164) and reverted because the 10 paired rows added visual weight disproportionate to their value — narrative direction is already carried by the description field, and the focal-is-subject convention covers the common case.
 6. **Reciprocal-edge creation is implicit** in the type/role choice — there is no longer a "reciprocal" checkbox (Batch 2 decision Q1). For paired sub-roles (`parent`/`child`, `grandparent`/`grandchild`, `employer`/`employee`, etc.) the system stores both rows with inverted roles. For symmetric sub-roles and symmetric flat types (`friendship`, `rivalry`, `enemy`, `collaboration` with a symmetric role), both rows are stored with the same type+role. **Description does not sync** between the two rows — each character's card carries its own perspective text. Dates and type/role sync between paired rows; future edits to dates propagate, edits to description do not.
 7. **Type picker uses radio rather than select** because the user benefits from seeing all 11 types at once when choosing — the wrong type is a common error and selects hide that.
 8. **Other-character search** is a combobox that excludes the focal character (`Marie`) and any character already linked by the currently-chosen type (to avoid the unique-index violation before save).
