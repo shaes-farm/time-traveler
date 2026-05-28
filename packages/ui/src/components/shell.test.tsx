@@ -1,5 +1,5 @@
 import * as React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, beforeEach, vi } from "vitest";
 
@@ -51,6 +51,20 @@ function renderShell(
     </Shell>,
   );
 }
+
+const TestLink = ({
+  href,
+  className,
+  children,
+}: {
+  href: string;
+  className?: string;
+  children?: React.ReactNode;
+}) => (
+  <a href={href} className={className} data-testid="custom-shell-link">
+    {children}
+  </a>
+);
 
 describe("Shell", () => {
   beforeEach(() => {
@@ -108,5 +122,32 @@ describe("Shell", () => {
     expect(
       await screen.findByRole("menuitem", { name: /character/i }),
     ).toHaveAttribute("href", "/characters/new");
+  });
+
+  it("derives breadcrumbs from currentPath when breadcrumbs are omitted", () => {
+    renderShell({ breadcrumbs: undefined, currentPath: "/events/42" });
+
+    const breadcrumbNav = screen.getByLabelText(/breadcrumb/i);
+    expect(within(breadcrumbNav).getByText("Events")).toBeInTheDocument();
+  });
+
+  it("hides breadcrumb trail when no nav item matches currentPath", () => {
+    renderShell({ breadcrumbs: undefined, currentPath: "/does-not-exist" });
+
+    expect(screen.queryByLabelText(/breadcrumb/i)).not.toBeInTheDocument();
+  });
+
+  it("uses custom LinkComponent and forwards search trigger callback", async () => {
+    const user = userEvent.setup();
+    const onSearchOpen = vi.fn();
+
+    renderShell({ LinkComponent: TestLink, onSearchOpen });
+
+    expect(screen.getAllByTestId("custom-shell-link").length).toBeGreaterThan(
+      0,
+    );
+
+    await user.click(screen.getByRole("button", { name: /open search/i }));
+    expect(onSearchOpen).toHaveBeenCalledOnce();
   });
 });

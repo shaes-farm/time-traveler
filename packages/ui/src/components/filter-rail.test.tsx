@@ -116,4 +116,93 @@ describe("FilterRail", () => {
     expect(screen.getByText(/1\/10/i)).toBeInTheDocument();
     expect(screen.getByText(/10\/10/i)).toBeInTheDocument();
   });
+
+  it("removes an already-selected checkbox option when toggled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const groups: FilterGroup[] = [
+      {
+        type: "checkbox",
+        id: "type",
+        label: "Character type",
+        options: [{ value: "human", label: "Human" }],
+        value: ["human"],
+        onChange,
+      },
+    ];
+
+    render(<FilterRail groups={groups} />);
+
+    await user.click(screen.getByRole("checkbox"));
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it("uses default range label formatting when formatLabel is omitted", () => {
+    const groups: FilterGroup[] = [
+      {
+        type: "range",
+        id: "importance",
+        label: "Importance",
+        min: 1,
+        max: 10,
+        value: [3, 9],
+        onChange: vi.fn(),
+      },
+    ];
+
+    render(<FilterRail groups={groups} />);
+
+    expect(screen.getByText("3")).toBeInTheDocument();
+    expect(screen.getByText("9")).toBeInTheDocument();
+  });
+
+  it("uses default radio labels when yesLabel/noLabel are omitted", () => {
+    const groups: FilterGroup[] = [
+      {
+        type: "radio",
+        id: "published",
+        label: "Published",
+        value: "any",
+        onChange: vi.fn(),
+      },
+    ];
+
+    render(<FilterRail groups={groups} />);
+
+    expect(screen.getByRole("button", { name: "Yes" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "No" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Any" })).toBeInTheDocument();
+  });
+
+  it("does not render clear-all when active filters exist but callback is missing", () => {
+    const groups: FilterGroup[] = [
+      {
+        type: "radio",
+        id: "published",
+        label: "Published",
+        value: "yes",
+        onChange: vi.fn(),
+      },
+    ];
+
+    render(<FilterRail groups={groups} />);
+
+    expect(
+      screen.queryByRole("button", { name: /clear all/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("handles unknown group types without crashing", () => {
+    const groups = [
+      {
+        type: "unknown",
+        id: "mystery",
+        label: "Mystery",
+      },
+    ] as unknown as FilterGroup[];
+
+    render(<FilterRail groups={groups} />);
+
+    expect(screen.getByText("Mystery")).toBeInTheDocument();
+  });
 });

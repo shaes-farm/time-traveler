@@ -136,7 +136,7 @@ export function RelationshipTypeSelector({
             Role
           </Label>
           <Select
-            value={role ?? undefined}
+            value={role ?? ""}
             onValueChange={(next) => onChange({ type, role: next })}
             disabled={disabled}
           >

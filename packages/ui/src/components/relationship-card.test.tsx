@@ -93,4 +93,77 @@ describe("RelationshipCard", () => {
     render(<RelationshipCard {...baseProps} />);
     expect(screen.getByText(/ongoing or unknown/i)).toBeInTheDocument();
   });
+
+  it("renders direction label and description when provided", () => {
+    render(
+      <RelationshipCard
+        {...baseProps}
+        directionLabel="Marie is spouse of Pierre"
+        description="A long-standing personal and professional partnership."
+      />,
+    );
+
+    expect(screen.getByText(/marie is spouse of pierre/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/long-standing personal and professional partnership/i),
+    ).toBeInTheDocument();
+  });
+
+  it("renders temporal span when only endTemporal is provided", () => {
+    render(
+      <RelationshipCard
+        {...baseProps}
+        endTemporal={T({ year: 1906, era: "CE" })}
+      />,
+    );
+
+    expect(screen.getByLabelText("1906 CE")).toBeInTheDocument();
+  });
+
+  it("calls duplicate and delete actions and renders separator when duplicate+delete are present", async () => {
+    const user = userEvent.setup();
+    const onDuplicate = vi.fn();
+    const onDelete = vi.fn();
+
+    render(
+      <RelationshipCard
+        {...baseProps}
+        onDuplicate={onDuplicate}
+        onDelete={onDelete}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    expect(screen.getByRole("separator")).toBeInTheDocument();
+
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Duplicate" }),
+    );
+
+    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    await user.click(await screen.findByRole("menuitem", { name: "Delete" }));
+
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not render separator when only delete action exists", async () => {
+    const user = userEvent.setup();
+
+    render(<RelationshipCard {...baseProps} onDelete={() => {}} />);
+
+    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+  });
+
+  it("renders separator when edit and delete actions both exist", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <RelationshipCard {...baseProps} onEdit={() => {}} onDelete={() => {}} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /actions for/i }));
+    expect(await screen.findByRole("separator")).toBeInTheDocument();
+  });
 });

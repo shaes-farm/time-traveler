@@ -80,4 +80,39 @@ describe("DataTable", () => {
       screen.getAllByRole("checkbox", { name: /select row/i }),
     ).toHaveLength(2);
   });
+
+  it("toggles select-all checkbox across false, indeterminate, and all-selected states", async () => {
+    const user = userEvent.setup();
+
+    render(<DataTable columns={COLUMNS} data={ROWS} />);
+
+    const selectAll = screen.getByRole("checkbox", { name: /select all/i });
+    const [firstRow, secondRow] = screen.getAllByRole("checkbox", {
+      name: /select row/i,
+    });
+
+    expect(selectAll).not.toBeChecked();
+    expect(selectAll).toHaveAttribute("aria-checked", "false");
+
+    await user.click(firstRow!);
+    expect(selectAll).toHaveAttribute("aria-checked", "mixed");
+
+    await user.click(secondRow!);
+    expect(selectAll).toBeChecked();
+    expect(selectAll).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("does not trigger onRowClick when clicking a row selection checkbox", async () => {
+    const user = userEvent.setup();
+    const onRowClick = vi.fn();
+
+    render(<DataTable columns={COLUMNS} data={ROWS} onRowClick={onRowClick} />);
+
+    const [firstRowCheckbox] = screen.getAllByRole("checkbox", {
+      name: /select row/i,
+    });
+
+    await user.click(firstRowCheckbox!);
+    expect(onRowClick).not.toHaveBeenCalled();
+  });
 });
