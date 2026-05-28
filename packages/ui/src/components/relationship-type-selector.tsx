@@ -34,8 +34,11 @@ interface FamilyGroup {
 const TYPE_FAMILIES: FamilyGroup[] = [
   { legend: "Family", types: ["family"] },
   { legend: "Professional", types: ["professional", "collaboration"] },
-  { legend: "Social / Personal", types: ["friendship"] },
-  { legend: "Antagonistic", types: ["rivalry", "enemy"] },
+  // Rivalry sits under Social / Personal per the wireframe: it's
+  // antagonistic in tone but still a social-standing relationship between
+  // peers. Only `enemy` belongs in the strictly Antagonistic fieldset.
+  { legend: "Social / Personal", types: ["friendship", "rivalry"] },
+  { legend: "Antagonistic", types: ["enemy"] },
   {
     legend: "Asymmetric",
     types: [
