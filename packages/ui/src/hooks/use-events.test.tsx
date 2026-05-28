@@ -10,6 +10,8 @@ import {
   useCreateEvent,
   useUpdateEvent,
   useDeleteEvent,
+  usePublishEvent,
+  useUnpublishEvent,
   useAddCharacterToEvent,
   useRemoveCharacterFromEvent,
   useAddCategoryToEvent,
@@ -26,6 +28,8 @@ vi.mock("@repo/services/event-service.js", () => ({
   createEvent: vi.fn(),
   updateEvent: vi.fn(),
   deleteEvent: vi.fn(),
+  publishEvent: vi.fn(),
+  unpublishEvent: vi.fn(),
   getEventParticipants: vi.fn(),
   getEventsInTemporalRange: vi.fn(),
   addCharacterToEvent: vi.fn(),
@@ -44,6 +48,8 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
+  publishEvent,
+  unpublishEvent,
   getEventParticipants,
   getEventsInTemporalRange,
   addCharacterToEvent,
@@ -205,6 +211,52 @@ describe("useDeleteEvent", () => {
     expect(deleteEvent).toHaveBeenCalledWith(mockClient, "evt-1");
     expect(removeSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),
+    );
+  });
+});
+
+describe("usePublishEvent", () => {
+  it("calls publishEvent and invalidates detail + list", async () => {
+    vi.mocked(publishEvent).mockResolvedValue(mockEvent as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => usePublishEvent(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("evt-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(publishEvent).toHaveBeenCalledWith(mockClient, "evt-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: eventKeys.lists() }),
+    );
+  });
+});
+
+describe("useUnpublishEvent", () => {
+  it("calls unpublishEvent and invalidates detail + list", async () => {
+    vi.mocked(unpublishEvent).mockResolvedValue(mockEvent as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUnpublishEvent(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("evt-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(unpublishEvent).toHaveBeenCalledWith(mockClient, "evt-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: eventKeys.lists() }),
     );
   });
 });
