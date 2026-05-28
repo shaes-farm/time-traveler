@@ -76,6 +76,10 @@ export function RelationshipTypeSelector({
 }: RelationshipTypeSelectorProps) {
   const roleOptions = ROLE_OPTIONS[type];
   const acceptsRole = typeAcceptsRole(type);
+  // Unique per-instance prefix so multiple selectors on the same page don't
+  // collide on id/htmlFor pairs (each fieldset/radio + the role select trigger).
+  const idPrefix = React.useId();
+  const roleSelectId = `${idPrefix}-role`;
 
   return (
     <div className={cn("space-y-4", className)}>
@@ -106,7 +110,7 @@ export function RelationshipTypeSelector({
               {family.legend}
             </legend>
             {family.types.map((typeValue) => {
-              const itemId = `relationship-type-${typeValue}`;
+              const itemId = `${idPrefix}-type-${typeValue}`;
               return (
                 <div key={typeValue} className="flex items-center gap-2">
                   <RadioGroupItem id={itemId} value={typeValue} />
@@ -128,7 +132,7 @@ export function RelationshipTypeSelector({
           className="space-y-1.5"
           data-testid="relationship-type-role-select"
         >
-          <Label htmlFor="relationship-type-role" className="text-sm">
+          <Label htmlFor={roleSelectId} className="text-sm">
             Role
           </Label>
           <Select
@@ -136,7 +140,7 @@ export function RelationshipTypeSelector({
             onValueChange={(next) => onChange({ type, role: next })}
             disabled={disabled}
           >
-            <SelectTrigger id="relationship-type-role" aria-label="Role">
+            <SelectTrigger id={roleSelectId} aria-label="Role">
               <SelectValue placeholder="Select a role" />
             </SelectTrigger>
             <SelectContent>
