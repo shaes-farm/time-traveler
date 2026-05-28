@@ -4,7 +4,6 @@ import * as React from "react";
 import { AlertTriangle, Link2, MoreHorizontal } from "lucide-react";
 import type { TemporalData } from "@repo/services/schemas/temporal.js";
 
-import { Alert, AlertDescription } from "./alert";
 import { Avatar, AvatarFallback } from "./avatar";
 import { Badge } from "./badge";
 import { Button } from "./button";
@@ -84,16 +83,14 @@ export const RelationshipCard = React.forwardRef<
       data-testid="relationship-card"
     >
       {contradiction && (
-        <Alert
-          variant="destructive"
-          className="border-destructive/40 bg-destructive/5 py-2"
+        <div
+          role="alert"
           data-testid="relationship-card-contradiction"
+          className="flex items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive"
         >
-          <AlertTriangle className="h-4 w-4" aria-hidden />
-          <AlertDescription className="text-xs">
-            {contradiction}
-          </AlertDescription>
-        </Alert>
+          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden />
+          <span>{contradiction}</span>
+        </div>
       )}
 
       <div className="flex items-start gap-4">
