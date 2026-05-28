@@ -94,6 +94,44 @@ describe("RelationshipTypeSelector", () => {
     });
   });
 
+  it("preserves role across sub-roled types when the value is valid in both", async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    // "other" is a member of every sub-role enum (family, professional,
+    // collaboration), so switching between them should carry it forward.
+    render(
+      <Harness
+        initialType="professional"
+        initialRole="other"
+        onChange={onChange}
+      />,
+    );
+
+    await user.click(screen.getByLabelText("family"));
+
+    expect(onChange).toHaveBeenCalledWith({
+      type: "family",
+      role: "other",
+    });
+  });
+
+  it("clears role when the current value is not valid for the next sub-roled type", async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+    // "spouse" exists in familyRoleEnum but not in professionalRoleEnum, so
+    // switching from family/spouse to professional must drop the role.
+    render(
+      <Harness initialType="family" initialRole="spouse" onChange={onChange} />,
+    );
+
+    await user.click(screen.getByLabelText("professional"));
+
+    expect(onChange).toHaveBeenCalledWith({
+      type: "professional",
+      role: null,
+    });
+  });
+
   it("shows family sub-roles in the Select when type is family", async () => {
     const user = userEvent.setup();
     render(<Harness initialType="family" />);
