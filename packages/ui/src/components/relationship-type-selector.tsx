@@ -169,12 +169,9 @@ export function RelationshipTypeSelector({
   disabled,
   className,
 }: RelationshipTypeSelectorProps) {
-  const roleOptions = ROLE_OPTIONS[type];
-  const acceptsRole = typeAcceptsRole(type);
   // Unique per-instance prefix so multiple selectors on the same page don't
   // collide on id/htmlFor pairs.
   const idPrefix = React.useId();
-  const roleGroupLabelId = `${idPrefix}-role-label`;
 
   const focal = focalCharacterName ?? "This character";
   const other = otherCharacterName ?? "Other";
@@ -215,22 +212,41 @@ export function RelationshipTypeSelector({
             <legend className="mb-1 text-xs font-medium uppercase tracking-wider text-foreground-muted">
               {family.legend}
             </legend>
-            {family.types
-              .flatMap((typeValue) => rowsForType(typeValue, focal, other))
-              .map((row) => {
-                const itemId = `${idPrefix}-type-${row.key}`;
-                return (
-                  <div key={row.key} className="flex items-center gap-2">
-                    <RadioGroupItem id={itemId} value={row.value} />
-                    <Label
-                      htmlFor={itemId}
-                      className="font-normal capitalize text-foreground"
-                    >
-                      {row.label}
-                    </Label>
-                  </div>
-                );
-              })}
+            {family.types.map((typeValue) => (
+              <React.Fragment key={typeValue}>
+                {rowsForType(typeValue, focal, other).map((row) => {
+                  const itemId = `${idPrefix}-type-${row.key}`;
+                  return (
+                    <div key={row.key} className="flex items-center gap-2">
+                      <RadioGroupItem id={itemId} value={row.value} />
+                      <Label
+                        htmlFor={itemId}
+                        className="font-normal capitalize text-foreground"
+                      >
+                        {row.label}
+                      </Label>
+                    </div>
+                  );
+                })}
+                {/* Sub-role radios inline beneath the currently-selected
+                    sub-roled type. Renders inside the same fieldset as the
+                    parent type radio so the visual hierarchy matches the
+                    wireframe. */}
+                {type === typeValue &&
+                  typeAcceptsRole(typeValue) &&
+                  ROLE_OPTIONS[typeValue] && (
+                    <SubRoleRadios
+                      role={role}
+                      options={ROLE_OPTIONS[typeValue]!}
+                      idPrefix={idPrefix}
+                      disabled={disabled}
+                      onChange={(nextRole) =>
+                        onChange({ type, role: nextRole, isReversed })
+                      }
+                    />
+                  )}
+              </React.Fragment>
+            ))}
           </fieldset>
         ))}
       </RadioGroup>
@@ -241,39 +257,56 @@ export function RelationshipTypeSelector({
           ? "Direction matters — this relationship is stored from one perspective only."
           : "A reverse entry will be created automatically."}
       </p>
+    </div>
+  );
+}
 
-      {acceptsRole && roleOptions && (
-        <div className="space-y-2" data-testid="relationship-type-role-select">
-          <span
-            id={roleGroupLabelId}
-            className="block text-sm font-medium text-foreground"
-          >
-            Role
-          </span>
-          <RadioGroup
-            value={role ?? ""}
-            onValueChange={(next) => onChange({ type, role: next, isReversed })}
-            disabled={disabled}
-            aria-labelledby={roleGroupLabelId}
-            className="grid grid-cols-2 gap-x-4 gap-y-2"
-          >
-            {roleOptions.map((roleValue) => {
-              const itemId = `${idPrefix}-role-${roleValue}`;
-              return (
-                <div key={roleValue} className="flex items-center gap-2">
-                  <RadioGroupItem id={itemId} value={roleValue} />
-                  <Label
-                    htmlFor={itemId}
-                    className="font-normal capitalize text-foreground"
-                  >
-                    {humanize(roleValue)}
-                  </Label>
-                </div>
-              );
-            })}
-          </RadioGroup>
-        </div>
-      )}
+// ─── Sub-role radios (inline; rendered beneath the selected sub-roled type) ──
+
+function SubRoleRadios({
+  role,
+  options,
+  idPrefix,
+  disabled,
+  onChange,
+}: {
+  role: string | null | undefined;
+  options: readonly string[];
+  idPrefix: string;
+  disabled?: boolean;
+  onChange: (next: string) => void;
+}) {
+  const labelId = `${idPrefix}-role-label`;
+  return (
+    <div
+      className="mt-1 space-y-2 pl-6"
+      data-testid="relationship-type-role-select"
+    >
+      <span id={labelId} className="block text-sm font-medium text-foreground">
+        Role
+      </span>
+      <RadioGroup
+        value={role ?? ""}
+        onValueChange={onChange}
+        disabled={disabled}
+        aria-labelledby={labelId}
+        className="grid grid-cols-2 gap-x-4 gap-y-2"
+      >
+        {options.map((roleValue) => {
+          const itemId = `${idPrefix}-role-${roleValue}`;
+          return (
+            <div key={roleValue} className="flex items-center gap-2">
+              <RadioGroupItem id={itemId} value={roleValue} />
+              <Label
+                htmlFor={itemId}
+                className="font-normal capitalize text-foreground"
+              >
+                {humanize(roleValue)}
+              </Label>
+            </div>
+          );
+        })}
+      </RadioGroup>
     </div>
   );
 }

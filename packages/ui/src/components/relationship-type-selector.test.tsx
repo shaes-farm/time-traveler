@@ -141,6 +141,31 @@ describe("RelationshipTypeSelector", () => {
     });
   });
 
+  it("renders the sub-role group inline inside the selected type's fieldset", () => {
+    // Family selected → sub-role group lives inside the Family fieldset.
+    render(<Harness initialType="family" initialRole="spouse" />);
+    const familyFieldset = screen.getByTestId(
+      "relationship-type-family-family",
+    );
+    expect(
+      within(familyFieldset).getByTestId("relationship-type-role-select"),
+    ).toBeInTheDocument();
+  });
+
+  it("places the sub-role group inside the Professional fieldset when collaboration is selected", () => {
+    // collaboration and professional share a fieldset; selecting collaboration
+    // should still scope the sub-role group to that fieldset.
+    render(
+      <Harness initialType="collaboration" initialRole="research_partner" />,
+    );
+    const professionalFieldset = screen.getByTestId(
+      "relationship-type-family-professional",
+    );
+    expect(
+      within(professionalFieldset).getByTestId("relationship-type-role-select"),
+    ).toBeInTheDocument();
+  });
+
   // ─── Role carry/clear logic (existing behaviour, updated for isReversed) ───
 
   it("clears role when switching from a sub-roled type to a non-sub-roled type", async () => {
