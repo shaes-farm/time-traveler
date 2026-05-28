@@ -111,29 +111,33 @@ export function RelationshipTypeSelector({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {TYPE_FAMILIES.map((family) => {
-        const fieldsetOwnsSelectedType = family.types.includes(type);
-        const roleOptionsForSelected =
-          fieldsetOwnsSelectedType && typeAcceptsRole(type)
-            ? ROLE_OPTIONS[type]
-            : undefined;
-        return (
-          <fieldset
-            key={family.legend}
-            className="space-y-2 border-0 p-0"
-            data-testid={`relationship-type-family-${family.legend.toLowerCase().replace(/[^a-z]/g, "-")}`}
-          >
-            <legend className="mb-1 text-xs font-medium uppercase tracking-wider text-foreground-muted">
-              {family.legend}
-            </legend>
-            <RadioGroup
-              value={type}
-              onValueChange={handleTypeChange}
-              disabled={disabled}
-              className="space-y-2"
-            >
-              {family.types.map((typeValue) => (
-                <div key={typeValue} className="flex items-center gap-2">
+      {TYPE_FAMILIES.map((family) => (
+        <fieldset
+          key={family.legend}
+          className="space-y-2 border-0 p-0"
+          data-testid={`relationship-type-family-${family.legend.toLowerCase().replace(/[^a-z]/g, "-")}`}
+        >
+          <legend className="mb-1 text-xs font-medium uppercase tracking-wider text-foreground-muted">
+            {family.legend}
+          </legend>
+          {/*
+            One Radix RadioGroup per type, all sharing value + handler.
+            This lets the SubRoleRadios sit as a DOM sibling of just the
+            selected type's RadioGroup — so the role group renders
+            directly beneath the type the user picked, even when a
+            fieldset contains multiple sub-roled types (e.g. Professional
+            holds both `professional` and `collaboration`). Avoids both
+            (a) nested role="radiogroup" elements and (b) the role group
+            being pushed to the bottom of the fieldset.
+          */}
+          {family.types.map((typeValue) => (
+            <React.Fragment key={typeValue}>
+              <RadioGroup
+                value={type}
+                onValueChange={handleTypeChange}
+                disabled={disabled}
+              >
+                <div className="flex items-center gap-2">
                   <RadioGroupItem
                     id={`${idPrefix}-type-${typeValue}`}
                     value={typeValue}
@@ -145,23 +149,22 @@ export function RelationshipTypeSelector({
                     {humanize(typeValue)}
                   </Label>
                 </div>
-              ))}
-            </RadioGroup>
-            {/* Role radios — sibling of the type RadioGroup, still inside
-                the fieldset of the selected type so the visual hierarchy
-                matches the wireframe without creating nested radiogroups. */}
-            {roleOptionsForSelected && (
-              <SubRoleRadios
-                role={role}
-                options={roleOptionsForSelected}
-                idPrefix={idPrefix}
-                disabled={disabled}
-                onChange={(nextRole) => onChange({ type, role: nextRole })}
-              />
-            )}
-          </fieldset>
-        );
-      })}
+              </RadioGroup>
+              {type === typeValue &&
+                typeAcceptsRole(typeValue) &&
+                ROLE_OPTIONS[typeValue] && (
+                  <SubRoleRadios
+                    role={role}
+                    options={ROLE_OPTIONS[typeValue]!}
+                    idPrefix={idPrefix}
+                    disabled={disabled}
+                    onChange={(nextRole) => onChange({ type, role: nextRole })}
+                  />
+                )}
+            </React.Fragment>
+          ))}
+        </fieldset>
+      ))}
 
       {/* Symmetric/asymmetric semantics helper text */}
       <p className="text-xs text-foreground-muted">
