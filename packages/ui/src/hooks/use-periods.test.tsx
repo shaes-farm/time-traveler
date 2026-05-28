@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   usePeriods,
   usePeriod,
+  usePeriodBySlug,
   useCreatePeriod,
   useUpdatePeriod,
   useDeletePeriod,
@@ -29,6 +30,7 @@ vi.mock("@repo/services/period-service.js", () => ({
 import {
   getPeriods,
   getPeriodById,
+  getPeriodBySlug,
   createPeriod,
   updatePeriod,
   deletePeriod,
@@ -80,6 +82,24 @@ describe("usePeriod", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getPeriodById).toHaveBeenCalledWith(mockClient, "period-1");
+  });
+});
+
+describe("usePeriodBySlug", () => {
+  it("calls getPeriodBySlug with client, userId and slug", async () => {
+    vi.mocked(getPeriodBySlug).mockResolvedValue(mockPeriod as never);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => usePeriodBySlug(mockClient, "user-1", "dark-ages"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getPeriodBySlug).toHaveBeenCalledWith(
+      mockClient,
+      "user-1",
+      "dark-ages",
+    );
   });
 });
 
@@ -144,6 +164,29 @@ describe("useUpdatePeriod", () => {
     });
     result.current.mutate({ id: "period-1", data: { title: "Bad" } as never });
     await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+
+  it("invalidates detail and list queries on successful update", async () => {
+    vi.mocked(updatePeriod).mockResolvedValue(mockPeriod as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUpdatePeriod(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      id: "period-1",
+      data: { title: "Updated" } as never,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: periodKeys.detail("period-1") }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: periodKeys.lists() }),
+    );
   });
 });
 
@@ -226,6 +269,12 @@ describe("periodKeys", () => {
       "periods",
       "children",
       "period-1",
+    ]);
+    expect(periodKeys.bySlug("user-1", "dark-ages")).toEqual([
+      "periods",
+      "slug",
+      "user-1",
+      "dark-ages",
     ]);
   });
 });

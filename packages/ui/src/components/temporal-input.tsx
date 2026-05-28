@@ -252,7 +252,7 @@ function ConfidenceSelectField({
 }) {
   return (
     <Select
-      value={value ?? undefined}
+      value={value ?? ""}
       onValueChange={(v) => onChange(v as ConfidenceLevel)}
     >
       <SelectTrigger aria-label="Confidence">

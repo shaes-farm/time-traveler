@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   useCategories,
   useCategory,
+  useCategoryBySlug,
   useCategoryTree,
   useCreateCategory,
   useUpdateCategory,
@@ -25,6 +26,7 @@ vi.mock("@repo/services/category-service.js", () => ({
 import {
   getCategories,
   getCategoryById,
+  getCategoryBySlug,
   createCategory,
   updateCategory,
   deleteCategory,
@@ -80,6 +82,24 @@ describe("useCategory", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getCategoryById).toHaveBeenCalledWith(mockClient, "cat-1");
+  });
+});
+
+describe("useCategoryBySlug", () => {
+  it("calls getCategoryBySlug with client, userId and slug", async () => {
+    vi.mocked(getCategoryBySlug).mockResolvedValue(mockCategory as never);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useCategoryBySlug(mockClient, "user-1", "battles"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getCategoryBySlug).toHaveBeenCalledWith(
+      mockClient,
+      "user-1",
+      "battles",
+    );
   });
 });
 
@@ -168,6 +188,31 @@ describe("useUpdateCategory", () => {
     result.current.mutate({ id: "cat-1", data: { title: "Bad" } as never });
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
+
+  it("invalidates detail, list, and tree queries on successful update", async () => {
+    vi.mocked(updateCategory).mockResolvedValue(mockCategory as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUpdateCategory(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({ id: "cat-1", data: { title: "Good" } as never });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: categoryKeys.detail("cat-1") }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: categoryKeys.lists() }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: expect.arrayContaining(["categories", "tree"]),
+      }),
+    );
+  });
 });
 
 describe("useDeleteCategory", () => {
@@ -200,6 +245,12 @@ describe("categoryKeys", () => {
       "categories",
       "tree",
       "user-1",
+    ]);
+    expect(categoryKeys.bySlug("user-1", "battles")).toEqual([
+      "categories",
+      "slug",
+      "user-1",
+      "battles",
     ]);
   });
 });

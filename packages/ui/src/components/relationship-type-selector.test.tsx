@@ -157,4 +157,19 @@ describe("RelationshipTypeSelector", () => {
       screen.getByRole("option", { name: "employee" }),
     ).toBeInTheDocument();
   });
+
+  it("updates role when selecting a sub-role option", async () => {
+    const onChange = vi.fn();
+    const user = userEvent.setup();
+
+    render(<Harness initialType="family" onChange={onChange} />);
+
+    await user.click(screen.getByRole("combobox", { name: "Role" }));
+    await user.click(await screen.findByRole("option", { name: "spouse" }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      type: "family",
+      role: "spouse",
+    });
+  });
 });
