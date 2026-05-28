@@ -10,7 +10,7 @@ const meta = {
   argTypes: {
     variant: {
       control: "select",
-      options: ["primary", "secondary", "ghost"],
+      options: ["primary", "secondary", "destructive", "ghost"],
     },
     size: {
       control: "select",
@@ -41,6 +41,14 @@ export const Secondary: Story = {
   },
 };
 
+export const Destructive: Story = {
+  args: {
+    variant: "destructive",
+    size: "md",
+    children: "Delete",
+  },
+};
+
 export const Ghost: Story = {
   args: {
     variant: "ghost",
@@ -55,6 +63,7 @@ export const AllVariants: Story = {
     <div className="flex gap-3">
       <Button variant="primary">Primary</Button>
       <Button variant="secondary">Secondary</Button>
+      <Button variant="destructive">Destructive</Button>
       <Button variant="ghost">Ghost</Button>
     </div>
   ),

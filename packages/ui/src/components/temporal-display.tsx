@@ -43,7 +43,7 @@ export interface TemporalDisplayProps extends Omit<
   showExact?: boolean;
 }
 
-const ERA_COLOR: Record<Era, string> = {
+export const ERA_COLOR: Record<Era, string> = {
   CE: "text-era-ce",
   BCE: "text-era-bce",
   KYA: "text-era-kya",
@@ -51,7 +51,7 @@ const ERA_COLOR: Record<Era, string> = {
   BYA: "text-era-bya",
 };
 
-const PRECISION_LABEL: Record<Precision, string | null> = {
+export const PRECISION_LABEL: Record<Precision, string | null> = {
   exact: "exact",
   circa: "circa",
   approximate: "approximate",

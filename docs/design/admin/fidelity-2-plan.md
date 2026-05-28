@@ -37,8 +37,8 @@ The original fidelity-2 outline didn't reference the foundational GitHub issues 
 | **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | done        |
 | **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | done        |
 | **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | done        |
-| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | next        |
-| **[G](#batch-g--editor-primitives)**   | originally Batch E                                                                                                                                                       | not started |
+| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | done        |
+| **[G](#batch-g--editor-primitives)**   | [#40](https://github.com/shaes-farm/time-traveler/issues/40) (TemporalInput/editor primitives + docs refresh)                                                            | in review   |
 | **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                       | not started |
 
 Why app shell + auth before the temporal primitive: the TemporalDisplay primitive is the highest-leverage component visually, but every later batch (lists, editors, relationships) renders inside the protected shell. Building the chrome first means later composite stories can mount their primitives in a real shell context instead of a Storybook-only frame, and the auth + proxy work unblocks any future "go look at the running admin app" verification step. The TemporalDisplay still lands before list/editor work, which is where it actually gets consumed.
@@ -162,7 +162,7 @@ Closes [#38](https://github.com/shaes-farm/time-traveler/issues/38).
 - Sidebar: 240/64 collapsed per [#127](https://github.com/shaes-farm/time-traveler/issues/127); active-route highlighting; user avatar + sign-out at the bottom; collapsed state wired to `useUiStore` from [#138](https://github.com/shaes-farm/time-traveler/pull/138), **persisted to `localStorage` cross-tab** so the preference survives reload
 - Topbar:
   - Global search trigger (`⌘K`, opens shadcn `command`)
-  - Quick-create button: dropdown listing all 8 entity types (Character / Event / Period / Story / Timeline / Category / Media / Relationship); each item links to `/<entity>/new` (which 404-stubs until Batch G's editor primitives land)
+  - Quick-create button: dropdown listing all 8 entity types (Character / Event / Period / Story / Timeline / Category / Media / Relationship); each item links to `/<entity>/new` (currently 404-stubbed; route integration is tracked outside Batch G)
   - User menu: **placeholder user** (hardcoded avatar fallback + name + email), inert menu items (Profile / Settings / Sign out) — visible but non-functional in Batch B. Wired to real auth in Batch C/D
 - Breadcrumb derives from route segments
 - Mobile: sidebar collapses into a `sheet`
@@ -239,10 +239,10 @@ Originally Batch B. Two PRs.
 - `Pages > Character Detail` composite story (3 variants: Overview / Loading / PrehistoricCharacter) mounting the Shell from Batch B and consuming `TemporalDisplay` in two roles: compact span in the identity header, block format with `showExact` in the Temporal scope section
 - Demonstrates adaptive empty-state rendering (no bio, no physical description, no death date)
 - Token findings from E.2: era hues and surface/foreground tokens cover all needs; no new tokens required. Two deferred items crystallized:
-  - **`Button` destructive variant** — blocked on inline className override in the danger zone; add the variant to `button.tsx` in Batch G (editor primitives will need it for delete confirms)
-  - **Importance gradient tokens** (1–10 single-hue scale) — significance level currently renders as plain text; tokens and visual treatment land in Batch F when the list primitive consumes them
+  - **`Button` destructive variant** — implemented in Batch G (`button.tsx`) for delete-confirm surfaces
+  - **Importance gradient tokens** (1–10 single-hue scale) — implemented in Batch F list surfaces
 
-### Batch F — List primitives
+### Batch F — List primitives ✅ landed in [#160](https://github.com/shaes-farm/time-traveler/pull/160)
 
 Originally Batch D.
 
@@ -256,12 +256,15 @@ Originally Batch D.
 
 Originally Batch E.
 
+This batch tracks the refreshed scope from [#40](https://github.com/shaes-farm/time-traveler/issues/40) as an editor-primitives/documentation batch centered on `TemporalInput` and related editor controls. Route integration is intentionally excluded from Batch G and tracked separately.
+
 - `ChipInput` for `TEXT[]` fields (aliases, cultural_context, characteristics, tags)
 - `SlugField` with locked-by-default + manual unlock + warning per Batch 1 decision
 - `TemporalInput` composite popover (era picker, year/month/day, precision, uncertainty) using `TemporalDisplay` for the trigger button preview
 - `SaveDropdown` with curated-set "Save and add another" per Batch 5 decision
 - Auto-save toolbar indicator ("Draft saved at H:MM PM") per [#127](https://github.com/shaes-farm/time-traveler/issues/127) reconciliation
 - Composite stories: `Pages > Character Editor`, `Pages > Event Editor`
+- Supporting stories added for newly landed primitives consumed by editor/list surfaces: `Textarea`, `Checkbox`, `Slider`, `Table`, `DataTable`, `FilterRail`
 
 ### Batch H — Relationship editor
 
