@@ -83,8 +83,14 @@ export function RelationshipTypeSelector({
         value={type}
         onValueChange={(next) => {
           const nextType = next as RelationshipType;
-          // When moving to a non-sub-roled type, clear role.
-          const nextRole = typeAcceptsRole(nextType) ? (role ?? null) : null;
+          const nextRoleOptions = ROLE_OPTIONS[nextType];
+          const nextRole =
+            typeAcceptsRole(nextType) &&
+            role != null &&
+            nextRoleOptions?.includes(role)
+              ? role
+              : null;
+
           onChange({ type: nextType, role: nextRole });
         }}
         disabled={disabled}
