@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentType, type ReactNode } from "react";
+import { Fragment, type ComponentType, type ReactNode } from "react";
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -213,18 +213,18 @@ export const ShellBreadcrumb = ({
         {items.map((item, index) => {
           const last = index === items.length - 1;
           return (
-            <BreadcrumbItem key={`${item.label}-${index}`}>
-              {last || !item.href ? (
-                <BreadcrumbPage>{item.label}</BreadcrumbPage>
-              ) : (
-                <>
+            <Fragment key={`${item.label}-${index}`}>
+              <BreadcrumbItem>
+                {last || !item.href ? (
+                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
+                ) : (
                   <BreadcrumbLink asChild>
                     <LinkComponent href={item.href}>{item.label}</LinkComponent>
                   </BreadcrumbLink>
-                  <BreadcrumbSeparator />
-                </>
-              )}
-            </BreadcrumbItem>
+                )}
+              </BreadcrumbItem>
+              {!last && item.href && <BreadcrumbSeparator />}
+            </Fragment>
           );
         })}
       </BreadcrumbList>

@@ -15,8 +15,13 @@ export default defineConfig({
       // Scope to files that have tests. Expand this list as test coverage grows.
       include: [
         "src/components/autosave-indicator.tsx",
+        "src/components/data-table.tsx",
+        "src/components/filter-rail.tsx",
+        "src/components/shell.tsx",
         "src/components/chip-input.tsx",
         "src/components/button.tsx",
+        "src/components/relationship-card.tsx",
+        "src/components/relationship-type-selector.tsx",
         "src/components/save-dropdown.tsx",
         "src/components/slug-field.tsx",
         "src/components/temporal-display.tsx",
