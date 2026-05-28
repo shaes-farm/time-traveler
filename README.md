@@ -112,10 +112,13 @@ The same four validations run in GitHub Actions on every push and pull request (
 ```bash
 pnpm run format                  # prettier --write "**/*.{ts,tsx,md}"
 pnpm run db:reset                # reset local DB and re-apply migrations
+pnpm run db:seed:electricity     # manually seed electricity discovery dataset (non-auto)
 pnpm run db:gen:migration <name> # scaffold a new migration
 pnpm run db:gen:types            # regenerate ./packages/services/src/supabase/types.ts
 pnpm run db:deploy               # supabase db push to remote
 ```
+
+Manual dataset seeding docs: [docs/seeding-electricity.md](docs/seeding-electricity.md)
 
 ## Documentation
 
