@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { startTransition, type ReactNode } from "react";
+import { startTransition, useEffect, type ReactNode } from "react";
 import { Shell, type ShellUser } from "@repo/ui/components/shell";
+import { useUiStore } from "@repo/ui/stores";
 import { ShellLink } from "../../../components/shell-link";
 import { NAV_ITEMS, QUICK_CREATE_ITEMS } from "../../../lib/nav";
 import { signOutAction } from "../../auth/_actions";
@@ -21,6 +22,18 @@ interface ProtectedShellProps {
  */
 export const ProtectedShell = ({ user, children }: ProtectedShellProps) => {
   const pathname = usePathname() ?? "/dashboard";
+
+  // Auto-collapse the sidebar on first mount when the viewport is below
+  // Tailwind's `lg` breakpoint (1024px). Runs only on mount; the user can
+  // still toggle freely within the session afterwards. The toggle preference
+  // persists via the Zustand store's localStorage middleware, so subsequent
+  // loads on a wide viewport will reflect whatever state was last left in.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.matchMedia("(max-width: 1023.98px)").matches) {
+      useUiStore.setState({ sidebarOpen: false });
+    }
+  }, []);
 
   const handleSignOut = () => {
     startTransition(() => {

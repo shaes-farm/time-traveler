@@ -6,10 +6,11 @@ import {
   GitBranch,
   Image as ImageIcon,
   LayoutDashboard,
+  Settings,
   Users,
 } from "lucide-react";
 import type {
-  ShellNavItem,
+  ShellNavEntry,
   ShellQuickCreateItem,
 } from "@repo/ui/components/shell";
 
@@ -17,15 +18,26 @@ import type {
  * Sidebar navigation. Routes match the route-group scaffolding in
  * `app/(protected)/*`. Order mirrors the wireframe inventory.
  */
-export const NAV_ITEMS: ShellNavItem[] = [
+export const NAV_ITEMS: ShellNavEntry[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Timelines", href: "/timelines", icon: GitBranch },
-  { label: "Events", href: "/events", icon: Calendar },
-  { label: "Characters", href: "/characters", icon: Users },
-  { label: "Periods", href: "/periods", icon: Clock },
-  { label: "Stories", href: "/stories", icon: BookOpen },
-  { label: "Categories", href: "/categories", icon: FolderTree },
-  { label: "Media", href: "/media", icon: ImageIcon },
+  {
+    label: "Content",
+    items: [
+      { label: "Characters", href: "/characters", icon: Users },
+      { label: "Events", href: "/events", icon: Calendar },
+      { label: "Timelines", href: "/timelines", icon: GitBranch },
+      { label: "Periods", href: "/periods", icon: Clock },
+      { label: "Stories", href: "/stories", icon: BookOpen },
+    ],
+  },
+  {
+    label: "Library",
+    items: [
+      { label: "Media", href: "/media", icon: ImageIcon },
+      { label: "Categories", href: "/categories", icon: FolderTree },
+    ],
+  },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 /**
