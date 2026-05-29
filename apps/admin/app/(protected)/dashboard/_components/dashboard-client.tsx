@@ -6,14 +6,13 @@ import {
   BookOpen,
   Calendar,
   Clock,
-  FolderTree,
   GitBranch,
-  Image as ImageIcon,
   Plus,
   Users,
 } from "lucide-react";
 import type { ComponentType } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import { Badge } from "@repo/ui/components/badge";
 import { Button } from "@repo/ui/components/button";
 import {
   Card,
@@ -39,27 +38,7 @@ const METRIC_CARDS: Array<{
   { key: "timelines", label: "Timelines", href: "/timelines", icon: GitBranch },
   { key: "stories", label: "Stories", href: "/stories", icon: BookOpen },
   { key: "periods", label: "Periods", href: "/periods", icon: Clock },
-  {
-    key: "categories",
-    label: "Categories",
-    href: "/categories",
-    icon: FolderTree,
-  },
-  { key: "media", label: "Media", href: "/media", icon: ImageIcon },
 ];
-
-const QUICK_ACTIONS = [
-  { label: "New character", href: "/characters/new" },
-  { label: "New event", href: "/events/new" },
-  { label: "New timeline", href: "/timelines/new" },
-  { label: "View stories", href: "/stories" },
-];
-
-const RECENT_ACTIVITY_ROUTE_BY_TYPE = {
-  character: "/characters",
-  event: "/events",
-  timeline: "/timelines",
-} as const;
 
 const ENTITY_LABEL_BY_TYPE = {
   character: "character",
@@ -89,10 +68,12 @@ const formatRelativeTime = (timestamp: string): string => {
   return rtf.format(years, "year");
 };
 
+const formatSevenDayBadge = (count: number): string => `▴ ${count} in 7d`;
+
 const DashboardLoadingState = () => (
   <div className="space-y-6">
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {Array.from({ length: 7 }).map((_, index) => (
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      {Array.from({ length: 5 }).map((_, index) => (
         <Card key={index}>
           <CardHeader className="space-y-2 pb-3">
             <Skeleton className="h-4 w-24" />
@@ -245,6 +226,9 @@ export const DashboardClient = () => {
     (sum, value) => sum + value,
     0,
   );
+  const recentDrafts = data.recentActivity
+    .filter((item) => !item.isPublished)
+    .slice(0, 5);
 
   if (totalCount === 0) {
     return (
@@ -270,7 +254,8 @@ export const DashboardClient = () => {
       </header>
 
       <section aria-label="Library metrics" className="space-y-3">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <h2 className="font-display text-xl text-foreground">Library</h2>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {METRIC_CARDS.map((card) => {
             const Icon = card.icon;
             return (
@@ -286,6 +271,19 @@ export const DashboardClient = () => {
                     <p className="font-display text-3xl text-foreground">
                       {data.metrics[card.key]}
                     </p>
+                    <div>
+                      {data.sevenDayBadgeCounts[card.key] > 0 ? (
+                        <Badge variant="secondary">
+                          {formatSevenDayBadge(
+                            data.sevenDayBadgeCounts[card.key],
+                          )}
+                        </Badge>
+                      ) : (
+                        <span className="font-mono text-xs text-foreground-subtle">
+                          -
+                        </span>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </Link>
@@ -317,7 +315,7 @@ export const DashboardClient = () => {
                 {data.recentActivity.map((item) => (
                   <li key={`${item.entityType}:${item.id}`}>
                     <Link
-                      href={RECENT_ACTIVITY_ROUTE_BY_TYPE[item.entityType]}
+                      href={item.href}
                       className="flex items-center justify-between rounded-md border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface"
                     >
                       <div>
@@ -334,28 +332,54 @@ export const DashboardClient = () => {
                 ))}
               </ul>
             )}
+            <div className="mt-3">
+              <Link
+                href="/events"
+                className="text-xs text-foreground-subtle underline-offset-2 hover:text-foreground hover:underline"
+              >
+                See all activity
+              </Link>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="font-display text-xl">
-              Quick actions
-            </CardTitle>
+            <CardTitle className="font-display text-xl">Drafts</CardTitle>
             <CardDescription>
-              Jump straight to create and list routes.
+              Unpublished items from your recent activity.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-2">
-              {QUICK_ACTIONS.map((action) => (
-                <Link key={action.href} href={action.href}>
-                  <Button variant="secondary" className="w-full justify-start">
-                    {action.label}
-                  </Button>
-                </Link>
-              ))}
-            </div>
+            {recentDrafts.length === 0 ? (
+              <p className="text-sm text-foreground-muted">
+                No drafts in recent activity.
+              </p>
+            ) : (
+              <ul className="space-y-1">
+                {recentDrafts.map((item) => (
+                  <li key={`draft:${item.entityType}:${item.id}`}>
+                    <Link
+                      href={item.href}
+                      className="flex items-center justify-between rounded-md border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {item.label}
+                        </p>
+                        <p className="text-xs text-foreground-subtle">
+                          {ENTITY_LABEL_BY_TYPE[item.entityType]} · edited{" "}
+                          {formatRelativeTime(item.updatedAt)}
+                        </p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="mt-3 text-xs text-foreground-subtle">
+              {recentDrafts.length} unpublished items in recent activity
+            </p>
           </CardContent>
         </Card>
       </section>

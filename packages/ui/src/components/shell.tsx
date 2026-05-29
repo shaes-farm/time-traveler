@@ -63,6 +63,13 @@ export interface ShellNavItem {
   icon: ComponentType<{ className?: string }>;
 }
 
+export interface ShellNavGroup {
+  label: string;
+  items: ShellNavItem[];
+}
+
+export type ShellNavEntry = ShellNavItem | ShellNavGroup;
+
 export interface ShellQuickCreateItem {
   label: string;
   href: string;
@@ -96,10 +103,20 @@ const DefaultShellLink = ({
 // ---------------------------------------------------------------------
 
 export interface ShellSidebarProps {
-  nav: ShellNavItem[];
+  nav: ShellNavEntry[];
   currentPath: string;
   LinkComponent?: ShellLinkComponent;
 }
+
+const isShellNavGroup = (entry: ShellNavEntry): entry is ShellNavGroup =>
+  "items" in entry;
+
+const isActiveNavItem = (currentPath: string, item: ShellNavItem): boolean =>
+  currentPath === item.href ||
+  (item.href !== "/" && currentPath.startsWith(`${item.href}/`));
+
+const flattenNavEntries = (nav: ShellNavEntry[]): ShellNavItem[] =>
+  nav.flatMap((entry) => (isShellNavGroup(entry) ? entry.items : [entry]));
 
 export const ShellSidebar = ({
   nav,
@@ -131,38 +148,69 @@ export const ShellSidebar = ({
         )}
       </div>
       <nav className="flex-1 overflow-y-auto p-2">
-        <ul className="flex flex-col gap-1">
-          {nav.map((item) => {
-            const active =
-              currentPath === item.href ||
-              (item.href !== "/" && currentPath.startsWith(`${item.href}/`));
-            const Icon = item.icon;
-            const link = (
-              <LinkComponent
-                href={item.href}
-                aria-label={item.label}
-                className={cn(
-                  "flex h-9 items-center rounded-md text-sm transition-colors",
-                  sidebarOpen ? "gap-3 px-3" : "justify-center",
-                  active
-                    ? "bg-surface-2 text-foreground"
-                    : "text-foreground-muted hover:bg-surface-2 hover:text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden />
-                {sidebarOpen && <span>{item.label}</span>}
-              </LinkComponent>
-            );
+        <ul className="flex flex-col gap-3">
+          {nav.map((entry, entryIndex) => {
+            const items = isShellNavGroup(entry) ? entry.items : [entry];
+            const previousEntry = nav[entryIndex - 1];
+            const showTopDivider =
+              sidebarOpen &&
+              !isShellNavGroup(entry) &&
+              entryIndex > 0 &&
+              previousEntry !== undefined &&
+              isShellNavGroup(previousEntry);
+
             return (
-              <li key={item.href}>
-                {sidebarOpen ? (
-                  link
-                ) : (
-                  <Tooltip>
-                    <TooltipTrigger asChild>{link}</TooltipTrigger>
-                    <TooltipContent side="right">{item.label}</TooltipContent>
-                  </Tooltip>
-                )}
+              <li key={isShellNavGroup(entry) ? entry.label : entry.href}>
+                {showTopDivider ? (
+                  <div className="mb-3 border-t border-border" />
+                ) : null}
+                {isShellNavGroup(entry) && sidebarOpen ? (
+                  <p className="px-3 pb-1 text-xs uppercase tracking-wide text-foreground-subtle">
+                    {entry.label}
+                  </p>
+                ) : null}
+                <ul className="flex flex-col gap-1">
+                  {items.map((item) => {
+                    const active = isActiveNavItem(currentPath, item);
+                    const Icon = item.icon;
+                    const link = (
+                      <LinkComponent
+                        href={item.href}
+                        aria-label={item.label}
+                        className={cn(
+                          "flex h-9 items-center rounded-md text-sm transition-colors",
+                          sidebarOpen ? "gap-3 px-3" : "justify-center",
+                          active
+                            ? "bg-surface-2 text-foreground"
+                            : "text-foreground-muted hover:bg-surface-2 hover:text-foreground",
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                        {sidebarOpen && <span>{item.label}</span>}
+                      </LinkComponent>
+                    );
+
+                    return (
+                      <li key={item.href}>
+                        {sidebarOpen ? (
+                          link
+                        ) : (
+                          <Tooltip>
+                            <TooltipTrigger asChild>{link}</TooltipTrigger>
+                            <TooltipContent side="right">
+                              {item.label}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {sidebarOpen &&
+                entryIndex < nav.length - 1 &&
+                !isShellNavGroup(entry) ? (
+                  <div className="mt-3 border-t border-border" />
+                ) : null}
               </li>
             );
           })}
@@ -395,7 +443,7 @@ export const ShellTopbar = ({
 
 export interface ShellProps {
   /** Sidebar navigation entries. */
-  nav: ShellNavItem[];
+  nav: ShellNavEntry[];
   /** Current route — drives sidebar active state and auto-breadcrumb fallback. */
   currentPath: string;
   /** Authenticated user. Placeholder during Batch B; wired to real auth in Batch C/D. */
@@ -415,12 +463,10 @@ export interface ShellProps {
 
 const deriveBreadcrumbs = (
   currentPath: string,
-  nav: ShellNavItem[],
+  nav: ShellNavEntry[],
 ): ShellBreadcrumbItem[] => {
-  const match = nav.find(
-    (item) =>
-      currentPath === item.href ||
-      (item.href !== "/" && currentPath.startsWith(`${item.href}/`)),
+  const match = flattenNavEntries(nav).find((item) =>
+    isActiveNavItem(currentPath, item),
   );
   if (match) return [{ label: match.label }];
   return [];

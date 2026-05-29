@@ -23,11 +23,14 @@ export interface DashboardActivityItem {
   slug: string;
   updatedAt: string;
   entityType: ActivityEntityType;
+  isPublished: boolean;
+  href: string;
 }
 
 export interface DashboardData {
   displayName: string;
   metrics: DashboardMetrics;
+  sevenDayBadgeCounts: DashboardMetrics;
   recentActivity: DashboardActivityItem[];
 }
 
@@ -51,6 +54,11 @@ const EMPTY_METRICS: DashboardMetrics = {
   media: 0,
 };
 
+const DAYS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+const isWithinLastSevenDays = (timestamp: string): boolean =>
+  Date.now() - new Date(timestamp).getTime() <= DAYS_WINDOW_MS;
+
 const DASHBOARD_QUERY_KEY = ["dashboard", "summary"] as const;
 
 type BrowserDatabaseClient = SupabaseClient<Database>;
@@ -65,6 +73,17 @@ const toDisplayName = (
 ): string => {
   const displayName = [firstName, lastName].filter(Boolean).join(" ").trim();
   return displayName || fallback;
+};
+
+const toEntityHref = (entityType: ActivityEntityType, slug: string): string => {
+  switch (entityType) {
+    case "timeline":
+      return `/timelines/${slug}/edit`;
+    case "event":
+      return `/events/${slug}/edit`;
+    case "character":
+      return `/characters/${slug}/edit`;
+  }
 };
 
 const fetchDashboardData = async (): Promise<DashboardData> => {
@@ -97,17 +116,17 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
     client.rpc("get_user_metrics", { p_user_id: user.id }),
     client
       .from("timelines")
-      .select("id, title, slug, updated_at")
+      .select("id, title, slug, updated_at, published")
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(10),
     client
       .from("events")
-      .select("id, title, slug, updated_at")
+      .select("id, title, slug, updated_at, published")
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(10),
     client
       .from("characters")
-      .select("id, name, slug, updated_at")
+      .select("id, name, slug, updated_at, published")
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(10),
   ]);
@@ -145,6 +164,8 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       slug: row.slug,
       updatedAt: row.updated_at as string,
       entityType: "timeline" as const,
+      isPublished: row.published === true,
+      href: toEntityHref("timeline", row.slug),
     }));
 
   const eventActivity = (eventsResult.data ?? [])
@@ -155,6 +176,8 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       slug: row.slug,
       updatedAt: row.updated_at as string,
       entityType: "event" as const,
+      isPublished: row.published === true,
+      href: toEntityHref("event", row.slug),
     }));
 
   const characterActivity = (charactersResult.data ?? [])
@@ -165,6 +188,8 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       slug: row.slug,
       updatedAt: row.updated_at as string,
       entityType: "character" as const,
+      isPublished: row.published === true,
+      href: toEntityHref("character", row.slug),
     }));
 
   const recentActivity = [
@@ -178,6 +203,19 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
     )
     .slice(0, 10);
 
+  // Safe badge counts derive from already-fetched recent activity sources,
+  // avoiding extra count queries that previously caused runtime errors.
+  const sevenDayBadgeCounts = { ...EMPTY_METRICS };
+  sevenDayBadgeCounts.timelines = timelineActivity.filter((item) =>
+    isWithinLastSevenDays(item.updatedAt),
+  ).length;
+  sevenDayBadgeCounts.events = eventActivity.filter((item) =>
+    isWithinLastSevenDays(item.updatedAt),
+  ).length;
+  sevenDayBadgeCounts.characters = characterActivity.filter((item) =>
+    isWithinLastSevenDays(item.updatedAt),
+  ).length;
+
   return {
     displayName: toDisplayName(
       profileResult.data?.first_name ?? null,
@@ -185,6 +223,7 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       user.email ?? "Traveler",
     ),
     metrics,
+    sevenDayBadgeCounts,
     recentActivity,
   };
 };
