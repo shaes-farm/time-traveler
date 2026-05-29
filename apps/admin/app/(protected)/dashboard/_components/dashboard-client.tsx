@@ -13,7 +13,7 @@ import {
 import type { ComponentType } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
 import { Badge } from "@repo/ui/components/badge";
-import { Button } from "@repo/ui/components/button";
+import { Button, buttonVariants } from "@repo/ui/components/button";
 import {
   Card,
   CardContent,
@@ -46,13 +46,19 @@ const ENTITY_LABEL_BY_TYPE = {
   timeline: "timeline",
 } as const;
 
+// Hoisted to module scope so we don't instantiate a new Intl formatter on
+// every relative-time render.
+const RELATIVE_TIME_FORMAT = new Intl.RelativeTimeFormat("en", {
+  numeric: "auto",
+});
+
 const formatRelativeTime = (timestamp: string): string => {
   const now = Date.now();
   const target = new Date(timestamp).getTime();
   const deltaSeconds = Math.round((target - now) / 1000);
   const absSeconds = Math.abs(deltaSeconds);
 
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  const rtf = RELATIVE_TIME_FORMAT;
 
   if (absSeconds < 60) return rtf.format(deltaSeconds, "second");
   const minutes = Math.round(deltaSeconds / 60);
@@ -145,23 +151,32 @@ const DashboardEmptyState = () => (
     </CardHeader>
     <CardContent>
       <div className="flex flex-wrap gap-2">
-        <Link href="/characters/new">
-          <Button size="sm">
-            <Plus className="h-4 w-4" />
-            New character
-          </Button>
+        {/*
+         * Apply buttonVariants to <Link> directly rather than wrapping a
+         * <Button> in <Link>. The project's Button doesn't expose `asChild`,
+         * so nesting would produce <a><button>…</button></a> — invalid HTML
+         * with two nested interactive elements.
+         */}
+        <Link
+          href="/characters/new"
+          className={buttonVariants({ size: "sm", variant: "primary" })}
+        >
+          <Plus className="h-4 w-4" />
+          New character
         </Link>
-        <Link href="/events/new">
-          <Button size="sm" variant="secondary">
-            <Plus className="h-4 w-4" />
-            New event
-          </Button>
+        <Link
+          href="/events/new"
+          className={buttonVariants({ size: "sm", variant: "secondary" })}
+        >
+          <Plus className="h-4 w-4" />
+          New event
         </Link>
-        <Link href="/timelines/new">
-          <Button size="sm" variant="secondary">
-            <Plus className="h-4 w-4" />
-            New timeline
-          </Button>
+        <Link
+          href="/timelines/new"
+          className={buttonVariants({ size: "sm", variant: "secondary" })}
+        >
+          <Plus className="h-4 w-4" />
+          New timeline
         </Link>
       </div>
     </CardContent>
@@ -190,7 +205,7 @@ export const DashboardClient = () => {
       <div className="mx-auto max-w-6xl space-y-6 p-6">
         <header className="space-y-1">
           <h1 className="font-display text-3xl text-foreground">Dashboard</h1>
-          <p className="font-body text-sm text-foreground-muted">
+          <p role="status" className="font-body text-sm text-foreground-muted">
             Loading your workspace...
           </p>
         </header>
@@ -259,8 +274,12 @@ export const DashboardClient = () => {
           {METRIC_CARDS.map((card) => {
             const Icon = card.icon;
             return (
-              <Link key={card.key} href={card.href} className="group">
-                <Card className="h-full border-border bg-surface transition-colors group-hover:border-foreground/30">
+              <Link
+                key={card.key}
+                href={card.href}
+                className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
+              >
+                <Card className="h-full border-border bg-surface transition-colors group-hover:border-foreground/30 group-focus-visible:border-foreground/30">
                   <CardHeader className="flex-row items-center justify-between pb-2">
                     <CardDescription className="text-xs uppercase tracking-wide text-foreground-subtle">
                       {card.label}
@@ -316,7 +335,7 @@ export const DashboardClient = () => {
                   <li key={`${item.entityType}:${item.id}`}>
                     <Link
                       href={item.href}
-                      className="flex items-center justify-between rounded-md border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface"
+                      className="flex items-center justify-between rounded-md border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface focus-visible:border-border focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
                     >
                       <div>
                         <p className="text-sm font-medium text-foreground">
@@ -332,14 +351,6 @@ export const DashboardClient = () => {
                 ))}
               </ul>
             )}
-            <div className="mt-3">
-              <Link
-                href="/events"
-                className="text-xs text-foreground-subtle underline-offset-2 hover:text-foreground hover:underline"
-              >
-                See all activity
-              </Link>
-            </div>
           </CardContent>
         </Card>
 
@@ -361,7 +372,7 @@ export const DashboardClient = () => {
                   <li key={`draft:${item.entityType}:${item.id}`}>
                     <Link
                       href={item.href}
-                      className="flex items-center justify-between rounded-md border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface"
+                      className="flex items-center justify-between rounded-md border border-transparent px-2 py-2 transition-colors hover:border-border hover:bg-surface focus-visible:border-border focus-visible:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20"
                     >
                       <div>
                         <p className="text-sm font-medium text-foreground">
@@ -377,9 +388,13 @@ export const DashboardClient = () => {
                 ))}
               </ul>
             )}
-            <p className="mt-3 text-xs text-foreground-subtle">
-              {recentDrafts.length} unpublished items in recent activity
-            </p>
+            {recentDrafts.length > 0 ? (
+              <p className="mt-3 text-xs text-foreground-subtle">
+                {recentDrafts.length} unpublished{" "}
+                {recentDrafts.length === 1 ? "item" : "items"} in recent
+                activity
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </section>

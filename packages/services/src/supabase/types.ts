@@ -1415,6 +1415,13 @@ export type Database = {
           entity_type: string;
         }[];
       };
+      get_user_recent_counts: {
+        Args: { p_user_id: string; p_window_days?: number };
+        Returns: {
+          count: number;
+          entity_type: string;
+        }[];
+      };
       immutable_array_to_string: {
         Args: { arr: string[]; sep: string };
         Returns: string;

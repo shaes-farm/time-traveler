@@ -54,11 +54,6 @@ const EMPTY_METRICS: DashboardMetrics = {
   media: 0,
 };
 
-const DAYS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-
-const isWithinLastSevenDays = (timestamp: string): boolean =>
-  Date.now() - new Date(timestamp).getTime() <= DAYS_WINDOW_MS;
-
 const DASHBOARD_QUERY_KEY = ["dashboard", "summary"] as const;
 
 type BrowserDatabaseClient = SupabaseClient<Database>;
@@ -104,6 +99,7 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
   const [
     profileResult,
     metricsResult,
+    recentCountsResult,
     timelinesResult,
     eventsResult,
     charactersResult,
@@ -114,6 +110,7 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       .eq("id", user.id)
       .maybeSingle(),
     client.rpc("get_user_metrics", { p_user_id: user.id }),
+    client.rpc("get_user_recent_counts", { p_user_id: user.id }),
     client
       .from("timelines")
       .select("id, title, slug, updated_at, published")
@@ -136,6 +133,11 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
   }
   if (metricsResult.error) {
     throw new Error(`Dashboard.metrics: ${metricsResult.error.message}`);
+  }
+  if (recentCountsResult.error) {
+    throw new Error(
+      `Dashboard.recentCounts: ${recentCountsResult.error.message}`,
+    );
   }
   if (timelinesResult.error) {
     throw new Error(`Dashboard.timelines: ${timelinesResult.error.message}`);
@@ -203,24 +205,25 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
     )
     .slice(0, 10);
 
-  // Safe badge counts derive from already-fetched recent activity sources,
-  // avoiding extra count queries that previously caused runtime errors.
+  // Seven-day badge counts come from the get_user_recent_counts RPC so they
+  // reflect the true count across all rows, not the at-most-10 truncated
+  // recent-activity list. Same shape as get_user_metrics.
   const sevenDayBadgeCounts = { ...EMPTY_METRICS };
-  sevenDayBadgeCounts.timelines = timelineActivity.filter((item) =>
-    isWithinLastSevenDays(item.updatedAt),
-  ).length;
-  sevenDayBadgeCounts.events = eventActivity.filter((item) =>
-    isWithinLastSevenDays(item.updatedAt),
-  ).length;
-  sevenDayBadgeCounts.characters = characterActivity.filter((item) =>
-    isWithinLastSevenDays(item.updatedAt),
-  ).length;
+  for (const row of recentCountsResult.data ?? []) {
+    if (METRIC_KEYS.includes(row.entity_type as (typeof METRIC_KEYS)[number])) {
+      const key = row.entity_type as keyof DashboardMetrics;
+      sevenDayBadgeCounts[key] = row.count;
+    }
+  }
 
   return {
     displayName: toDisplayName(
       profileResult.data?.first_name ?? null,
       profileResult.data?.last_name ?? null,
-      user.email ?? "Traveler",
+      // Use the email's local part (before @) rather than the full
+      // address so the greeting doesn't leak the user's email — falls
+      // back to "Traveler" if there's no email at all.
+      user.email?.split("@")[0] ?? "Traveler",
     ),
     metrics,
     sevenDayBadgeCounts,
