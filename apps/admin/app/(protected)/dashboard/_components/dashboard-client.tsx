@@ -78,7 +78,7 @@ const formatSevenDayBadge = (count: number): string => `▴ ${count} new`;
 
 const DashboardLoadingState = () => (
   <div className="space-y-6">
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+    <section className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
       {Array.from({ length: 5 }).map((_, index) => (
         <Card key={index}>
           <CardHeader className="space-y-2 pb-3">
@@ -270,7 +270,7 @@ export const DashboardClient = () => {
 
       <section aria-label="Library metrics" className="space-y-3">
         <h2 className="font-display text-xl text-foreground">Library</h2>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {METRIC_CARDS.map((card) => {
             const Icon = card.icon;
             return (
