@@ -68,7 +68,7 @@ const formatRelativeTime = (timestamp: string): string => {
   return rtf.format(years, "year");
 };
 
-const formatSevenDayBadge = (count: number): string => `▴ ${count} in 7d`;
+const formatSevenDayBadge = (count: number): string => `▴ ${count} new`;
 
 const DashboardLoadingState = () => (
   <div className="space-y-6">
