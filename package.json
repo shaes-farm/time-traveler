@@ -22,12 +22,14 @@
     "db:stop": "supabase stop",
     "db:sync": "supabase db pull",
     "db:test": "supabase test db",
+    "db:seed:discovery": "node --experimental-strip-types ./scripts/seed-discovery.mts",
     "db:gen:migration": "supabase migration new",
     "db:gen:types": "supabase gen types typescript --local > ./packages/services/src/supabase/types.ts",
     "prepare": "husky"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.7",
+    "dotenv": "^16.6.1",
     "fast-glob": "^3.3.3",
     "husky": "^9.1.7",
     "lcov-result-merger": "^6.0.0",
