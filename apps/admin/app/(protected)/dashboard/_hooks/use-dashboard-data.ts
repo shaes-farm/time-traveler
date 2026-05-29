@@ -111,19 +111,27 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       .maybeSingle(),
     client.rpc("get_user_metrics", { p_user_id: user.id }),
     client.rpc("get_user_recent_counts", { p_user_id: user.id }),
+    // Scope each recent-activity query to the authenticated user. RLS would
+    // otherwise allow published rows from other users to surface here
+    // (timelines/events/characters all expose a public-read policy for
+    // published records), which would inflate the dashboard's "recent" feed
+    // with foreign content. The metrics RPC is already user-scoped.
     client
       .from("timelines")
       .select("id, title, slug, updated_at, published")
+      .eq("user_id", user.id)
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(10),
     client
       .from("events")
       .select("id, title, slug, updated_at, published")
+      .eq("user_id", user.id)
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(10),
     client
       .from("characters")
       .select("id, name, slug, updated_at, published")
+      .eq("user_id", user.id)
       .order("updated_at", { ascending: false, nullsFirst: false })
       .limit(10),
   ]);
