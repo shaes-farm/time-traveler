@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "frontend", "theming"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0023: Dark-Mode-Only for Fidelity-2 (Light Mode Deferred)

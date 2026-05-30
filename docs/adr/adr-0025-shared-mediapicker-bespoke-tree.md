@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "frontend", "ui", "primitives"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0025: Primitive Sourcing — shadcn for Everything Except a Bespoke Tree; Shared MediaPicker

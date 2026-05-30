@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "data-model", "junction-tables", "rls"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0010: Junction Table Conventions — Composite PK, No Surrogate id, No user_id

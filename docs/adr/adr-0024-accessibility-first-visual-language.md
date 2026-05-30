@@ -7,6 +7,8 @@ tags:
   ["architecture", "decision", "frontend", "accessibility", "visual-language"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0024: Accessibility-First Visual Language — Era Hue-Spread + Character-Type Identity

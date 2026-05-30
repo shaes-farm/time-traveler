@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "frontend", "services", "validation"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0019: @repo/services Package — Clients, Zod Schemas, Modules, Generated Types

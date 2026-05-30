@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "security", "rls", "authorization"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0014: Row-Level Security as the Single Source of Authorization

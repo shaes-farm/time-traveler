@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "testing", "quality"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0026: Testing Strategy — pgTAP for the Database, Vitest (80%) for Packages, Storybook for UI

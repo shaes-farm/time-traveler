@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "frontend", "design-system", "ui"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0020: @repo/ui Design System on shadcn/ui + Tailwind 4 (in packages/ui, Storybook workbench)

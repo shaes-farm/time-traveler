@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "auth", "data-model"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0017: Auth Bootstrap and Supporting Tables (Profile Trigger, is_admin, Notifications, Content Reports)

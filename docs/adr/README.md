@@ -13,15 +13,18 @@ migration or PR that implemented it) and carries the status **Accepted
 (retroactively documented 2026-05-30)**. They record _what was decided_, not a
 re-litigation of decided questions.
 
-New (forward) decisions start at **`0028`** — the first of which records the
-Milestone 7 period/category model — and follow the
+The first **forward** decision is `0028` (the Milestone 7 period/category
+model); the next new ADR is the next free number (`0029` onward), per the
 [ADR process](#when-to-write-an-adr) below.
 
 ## Format
 
 - File naming: `adr-NNNN-[title-slug].md` (4-digit zero-padded sequence).
 - Front matter + body per [`adr-0000-template.md`](adr-0000-template.md), the
-  `create-architectural-decision-record` skill template.
+  `create-architectural-decision-record` skill template. Every ADR carries the
+  full key set (`title`, `status`, `date`, `authors`, `tags`, `supersedes`,
+  `superseded_by`, `amends`, `amended_by`); relationship keys are empty strings
+  when not applicable.
 - Consequences/alternatives/implementation/references use coded bullets
   (`POS-`, `NEG-`, `ALT-`, `IMP-`, `REF-`) for machine parsing.
 - **Superseding** a decision sets `superseded_by` on the old ADR and

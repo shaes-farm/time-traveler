@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "security", "rls", "performance"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0015: RLS and Function Hardening — SECURITY DEFINER Helpers, search_path, InitPlan, security_invoker Views

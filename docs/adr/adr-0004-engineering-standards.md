@@ -7,6 +7,8 @@ tags:
   ["architecture", "decision", "standards", "typescript", "eslint", "security"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0004: Engineering Standards — Strict TS, Zero-Warning Lint, ESM, Supply-Chain Delay

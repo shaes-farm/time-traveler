@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "frontend", "design-tokens"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0022: Dual-Source Design Tokens (tokens.ts + tokens.css), OKLCH, Locked Icon/Font Set
