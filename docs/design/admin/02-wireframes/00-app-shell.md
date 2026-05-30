@@ -11,7 +11,7 @@
 
 ## Primary actions
 
-- Navigate to any top-level entity list (Characters, Events; later: Timelines, Periods, Stories, Media, Categories)
+- Navigate to any top-level entity list (Characters, Events, Timelines, Periods, Stories, Media, Categories — all now designed across Milestones 5–7)
 - Open user menu (profile, sign out, theme toggle)
 - Open global search (`Cmd+K` / `Ctrl+K`)
 - Open quick-create menu (`C` keyboard shortcut, opens command palette pre-filtered to "create...")
@@ -28,13 +28,13 @@
 │  Content     │                                                               │
 │  ▸ Characters│                                                               │
 │  ▸ Events    │              [ screen content goes here ]                     │
-│  ─ Timelines │                                                               │
-│  ─ Periods   │                                                               │
-│  ─ Stories   │                                                               │
+│  ▸ Timelines │                                                               │
+│  ▸ Periods   │                                                               │
+│  ▸ Stories   │                                                               │
 │              │                                                               │
 │  Library     │                                                               │
-│  ─ Media     │                                                               │
-│  ─ Categories│                                                               │
+│  ▸ Media     │                                                               │
+│  ▸ Categories│                                                               │
 │              │                                                               │
 │  ─ Settings  │                                                               │
 │              │                                                               │
@@ -45,7 +45,7 @@
 
 ## Annotations
 
-1. **Sidebar nav uses two visual states**: active (filled marker `▸`), inactive (dim marker `─`). Out-of-scope entities are dimmed but still present, so the IA reads complete even in this first pass.
+1. **Sidebar nav uses two visual states**: active (filled marker `▸`), inactive (dim marker `─`). All primary entities — Characters, Events, Timelines, Periods, Stories, Media, Categories — are now designed (Milestones 5–7) and render active; only Settings remains a dim placeholder. The two-state convention persists for any future out-of-scope additions.
 2. **Sidebar grouping reflects the data model**, not arbitrary product sections: "Content" for entities the user authors as primary work, "Library" for organizational resources, "Settings" alone at the bottom.
 3. **Topbar global search** opens a command palette ([Cmd+K]) that searches across all four searchable entity types (events, characters, stories, timelines — backed by their `search_vector` columns). Results group by entity type.
 4. **Quick-create button** (⊕) opens the same command palette pre-filtered to "Create…". This is the primary way to start a new entity from anywhere.
