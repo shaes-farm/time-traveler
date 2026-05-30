@@ -87,13 +87,40 @@ Phase 5 (GitHub milestone 6) is the characters & relationships build. The charac
 - **[#179](https://github.com/shaes-farm/time-traveler/issues/179)** — (already filed in M5) `media.storage_path NOT NULL` + no upload/external discriminator. Screen 17's _Source_ filter and kind badge are **blocked** on it; the wireframe documents a `storage_path IS NULL` stopgap and carries `// BLOCKED` notes.
 - **PRD §7.2.2 era-palette reconciliation (resolved)** — the shipped era tokens (hue-spread for colorblind separation) superseded the PRD's clustered blue/amber/brown/green/purple set. Handled like the [#127](https://github.com/shaes-farm/time-traveler/issues/127) reconciliation, but **fixed directly**: PRD §7.2.2 was rewritten in place to the finalized hue-spread palette and now points at the token files as source of truth. No separate issue filed.
 
+## Milestone 7 additions (Phase 6 — Stories, Categories & Periods)
+
+Phase 6 (GitHub milestone 7, issues #58–#64) is the stories / categories / periods build. **The data layer already exists** — `story-service` / `category-service` / `period-service` (full CRUD + junctions, incl. `getCategoryTree`, `getChildPeriods`, story↔event/character/period linking), the `use-stories|categories|periods` hooks, and the Zustand `ui-store`/`navigation-store`. So #58–#61 are **verify/harden** tickets, not net-new builds; #62/#63/#64 are the UI, designed here for the first time (these three were "not in scope" through M5/M6). The batch references the **finalized M6 visual language** ([03-aesthetic-notes.md](03-aesthetic-notes.md)) rather than deferring it.
+
+| #   | Screen              | Purpose                                                                                              | Issue | Wireframe                                                                          |
+| --- | ------------------- | ---------------------------------------------------------------------------------------------------- | ----- | ---------------------------------------------------------------------------------- |
+| 18  | Stories list        | Narrator/perspective/tag/published filters; perspective character via type identity                  | #62   | [02-wireframes/18-stories-list.md](02-wireframes/18-stories-list.md)               |
+| 19  | Story editor        | Narrative shell: voice (`narrator_type` + perspective character), prose, tags, publish toggle        | #62   | [02-wireframes/19-story-editor.md](02-wireframes/19-story-editor.md)               |
+| 20  | Story detail        | **Narrative event ordering** (drag, `story_events.sort_order`), character roles, period associations | #62   | [02-wireframes/20-story-detail.md](02-wireframes/20-story-detail.md)               |
+| 21  | Periods list        | Chronological + hierarchical (significance ramp, era display, nesting indicator)                     | #64   | [02-wireframes/21-periods-list.md](02-wireframes/21-periods-list.md)               |
+| 22  | Period editor       | Span (TemporalInput), significance, characteristics, parent-period hierarchy                         | #64   | [02-wireframes/22-period-editor.md](02-wireframes/22-period-editor.md)             |
+| 23  | Period detail       | **Span-overlay**: hierarchy + overlaid timelines (`period_timelines`) + computed events-in-range     | #64   | [02-wireframes/23-period-detail.md](02-wireframes/23-period-detail.md)             |
+| 24  | Category management | Taxonomy tree + inspector: create/edit (color/icon/parent), delete with child policy, reparent       | #63   | [02-wireframes/24-category-management.md](02-wireframes/24-category-management.md) |
+
+### Milestone 7 design decisions (resolved)
+
+- **Story event ordering is editorial** — `story_events` gains a `sort_order` ([#183](https://github.com/shaes-farm/time-traveler/issues/183)) so a story can be told out of chronological order (flashbacks, thematic grouping). Story detail (20) gets drag-to-reorder; until #183 lands it falls back to chronological. Mirrors the `timeline_events`/00012 treatment.
+- **Periods are span-overlays, not event containers** — a period overlays timelines (`period_timelines`) and gathers events **by date** (computed events-in-range on screen 23); there is **no `period_events` junction**. This draws the IA line: **timelines contain curated events; periods band timelines and collect events by date; an `event_type='period'` event is a discrete span event** — three distinct things.
+- **Categories tag events only** this pass (`event_categories`); broader attachment (characters/timelines/periods/stories) is deferred. Assignment lives in the event editor; screen 24 owns the taxonomy tree.
+- **Hierarchy axes kept** — `parent_period_id` (periods) and `parent_category_id` (categories) are genuine containment trees (Mesozoic ⊃ Jurassic; Science ⊃ Physics) and are retained, in contrast to the retired event `parent_event_id` ([#180](https://github.com/shaes-farm/time-traveler/issues/180)). Cycle prevention is service-layer for both.
+- **Publish applies to stories + periods** (both have `published`); **categories are not publishable** (taxonomy, no `published` column).
+- **Nav/IA** — Stories and Periods join the sidebar as primary entities; Categories is a lighter management surface (taxonomy tree). No media surfaces in any M7 screen (no `story_media`/`period_media`/`category_media` junctions).
+
+### Upstream issues filed in this batch
+
+- **[#183](https://github.com/shaes-farm/time-traveler/issues/183)** — add `story_events.sort_order` for editorial narrative ordering. Story detail's drag-reorder (screen 20, #62) is **blocked** on it; chronological fallback until then. No other schema changes — periods (span-overlay) and categories (events-only) match the current schema as-is.
+
 ## What's deliberately not in scope this pass
 
-> Three items below moved **into scope** in the [Milestone 5 additions](#milestone-5-additions) batch (screens 11–16): timelines CRUD, media management, and collaborator management. They remain listed here, struck, for historical continuity.
+> Items below moved **into scope** in later batches: timelines/media/collaborators in [Milestone 5](#milestone-5-additions) (screens 11–16), the media library in [Milestone 6](#milestone-6-additions-phase-5--characters--relationships) (screen 17), and stories/periods/categories in [Milestone 7](#milestone-7-additions-phase-6--stories-categories--periods) (screens 18–24). They remain listed here, struck, for historical continuity.
 
-- ~~Timelines~~, periods, stories CRUD — timelines now covered (screens 11–13); periods + stories still excluded
-- ~~Media library~~ — media management covered as a cross-cutting surface (screen 15); the standalone reusable library browser + picker is **now designed** (screen 17, Milestone 6 batch)
-- Categories management — still deferred
+- ~~Timelines, periods, stories CRUD~~ — all now covered (timelines 11–13, periods 21–23, stories 18–20)
+- ~~Media library~~ — media management covered as a cross-cutting surface (screen 15); the standalone reusable library browser + picker is designed (screen 17, Milestone 6 batch)
+- ~~Categories management~~ — now covered (screen 24, Milestone 7 batch)
 - Bulk import / export — these are Edge Function flows that need their own design pass
 - Admin moderation queue (`content_reports`) — admin-role-only surface, separate audience
 - Notifications inbox — needs a separate IA pass
