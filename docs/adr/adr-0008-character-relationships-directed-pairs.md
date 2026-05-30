@@ -5,7 +5,9 @@ date: "2026-05-21"
 authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "data-model", "relationships"]
 supersedes: ""
-superseded_by: "Amended by ADR-0009 (relationship_role sub-roles, #119)"
+superseded_by: ""
+amends: ""
+amended_by: "ADR-0009 (relationship_role sub-roles, #119)"
 ---
 
 # ADR-0008: Character Relationships as Directed Pairs with Application-Layer Symmetry

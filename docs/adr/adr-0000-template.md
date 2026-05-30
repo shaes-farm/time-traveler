@@ -6,6 +6,8 @@ authors: "[Stakeholder Names/Roles]"
 tags: ["architecture", "decision"]
 supersedes: ""
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-NNNN: [Decision Title]

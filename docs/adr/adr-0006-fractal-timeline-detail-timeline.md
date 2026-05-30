@@ -6,6 +6,8 @@ authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "data-model", "fractal", "timeline"]
 supersedes: "Original event-to-event parent_event_id nesting (never given its own ADR; tombstoned per #180)"
 superseded_by: ""
+amends: ""
+amended_by: ""
 ---
 
 # ADR-0006: Fractal Timeline via Forward detail_timeline_id
