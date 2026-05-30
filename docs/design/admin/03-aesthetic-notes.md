@@ -70,10 +70,10 @@ When this graduates to in-tree React in `apps/admin`, expected primitives — mo
 - Sheet (right-slide for relationship editor, event participant editor)
 - Dialog (destructive confirms, quick-create)
 - Popover (temporal input control)
-- Combobox / Command palette (parent event picker, character picker, global search)
+- Combobox / Command palette (timeline & sub-timeline pickers, link-event picker, character picker, global search)
 - TagInput / chip-style multi-text for `TEXT[]` fields
-- Tabs (character detail, event detail)
-- Tree (parent event lineage, category hierarchy) — _no shadcn primitive for this; custom build_
+- Tabs (character detail, event detail, timeline detail)
+- Tree (category hierarchy; timeline fractal hierarchy) — _no shadcn primitive for this; custom build_
 - Toast + optimistic-state feedback (TanStack Query pairs well)
 
 ## What I deliberately defer

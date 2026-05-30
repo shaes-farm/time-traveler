@@ -42,7 +42,7 @@ The system provides a fractal approach to time visualization, allowing users to 
 
 ### 1.2 Key Innovations
 
-**Fractal Time Navigation.** Events can contain nested sub-events, creating a multi-dimensional temporal hierarchy where users zoom seamlessly from billion-year geological scales to individual seconds.
+**Fractal Time Navigation.** The recursion unit is the **timeline**: a timeline contains events, and any event can _expand into_ its own sub-timeline (`events.detail_timeline_id`), which in turn contains finer events that may expand further. Users zoom seamlessly from billion-year geological scales to individual seconds by following this forward `timeline → event → sub-timeline` chain. (Nesting is forward-only; the earlier event-to-event `parent_event_id` mechanism is deprecated — see §3.2 and the fractal-model callout.)
 
 **Hybrid Temporal System.** Structured JSONB date representation that extends beyond SQL date type limitations to support prehistoric, geological, and cosmological dates with precision metadata, uncertainty ranges, and scientific dating context.
 
@@ -316,8 +316,9 @@ CREATE TABLE events (
   location VARCHAR(2000),
   spatial_data JSONB,
   importance INTEGER DEFAULT 5 CHECK (importance BETWEEN 1 AND 10),
-  parent_event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-  timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,
+  parent_event_id UUID REFERENCES events(id) ON DELETE CASCADE,  -- DEPRECATED (#180): event-to-event nesting; superseded by detail_timeline_id
+  timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,  -- primary containing timeline (RLS source)
+  detail_timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,  -- PENDING (#177): the sub-timeline this event expands into (forward fractal drill-down)
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
     to_tsvector('english'::regconfig,
@@ -337,13 +338,24 @@ CREATE UNIQUE INDEX events_slug_idx ON events (user_id, slug);
 > **Key changes from prior schema:**
 >
 > - Renamed from `historical_events` to `events`. The table name `historical_events` created awkward FK names (`historical_event_id`) throughout the entire schema. In a greenfield build, brevity wins.
-> - Added `parent_event_id` self-reference for fractal nesting.
+> - ~~Added `parent_event_id` self-reference for fractal nesting.~~ **Deprecated (#180).** Fractal nesting is now forward-only via `detail_timeline_id` → sub-timeline (#177); see the fractal-model callout below. `parent_event_id` is being tombstoned (no data uses it) and dropped in a later migration.
 > - Added `event_type` with CHECK constraint.
 > - Added `spatial_data JSONB` alongside the free-form `location` string.
 > - Added `search_vector` as a generated column.
 > - `importance` is now a 1–10 integer with CHECK constraint rather than unconstrained.
 > - Temporal data is JSONB from day one — no VARCHAR date columns.
 > - Both start and end dates have their own `temporal_data`/`sort_order` pair, rather than embedding end dates inside the start temporal JSONB. This is cleaner for range queries.
+
+**The event ↔ timeline model (canonical).** An event relates to timelines along two axes — _containment_ ("which timeline shows this event") and _decomposition_ ("what does this event expand into"). These are distinct and must not be conflated:
+
+| Mechanism                    | Axis              | Meaning                                                                                                                                                                                                                      |
+| ---------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `events.timeline_id`         | containment       | The event's **primary / home** timeline. **This is the RLS source** — `read_events` / `update_events` derive collaborator access from it (§9), and `idx_events_timeline_sort` is built on it. One event → one home timeline. |
+| `timeline_events` junction   | containment       | **Additional** "also appears in" timelines (e.g. an event surfaced in a comparative timeline). Many-to-many; carries `sort_order` for editorial arrangement (§3.4). Does **not** affect RLS.                                 |
+| `events.detail_timeline_id`  | decomposition     | The **sub-timeline this event expands into** — the forward fractal drill-down. One event → one sub-timeline. `ON DELETE SET NULL`. Pending migration #177.                                                                   |
+| ~~`events.parent_event_id`~~ | ~~decomposition~~ | **Deprecated (#180).** Event-to-event nesting — redundant with, and weaker than, `detail_timeline_id`. Being tombstoned and dropped.                                                                                         |
+
+**Nesting is forward-only.** The hierarchy is `timeline → events → (event expands into) sub-timeline → events`, recursing on the timeline — not a backward `parent_event_id` tree. This preserves the committed event RLS untouched (access is keyed on the _containing_ `timeline_id`, never on the _child_ `detail_timeline_id`), eliminates the cross-timeline parent-link integrity holes `parent_event_id` permits, and keeps reads to one bounded query per zoom level. The forward model is the IA spec across the admin wireframes (`docs/design/admin/`).
 
 #### stories
 
@@ -527,7 +539,9 @@ All junction tables use composite primary keys, no surrogate `id`, no `user_id`.
 > Applied to `character_media` via migration `00012` (issue #125). If `event_media` or `timeline_media`
 > later grow a primary flag, apply the same pattern.
 
-> **Self-referential FK cycles:** `parent_event_id`, `parent_period_id`, and `parent_category_id` are unconstrained at the database level — cycles (A → B → A) are accepted by PostgreSQL. Cycle prevention is enforced in the service layer during create/update operations (#29, #31, #59, #60); the database intentionally does not attempt to detect cycles via constraints.
+> **Self-referential FK cycles:** `parent_period_id` and `parent_category_id` are unconstrained at the database level — cycles (A → B → A) are accepted by PostgreSQL. Cycle prevention is enforced in the service layer during create/update operations (#31, #59, #60); the database intentionally does not attempt to detect cycles via constraints. (`parent_event_id` formerly belonged to this set but is deprecated — #180.)
+>
+> **Fractal-decomposition cycles:** the forward fractal mechanism `events.detail_timeline_id` → timeline can also form a cycle (an event expands into a timeline that, transitively, contains the event itself). Like the self-FK cases, this is **not** DB-constrained — the service layer rejects an `detail_timeline_id` assignment that would close such a loop (#177). The `detail_timeline_id` FK is `ON DELETE SET NULL`, so deleting a sub-timeline detaches the drill-down rather than cascading into the parent event.
 
 ```sql
 -- Events ↔ Categories
@@ -561,10 +575,13 @@ CREATE TABLE event_characters (
   PRIMARY KEY (event_id, character_id)
 );
 
--- Timelines ↔ Events
+-- Timelines ↔ Events — ADDITIONAL ("also appears in") membership, distinct from
+-- the primary events.timeline_id home (see the event ↔ timeline model in §3.2).
+-- Does not affect RLS. sort_order added in migration 00012 (#122).
 CREATE TABLE timeline_events (
   timeline_id UUID REFERENCES timelines(id) ON DELETE CASCADE,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  sort_order INTEGER DEFAULT 0,  -- editorial ordering; default 0 ⇒ fall back to events.sort_order_start (chronological)
   PRIMARY KEY (timeline_id, event_id)
 );
 
@@ -1347,10 +1364,13 @@ CREATE INDEX idx_char_rels_char ON character_relationships (character_id);
 CREATE INDEX idx_char_rels_related ON character_relationships (related_character_id);
 CREATE INDEX idx_timeline_events_event ON timeline_events (event_id);
 
--- Parent lookups (fractal nesting)
-CREATE INDEX idx_events_parent ON events (parent_event_id);
+-- Parent lookups (hierarchy)
+CREATE INDEX idx_events_parent ON events (parent_event_id);  -- DEPRECATED (#180): dropped with the column
 CREATE INDEX idx_periods_parent ON periods (parent_period_id);
 CREATE INDEX idx_categories_parent ON categories (parent_category_id);
+
+-- Forward fractal drill-down reverse lookup ("which event details this timeline?") — PENDING (#177)
+CREATE INDEX idx_events_detail_timeline ON events (detail_timeline_id) WHERE detail_timeline_id IS NOT NULL;
 ```
 
 ### 8.2 Performance Strategies
@@ -1487,6 +1507,8 @@ Policies in §9.2.1, §9.2.2, and §9.2.4 call the SECURITY DEFINER helpers intr
 **Global-read carve-out for organizational tables.** Three tables intentionally use `USING (true)` on SELECT and are reachable by `anon`: `categories` and `media` (organizational metadata — access control is enforced on the parent entity that references them), and `profiles` (public-display data such as username, avatar, bio). These carve-outs are deliberate exceptions to the "anonymous users read only published content" rule and are documented per-table below.
 
 #### 9.2.1 Content Tables with Timeline Association (events)
+
+Event collaborator access derives from the **containing** timeline (`events.timeline_id`) — never from the drill-down `events.detail_timeline_id` or the `timeline_events` guest junction. A sub-timeline's collaborators do not gain access to the parent event through the fractal link; access flows the other way (from the home timeline down to its events). See the event ↔ timeline model in §3.2.
 
 ```sql
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
