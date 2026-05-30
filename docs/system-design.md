@@ -26,6 +26,32 @@
 
 ---
 
+> **Architecture Decision Records.** The decisions described throughout this
+> document are captured as ADRs in [`docs/adr/`](adr/README.md). Key mappings:
+> §1.3 → [ADR-0001](adr/adr-0001-supabase-backend-platform.md); §2.2 →
+> [ADR-0003](adr/adr-0003-nextjs-app-router-react19.md),
+> [ADR-0021](adr/adr-0021-tanstack-query-zustand.md); §3.2 →
+> [ADR-0005](adr/adr-0005-hybrid-temporal-system.md),
+> [ADR-0006](adr/adr-0006-fractal-timeline-detail-timeline.md),
+> [ADR-0007](adr/adr-0007-seven-character-types.md),
+> [ADR-0011](adr/adr-0011-publication-model.md); §3.3 →
+> [ADR-0008](adr/adr-0008-character-relationships-directed-pairs.md),
+> [ADR-0009](adr/adr-0009-relationship-sub-role-taxonomy.md); §3.4 →
+> [ADR-0010](adr/adr-0010-junction-table-conventions.md); §3.5/§9.1 →
+> [ADR-0017](adr/adr-0017-auth-bootstrap-supporting-tables.md); §4 →
+> [ADR-0005](adr/adr-0005-hybrid-temporal-system.md); §5 →
+> [ADR-0012](adr/adr-0012-postgrest-crud-thin-service-layer.md),
+> [ADR-0013](adr/adr-0013-db-functions-read-only.md); §5.7 →
+> [ADR-0016](adr/adr-0016-storage-buckets-graduated-access.md); §6/§11 →
+> [ADR-0019](adr/adr-0019-services-package.md); §9 →
+> [ADR-0014](adr/adr-0014-rls-single-source-of-authorization.md),
+> [ADR-0015](adr/adr-0015-rls-and-function-hardening.md); §12 →
+> [ADR-0018](adr/adr-0018-curated-content-library.md). Front-end/design-system
+> decisions (ADR-0020, 0022–0025) live against
+> [`docs/design/admin/`](design/admin/fidelity-2-plan.md).
+
+---
+
 ## 1. System Overview
 
 Time Traveler is a temporal content management system for storing, visualizing, and interacting with historical events and narratives across the full span of time — from the Big Bang (13.8 billion years ago) through the present and into the speculative future.
