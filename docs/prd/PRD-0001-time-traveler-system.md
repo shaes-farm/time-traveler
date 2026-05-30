@@ -5022,18 +5022,26 @@ All colors have slight warm temperature shift (more red/yellow, less pure blue/g
 
 #### 7.2.2 Era-Specific Colors
 
-Colors for temporal eras, used in timeline visualization and event markers:
+Colors for temporal eras, used in timeline visualization and event markers.
 
-| Era | Light Theme                 | Dark Theme               | Description           |
-| --- | --------------------------- | ------------------------ | --------------------- |
-| CE  | #4F7CAC (warm blue)         | #6B9BD1 (lighter blue)   | Modern, professional  |
-| BCE | #D4A574 (amber gold)        | #E6C29A (lighter amber)  | Ancient, historical   |
-| KYA | #8B7355 (earth brown)       | #A68968 (lighter brown)  | Prehistoric, grounded |
-| MYA | #2D5C3F (deep forest green) | #3D7A54 (lighter green)  | Geological, organic   |
-| BYA | #6B4C8A (cosmic purple)     | #8B6BAA (lighter purple) | Cosmological, vast    |
+> **Revised in fidelity-2 (Milestone 6).** The original palette (warm blue / amber / earth brown / forest green / cosmic purple) was **replaced** because it failed the project's red-green colorblindness constraint: brown, amber, and forest green cluster in the warm-to-yellow-green band where deuteranopic/protanopic users lose separation. The finalized palette spreads the five eras **evenly around the color wheel** to maximize inter-era hue distance. **Hue is never the sole signal** — the `TemporalDisplay` primitive also renders the literal era code (`CE`/`BCE`/`KYA`/`MYA`/`BYA`) in a mono typographic treatment, so the distinction survives total color loss.
+>
+> **Source of truth:** `packages/ui/src/styles/tokens.css` (`--color-era-*`), mirrored in `tokens.ts`. The OKLCH values below are canonical; if they drift from the token file, the token file wins. See [docs/design/admin/03-aesthetic-notes.md](../design/admin/03-aesthetic-notes.md) § _Era palette (finalized)_.
+
+Finalized palette (dark mode — the only mode in fidelity-2):
+
+| Era | Dark Theme (canonical)           | Hue  | Description         |
+| --- | -------------------------------- | ---- | ------------------- |
+| CE  | `oklch(0.78 0.10 60)` — amber    | 60°  | Modern              |
+| BCE | `oklch(0.78 0.10 100)` — gold    | 100° | Ancient, historical |
+| KYA | `oklch(0.74 0.09 200)` — teal    | 200° | Prehistoric         |
+| MYA | `oklch(0.74 0.09 260)` — blue    | 260° | Geological          |
+| BYA | `oklch(0.74 0.10 320)` — magenta | 320° | Cosmological, vast  |
+
+Light-theme era values are **deferred** along with the rest of light mode (fidelity-2 is dark-default, no light toggle); they will be derived from these hues when a light theme is introduced.
 
 **Contrast validation:**
-All era colors tested against background colors to ensure WCAG AA compliance (4.5:1 for text, 3:1 for UI components).
+All era colors are validated against the dark surface tokens for WCAG AA (3:1 for UI components) and re-checked for red-green colorblind separation across the full five-era set together (not pairwise).
 
 #### 7.2.3 Spacing Scale
 
@@ -5565,7 +5573,7 @@ position = sortOrderYears;
 
 **Color:**
 
-- Default: Era color (CE blue, BCE amber, etc.)
+- Default: Era color (per §7.2.2 — e.g. CE amber, BCE gold, KYA teal, MYA blue, BYA magenta)
 - Override: Category color if assigned
 - Multiple categories: blend or stripe pattern
 

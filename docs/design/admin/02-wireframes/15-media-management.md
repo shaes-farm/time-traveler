@@ -2,7 +2,7 @@
 
 **Purpose.** A reusable media surface for attaching, ordering, previewing, and detaching media on the three entities that carry it: **events** (`event_media`), **characters** (`character_media`), and **timelines** (`timeline_media`). Like the [TemporalInput control](10-temporal-input.md), this is a primitive, not a screen — it's embedded in the editors and detail tabs already designed, so its behavior must be defined once and reused.
 
-Issue #49 deliberately scopes this to **hybrid media** (uploaded files + external URL embeds) with **association + ordering** — _not_ a full digital-asset-manager. There is no standalone media library browser in this pass.
+Issue #49 deliberately scopes this to **hybrid media** (uploaded files + external URL embeds) with **association + ordering** — _not_ a full digital-asset-manager. The cross-entity browser and the reusable "choose from existing" picker referenced below now live in [17 — Media Library & Picker](17-media-library.md); this screen embeds that picker as the Attach dialog's **Existing** tab.
 
 ## The two media kinds
 
@@ -31,7 +31,7 @@ Invoked from every `[ + Attach media ]` / `[ + Add media ]` affordance (event de
 
 ```
   ── Attach media ───────────────────────────────────────────────────────┐
-  │  ( Upload )   ( External URL )                                        │
+  │  ( Upload )   ( External URL )   ( Existing )                         │
   │  ──────────────────────────────────────────────────────────────────  │
   │  Upload tab:                                                          │
   │  ┌────────────────────────────────────────────────────────────────┐ │
@@ -53,6 +53,16 @@ Invoked from every `[ + Attach media ]` / `[ + Add media ]` affordance (event de
   │  └──────────────┘                                                    │
   │  Alt text   [ … ]      Caption  [ … ]                                │
   │                                          [ Cancel ]  [ Attach ]       │
+  └──────────────────────────────────────────────────────────────────────┘
+
+  ── Existing tab ───────────────────────────────────────────────────────┐
+  │  (embeds the [17] picker in modal mode — search + facets + multi-     │
+  │   select grid)                                                        │
+  │  [ ⌕ Search…        ]  Type ▾  Source ▾                  ⌗ 248        │
+  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                                  │
+  │  │[✓]   │ │      │ │      │ │[✓]   │   …                              │
+  │  └──────┘ └──────┘ └──────┘ └──────┘                                  │
+  │  2 selected                       [ Cancel ]  [ Attach 2 items ]      │
   └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,7 +86,7 @@ The attached-media render is shared across the three detail surfaces. It matches
 
 ## Annotations
 
-1. **One dialog, two tabs: Upload / External URL** — the "hybrid" of #49. Upload streams to Supabase Storage then creates the `media` row + the junction row; External validates/recognizes the URL then creates an external `media` row + junction row. Both end by attaching to the current entity.
+1. **One dialog, three tabs: Upload / External URL / Existing** — Upload and External URL are the "hybrid" of #49: Upload streams to Supabase Storage then creates the `media` row + the junction row; External validates/recognizes the URL then creates an external `media` row + junction row. The **Existing** tab embeds the [17 — Media Library](17-media-library.md) picker in modal mode and creates **only junction rows** for already-existing `media` (no new upload), which is how one `media` row gets reused across entities. All three end by attaching to the current entity.
 2. **`media_type` is inferred, not asked.** Upload derives it from MIME (`image`/`video`/`audio`/`document`); External derives it from the recognized URL / content-type. The four-value CHECK (`image|video|audio|document`) is the closed set — anything unrecognized falls back to `document` with a notice.
 3. **Per-item actions live in the `⋯` overflow** (consistent with [08-event-detail.md](08-event-detail.md) annotation #12): **Edit caption / alt text**, **Reorder** (or drag the `⠿` handle), **Set as primary** (character only), **Detach**, **Delete original**. Keeping these in the overflow keeps dense media lists clean.
 4. **Reorder applies only where the junction has `sort_order`** — events and timelines. Drag the `⠿` handle to rewrite `event_media.sort_order` / `timeline_media.sort_order`. **Character media has no `sort_order`** (schema) — so the character media list has no drag handle; its only ordering concept is **primary vs. the rest** (annotation #5).
@@ -87,7 +97,7 @@ The attached-media render is shared across the three detail surfaces. It matches
      The `⋯` menu offers Detach by default; Delete original is the heavier, separately-confirmed action.
 7. **Upload progress + partial failure** follow the editor pattern already established ([05](05-character-editor.md)/[09](09-event-editor.md)): uploads complete in the background; if the entity saves but the upload fails, a toast offers retry from the detail view. Media never blocks the parent entity save.
 8. **Previews degrade by type.** Image → thumbnail; video → poster frame with a ▶ overlay; audio → waveform/clip icon; document → file-type icon + filename. External embeds show the host's thumbnail when available, otherwise the type icon. No inline players in the admin this pass — preview is a still; playback opens the source.
-9. **No standalone library browser this pass.** Attachment always starts from an entity ("attach to _this_ event"). A cross-entity "pick from existing media" picker (browse everything you've uploaded and reuse it) is a natural #49 follow-up but is **not** required by the acceptance criteria — documented under Open Questions.
+9. **Attachment can start from an entity _or_ from existing media.** The per-entity affordances ("attach to _this_ event") remain the default, but the **Existing** tab now offers the cross-entity "pick from existing media" path — see [17 — Media Library & Picker](17-media-library.md). The picker returns `media_id`s and this dialog writes the appropriate junction (dedup via the composite PK; re-attaching an already-attached item is a no-op surfaced as "already attached").
 
 ## Edge cases
 
@@ -100,6 +110,6 @@ The attached-media render is shared across the three detail surfaces. It matches
 
 ## Open questions
 
-- **Reusable media picker** (browse + reattach existing media across entities) — the biggest deferred piece. Becomes worthwhile once authors accumulate a library; out of scope for #49's association-focused acceptance criteria.
+- ~~**Reusable media picker** (browse + reattach existing media across entities)~~ — **now designed** in [17 — Media Library & Picker](17-media-library.md) and surfaced as the Attach dialog's Existing tab.
 - **External-embed schema discriminator** — see the schema-gap callout above. Must be resolved (nullable `storage_path` + a `source` discriminator) before external embeds ship. Treat as a hard prerequisite for the External URL tab.
 - **Transcoding / responsive variants** — explicit non-goal (#49). Originals are stored and served as-is this pass.
