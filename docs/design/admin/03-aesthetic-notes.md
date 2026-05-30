@@ -46,6 +46,65 @@ The aesthetic notes file is deliberately not picking a palette yet, but constrai
 - **Significance/importance is a gradient, not a categorical scale.** Importance is 1–10, significance is `low/medium/high/critical`. Both lean toward sequential color scales (single hue, varying lightness/saturation) — not categorical palettes.
 - **Status flags need visual weight.** `published = true` should be unmistakable in lists. Draft state should fade, not just label.
 
+## Visual design language (finalized — fidelity-2)
+
+The "preliminary" sections above record _intent_. This section records the **decisions** made when the intent met implementation in fidelity-2 (Batches A–H, PRs [#149](https://github.com/shaes-farm/time-traveler/pull/149)–[#162](https://github.com/shaes-farm/time-traveler/pull/162)). Where a value below differs from the PRD, the divergence is called out and the source-of-truth is the token file noted.
+
+Source-of-truth for color/typography/radius tokens: [`packages/ui/src/styles/tokens.ts`](../../../packages/ui/src/styles/tokens.ts) (hand-synced to `tokens.css`). This document specifies _intent and semantics_; the token files carry the canonical values. **Do not treat the hexes/OKLCH here as authoritative if they drift from the token file — update this doc to match the code.**
+
+### Era palette (finalized)
+
+Eras differentiate by **hue spread evenly around the color wheel**, not by the clustered semantic palette the PRD originally proposed. This is the load-bearing accessibility decision: PRD §7.2.2's blue/amber/**brown**/**green**/purple set clusters brown↔amber↔green in the warm-to-yellow-green band, which is exactly where red-green colorblind users lose separation. The finalized palette maximizes inter-era hue distance instead.
+
+| Era | Finalized hue (dark mode)          | Token             | PRD §7.2.2 previously       | Reconciled?    |
+| --- | ---------------------------------- | ----------------- | --------------------------- | -------------- |
+| CE  | warm amber — `oklch(0.78 0.10 60)` | `--color-era-ce`  | warm blue `#4F7CAC`         | ✅ PRD updated |
+| BCE | gold — `oklch(0.78 0.10 100)`      | `--color-era-bce` | amber gold `#D4A574`        | ✅ PRD updated |
+| KYA | teal — `oklch(0.74 0.09 200)`      | `--color-era-kya` | earth brown `#8B7355`       | ✅ PRD updated |
+| MYA | blue — `oklch(0.74 0.09 260)`      | `--color-era-mya` | deep forest green `#2D5C3F` | ✅ PRD updated |
+| BYA | magenta — `oklch(0.74 0.10 320)`   | `--color-era-bya` | cosmic purple `#6B4C8A`     | ✅ PRD updated |
+
+**Hue is never the only signal.** The `TemporalDisplay` primitive ([#158](https://github.com/shaes-farm/time-traveler/pull/158)) also renders the era code (`CE` / `BCE` / `KYA` / `MYA` / `BYA`) in a mono typographic treatment beside the value, so colorblind users read the literal era token regardless of hue. Light-mode era values are deferred with the rest of light mode.
+
+> **PRD reconciled.** PRD §7.2.2 has been updated in place to the finalized hue-spread palette (no separate issue filed — fixed directly, per the same approach as the [#127](https://github.com/shaes-farm/time-traveler/issues/127) reconciliation). The token files (`tokens.css` / `tokens.ts`) remain the source of truth; the PRD now points at them.
+
+### Uncertainty treatment (finalized)
+
+Precision and uncertainty render as a **layered, quiet** treatment — never alarming, always legible:
+
+- **Exact** dates: plain, full-weight numerals.
+- **circa / approximate / estimated**: the qualifier renders as a subdued, muted-foreground prefix (`c.` / `~` / `est.`) and the value sits in `--color-foreground-muted`, not full foreground. No italics on the numerals themselves (tabular alignment must hold).
+- **Uncertainty range (`± years`)**: rendered inline in muted foreground (`66 MYA ± 1M`).
+- **Range bar**: a hairline horizontal bar appears under a temporal range only when it carries real ambiguity — the trigger rule (from [08-event-detail.md](02-wireframes/08-event-detail.md) annotation #5) is **uncertainty > 100 years OR range > 1000 years OR the range spans an era boundary.** Trivial CE ranges get no bar.
+
+### Character type as identity (finalized)
+
+Each of the seven `character_type` values gets a **lucide-react icon + a low-chroma color tint + the literal label**. The label is always present (never icon-alone, per the anchor above); color and icon are reinforcement for fast scanning in lists, headers, and pickers. Color stays low-chroma so seven categorical tints don't fight the era accents or the importance gradient when they co-occur in a dense row.
+
+| `character_type` | lucide icon (candidate) | Tint (dark mode)                    | Notes                             |
+| ---------------- | ----------------------- | ----------------------------------- | --------------------------------- |
+| `human`          | `User`                  | `oklch(0.72 0.04 250)` slate        | the default; most common          |
+| `animal`         | `PawPrint`              | `oklch(0.74 0.06 150)` muted green  | species/breed fields attach       |
+| `mythological`   | `Drama`                 | `oklch(0.76 0.07 30)` terracotta    | legend/hero register              |
+| `fictional`      | `BookOpen`              | `oklch(0.74 0.06 300)` muted violet | source-work / author              |
+| `organization`   | `Building2`             | `oklch(0.72 0.03 230)` steel        | founded/dissolved temporal labels |
+| `divine`         | `Sparkles`              | `oklch(0.80 0.08 90)` gold          | domain field; radiance register   |
+| `artifact`       | `Gem`                   | `oklch(0.70 0.04 60)` bronze        | created/destroyed temporal labels |
+
+**Recommended token slots** (to add to `tokens.ts`/`tokens.css` when the type badge primitive lands — not added in this design pass): `--color-type-human`, `--color-type-animal`, `--color-type-mythological`, `--color-type-fictional`, `--color-type-organization`, `--color-type-divine`, `--color-type-artifact`. Icons are candidates pending a Storybook pass against the era palette; the icon **set** (lucide-react) is locked. Badge shape follows the existing `Badge` primitive (subtle tinted background + ring, matching `StatusBadge`).
+
+### Significance scale (finalized)
+
+`significance` (`low / medium / high / critical`) reuses the **importance sequential ramp** already shipped in Batch F — a single amber hue (55) rising in lightness + chroma across four brackets (`--color-importance-low` … `--color-importance-critical`). Significance and importance are the same _visual_ language (sequential, single-hue) even though they are different data fields, because both answer "how much does this matter." No new tokens needed; the four brackets map 1:1 onto the four significance levels.
+
+### Status badges (finalized)
+
+Per PRD §7.11.5, surfaced via the `StatusBadge` primitive (Batch B):
+
+- **Published** — `✓`, emerald tint (`emerald-400` on `emerald-500/10` with ring). Unmistakable.
+- **Draft** — `─`, zinc/muted. Recedes.
+- **Shared** — `⇄`, blue tint. Marks collaborator-visible entities (adopted in the [#127](https://github.com/shaes-farm/time-traveler/issues/127) reconciliation).
+
 ## Motion direction (preliminary)
 
 This is an admin app, so motion serves **affordance** and **continuity**, not delight. Specifically:

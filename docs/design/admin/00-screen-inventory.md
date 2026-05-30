@@ -65,14 +65,34 @@ Per the CLAUDE.md "When you find a spec or upstream bug" rule:
 - **Periods tab on timeline detail** — read-only stub now; full period linking arrives in Phase 6.
 - **Visibility vs. publication** — kept strictly orthogonal across all surfaces; never merged into one control. See [16](02-wireframes/16-publish-workflow.md).
 - **Collaborator lookup** — by `profiles.username` (no client-queryable email); email-invite delivery is a non-goal this pass.
-- **Media scope** — hybrid upload + external embed with association/ordering; no standalone library browser.
+- **Media scope** — hybrid upload + external embed with association/ordering; the standalone library browser + reusable picker is now designed in the Milestone 6 batch (screen 17).
+
+## Milestone 6 additions (Phase 5 — Characters & Relationships)
+
+Phase 5 (GitHub milestone 6) is the characters & relationships build. The character/event/relationship surfaces (screens 3–10) were specified in earlier passes; this batch is a **design-completion pass** that (a) promotes the deferred cross-entity media library + reusable picker into a real wireframe, (b) finalizes the **visual-design language** the earlier passes deferred, and (c) polishes the relationship sub-role chooser. No new schema; it sits on the existing tables.
+
+| #   | Screen                 | Purpose                                                                                                                                                                                                                                  | Issue         | Wireframe                                                              |
+| --- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------- |
+| 17  | Media library & picker | Cross-entity media browser (browse grid, search, faceted filters incl. orphaned, media detail + blast-radius) and the reusable multi-select **picker** surfaced as the Attach dialog's _Existing_ tab and in the character/event editors | #49 follow-up | [02-wireframes/17-media-library.md](02-wireframes/17-media-library.md) |
+
+### Milestone 6 design decisions (resolved)
+
+- **Visual-design language finalized** — the era palette, character-type identity (color + lucide-react icon per the 7 types), uncertainty/significance/status treatments, and the colorblind-safety rationale are now specified in [03-aesthetic-notes.md](03-aesthetic-notes.md) § _Visual design language (finalized)_. The era palette there is the **shipped Batch E token set** (`packages/ui/src/styles/tokens.css`); PRD §7.2.2 has been **updated in place** to match it (see the reconciliation note below).
+- **Type filter iconography** — earlier passes deferred type icons to "the visual-design step." That step is now done: each `character_type` has a concrete lucide-react icon + low-chroma tint (always paired with the text label, never icon-alone). See [03-aesthetic-notes.md](03-aesthetic-notes.md) § _Character type as identity_.
+- **Reusable media picker (`MediaPicker`)** — designed (screen 17) and surfaced as the Attach dialog _Existing_ tab. **Decision:** it lands as a shared `packages/ui` primitive (`MediaPicker`) with a `mode` prop (`browse` / `pick`), built up front in Batch I so the library browser and the three editors mount the same component. A composite of shadcn primitives, not bespoke. See [03-aesthetic-notes.md](03-aesthetic-notes.md) and [fidelity-2-plan.md § Batch I](fidelity-2-plan.md#batch-i--media-library--picker).
+- **Relationship sub-role chooser polish** — the role chooser now renders paired sub-roles (e.g. `parent`/`child`) as a single directional control and symmetric sub-roles as flat radios, with the other 8 types showing no role block. See [02-wireframes/06-relationships-editor.md](02-wireframes/06-relationships-editor.md) § _Layout — sub-role chooser_ and annotation #5.
+
+### Upstream issues touched in this batch
+
+- **[#179](https://github.com/shaes-farm/time-traveler/issues/179)** — (already filed in M5) `media.storage_path NOT NULL` + no upload/external discriminator. Screen 17's _Source_ filter and kind badge are **blocked** on it; the wireframe documents a `storage_path IS NULL` stopgap and carries `// BLOCKED` notes.
+- **PRD §7.2.2 era-palette reconciliation (resolved)** — the shipped era tokens (hue-spread for colorblind separation) superseded the PRD's clustered blue/amber/brown/green/purple set. Handled like the [#127](https://github.com/shaes-farm/time-traveler/issues/127) reconciliation, but **fixed directly**: PRD §7.2.2 was rewritten in place to the finalized hue-spread palette and now points at the token files as source of truth. No separate issue filed.
 
 ## What's deliberately not in scope this pass
 
 > Three items below moved **into scope** in the [Milestone 5 additions](#milestone-5-additions) batch (screens 11–16): timelines CRUD, media management, and collaborator management. They remain listed here, struck, for historical continuity.
 
 - ~~Timelines~~, periods, stories CRUD — timelines now covered (screens 11–13); periods + stories still excluded
-- ~~Media library~~ — media management now covered as a cross-cutting surface (screen 15); a standalone reusable library browser is still deferred
+- ~~Media library~~ — media management covered as a cross-cutting surface (screen 15); the standalone reusable library browser + picker is **now designed** (screen 17, Milestone 6 batch)
 - Categories management — still deferred
 - Bulk import / export — these are Edge Function flows that need their own design pass
 - Admin moderation queue (`content_reports`) — admin-role-only surface, separate audience
@@ -101,7 +121,7 @@ The following cross-cutting conventions were resolved during the first design-re
 - **Empty-state philosophy** — simple per-screen empty states with a single CTA; dashboard zero-state shows a substantive welcome panel with 2–3 CTAs. No dedicated multi-step onboarding flow. See [02-wireframes/02-dashboard.md](02-wireframes/02-dashboard.md) Edge Cases.
 - **Sidebar entity counts** — no count badges in the rail; dashboard count cards are the canonical surface. See [02-wireframes/00-app-shell.md](02-wireframes/00-app-shell.md) annotation #7.
 - **Live slug preview in editor right rail** — slug regenerates live with a 300ms debounce as the title is typed. Other right-rail fields stay user-controlled. See [02-wireframes/05-character-editor.md](02-wireframes/05-character-editor.md) annotation #3.
-- **Type filter icons + labels** — labels only this fidelity pass; iconography deferred to the visual-design step.
+- **Type filter icons + labels** — ~~labels only this fidelity pass; iconography deferred to the visual-design step.~~ Iconography is now defined (lucide-react icon + tint per `character_type`), always paired with the label. See [03-aesthetic-notes.md](03-aesthetic-notes.md) § _Character type as identity_.
 
 ## Decisions resolved in Batch 5 review
 
