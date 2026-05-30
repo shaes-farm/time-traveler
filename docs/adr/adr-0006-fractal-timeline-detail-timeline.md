@@ -53,6 +53,12 @@ the timeline. The two event↔timeline axes are kept strictly separate
 Access flows from the containing timeline _down_ to its events; a sub-timeline's
 collaborators never gain access to the parent event through the fractal link.
 
+This rejection is **event-specific**: it is the conflation of containment and
+decomposition on `events` that fails. Genuine single-axis containment trees keep
+their self-referential parent FK — `periods.parent_period_id` and
+`categories.parent_category_id` are retained for exactly this reason
+(ADR-0028).
+
 ## Consequences
 
 ### Positive
@@ -109,7 +115,8 @@ collaborators never gain access to the parent event through the fractal link.
 ## References
 
 - **REF-001**: ADR-0010 (junction conventions, `timeline_events`),
-  ADR-0014 (event RLS keyed on `timeline_id`)
+  ADR-0014 (event RLS keyed on `timeline_id`), ADR-0028 (period/category
+  containment hierarchies retain their parent FK)
 - **REF-002**: `supabase/migrations/00001_initial_schema.sql`;
   `docs/system-design.md` §1.2, §3.2, §3.4; issues #177, #180
 - **REF-003**: `docs/design/admin/` wireframes (forward drill-down IA)

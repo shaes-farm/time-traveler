@@ -76,7 +76,9 @@ stored procedure (`docs/system-design.md` §5.5.6).
 ## Implementation Notes
 
 - **IMP-001**: `published`/`published_at` on `timelines`, `periods`, `events`,
-  `stories`, `characters` in `00001`.
+  `stories`, `characters` in `00001`. **Categories are intentionally excluded** —
+  they are taxonomy, not audience-facing content, and have no `published` column
+  or publish control (ADR-0028).
 - **IMP-002**: The `publish` Edge Function sets both fields and fans out
   collaborator notifications (`docs/system-design.md` §5.5.6; ADR-0017
   notifications).
@@ -86,7 +88,8 @@ stored procedure (`docs/system-design.md` §5.5.6).
 ## References
 
 - **REF-001**: ADR-0013 (publish as Edge Function, not stored proc), ADR-0014
-  (published in RLS), ADR-0017 (notifications on publish)
+  (published in RLS), ADR-0017 (notifications on publish), ADR-0028 (categories
+  excluded from the publication model)
 - **REF-002**: `supabase/migrations/00001_initial_schema.sql`;
   `docs/system-design.md` §5.5.6, §9.2
 - **REF-003**: PRD §4.9 (publishing/visibility)

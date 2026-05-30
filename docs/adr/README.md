@@ -13,7 +13,8 @@ migration or PR that implemented it) and carries the status **Accepted
 (retroactively documented 2026-05-30)**. They record _what was decided_, not a
 re-litigation of decided questions.
 
-New decisions start at **`0028`** and follow the
+New (forward) decisions start at **`0028`** — the first of which records the
+Milestone 7 period/category model — and follow the
 [ADR process](#when-to-write-an-adr) below.
 
 ## Format
@@ -61,6 +62,7 @@ New decisions start at **`0028`** and follow the
 | [0025](adr-0025-shared-mediapicker-bespoke-tree.md)        | `MediaPicker` shared primitive; bespoke `Tree` only     | Accepted (retro) | —                                          |
 | [0026](adr-0026-testing-strategy.md)                       | Testing strategy: pgTAP + Vitest 80% + Storybook        | Accepted (retro) | —                                          |
 | [0027](adr-0027-upstream-spec-bug-protocol.md)             | Upstream-spec-bug + PRD-reconciliation protocol         | Accepted (retro) | —                                          |
+| [0028](adr-0028-period-span-overlay-and-hierarchy-axes.md) | Period span-overlays; period/category hierarchy axes    | Accepted         | —                                          |
 
 † ADR `0006` supersedes the original event-to-event `parent_event_id` nesting
 approach, which was never given its own ADR; it is documented inside `0006` as
@@ -68,7 +70,7 @@ the rejected/superseded prior decision and tombstoned per #180.
 
 ## When to write an ADR
 
-Write a new ADR (starting at `0028`) when a change does any of the following:
+Write a new ADR (the next free number, `0029` onward) when a change does any of the following:
 
 - Introduces, replaces, or removes a **platform, framework, or major dependency**
   (e.g., swapping a state manager, adding a queue, changing the host).

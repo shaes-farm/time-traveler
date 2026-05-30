@@ -40,7 +40,11 @@ Standardize all junction tables on:
 - **`ON DELETE CASCADE`** on every FK, so deleting a parent removes its junction
   rows without manual cleanup (ADR-0012).
 - **`sort_order INTEGER`** where editorial ordering matters (`event_media`,
-  `timeline_events` — the latter added in `00012`, #122).
+  `timeline_events` — the latter added in `00012`, #122; `story_events` for
+  editorial narrative order is **pending** migration #183, mirroring `00012`).
+- **Deliberate non-junctions**: a many-to-many is only given a junction when the
+  link is curated. Periods have **no `period_events`** junction — period↔event
+  membership is computed by date, not stored (ADR-0028).
 - **Single-primary flag** enforced with a **partial unique index**, not a trigger
   or app check: `CREATE UNIQUE INDEX … (group_col) WHERE is_primary = true`
   (applied to `character_media` in `00013`, #125).
@@ -90,6 +94,7 @@ Standardize all junction tables on:
 
 - **IMP-001**: All eleven junctions defined in `00002`; `timeline_events.sort_order`
   added in `00012`; `character_media_one_primary` partial unique index in `00013`.
+  `story_events.sort_order` (editorial narrative order) is pending #183.
 - **IMP-002**: Reverse-FK indexes (`idx_event_chars_char`,
   `idx_timeline_events_event`, …) in `00005` (`docs/system-design.md` §8.1).
 - **IMP-003**: New junctions must follow this pattern; if `event_media`/
@@ -99,7 +104,8 @@ Standardize all junction tables on:
 ## References
 
 - **REF-001**: ADR-0011 (CASCADE/publication), ADR-0012 (cascades replace
-  delete procedures), ADR-0014 (parent-derived junction RLS), ADR-0015 (RLS perf)
+  delete procedures), ADR-0014 (parent-derived junction RLS), ADR-0015 (RLS perf),
+  ADR-0028 (`story_events.sort_order`; the deliberate absence of `period_events`)
 - **REF-002**: `supabase/migrations/00002_relationships_junctions.sql`,
   `00012_timeline_events_sort_order.sql`,
   `00013_character_media_single_primary.sql`; `docs/system-design.md` §3.4, §9.2.3
