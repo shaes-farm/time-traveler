@@ -143,6 +143,55 @@ Persona: Author taking a finished biography live.
 
 Edge cases: a collaborator-editor sees no Publish control (publishing is owner-only); unpublishing clears `published_at` to NULL and narrows RLS read access on the next request.
 
+## Milestone 7 flows — Stories, periods, categories
+
+Three flows for the Phase 6 build (screens 18–24). The data layer (services/hooks/stores) already exists; these exercise the new UI and the resolved model decisions.
+
+## Flow J — Author a story and order its events narratively
+
+Persona: Storyteller writing "The Curies' Quest," a third-person telling that opens in media res.
+
+1. From the **Stories list**, click **New story**.
+2. **Story editor** opens. User enters title + sub-title, picks `narrator_type = third_person`, sets perspective character "Marie Curie" (rendered with her human type identity). Writes the summary + Markdown narrative; adds tags `tragedy`, `triumph`. Saves → redirect to **story detail**.
+3. On **story detail → Events tab**, user clicks **+ Add event** and links the Curie events. Each lands at the end of the list.
+4. User **drags (`⠿`) to set narrative order** — putting "Leaving Poland (1891)" _after_ "Discovery of polonium (1898)" as a flashback. The row shows order-index 6 but date 1891, so the non-chronological telling stays legible. This writes `story_events.sort_order` ([#183](https://github.com/shaes-farm/time-traveler/issues/183)).
+5. On the **Characters tab**, user assigns roles (`protagonist` for Marie + Pierre, `supporting` for Becquerel). On **Periods**, associates the "Belle Époque" period.
+6. User publishes from the detail header (owner-only; confirm dialog).
+
+Edge cases:
+
+- **Blocked on [#183](https://github.com/shaes-farm/time-traveler/issues/183).** Until `story_events.sort_order` ships, events render chronologically and the drag handle is hidden — the rest of the flow works.
+- **First-person without perspective character** is blocked at save (Flow's voice is third-person here, so N/A).
+- An event linked here is only _referenced_ — it keeps its home timeline and can appear in other stories with a different order/interpretation (PRD §4.6.3).
+
+## Flow K — Build a period hierarchy and overlay it on a timeline
+
+Persona: Paleontologist structuring deep time.
+
+1. From the **Periods list**, create "Mesozoic Era" (252–66 MYA, significance `critical`, characteristics `reptiles`, `warm climate`). Save → period detail.
+2. Create "Jurassic" (201–145 MYA); in the editor, set **Parent period = Mesozoic Era** (the picker shows Mesozoic's range so the child span can be sanity-checked; it excludes Mesozoic's descendants to prevent cycles).
+3. On **Jurassic detail**, the breadcrumb reads `Mesozoic Era ▸ Jurassic`; the Hierarchy panel shows the parent.
+4. On the **Overlaid timelines tab**, user clicks **+ Overlay a timeline** and adds "Evolution of life on Earth" (`period_timelines`).
+5. The **Events in range tab** now lists events whose dates fall within 201–145 MYA — **computed by date, scoped to the overlaid timeline** — without anyone linking events to the period (span-overlay model; no `period_events`).
+
+Edge cases:
+
+- **Child span outside parent range** → soft, non-blocking warning (period bounds are sometimes fuzzy).
+- **Deleting Mesozoic** cascades to its child periods (`ON DELETE CASCADE`); the Danger-zone confirm states the blast radius (events/timelines unaffected — the period only overlaid them).
+
+## Flow L — Organize the category taxonomy
+
+Persona: Archivist tidying tags.
+
+1. From **Categories**, the tree shows roots (Science, War, Art). User expands **Science → Physics** and clicks **+ Add child** under Physics, creating "Quantum Mechanics" with a color + icon.
+2. User realizes "Relativity" is mis-filed under War; selects it and changes **Parent → Physics** in the inspector (the picker excludes Relativity's own descendants — cycle prevention). The subtree moves.
+3. User deletes the redundant "Misc" category. Because it has children and tagged events, the **delete policy dialog** appears: blast radius ("2 child categories, 7 events"), with **Reparent children first** (recommended) vs. **Delete subtree**. User reparents to root, then deletes only "Misc."
+
+Edge cases:
+
+- Categories tag **events only** this pass; assignment happens in the event editor, not here.
+- No publish state — categories are taxonomy, always live for their owner.
+
 ## What these flows do not cover
 
 - Bulk operations (multi-select delete, bulk publish, bulk export). Reserved for a later pass.

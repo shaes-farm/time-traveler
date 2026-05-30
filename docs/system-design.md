@@ -611,7 +611,12 @@ CREATE TABLE timeline_events (
   PRIMARY KEY (timeline_id, event_id)
 );
 
--- Periods ↔ Timelines
+-- Periods ↔ Timelines — a period is a SPAN-OVERLAY on timelines, not an event
+-- container. period_timelines is a period's ONLY association; there is no
+-- period_events junction (deliberate). Events fall "within" a period by date
+-- (sort_order_years BETWEEN the period's sort_order_start/_end), computed, not
+-- linked. Contrast: timelines contain curated events; an event_type='period'
+-- event is a discrete span event. See docs/design/admin (period detail, screen 23).
 CREATE TABLE period_timelines (
   period_id UUID REFERENCES periods(id) ON DELETE CASCADE,
   timeline_id UUID REFERENCES timelines(id) ON DELETE CASCADE,
@@ -634,10 +639,15 @@ CREATE TABLE story_characters (
   PRIMARY KEY (story_id, character_id)
 );
 
--- Stories ↔ Events
+-- Stories ↔ Events — a story is a NARRATIVE SEQUENCE of events. sort_order is
+-- editorial (the order the story tells them, which may be non-chronological —
+-- flashbacks, thematic grouping), defaulting to 0 ⇒ fall back to the event's
+-- chronological events.sort_order_years. Mirrors timeline_events.sort_order
+-- (00012). PENDING migration #183 — until then story_events renders chronologically.
 CREATE TABLE story_events (
   story_id UUID REFERENCES stories(id) ON DELETE CASCADE,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+  sort_order INTEGER DEFAULT 0,  -- editorial narrative order; PENDING (#183)
   PRIMARY KEY (story_id, event_id)
 );
 
