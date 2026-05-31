@@ -4,7 +4,7 @@
 
 ## Data shown
 
-- Per event: title, temporal range (start–end with era), event_type, importance, participant count, category badges (truncated), parent event indicator, timeline membership, published state
+- Per event: title, temporal range (start–end with era), event_type, importance, participant count, category badges (truncated), drill-down indicator (expands into a sub-timeline), timeline membership, published state
 - Total count + filtered count
 - Active filter state
 - Active sort order
@@ -12,7 +12,7 @@
 ## Primary actions
 
 - Search (by title, summary, detail — backed by `idx_events_search` GIN)
-- Filter by `event_type`, importance range, era, timeline, parent vs. root, has-participants, has-media, published
+- Filter by `event_type`, importance range, era, timeline, drill-down (expands into a sub-timeline vs. leaf), has-participants, has-media, published
 - Sort by `sort_order_years` (default), title, importance, updated_at
 - Create new event
 - Click row → event detail
@@ -71,14 +71,14 @@
 
 1. **Era filter is the most-used filter for this entity.** Pinned to the top of the filter rail.
 2. **Importance filter is a range slider** (1–10), not a multi-select. The schema constrains importance to 1–10; users care about "show me importance 7+", not individual values.
-3. **Nesting indicator in the first column.** `⌒` for root events, `↳` for child events. Indentation of one level only — deeper nesting would require tree expansion which is a different UX. Click into the event for full lineage.
+3. **Drill-down indicator in the first column.** `⤵` marks an event that **expands into a sub-timeline** (`detail_timeline_id` is set); blank otherwise. This is the only fractal signal a flat cross-timeline list can carry under the forward model ([#180](https://github.com/shaes-farm/time-traveler/issues/180)) — there is no root/child event nesting anymore. Clicking `⤵` opens that sub-timeline. _(The ASCII mock above still shows the legacy `⌒`/`↳` root/child glyphs; read the column as the `⤵` drill-down marker. **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177)** until `detail_timeline_id` lands.)_
 4. **Date column shows uncertainty inline.** "66 MYA ±1M" makes the precision visible without a dedicated column.
 5. **Importance shows as a 1–10 number, right-aligned, tabular figures.** Sequential color scale on a single hue (per [03-aesthetic-notes.md](../03-aesthetic-notes.md)). 10 is darkest; 1 is faintest.
 6. **Three-line row layout.** Line 1: title. Line 2: timeline + type + participant count. Line 3 (only when present): category badges. Saves horizontal space at the cost of vertical.
 7. **Sort default is `sort_order_years` ascending.** Chronological is the natural order for events. The cursor pagination strategy from system-design §8.2 applies here when result sets get large.
 8. **No "all eras" parent toggle.** The era filter is checkbox-multi-select. If nothing is checked, all eras are shown. Avoids the "you forgot to filter and got 13 billion years of events" footgun.
 9. **Has-chars filter** is the most common refinement when authors are auditing event participation coverage.
-10. **Show filter — fractal scope** (Batch 3 decision Q3). A 3-state radio in the filter rail between Era and Type controls visibility: `All` (default) / `Root only` (`parent_event_id IS NULL`) / `Nested only` (`parent_event_id IS NOT NULL`). Authors thinking about the fractal hierarchy use this for "show me only top-level events" or "show me only sub-events." The row nesting indicator (annotation #3) remains visible regardless of filter state. The ASCII mockup above predates this decision and does not show the Show group — it lives between Era and Type in the rail.
+10. **Drill-down filter — fractal scope** (Batch 3 decision Q3, reframed for the forward model in [#180](https://github.com/shaes-farm/time-traveler/issues/180)). A 3-state radio in the filter rail between Era and Type: `All` (default) / `Expandable` (`detail_timeline_id IS NOT NULL` — events that open into a sub-timeline) / `Leaf` (`detail_timeline_id IS NULL`). This replaces the former Root-only/Nested-only (`parent_event_id`) control — under forward-only nesting, "is this a top-level event?" is no longer meaningful at the event level (nesting lives on timelines), but "does this event drill down?" is. The `⤵` row indicator (annotation #3) stays visible regardless of filter state. **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177).**
 11. **Categories stay on row line 3, not promoted to a column** (Batch 3 decision Q4). Line 3 only renders when categories exist; rows without categories remain 2 lines tall. The events table is the densest in the admin and cannot afford a column claimed by a frequently-empty field.
 12. **Status column** shows three states (per PRD §7.11.5; #127 reconciliation): `✓ Published`, `─ draft` for Draft, and `⇄ shared` for events reachable to the user via `timeline_collaborators` (the event belongs to another user's timeline but is visible because the current user collaborates on that timeline). The Shared state is a permission-context marker. Specific colors (green / gray / blue per PRD §7.11.5) and icons applied at fidelity-2 visual design.
 
@@ -97,6 +97,6 @@
 
 > **Resolved (Batch 3):**
 >
-> - Parent-event filtering as a user control — added as a 3-state Show radio (`All` / `Root only` / `Nested only`) in the filter rail between Era and Type. See annotation #10.
+> - ~~Parent-event filtering (Root/Nested)~~ — **superseded by [#180](https://github.com/shaes-farm/time-traveler/issues/180).** Replaced by the Drill-down filter (`All` / `Expandable` / `Leaf`) keyed on `detail_timeline_id` under the forward fractal model. See annotation #10.
 > - Categories column vs. row line 3 — line 3 stays. See annotation #11.
 > - Filter-by-participating-character — deferred to the character-detail Events tab; not added to the events-list filter rail. If filter state is URL-encoded for the rail filters that exist, a `?character=<id>` query parameter could carry character filtering as a low-cost side-effect, documented as future polish.

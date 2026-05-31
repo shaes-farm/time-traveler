@@ -89,3 +89,11 @@ Run in order — all must pass:
 ## When you find a spec or upstream bug
 
 If implementing a task reveals a bug in the spec (`docs/system-design.md`, PRD), schema, or another upstream artifact, do not silently work around it. File a separate GitHub issue documenting the bug, its evidence, the workaround applied in code, and the recommended upstream fix. Reference the tracking issue in the workaround comment if the workaround is non-obvious. See #73 for the template.
+
+## When to write an ADR
+
+Architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/). The retroactive series ADR-0001…0027 documents every load-bearing decision made to date; the index and process live in [`docs/adr/README.md`](docs/adr/README.md).
+
+- Write a new ADR when you make a decision that is **hard to reverse, cross-cutting, or sets a precedent** — a new dependency/platform, a schema/RLS pattern, an API boundary, a state/data-flow choice, or a design-system rule. Routine, local, easily-reversible changes do not need one.
+- **Number new ADRs from 0029 onward** (0028 records the Milestone 7 period/category model). Copy [`docs/adr/adr-0000-template.md`](docs/adr/adr-0000-template.md), fill it in, cite concrete evidence (migration file/section or doc section), and add a row to the README index.
+- If a new decision **supersedes or amends** an existing ADR, set the `supersedes`/`superseded_by` front matter on both sides and update the index status.

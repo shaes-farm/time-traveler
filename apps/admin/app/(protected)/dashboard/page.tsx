@@ -1,12 +1,5 @@
-import { PlaceholderPage } from "../../../components/placeholder-page";
+import { DashboardClient } from "./_components/dashboard-client";
 
 export default function DashboardPage() {
-  return (
-    <PlaceholderPage
-      title="Dashboard"
-      description="Recent activity, draft work, and quick links."
-      trackedIn="a later batch (TBD)"
-      rows={3}
-    />
-  );
+  return <DashboardClient />;
 }

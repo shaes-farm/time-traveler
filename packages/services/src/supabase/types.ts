@@ -999,14 +999,17 @@ export type Database = {
       story_events: {
         Row: {
           event_id: string;
+          sort_order: number | null;
           story_id: string;
         };
         Insert: {
           event_id: string;
+          sort_order?: number | null;
           story_id: string;
         };
         Update: {
           event_id?: string;
+          sort_order?: number | null;
           story_id?: string;
         };
         Relationships: [
@@ -1410,6 +1413,13 @@ export type Database = {
       };
       get_user_metrics: {
         Args: { p_user_id: string };
+        Returns: {
+          count: number;
+          entity_type: string;
+        }[];
+      };
+      get_user_recent_counts: {
+        Args: { p_user_id: string; p_window_days?: number };
         Returns: {
           count: number;
           entity_type: string;

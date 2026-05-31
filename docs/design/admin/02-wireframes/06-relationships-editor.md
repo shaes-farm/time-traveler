@@ -171,13 +171,39 @@ Each relationship is a card with full temporal scope visible. Edits happen inlin
 └──────────────────────────────────────────────────────────────────┘
 ```
 
+### Layout — sub-role chooser (paired vs. symmetric)
+
+The role chooser renders **differently per sub-role kind** so the directional meaning is unmistakable at pick time. Within `family` (and identically `professional`), roles are grouped under a small `Role *` header; **paired** roles render as a single directional control naming both ends, **symmetric** roles render as a plain radio.
+
+```
+  Type *  (●) family
+  ───────────────────────────────────────────────────────────────
+  Role *
+   Paired (direction matters — reciprocal gets the inverse)
+    (●) Marie is the  [ parent ▾ ]  of the other character
+         ⇄ stores (Marie, X, family, parent) + (X, Marie, family, child)
+    ( ) Marie is the  [ grandparent ▾ ]  of …
+    ( ) Marie is the  [ aunt/uncle ▾ ]  of …
+    ( ) Marie is the  [ step-parent ▾ ]  of …
+    ( ) Marie is the  [ adoptive parent ▾ ]  of …
+    ( ) Marie is the  [ in-law ▾ ]  of …  (loosely paired)
+   Symmetric (same role both directions)
+    ( ) spouse     ( ) sibling     ( ) cousin     ( ) step-sibling
+    ( ) other
+```
+
+- The **paired control's dropdown flips the stored role** for whichever end the author names (`parent` ⇄ `child`), so the author never has to reason about the reverse row — picking "Marie is the **parent**" auto-stores the reciprocal as `child`. The inline `⇄ stores …` hint makes the pair explicit (annotation #6).
+- **Symmetric roles are a flat radio row** — no direction control, because both rows carry the same role.
+- `collaboration` is **all-symmetric**, so it shows only the flat radio row (the example in the main add-sheet above). `professional` mixes both (paired `employer`/`employee`, `supervisor`/`subordinate`, `client`/`vendor`; symmetric `colleague`, `business_partner`).
+- The **other 8 types show no `Role *` block at all** (`relationship_role` is NULL) — selecting `friendship`, `enemy`, `mentor_student`, etc. collapses the role area entirely so there is never an empty/disabled role control to puzzle over.
+
 ### Annotations
 
 1. **Group by relationship-type family** — Family, Professional, Social/personal, Antagonistic, Asymmetric. Each group is collapsible. With ~4 groups the visual density stays scannable even for characters with many relationships.
 2. **Card layout reads the temporal range visually.** A horizontal range bar between start and end dates makes "1895–1906 CE" legible at a glance. "Ongoing" renders as an open right edge. For pre-CE dates, the era is in the labels.
 3. **Direction is rendered as narrative text on the card.** "Marie is mother of Irène" instead of an arrow. The grammar makes asymmetric types unambiguous.
 4. **Add sheet is a right-side slide-out**, not a modal. This makes it easier to reference the current relationships while adding a new one.
-5. **Type picker groups by family** (same groups used in the list). For `family`, `professional`, and `collaboration`, picking a type reveals an inline sub-role chooser ([#119](https://github.com/shaes-farm/time-traveler/issues/119); Batch 2 decision Q3). Asymmetric types render as a single radio per type. The implementation convention is **focal character is the subject of the verb** — picking `mentor_student` from Marie's editor stores `(Marie, Pierre, mentor_student)` ("Marie mentors Pierre"). To record the reverse direction ("Pierre mentored Marie"), the author switches to Pierre's editor and creates the relationship from there; direction lives implicitly in column ordering. An earlier iteration of this wireframe specified paired radios per asymmetric type with name interpolation; that approach was implemented (PR #164) and reverted because the 10 paired rows added visual weight disproportionate to their value — narrative direction is already carried by the description field, and the focal-is-subject convention covers the common case.
+5. **Type picker groups by family** (same groups used in the list). For `family`, `professional`, and `collaboration`, picking a type reveals an inline sub-role chooser ([#119](https://github.com/shaes-farm/time-traveler/issues/119); Batch 2 decision Q3) under a `Role *` header — see [Layout — sub-role chooser](#layout--sub-role-chooser-paired-vs-symmetric). Within that chooser, **paired** roles render as one directional control that names both ends (and auto-stores the inverse on the reciprocal row), while **symmetric** roles render as a flat radio row. The **other 8 types render no role block at all** (NULL `relationship_role`) — the role area collapses so there is never an empty/disabled control. Asymmetric types still render as a single radio per type. The implementation convention is **focal character is the subject of the verb** — picking `mentor_student` from Marie's editor stores `(Marie, Pierre, mentor_student)` ("Marie mentors Pierre"). To record the reverse direction ("Pierre mentored Marie"), the author switches to Pierre's editor and creates the relationship from there; direction lives implicitly in column ordering. An earlier iteration of this wireframe specified paired radios per asymmetric type with name interpolation; that approach was implemented (PR #164) and reverted because the 10 paired rows added visual weight disproportionate to their value — narrative direction is already carried by the description field, and the focal-is-subject convention covers the common case.
 6. **Reciprocal-edge creation is implicit** in the type/role choice — there is no longer a "reciprocal" checkbox (Batch 2 decision Q1). For paired sub-roles (`parent`/`child`, `grandparent`/`grandchild`, `employer`/`employee`, etc.) the system stores both rows with inverted roles. For symmetric sub-roles and symmetric flat types (`friendship`, `rivalry`, `enemy`, `collaboration` with a symmetric role), both rows are stored with the same type+role. **Description does not sync** between the two rows — each character's card carries its own perspective text. Dates and type/role sync between paired rows; future edits to dates propagate, edits to description do not.
 7. **Type picker uses radio rather than select** because the user benefits from seeing all 11 types at once when choosing — the wrong type is a common error and selects hide that.
 8. **Other-character search** is a combobox that excludes the focal character (`Marie`) and any character already linked by the currently-chosen type (to avoid the unique-index violation before save).

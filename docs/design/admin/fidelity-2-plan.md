@@ -30,16 +30,18 @@ The fidelity-1 design review filed three follow-up issues; all are resolved or o
 
 The original fidelity-2 outline didn't reference the foundational GitHub issues that gate the admin app's bootstrap. This revision aligns each batch with the open issues it closes, so the work shows up against the project plan and doesn't grow a parallel paper trail.
 
-| Batch                                  | Closes / advances                                                                                                                                                        | Status |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| **[A](#batch-a--foundations)**         | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                   | done   |
-| **[B](#batch-b--app-shell)**           | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | done   |
-| **[C](#batch-c--auth-infrastructure)** | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | done   |
-| **[D](#batch-d--auth-ui)**             | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | done   |
-| **[E](#batch-e--temporal-primitive)**  | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | done   |
-| **[F](#batch-f--list-primitives)**     | originally Batch D                                                                                                                                                       | done   |
-| **[G](#batch-g--editor-primitives)**   | [#40](https://github.com/shaes-farm/time-traveler/issues/40) (TemporalInput/editor primitives + docs refresh)                                                            | done   |
-| **[H](#batch-h--relationship-editor)** | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                       | done   |
+| Batch                                           | Closes / advances                                                                                                                                                        | Status  |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| **[A](#batch-a--foundations)**                  | [#37](https://github.com/shaes-farm/time-traveler/issues/37) (shadcn + Tailwind theme)                                                                                   | done    |
+| **[B](#batch-b--app-shell)**                    | [#38](https://github.com/shaes-farm/time-traveler/issues/38) (app shell + route groups + sidebar/header)                                                                 | done    |
+| **[C](#batch-c--auth-infrastructure)**          | [#35](https://github.com/shaes-farm/time-traveler/issues/35) (Supabase Auth), [#36](https://github.com/shaes-farm/time-traveler/issues/36) (`proxy.ts` route protection) | done    |
+| **[D](#batch-d--auth-ui)**                      | [#39](https://github.com/shaes-farm/time-traveler/issues/39) (login, register, magic link, password reset)                                                               | done    |
+| **[E](#batch-e--temporal-primitive)**           | originally Batch B; reads against PRD §4 / system-design §4                                                                                                              | done    |
+| **[F](#batch-f--list-primitives)**              | originally Batch D                                                                                                                                                       | done    |
+| **[G](#batch-g--editor-primitives)**            | [#40](https://github.com/shaes-farm/time-traveler/issues/40) (TemporalInput/editor primitives + docs refresh)                                                            | done    |
+| **[H](#batch-h--relationship-editor)**          | originally Batch F; finishes the [#119](https://github.com/shaes-farm/time-traveler/issues/119) UX                                                                       | done    |
+| **[I](#batch-i--media-library--picker)**        | [#49](https://github.com/shaes-farm/time-traveler/issues/49) follow-up (cross-entity media library + reusable picker, screen 17)                                         | planned |
+| **[J](#batch-j--visual-language-finalization)** | finalizes the deferred visual-design language (era palette reconciliation, character-type identity, treatments) per [03-aesthetic-notes.md](03-aesthetic-notes.md)       | planned |
 
 Why app shell + auth before the temporal primitive: the TemporalDisplay primitive is the highest-leverage component visually, but every later batch (lists, editors, relationships) renders inside the protected shell. Building the chrome first means later composite stories can mount their primitives in a real shell context instead of a Storybook-only frame, and the auth + proxy work unblocks any future "go look at the running admin app" verification step. The TemporalDisplay still lands before list/editor work, which is where it actually gets consumed.
 
@@ -278,6 +280,29 @@ Originally Batch F.
 - This is the highest-stakes screen visually; budget for iteration
 
 After Batch H, every fidelity-1 wireframe has a visual realization. Simpler screens (sign-in, dashboard, list/detail variants that reuse existing primitives) can be assembled directly as routes in `apps/admin` without a dedicated batch.
+
+### Batch I — Media library & picker
+
+Advances [#49](https://github.com/shaes-farm/time-traveler/issues/49) (the deferred cross-entity browser + reusable picker). Realizes [screen 17](02-wireframes/17-media-library.md) and upgrades the Attach dialog from [screen 15](02-wireframes/15-media-management.md).
+
+- **`MediaPicker` as a shared `packages/ui` primitive (decided up front).** One component, two mount modes selected by a `mode` prop (`"browse"` full-screen library browser vs. `"pick"` modal multi-select picker), per [screen-17 annotation #1](02-wireframes/17-media-library.md#annotations). Mounted by the library route, the Attach dialog's _Existing_ tab, and the character/event editor media sections so all four consume the same grid + facets + card rendering. **Build it first in this batch, before any consumer wires it up**, so the four surfaces can never diverge. It is a composite of shadcn primitives (dialog, command/input, checkbox, scroll-area, card) — **not** bespoke; the only bespoke timeline-era primitive remains `Tree`.
+- `MediaGrid` + `MediaCard` (thumbnail, type/kind badge, `⛓ N` attachment-count badge, `⚠` orphan marker) with the by-type preview degradation from [screen 15](02-wireframes/15-media-management.md) annotation #8.
+- `MediaFilterRail` reusing the Batch F `FilterRail`: faceted **Type** / **Source** / **Attached-to** (incl. **Orphaned**) groups with counts.
+- `MediaDetailDrawer` — edits the `media` row (alt text, caption, slug), lists "Attached to" with per-entity **Detach**, and gates **Delete original** behind a blast-radius confirm computed from the attachment list.
+- Attach-dialog **Existing** tab embeds `MediaPicker` in modal mode; the dialog (not the picker) writes the correct junction (`event_media` / `character_media` / `timeline_media`), dedup via composite PK.
+- Composite story: `Pages > Media Library` (browser) + a `MediaPicker` modal story.
+- **Blocked surfaces:** the **Source** facet + kind badge depend on [#179](https://github.com/shaes-farm/time-traveler/issues/179) (nullable `storage_path` + `source` discriminator). Until it lands, derive kind from `storage_path IS NULL` as a stopgap and mark the facet `provisional`. `// BLOCKED: accurate upload/external split needs #179.`
+
+### Batch J — Visual-language finalization
+
+Turns the [03-aesthetic-notes.md](03-aesthetic-notes.md) § _Visual design language (finalized)_ spec into committed tokens + the type-badge primitive. No new screens; it hardens decisions the earlier batches deferred.
+
+- **Character-type tokens + `CharacterTypeBadge` primitive** — add the 7 `--color-type-*` token slots (slate/green/terracotta/violet/steel/gold/bronze, low-chroma) to `tokens.ts` + `tokens.css`, and a `CharacterTypeBadge` that pairs a lucide-react icon (`User` / `PawPrint` / `Drama` / `BookOpen` / `Building2` / `Sparkles` / `Gem`) with the **always-present** text label. Consumed by characters list, character detail/header, and the type filter chips.
+- **Era-palette reconciliation (already done — no action in Batch J)** — PRD §7.2.2 was **rewritten in place** in the Milestone 6 Phase 5 design pass (same PR as this plan update) to match the shipped hue-spread tokens; no separate issue was filed (treated like the [#127](https://github.com/shaes-farm/time-traveler/issues/127) reconciliation — implementation wins, PRD is the doc that moves). Batch J's remaining work is the accessibility gate below; no token value change is required.
+- **Significance scale** — confirm `significance` (`low`/`medium`/`high`/`critical`) reuses the Batch F importance amber ramp (`--color-importance-*`); no new tokens.
+- **Status + uncertainty** — verify `StatusBadge` (Published/Draft/Shared) and the `TemporalDisplay` uncertainty treatment match the finalized spec; adjust only if drift exists.
+- **Accessibility gate:** re-run the red-green colorblind check across era hues + the 7 type tints together (they co-occur in dense rows); icon + label must carry meaning with hue removed.
+- Composite story updates: type badges visible in `Pages > Characters List` and `Pages > Character Detail`.
 
 ## Verification per batch
 
