@@ -7,16 +7,16 @@ Design-first workstream for the **public-facing reader experience** (timeline na
 
 ## Artifact index
 
-| #   | Artifact                                   | Issue                                                          | Status |
-| --- | ------------------------------------------ | -------------------------------------------------------------- | ------ |
-| 00  | [IA + route model](00-ia-route-model.md)   | [#166](https://github.com/shaes-farm/time-traveler/issues/166) | draft  |
-| 01  | UX principles + visual direction           | [#167](https://github.com/shaes-farm/time-traveler/issues/167) | todo   |
-| 02  | Screen inventory + scope map               | [#168](https://github.com/shaes-farm/time-traveler/issues/168) | todo   |
-| 03  | User flows                                 | [#169](https://github.com/shaes-farm/time-traveler/issues/169) | todo   |
-| 04  | Low-fidelity wireframes                    | [#170](https://github.com/shaes-farm/time-traveler/issues/170) | todo   |
-| 05  | Interaction specification                  | [#171](https://github.com/shaes-farm/time-traveler/issues/171) | todo   |
-| 06  | Mid-fidelity + motion + accessibility spec | [#172](https://github.com/shaes-farm/time-traveler/issues/172) | todo   |
-| 07  | Prototype validation + readiness           | [#173](https://github.com/shaes-farm/time-traveler/issues/173) | todo   |
+| #   | Artifact                                                | Issue                                                          | Status |
+| --- | ------------------------------------------------------- | -------------------------------------------------------------- | ------ |
+| 00  | [IA + route model](00-ia-route-model.md)                | [#166](https://github.com/shaes-farm/time-traveler/issues/166) | draft  |
+| 01  | [UX principles + visual direction](01-ux-principles.md) | [#167](https://github.com/shaes-farm/time-traveler/issues/167) | draft  |
+| 02  | Screen inventory + scope map                            | [#168](https://github.com/shaes-farm/time-traveler/issues/168) | todo   |
+| 03  | User flows                                              | [#169](https://github.com/shaes-farm/time-traveler/issues/169) | todo   |
+| 04  | Low-fidelity wireframes                                 | [#170](https://github.com/shaes-farm/time-traveler/issues/170) | todo   |
+| 05  | Interaction specification                               | [#171](https://github.com/shaes-farm/time-traveler/issues/171) | todo   |
+| 06  | Mid-fidelity + motion + accessibility spec              | [#172](https://github.com/shaes-farm/time-traveler/issues/172) | todo   |
+| 07  | Prototype validation + readiness                        | [#173](https://github.com/shaes-farm/time-traveler/issues/173) | todo   |
 
 ## Sequencing
 
