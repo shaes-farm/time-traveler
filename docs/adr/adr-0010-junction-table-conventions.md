@@ -43,7 +43,7 @@ Standardize all junction tables on:
   rows without manual cleanup (ADR-0012).
 - **`sort_order INTEGER`** where editorial ordering matters (`event_media`,
   `timeline_events` — the latter added in `00012`, #122; `story_events` for
-  editorial narrative order is **pending** migration #183, mirroring `00012`).
+  editorial narrative order was added in `00016`, #183, mirroring `00012`).
 - **Deliberate non-junctions**: a many-to-many is only given a junction when the
   link is curated. Periods have **no `period_events`** junction — period↔event
   membership is computed by date, not stored (ADR-0028).
@@ -95,8 +95,8 @@ Standardize all junction tables on:
 ## Implementation Notes
 
 - **IMP-001**: All eleven junctions defined in `00002`; `timeline_events.sort_order`
-  added in `00012`; `character_media_one_primary` partial unique index in `00013`.
-  `story_events.sort_order` (editorial narrative order) is pending #183.
+  added in `00012`; `character_media_one_primary` partial unique index in `00013`;
+  `story_events.sort_order` (editorial narrative order) added in `00016` (#183).
 - **IMP-002**: Reverse-FK indexes (`idx_event_chars_char`,
   `idx_timeline_events_event`, …) in `00005` (`docs/system-design.md` §8.1).
 - **IMP-003**: New junctions must follow this pattern; if `event_media`/
@@ -109,6 +109,6 @@ Standardize all junction tables on:
   delete procedures), ADR-0014 (parent-derived junction RLS), ADR-0015 (RLS perf),
   ADR-0028 (`story_events.sort_order`; the deliberate absence of `period_events`)
 - **REF-002**: `supabase/migrations/00002_relationships_junctions.sql`,
-  `00012_timeline_events_sort_order.sql`,
+  `00012_timeline_events_sort_order.sql`, `00016_story_events_sort_order.sql`,
   `00013_character_media_single_primary.sql`; `docs/system-design.md` §3.4, §9.2.3
 - **REF-003**: PostgreSQL partial unique index documentation

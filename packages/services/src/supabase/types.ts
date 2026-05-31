@@ -999,14 +999,17 @@ export type Database = {
       story_events: {
         Row: {
           event_id: string;
+          sort_order: number | null;
           story_id: string;
         };
         Insert: {
           event_id: string;
+          sort_order?: number | null;
           story_id: string;
         };
         Update: {
           event_id?: string;
+          sort_order?: number | null;
           story_id?: string;
         };
         Relationships: [

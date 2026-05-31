@@ -12,6 +12,7 @@ import {
   removeCharacterFromStory,
   addEventToStory,
   removeEventFromStory,
+  reorderStoryEvent,
   addPeriodToStory,
   removePeriodFromStory,
 } from "./story-service.js";
@@ -391,8 +392,8 @@ describe("removeCharacterFromStory", () => {
 // ---------------------------------------------------------------------------
 
 describe("addEventToStory", () => {
-  it("returns the created junction row", async () => {
-    const row = { story_id: "story-1", event_id: "event-1" };
+  it("returns the new junction row with default sort_order=0", async () => {
+    const row = { story_id: "story-1", event_id: "event-1", sort_order: 0 };
     const client = makeClient({ fromResult: { data: row, error: null } });
     const result = await addEventToStory(client, "story-1", "event-1");
     expect(result).toEqual(row);
@@ -401,6 +402,21 @@ describe("addEventToStory", () => {
     expect(builder.insert).toHaveBeenCalledWith({
       story_id: "story-1",
       event_id: "event-1",
+      sort_order: 0,
+    });
+  });
+
+  it("accepts an explicit sort_order", async () => {
+    const row = { story_id: "story-1", event_id: "event-1", sort_order: 5 };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+    const result = await addEventToStory(client, "story-1", "event-1", 5);
+    expect(result.sort_order).toBe(5);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.insert).toHaveBeenCalledWith({
+      story_id: "story-1",
+      event_id: "event-1",
+      sort_order: 5,
     });
   });
 
@@ -429,6 +445,33 @@ describe("removeEventFromStory", () => {
     await expect(
       removeEventFromStory(client, "story-1", "event-1"),
     ).rejects.toThrow("StoryService.removeEventFromStory: failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reorderStoryEvent
+// ---------------------------------------------------------------------------
+
+describe("reorderStoryEvent", () => {
+  it("returns the updated junction row with the new sort_order", async () => {
+    const row = { story_id: "story-1", event_id: "event-1", sort_order: 3 };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+    const result = await reorderStoryEvent(client, "story-1", "event-1", 3);
+    expect(result.sort_order).toBe(3);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith({ sort_order: 3 });
+    expect(builder.eq).toHaveBeenCalledWith("story_id", "story-1");
+    expect(builder.eq).toHaveBeenCalledWith("event_id", "event-1");
+  });
+
+  it("throws on DB error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "not found" } },
+    });
+    await expect(
+      reorderStoryEvent(client, "story-1", "event-1", 3),
+    ).rejects.toThrow("StoryService.reorderStoryEvent: not found");
   });
 });
 
