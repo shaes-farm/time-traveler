@@ -97,10 +97,13 @@ Key implications of this split:
 
 ## Implementation Notes
 
-- **IMP-001**: Scaffold `apps/reader/` as a standard Next.js 16 app using
-  `pnpm create next-app@latest apps/reader --typescript --tailwind --app --src-dir no
---import-alias "@/*"`. Extend `@repo/typescript-config/nextjs.json` and
-  `@repo/eslint-config/next-js`.
+- **IMP-001**: Scaffold `apps/reader/` as a standard Next.js 16 app using the command below.
+  Extend `@repo/typescript-config/nextjs.json` and `@repo/eslint-config/next-js`.
+
+  ```bash
+  pnpm create next-app@latest apps/reader --typescript --tailwind --app --src-dir no --import-alias "@/*"
+  ```
+
 - **IMP-002**: Add `apps/reader` to `pnpm-workspace.yaml` `packages:` list and confirm
   Turborepo picks up `reader:build`, `reader:lint`, `reader:check-types` in `turbo.json`.
 - **IMP-003**: The route group inside `apps/reader/app/` can be `(public)/` for consistency

@@ -40,7 +40,11 @@ call. This ADR records that call.
 ## Decision
 
 Use **`/@:username/:type/:slug`** as the canonical reference scheme for all public-reader entity
-routes, where `:username` is the author's `profiles.username`:
+routes, where `:username` is the author's `profiles.username`. The URL includes a literal `@`
+prefix before the username (e.g. `/@historymaven/timelines/space-race`). The Next.js
+`[@username]` dynamic segment therefore captures the value **including the `@`** (e.g.
+`"@historymaven"`); the server must **strip the leading `@`** before querying
+`profiles.username`.
 
 | Entity type | Canonical public route         |
 | ----------- | ------------------------------ |
@@ -106,9 +110,11 @@ username resolution requires no authentication, preserving the anonymous-browsin
   this prevents a typo in `:type` from silently matching as a slug.
 - **IMP-002**: The `[@username]` segment must be a sibling of `/explore`, `/stories`, and `/search`
   in the file-system hierarchy so Next.js resolves those fixed paths first (static before dynamic).
-- **IMP-003**: Server-side resolution order: look up `profiles` by `username` → resolve `user_id`
-  → query entity by `(user_id, slug)` with `AND published = true`. RLS enforces `published` at the
-  DB layer; the app query is a belt-and-suspenders pre-filter.
+- **IMP-003**: The Next.js `[@username]` segment captures the value including the literal `@`
+  prefix (e.g. `"@historymaven"`); **strip the leading `@`** before querying `profiles`. Full
+  resolution order: strip `@` from segment value → look up `profiles` by `username` → resolve
+  `user_id` → query entity by `(user_id, slug)` with `AND published = true`. RLS enforces
+  `published` at the DB layer; the app query is a belt-and-suspenders pre-filter.
 - **IMP-004**: Responses for unpublished or non-existent `(username, type, slug)` triples must
   return **404**, never 403 — 403 would confirm the entity exists and leak private-content
   information. The `published = true` RLS clause already prevents reading the row; the 404 is the
