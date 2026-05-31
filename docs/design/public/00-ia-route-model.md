@@ -1,6 +1,6 @@
 # Public Reader — Information Architecture + Route Model
 
-Status: **draft 2** — OQ-1 (reference scheme) resolved → ADR-0029; no visual styling, no motion detail
+Status: **draft 3** — all OQs resolved → ADR-0029 (route scheme), ADR-0030 (app placement); no visual styling, no motion detail
 Parent epic: [#165](https://github.com/shaes-farm/time-traveler/issues/165) · Issue: [#166](https://github.com/shaes-farm/time-traveler/issues/166)
 Scope owner: this document is the canonical IA contract that downstream public-reader design issues (#167–#173) and the visualization implementation tickets (#65–#69) build on.
 
@@ -39,6 +39,9 @@ graph TD
     TLDetail -. "zoom in (detail_timeline_id, #177)" .-> TLDetail
     TLDetail -. "period bands (period_timelines)" .-> PeriodDetail["/@:username/periods/:slug — Period detail"]
 
+    Explore -. "compare 2-4 timelines (PRD §2.2.9)" .-> Compare["/compare — Comparative timeline viewer"]
+    TLDetail -. "compare" .-> Compare
+
     Stories --> StoryDetail["/@:username/stories/:slug — Story reader"]
     StoryDetail --> EvtDetail
     StoryDetail -. "perspective / roles" .-> CharDetail["/@:username/characters/:slug — Character profile"]
@@ -56,7 +59,7 @@ graph TD
     classDef entry fill:#1d3a5f,stroke:#4f7cac,color:#fff;
     classDef reader fill:#2a2a3a,stroke:#6b6b8a,color:#fff;
     class Home,Explore,Stories,Search entry;
-    class TLDetail,EvtDetail,CharDetail,StoryDetail,PeriodDetail,CharTimeline,CharNetwork,Browse reader;
+    class TLDetail,EvtDetail,CharDetail,StoryDetail,PeriodDetail,CharTimeline,CharNetwork,Browse,Compare reader;
 ```
 
 **Reading the map:** solid arrows are primary navigation (a visible, deliberate "go here" affordance); dotted arrows are cross-links / lateral pivots between related entities. Entity routes use the `/@:username/:type/:slug` scheme — see §4 and [ADR-0029](../../adr/adr-0029-public-reader-route-scheme.md).
@@ -65,7 +68,7 @@ graph TD
 
 ## 3. Route taxonomy
 
-The reader lives under the public route group `app/(public)/` (ADR-0003, system-design §11), which carries no auth requirement and is structurally separate from `(protected)` and `(admin)`. App-placement note: the route group physically lives in whichever app owns the public surface — see **OQ-5** (admin app vs. a dedicated reader app).
+The reader lives under the public route group `app/(public)/` (ADR-0003, system-design §11), which carries no auth requirement and is structurally separate from `(protected)` and `(admin)`. The public surface lives in the dedicated **`apps/reader`** Next.js application — see [ADR-0030](../../adr/adr-0030-public-reader-app-placement.md).
 
 ### 3.1 Primary routes
 
@@ -79,23 +82,24 @@ The reader lives under the public route group `app/(public)/` (ADR-0003, system-
 | `/@:username/events/:slug`     | Event detail        | Full event reader view (PRD §2.2.4)                                                                   | Shared leaf      |
 | `/@:username/characters/:slug` | Character profile   | Biography + character timeline + relationship network (PRD §2.2.5)                                    | Shared leaf      |
 | `/@:username/periods/:slug`    | Period detail       | Hierarchy + overlaid timelines + computed events-in-range (PRD §2.2.6, ADR-0028)                      | Shared leaf      |
-| `/search`                      | Global search       | Faceted full-text search across all published types — **post-MVP** (PRD §2.2.8)                       | Cross-cutting    |
+| `/search`                      | Global search       | Faceted full-text search across all published types — **post-MVP / stubbed at launch** (PRD §2.2.8)   | Cross-cutting    |
+| `/compare`                     | Comparative viewer  | 2–4 published timelines aligned on a shared time axis (PRD §2.2.9); selected via `?t=` params         | Cross-cutting    |
 
 ### 3.2 Faceted / parameterized routes
 
 Facets are **query parameters on the list surfaces**, not distinct routes — this keeps shareable, bookmarkable filter state and avoids a combinatorial route explosion. The facet vocabulary derives directly from schema-backed columns so every facet is query-cheap:
 
-| Surface                       | Facet param     | Source                                                         | Notes                                                           |
-| ----------------------------- | --------------- | -------------------------------------------------------------- | --------------------------------------------------------------- |
-| `/explore`                    | `?type=`        | `timelines.timeline_type` (general/biographical/comparative)   | Single-select.                                                  |
-| `/explore`                    | `?era=`         | derived from `sort_order_start`/`sort_order_end` bucketing     | CE/BCE/KYA/MYA/BYA bands; era is computed, not a stored column. |
-| `/explore`                    | `?category=`    | `event_categories` → `categories.slug`                         | Category tags events only this pass (ADR-0028).                 |
-| `/explore`                    | `?character=`   | `event_characters` → character ref                             | Multi-character intersection is a PRD §2.2.8 goal; see OQ-4.    |
-| `/stories`                    | `?narrator=`    | `stories.narrator_type` (first_person/third_person/omniscient) | Single-select.                                                  |
-| `/stories`                    | `?perspective=` | `stories.perspective_character_id`                             | Filter by perspective character.                                |
-| `/stories`                    | `?tag=`         | `stories.tags[]`                                               | Multi-select chips.                                             |
-| `/@:username/timelines/:slug` | `?scale=`       | `timelines.scale` default + user toggle                        | `logarithmic` (default for long spans) ↔ `linear` (PRD §2.2.3). |
-| `/@:username/timelines/:slug` | `?at=`          | a `sort_order_years` anchor                                    | Deep-link to a zoom/scroll position; spec owned by #171.        |
+| Surface                       | Facet param     | Source                                                         | Notes                                                                                          |
+| ----------------------------- | --------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `/explore`                    | `?type=`        | `timelines.timeline_type` (general/biographical/comparative)   | Single-select.                                                                                 |
+| `/explore`                    | `?era=`         | derived from `sort_order_start`/`sort_order_end` bucketing     | CE/BCE/KYA/MYA/BYA bands; era is computed, not a stored column.                                |
+| `/explore`                    | `?category=`    | `event_categories` → `categories.slug`                         | Category tags events only this pass (ADR-0028).                                                |
+| `/explore`                    | `?character=`   | `event_characters` → character ref                             | Multi-select; repeated params = AND intersection (all must appear). OR mode deferred post-MVP. |
+| `/stories`                    | `?narrator=`    | `stories.narrator_type` (first_person/third_person/omniscient) | Single-select.                                                                                 |
+| `/stories`                    | `?perspective=` | `stories.perspective_character_id`                             | Filter by perspective character.                                                               |
+| `/stories`                    | `?tag=`         | `stories.tags[]`                                               | Multi-select chips.                                                                            |
+| `/@:username/timelines/:slug` | `?scale=`       | `timelines.scale` default + user toggle                        | `logarithmic` (default for long spans) ↔ `linear` (PRD §2.2.3).                                |
+| `/@:username/timelines/:slug` | `?at=`          | a `sort_order_years` anchor                                    | Deep-link to a zoom/scroll position; spec owned by #171.                                       |
 
 > **Facet strategy decision.** Facets stay in the URL query string (not path segments) so that (a) a filtered view is one shareable link, (b) the same list component serves all facet combinations, and (c) facets compose without a routing matrix. Path segments are reserved for _entity identity_, query params for _view state_.
 
@@ -180,14 +184,14 @@ This IA was checked against the timeline-visualization implementation tickets it
 
 ## 7. Open questions & decisions (with owners)
 
-| ID       | Question                                                                                                                             | Recommendation / conservative default                                                                              | Owner (issue)               |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ | --------------------------- |
-| ~~OQ-1~~ | **Public reference scheme** — slugs are unique only per `(user_id, slug)`, so bare-slug routes are ambiguous (§4.1).                 | ✅ **Decided: Option A** `/@:username/:type/:slug` — [ADR-0029](../../adr/adr-0029-public-reader-route-scheme.md). | ADR-0029                    |
-| OQ-2     | **MVP scope of `/search`** — PRD §2.2.8 marks full-text search post-MVP. Is faceted browse on `/explore` + `/stories` the MVP floor? | Conservative: ship facet-on-list-routes for MVP; `/search` route reserved but stubbed.                             | #168 (screen inventory)     |
-| OQ-3     | **Comparative timelines route** — PRD §2.2.9 wants 2–4 aligned timelines. Own route (`/compare?ids=…`) or a mode of `/timelines`?    | Lean toward `/compare` to keep single-timeline canvas simple; confirm during flows.                                | #169 (user flows)           |
-| OQ-4     | **Multi-character intersection** — `?character=` multi-select (PRD §2.2.8). One param repeated, or AND/OR semantics in UI?           | Default to repeated `?character=` = AND intersection; expose OR later.                                             | #171 (interaction spec)     |
-| OQ-5     | **App placement** — does the public reader live in `apps/admin/app/(public)/` or a dedicated reader app?                             | IA is app-agnostic. Flag for architecture; reader/admin shells must not be shared regardless.                      | architecture (possible ADR) |
-| OQ-6     | **Real-time on the reader** — PRD §2.2.10 wants Realtime published-content updates. In MVP IA or deferred?                           | Conservative: design IA to tolerate live inserts; defer Realtime wiring past MVP.                                  | #172 (mid-fi spec)          |
+| ID       | Question                                                                                                                             | Recommendation / conservative default                                                                                                | Owner (issue)           |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| ~~OQ-1~~ | **Public reference scheme** — slugs are unique only per `(user_id, slug)`, so bare-slug routes are ambiguous (§4.1).                 | ✅ **Decided: Option A** `/@:username/:type/:slug` — [ADR-0029](../../adr/adr-0029-public-reader-route-scheme.md).                   | ADR-0029                |
+| ~~OQ-2~~ | **MVP scope of `/search`** — PRD §2.2.8 marks full-text search post-MVP. Is faceted browse on `/explore` + `/stories` the MVP floor? | ✅ **Decided:** facets on list routes for MVP; `/search` reserved and stubbed (404 / "coming soon").                                 | #168 (screen inventory) |
+| ~~OQ-3~~ | **Comparative timelines route** — PRD §2.2.9 wants 2–4 aligned timelines. Own route or a mode of `/timelines`?                       | ✅ **Decided:** dedicated `/compare?t=…&t=…` route — keeps the fractal canvas clean (§3.1, §3.2).                                    | #169 (user flows)       |
+| ~~OQ-4~~ | **Multi-character intersection** — `?character=` multi-select (PRD §2.2.8). One param repeated, or AND/OR semantics in UI?           | ✅ **Decided:** repeated `?character=` = AND intersection; OR deferred post-MVP. URL convention set (§3.2).                          | #171 (interaction spec) |
+| ~~OQ-5~~ | **App placement** — does the public reader live in `apps/admin/app/(public)/` or a dedicated reader app?                             | ✅ **Decided:** dedicated `apps/reader` — [ADR-0030](../../adr/adr-0030-public-reader-app-placement.md).                             | ADR-0030                |
+| ~~OQ-6~~ | **Real-time on the reader** — PRD §2.2.10 wants Realtime published-content updates. In MVP IA or deferred?                           | ✅ **Decided:** Realtime is in-scope at MVP; mid-fi spec (#172) owns which surfaces subscribe. IA designed to tolerate live inserts. | #172 (mid-fi spec)      |
 
 ---
 

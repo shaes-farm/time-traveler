@@ -37,7 +37,7 @@ model); the next new ADR is the next free number (`0029` onward), per the
 ## Index
 
 | #                                                          | Title                                                             | Status           | Supersedes / Superseded by                 |
-| ---------------------------------------------------------- | ----------------------------------------------------------------- | ---------------- | ------------------------------------------ |
+| ---------------------------------------------------------- | ----------------------------------------------------------------- | ---------------- | ------------------------------------------ | --- | ----------------------------------------------- | ---------------------------------------------------------- | -------- | ----------- |
 | [0001](adr-0001-supabase-backend-platform.md)              | Supabase as the backend platform                                  | Accepted (retro) | —                                          |
 | [0002](adr-0002-pnpm-turborepo-monorepo.md)                | pnpm + Turborepo monorepo                                         | Accepted (retro) | —                                          |
 | [0003](adr-0003-nextjs-app-router-react19.md)              | Next.js 16 App Router + React 19, split apps                      | Accepted (retro) | —                                          |
@@ -66,7 +66,7 @@ model); the next new ADR is the next free number (`0029` onward), per the
 | [0026](adr-0026-testing-strategy.md)                       | Testing strategy: pgTAP + Vitest 80% + Storybook                  | Accepted (retro) | —                                          |
 | [0027](adr-0027-upstream-spec-bug-protocol.md)             | Upstream-spec-bug + PRD-reconciliation protocol                   | Accepted (retro) | —                                          |
 | [0028](adr-0028-period-span-overlay-and-hierarchy-axes.md) | Period span-overlays; period/category hierarchy axes              | Accepted         | —                                          |
-| [0029](adr-0029-public-reader-route-scheme.md)             | Public reader entity reference scheme (`/@:username/:type/:slug`) | Accepted         | —                                          |
+| [0029](adr-0029-public-reader-route-scheme.md)             | Public reader entity reference scheme (`/@:username/:type/:slug`) | Accepted         | —                                          |     | [0030](adr-0030-public-reader-app-placement.md) | Public reader lives in dedicated `apps/reader` Next.js app | Accepted | Amends 0003 |
 
 † ADR `0006` supersedes the original event-to-event `parent_event_id` nesting
 approach, which was never given its own ADR; it is documented inside `0006` as
