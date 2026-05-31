@@ -6,6 +6,14 @@ import { Plus, X } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "./avatar";
 import { Button } from "./button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
 import { Input } from "./input";
 
 /**
@@ -66,14 +74,30 @@ export function CollaboratorList({
   const [adding, setAdding] = React.useState(false);
   const [username, setUsername] = React.useState("");
   const [role, setRole] = React.useState<CollaboratorRole>("viewer");
+  const [duplicateError, setDuplicateError] = React.useState(false);
+  const [pendingRemoveId, setPendingRemoveId] = React.useState<string | null>(
+    null,
+  );
 
   const submitAdd = () => {
     const trimmed = username.trim().replace(/^@/, "");
     if (trimmed.length === 0) return;
+    if (collaborators.some((c) => c.username === trimmed)) {
+      setDuplicateError(true);
+      return;
+    }
+    setDuplicateError(false);
     onAdd?.(trimmed, role);
     setUsername("");
     setRole("viewer");
     setAdding(false);
+  };
+
+  const confirmRemove = () => {
+    if (pendingRemoveId) {
+      onRemove?.(pendingRemoveId);
+      setPendingRemoveId(null);
+    }
   };
 
   return (
@@ -115,6 +139,11 @@ export function CollaboratorList({
               placeholder="@username"
               className="h-8 text-sm"
             />
+            {duplicateError && (
+              <p className="mt-1 text-xs text-destructive">
+                Already a collaborator.
+              </p>
+            )}
           </div>
           <div>
             <label
@@ -192,7 +221,7 @@ export function CollaboratorList({
                   variant="ghost"
                   size="sm"
                   aria-label={`Remove ${c.displayName}`}
-                  onClick={() => onRemove?.(c.id)}
+                  onClick={() => setPendingRemoveId(c.id)}
                 >
                   <X className="h-3.5 w-3.5" aria-hidden />
                 </Button>
@@ -205,6 +234,45 @@ export function CollaboratorList({
       <div className="border-t border-border pt-3 text-xs text-foreground-muted">
         Owner: {ownerName} — owners can&rsquo;t be removed.
       </div>
+
+      <Dialog
+        open={pendingRemoveId !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingRemoveId(null);
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove collaborator?</DialogTitle>
+            <DialogDescription>
+              {(() => {
+                const c = collaborators.find((x) => x.id === pendingRemoveId);
+                return c
+                  ? `${c.displayName} will lose access to this timeline.`
+                  : "This collaborator will lose access to this timeline.";
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setPendingRemoveId(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={confirmRemove}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

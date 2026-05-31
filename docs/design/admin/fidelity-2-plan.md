@@ -324,7 +324,7 @@ Closes [#42](https://github.com/shaes-farm/time-traveler/issues/42), [#43](https
 
 Closes [#48](https://github.com/shaes-farm/time-traveler/issues/48), [#50](https://github.com/shaes-farm/time-traveler/issues/50). Realizes screens [16](02-wireframes/16-publish-workflow.md) and [14](02-wireframes/14-collaborators.md).
 
-- **`PublishControl` primitive** (`publish-control.tsx`, #48) — `StatusBadge` + confirm `Dialog` + `Switch`. Flips only `published`; **orthogonal to visibility** (never merged). Owner-only action button via `canPublish`. Consumed by timeline + event detail headers. Unit-tested.
+- **`PublishControl` primitive** (`publish-control.tsx`, #48) — `StatusBadge` + confirm `Dialog` + `Button`. Flips only `published`; **orthogonal to visibility** (never merged). Owner-only action button via `canPublish`. Consumed by timeline + event detail headers. Unit-tested. (`Switch` is used by the timeline editor's inline publish toggle, not by this primitive.)
 - **`CollaboratorList` primitive** (`collaborator-list.tsx`, #50) — add by `profiles.username`, role select (`viewer`/`editor`/`admin`), remove, with the **owner safeguard** (owner is `timelines.user_id`, rendered as a non-removable footer line). `canManage` gates controls for viewers. Consumed by the timeline detail Collaborators tab. Unit-tested.
 
 ### Batch I — Media (Phase-4 status)

@@ -123,7 +123,18 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
           break;
         case "ArrowLeft":
           event.preventDefault();
-          if (row.expandable && row.expanded) toggle(row.node.id, false);
+          if (row.expandable && row.expanded) {
+            // Collapse the open node.
+            toggle(row.node.id, false);
+          } else if (row.level > 1) {
+            // Ascend to the nearest ancestor (last row before this with level - 1).
+            for (let i = index - 1; i >= 0; i--) {
+              if (rows[i]!.level === row.level - 1) {
+                focusAt(i);
+                break;
+              }
+            }
+          }
           break;
         case "Enter":
         case " ":
@@ -153,7 +164,6 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
               role="treeitem"
               aria-level={level}
               aria-expanded={expandable ? expanded : undefined}
-              aria-selected={isActive}
               tabIndex={isActive ? 0 : -1}
               onKeyDown={(e) => onKeyDown(e, row, index)}
               onFocus={() => setFocusedId(node.id)}

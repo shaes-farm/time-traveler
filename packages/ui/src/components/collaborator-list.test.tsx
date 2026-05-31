@@ -43,7 +43,7 @@ describe("CollaboratorList", () => {
     expect(onAdd).toHaveBeenCalledWith("newbie", "viewer");
   });
 
-  it("removes a collaborator", async () => {
+  it("removes a collaborator after confirming the dialog", async () => {
     const onRemove = vi.fn();
     const user = userEvent.setup();
     render(
@@ -57,7 +57,50 @@ describe("CollaboratorList", () => {
     await user.click(
       screen.getByRole("button", { name: "Remove Irène Joliot-Curie" }),
     );
+    // Dialog should appear before removing.
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(onRemove).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
     expect(onRemove).toHaveBeenCalledWith("1");
+  });
+
+  it("does not remove when the confirm dialog is cancelled", async () => {
+    const onRemove = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        onRemove={onRemove}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Remove Irène Joliot-Curie" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it("rejects a duplicate username", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        onAdd={onAdd}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add collaborator" }));
+    // Try to add the existing collaborator's username.
+    await user.type(screen.getByLabelText("Username"), "@irenejc");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(screen.getByText("Already a collaborator.")).toBeInTheDocument();
+    expect(onAdd).not.toHaveBeenCalled();
   });
 
   it("changes a collaborator role", async () => {

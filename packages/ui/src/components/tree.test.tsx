@@ -77,6 +77,21 @@ describe("Tree", () => {
     rootRow.focus();
     await user.keyboard("{ArrowDown}");
 
-    expect(rowFor("Event A")).toHaveAttribute("aria-selected", "true");
+    // Focus moved: Event A now has tabIndex 0 (roving focus), root has -1.
+    expect(rowFor("Event A")).toHaveAttribute("tabindex", "0");
+    expect(rootRow).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("ascends to parent with ArrowLeft on a leaf node", async () => {
+    const user = userEvent.setup();
+    render(<Tree aria-label="Hierarchy" nodes={NODES} />);
+
+    // Focus Event A (a leaf child of Root).
+    const eventARow = rowFor("Event A");
+    eventARow.focus();
+    await user.keyboard("{ArrowLeft}");
+
+    // Focus should move up to Root timeline.
+    expect(rowFor("Root timeline")).toHaveAttribute("tabindex", "0");
   });
 });
