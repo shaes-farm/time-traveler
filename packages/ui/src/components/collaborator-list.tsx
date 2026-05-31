@@ -37,6 +37,12 @@ export interface Collaborator {
 export interface CollaboratorListProps {
   collaborators: Collaborator[];
   ownerName: string;
+  /**
+   * The owner's `profiles.username`. When provided, `submitAdd` blocks adding
+   * the owner — they are `timelines.user_id`, not a `timeline_collaborators`
+   * row, so adding them would produce an invalid DB row.
+   */
+  ownerUsername?: string;
   /** Owner-only gate for add/remove/role controls. Defaults to true. */
   canManage?: boolean;
   onAdd?: (username: string, role: CollaboratorRole) => void;
@@ -65,6 +71,7 @@ const initialsFor = (name: string) =>
 export function CollaboratorList({
   collaborators,
   ownerName,
+  ownerUsername,
   canManage = true,
   onAdd,
   onRemove,
@@ -82,7 +89,10 @@ export function CollaboratorList({
   const submitAdd = () => {
     const trimmed = username.trim().replace(/^@/, "");
     if (trimmed.length === 0) return;
-    if (collaborators.some((c) => c.username === trimmed)) {
+    if (
+      collaborators.some((c) => c.username === trimmed) ||
+      (ownerUsername !== undefined && trimmed === ownerUsername)
+    ) {
       setDuplicateError(true);
       return;
     }

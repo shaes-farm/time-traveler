@@ -9,8 +9,8 @@ import { cn } from "@repo/ui/lib/utils";
  *
  * Dependency-free (a native `<button role="switch">`) so adding it doesn't
  * pull a new Radix peer into the package. Space/Enter activation comes for
- * free from the underlying button. Used by the timeline editor's publish
- * toggle and the `PublishControl` primitive.
+ * free from the underlying button. Used by the timeline editor's inline
+ * publish toggle.
  */
 export interface SwitchProps extends Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,

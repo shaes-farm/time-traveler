@@ -103,6 +103,26 @@ describe("CollaboratorList", () => {
     expect(onAdd).not.toHaveBeenCalled();
   });
 
+  it("rejects the timeline owner's username", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada Lovelace"
+        ownerUsername="ada"
+        onAdd={onAdd}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add collaborator" }));
+    await user.type(screen.getByLabelText("Username"), "@ada");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(screen.getByText("Already a collaborator.")).toBeInTheDocument();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
   it("changes a collaborator role", async () => {
     const onRoleChange = vi.fn();
     const user = userEvent.setup();

@@ -81,6 +81,8 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
       return acc;
     });
     const [focusedId, setFocusedId] = React.useState<string | null>(null);
+    // Map from node id → <li> DOM element for imperative focus after arrow-key nav.
+    const rowRefs = React.useRef(new Map<string, HTMLLIElement | null>());
 
     const rows: FlatRow[] = [];
     flatten(nodes, expandedIds, 1, rows);
@@ -99,7 +101,10 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
 
     const focusAt = (index: number) => {
       const row = rows[index];
-      if (row) setFocusedId(row.node.id);
+      if (!row) return;
+      setFocusedId(row.node.id);
+      // Move DOM focus so subsequent keyboard events fire on the new row.
+      rowRefs.current.get(row.node.id)?.focus({ preventScroll: false });
     };
 
     const onKeyDown = (
@@ -161,6 +166,10 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
           return (
             <li
               key={node.id}
+              ref={(el) => {
+                if (el) rowRefs.current.set(node.id, el);
+                else rowRefs.current.delete(node.id);
+              }}
               role="treeitem"
               aria-level={level}
               aria-expanded={expandable ? expanded : undefined}
