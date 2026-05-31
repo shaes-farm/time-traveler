@@ -643,11 +643,14 @@ CREATE TABLE story_characters (
 -- editorial (the order the story tells them, which may be non-chronological —
 -- flashbacks, thematic grouping), defaulting to 0 ⇒ fall back to the event's
 -- chronological events.sort_order_years. Mirrors timeline_events.sort_order
--- (00012). PENDING migration #183 — until then story_events renders chronologically.
+-- (00012); added in migration 00016 (#183). Unlike timeline_events (which is
+-- primarily a containment/chronological display concern), story_events.sort_order
+-- represents the author's *narrative* order — flashbacks, in-media-res openings,
+-- and thematic grouping are all valid reasons for it to diverge from chronology.
 CREATE TABLE story_events (
   story_id UUID REFERENCES stories(id) ON DELETE CASCADE,
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-  sort_order INTEGER DEFAULT 0,  -- editorial narrative order; PENDING (#183)
+  sort_order INTEGER DEFAULT 0,  -- editorial narrative order; added in migration 00016 (#183)
   PRIMARY KEY (story_id, event_id)
 );
 

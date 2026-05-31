@@ -143,8 +143,8 @@ periods and stories.
 sort_order_start AND sort_order_end` range scan over the period's bands
   (ADR-0005 generated columns); surfaced on the period detail screen (23).
 - **IMP-004**: `story_events.sort_order` for **editorial** narrative ordering is
-  pending migration #183 (see ADR-0010); it is orthogonal to the by-date period
-  computation here.
+  implemented in migration `00016` (#183) (see ADR-0010); it is orthogonal to
+  the by-date period computation here.
 
 ## References
 
@@ -153,7 +153,8 @@ sort_order_start AND sort_order_end` range scan over the period's bands
   (junction conventions; `story_events.sort_order`), ADR-0011 (publication model;
   categories excluded), ADR-0014 (owner-derived RLS)
 - **REF-002**: `supabase/migrations/00001_initial_schema.sql`,
-  `00002_relationships_junctions.sql`, `00007_rls_policies.sql`;
+  `00002_relationships_junctions.sql`, `00007_rls_policies.sql`,
+  `00016_story_events_sort_order.sql`;
   `docs/system-design.md` (`period_timelines` / `story_events` comments)
 - **REF-003**: `docs/design/admin/00-screen-inventory.md` (Milestone 7
   decisions), `docs/design/admin/02-wireframes/21`–`24`; issues #58–#64, #180,
