@@ -124,7 +124,7 @@ Key implications of this split:
 - **REF-002**: [ADR-0011](adr-0011-publication-model.md) — `published` RLS; anonymous read access.
 - **REF-003**: [ADR-0014](adr-0014-rls-single-source-of-authorization.md) — RLS as authorization
   boundary; `SUPABASE_SERVICE_ROLE_KEY` exposure rules.
-- **REF-004**: [ADR-0029](adr-0029-public-reader-route-scheme.md) — `/@:username/:type/:slug`
+- **REF-004**: [ADR-0029](adr-0029-public-reader-route-scheme.md) — `/:username/:type/:slug`
   reference scheme; all entity routes in `apps/reader`.
 - **REF-005**: [`docs/design/public/00-ia-route-model.md §1 principle 5`](../design/public/00-ia-route-model.md)
   — "Reader ≠ admin … must never share a navigation shell."

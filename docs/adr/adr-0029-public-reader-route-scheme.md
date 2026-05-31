@@ -1,5 +1,5 @@
 ---
-title: "ADR-0029: Public reader entity reference scheme (/@:username/:type/:slug)"
+title: "ADR-0029: Public reader entity reference scheme (/:username/:type/:slug)"
 status: "Accepted"
 date: "2026-05-31"
 authors: "shaes-farm"
@@ -10,7 +10,7 @@ amends: ""
 amended_by: ""
 ---
 
-# ADR-0029: Public reader entity reference scheme (`/@:username/:type/:slug`)
+# ADR-0029: Public reader entity reference scheme (`/:username/:type/:slug`)
 
 ## Status
 
@@ -39,20 +39,17 @@ call. This ADR records that call.
 
 ## Decision
 
-Use **`/@:username/:type/:slug`** as the canonical reference scheme for all public-reader entity
-routes, where `:username` is the author's `profiles.username`. The URL includes a literal `@`
-prefix before the username (e.g. `/@historymaven/timelines/space-race`). The Next.js
-`[@username]` dynamic segment therefore captures the value **including the `@`** (e.g.
-`"@historymaven"`); the server must **strip the leading `@`** before querying
-`profiles.username`.
+Use **`/:username/:type/:slug`** as the canonical reference scheme for all public-reader entity
+routes, where `:username` is the author's `profiles.username`
+(e.g. `/historymaven/timelines/space-race`).
 
-| Entity type | Canonical public route         |
-| ----------- | ------------------------------ |
-| Timeline    | `/@:username/timelines/:slug`  |
-| Story       | `/@:username/stories/:slug`    |
-| Event       | `/@:username/events/:slug`     |
-| Character   | `/@:username/characters/:slug` |
-| Period      | `/@:username/periods/:slug`    |
+| Entity type | Canonical public route        |
+| ----------- | ----------------------------- |
+| Timeline    | `/:username/timelines/:slug`  |
+| Story       | `/:username/stories/:slug`    |
+| Event       | `/:username/events/:slug`     |
+| Character   | `/:username/characters/:slug` |
+| Period      | `/:username/periods/:slug`    |
 
 Multi-author list and discovery routes (`/`, `/explore`, `/stories`, `/search`) carry **no** author
 prefix — they are cross-author surfaces not scoped to a single `(user_id, slug)` pair.
@@ -67,9 +64,9 @@ username resolution requires no authentication, preserving the anonymous-browsin
 
 - **POS-001**: Route grain matches the database uniqueness grain exactly — `(user_id, slug)` — so
   there is no multi-row ambiguity on any entity lookup.
-- **POS-002**: URLs are human-readable and SEO-friendly (`/@historymaven/timelines/roman-republic`).
-- **POS-003**: Author attribution is natural and visible in the URL; a future `/@:username` author
-  profile page falls directly out of the `[@username]` dynamic segment.
+- **POS-002**: URLs are human-readable and SEO-friendly (`/historymaven/timelines/roman-republic`).
+- **POS-003**: Author attribution is natural and visible in the URL; a future `/:username` author
+  profile page falls directly out of the `[username]` dynamic segment.
 - **POS-004**: No opaque identifiers in URLs; the `slug` investment in every entity table is
   fully leveraged.
 - **POS-005**: `profiles.username` is already world-readable (ADR-0014), so public readers resolve
@@ -78,14 +75,14 @@ username resolution requires no authentication, preserving the anonymous-browsin
 ### Negative
 
 - **NEG-001**: URLs are longer than bare-slug routes; deeply nested cross-links carry the
-  `/@:username` prefix on every hop.
+  `/:username` prefix on every hop.
 - **NEG-002**: Username renames invalidate existing canonical URLs. A rename policy must be
   established before the reader is publicly launched. Recommended default: usernames are
   immutable after first publish; the UI warns before the author's first published entity.
   Redirect-table approach is an alternative. **Deferred to implementation — not a design blocker.**
-- **NEG-003**: The Next.js App Router `[@username]` dynamic segment sits at the root of the entity
+- **NEG-003**: The Next.js App Router `[username]` dynamic segment sits at the root of the entity
   route tree. Fixed-path list routes (`/explore`, `/stories`, `/search`) must be defined as
-  siblings of — and resolved before — the `[@username]` catch-all to avoid accidental capture.
+  siblings of — and resolved before — the `[username]` dynamic segment to avoid accidental capture.
 
 ## Alternatives Considered
 
@@ -106,15 +103,13 @@ username resolution requires no authentication, preserving the anonymous-browsin
 ## Implementation Notes
 
 - **IMP-001**: Next.js App Router layout: prefer type-specific segments
-  `app/(public)/[@username]/timelines/[slug]/page.tsx` over a single `[type]` dynamic segment —
+  `app/(public)/[username]/timelines/[slug]/page.tsx` over a single `[type]` dynamic segment —
   this prevents a typo in `:type` from silently matching as a slug.
-- **IMP-002**: The `[@username]` segment must be a sibling of `/explore`, `/stories`, and `/search`
+- **IMP-002**: The `[username]` segment must be a sibling of `/explore`, `/stories`, and `/search`
   in the file-system hierarchy so Next.js resolves those fixed paths first (static before dynamic).
-- **IMP-003**: The Next.js `[@username]` segment captures the value including the literal `@`
-  prefix (e.g. `"@historymaven"`); **strip the leading `@`** before querying `profiles`. Full
-  resolution order: strip `@` from segment value → look up `profiles` by `username` → resolve
-  `user_id` → query entity by `(user_id, slug)` with `AND published = true`. RLS enforces
-  `published` at the DB layer; the app query is a belt-and-suspenders pre-filter.
+- **IMP-003**: Server-side resolution order: look up `profiles` by the `[username]` segment value
+  → resolve `user_id` → query entity by `(user_id, slug)` with `AND published = true`. RLS
+  enforces `published` at the DB layer; the app query is a belt-and-suspenders pre-filter.
 - **IMP-004**: Responses for unpublished or non-existent `(username, type, slug)` triples must
   return **404**, never 403 — 403 would confirm the entity exists and leak private-content
   information. The `published = true` RLS clause already prevents reading the row; the 404 is the
