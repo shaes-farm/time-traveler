@@ -7,7 +7,7 @@ tags: ["architecture", "decision", "frontend", "nextjs", "react"]
 supersedes: ""
 superseded_by: ""
 amends: ""
-amended_by: ""
+amended_by: "ADR-0030"
 ---
 
 # ADR-0003: Next.js 16 App Router + React 19, Split admin/docs Apps
