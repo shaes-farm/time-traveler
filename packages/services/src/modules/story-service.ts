@@ -285,19 +285,27 @@ export async function removeCharacterFromStory(
 /**
  * Associate an event with a story via the story_events junction.
  *
+ * `sortOrder` defaults to 0; when all rows for a story share the default,
+ * consumers should fall back to ordering by the joined `events.sort_order_years`
+ * (chronological order). Set a non-zero value to enforce an editorial narrative
+ * order (e.g., flashbacks, thematic grouping). Mirrors
+ * `timeline-service.addEventToTimeline`.
+ *
  * @param client - Supabase client instance
  * @param storyId - Story UUID
  * @param eventId - Event UUID
+ * @param sortOrder - Editorial narrative order; defaults to 0
  * @returns The created junction row
  */
 export async function addEventToStory(
   client: SupabaseClient<Database>,
   storyId: string,
   eventId: string,
+  sortOrder = 0,
 ): Promise<StoryEventRow> {
   const { data, error } = await client
     .from("story_events")
-    .insert({ story_id: storyId, event_id: eventId })
+    .insert({ story_id: storyId, event_id: eventId, sort_order: sortOrder })
     .select()
     .single();
   assertNoError(error, "addEventToStory");
@@ -322,6 +330,32 @@ export async function removeEventFromStory(
     .eq("story_id", storyId)
     .eq("event_id", eventId);
   assertNoError(error, "removeEventFromStory");
+}
+
+/**
+ * Set the editorial narrative `sort_order` for a single story↔event link.
+ *
+ * @param client - Supabase client instance
+ * @param storyId - Story UUID
+ * @param eventId - Event UUID
+ * @param sortOrder - New editorial narrative order
+ * @returns The updated junction row
+ */
+export async function reorderStoryEvent(
+  client: SupabaseClient<Database>,
+  storyId: string,
+  eventId: string,
+  sortOrder: number,
+): Promise<StoryEventRow> {
+  const { data, error } = await client
+    .from("story_events")
+    .update({ sort_order: sortOrder })
+    .eq("story_id", storyId)
+    .eq("event_id", eventId)
+    .select()
+    .single();
+  assertNoError(error, "reorderStoryEvent");
+  return data;
 }
 
 /**
