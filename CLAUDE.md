@@ -65,9 +65,12 @@ pnpm run db:gen:types          # regenerate ./packages/services/src/supabase/typ
 Run in order — all must pass:
 
 1. `pnpm install` if deps changed
-2. `pnpm run check-types`
-3. `pnpm run lint`
-4. `pnpm run build`
+2. **`pnpm run format`** — run this **before** `git add`; the husky pre-commit hook runs `format:check` and will block the commit if any file is not formatted. One write-pass here prevents all hook-related thrashing.
+3. `pnpm run check-types`
+4. `pnpm run lint`
+5. `pnpm run build`
+
+Or run the full suite at once: `pnpm verify` (`format:check && lint && check-types && test:coverage && build`).
 
 ## Conventions and gotchas
 
