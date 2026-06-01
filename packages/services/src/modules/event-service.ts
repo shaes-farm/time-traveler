@@ -296,6 +296,42 @@ export async function deleteEvent(
   assertNoError(error, "deleteEvent");
 }
 
+/**
+ * Marks an event as published and records `published_at`.
+ */
+export async function publishEvent(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<EventRow> {
+  const { data, error } = await client
+    .from("events")
+    .update({ published: true, published_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  assertNoError(error, "publishEvent");
+  return data as EventRow;
+}
+
+/**
+ * Reverts an event to unpublished state and clears `published_at`.
+ */
+export async function unpublishEvent(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<EventRow> {
+  const { data, error } = await client
+    .from("events")
+    .update({ published: false, published_at: null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  assertNoError(error, "unpublishEvent");
+  return data as EventRow;
+}
+
 // ---------------------------------------------------------------------------
 // Fractal nesting
 // ---------------------------------------------------------------------------
