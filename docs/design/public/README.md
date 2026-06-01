@@ -12,7 +12,7 @@ Design-first workstream for the **public-facing reader experience** (timeline na
 | 00  | [IA + route model](00-ia-route-model.md)                | [#166](https://github.com/shaes-farm/time-traveler/issues/166) | draft  |
 | 01  | [UX principles + visual direction](01-ux-principles.md) | [#167](https://github.com/shaes-farm/time-traveler/issues/167) | draft  |
 | 02  | [Screen inventory + scope map](02-screen-inventory.md)  | [#168](https://github.com/shaes-farm/time-traveler/issues/168) | draft  |
-| 03  | User flows                                              | [#169](https://github.com/shaes-farm/time-traveler/issues/169) | todo   |
+| 03  | [User flows](03-user-flows.md)                          | [#169](https://github.com/shaes-farm/time-traveler/issues/169) | draft  |
 | 04  | Low-fidelity wireframes                                 | [#170](https://github.com/shaes-farm/time-traveler/issues/170) | todo   |
 | 05  | Interaction specification                               | [#171](https://github.com/shaes-farm/time-traveler/issues/171) | todo   |
 | 06  | Mid-fidelity + motion + accessibility spec              | [#172](https://github.com/shaes-farm/time-traveler/issues/172) | todo   |
