@@ -267,11 +267,37 @@ export async function updateEvent(
 ): Promise<EventRow> {
   const validated = eventSchema.partial().parse(data);
 
+  if (
+    validated.detail_timeline_id !== undefined &&
+    validated.timeline_id !== undefined &&
+    validated.detail_timeline_id !== null &&
+    validated.timeline_id !== null &&
+    validated.detail_timeline_id === validated.timeline_id
+  ) {
+    throw new Error(
+      "EventService.updateEvent: detail_timeline_id cannot equal timeline_id (fractal cycle)",
+    );
+  }
+
   // The "expands into" drill-down can be set through a plain update, so the
   // fractal-cycle guard that setEventDetailTimeline applies must also run here
   // (an event must not expand into a timeline that transitively contains it).
-  if (validated.detail_timeline_id !== undefined) {
+  if (
+    validated.detail_timeline_id !== undefined &&
+    validated.detail_timeline_id !== null
+  ) {
     await assertNoDetailTimelineCycle(client, id, validated.detail_timeline_id);
+
+    // When `timeline_id` and `detail_timeline_id` are updated together, also
+    // ensure the detail root cannot reach the new home timeline. Otherwise the
+    // check above can miss a cycle that only appears after the update lands.
+    if (validated.timeline_id !== undefined && validated.timeline_id !== null) {
+      await assertNoTimelineReachableFromDetailRoot(
+        client,
+        validated.detail_timeline_id,
+        validated.timeline_id,
+      );
+    }
   }
 
   type EventUpdate = Database["public"]["Tables"]["events"]["Update"];
@@ -408,9 +434,11 @@ export async function assertNoDetailTimelineCycle(
 ): Promise<void> {
   const visited = new Set<string>();
   const frontier: string[] = [timelineId];
+  let cursor = 0;
 
-  while (frontier.length > 0) {
-    const tl = frontier.shift();
+  while (cursor < frontier.length) {
+    const tl = frontier[cursor];
+    cursor += 1;
     if (tl === undefined || visited.has(tl)) {
       continue;
     }
@@ -444,10 +472,74 @@ export async function assertNoDetailTimelineCycle(
     for (const ev of [...(homeEvents ?? []), ...guestEvents]) {
       if (ev.id === eventId) {
         throw new Error(
-          "EventService.setEventDetailTimeline: an event cannot expand into a " +
+          "EventService.assertNoDetailTimelineCycle: an event cannot expand into a " +
             "timeline that contains it (fractal cycle)",
         );
       }
+      if (
+        ev.detail_timeline_id !== null &&
+        !visited.has(ev.detail_timeline_id)
+      ) {
+        frontier.push(ev.detail_timeline_id);
+      }
+    }
+  }
+}
+
+/**
+ * Throws if a detail root timeline can (transitively) reach `timelineId` via
+ * `event.detail_timeline_id` links. Used by `updateEvent` when both
+ * `timeline_id` and `detail_timeline_id` are set in the same payload.
+ */
+async function assertNoTimelineReachableFromDetailRoot(
+  client: SupabaseClient<Database>,
+  detailRootTimelineId: string,
+  timelineId: string,
+): Promise<void> {
+  const visited = new Set<string>();
+  const frontier: string[] = [detailRootTimelineId];
+  let cursor = 0;
+
+  while (cursor < frontier.length) {
+    const tl = frontier[cursor];
+    cursor += 1;
+    if (tl === undefined || visited.has(tl)) {
+      continue;
+    }
+    if (tl === timelineId) {
+      throw new Error(
+        "EventService.updateEvent: detail_timeline_id cannot reach timeline_id (fractal cycle)",
+      );
+    }
+    visited.add(tl);
+
+    const { data: homeEvents, error: homeError } = await client
+      .from("events")
+      .select("detail_timeline_id")
+      .eq("timeline_id", tl);
+    assertNoError(homeError, "assertNoTimelineReachableFromDetailRoot(home)");
+
+    const { data: guestRows, error: guestError } = await client
+      .from("timeline_events")
+      .select("event_id")
+      .eq("timeline_id", tl);
+    assertNoError(guestError, "assertNoTimelineReachableFromDetailRoot(guest)");
+
+    const guestEventIds = (guestRows ?? []).map((r) => r.event_id);
+    let guestEvents: { detail_timeline_id: string | null }[] = [];
+    if (guestEventIds.length > 0) {
+      const { data, error } = await client
+        .from("events")
+        .select("detail_timeline_id")
+        .in("id", guestEventIds);
+      assertNoError(
+        error,
+        "assertNoTimelineReachableFromDetailRoot(guestEvents)",
+      );
+      guestEvents = data ?? [];
+    }
+
+    for (const ev of [...(homeEvents ?? []), ...guestEvents]) {
       if (
         ev.detail_timeline_id !== null &&
         !visited.has(ev.detail_timeline_id)

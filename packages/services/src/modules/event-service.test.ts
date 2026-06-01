@@ -598,6 +598,37 @@ describe("updateEvent", () => {
       updateEvent(client, "event-1", { detail_timeline_id: targetTimeline }),
     ).rejects.toThrow("fractal cycle");
   });
+
+  it("rejects update when detail_timeline_id equals timeline_id", async () => {
+    const timelineId = "11111111-1111-4111-8111-111111111111";
+    const client = makeClient({
+      fromResult: { data: sampleEvent, error: null },
+    });
+
+    await expect(
+      updateEvent(client, "event-1", {
+        timeline_id: timelineId,
+        detail_timeline_id: timelineId,
+      }),
+    ).rejects.toThrow("detail_timeline_id cannot equal timeline_id");
+  });
+
+  it("rejects when detail_timeline_id transitively reaches the new timeline_id", async () => {
+    const newHomeTimeline = "22222222-2222-4222-8222-222222222222";
+    const detailTimeline = "11111111-1111-4111-8111-111111111111";
+    const client = makeSequencedClient([
+      { data: [], error: null },
+      { data: [{ event_id: "event-2" }], error: null },
+      { data: [{ detail_timeline_id: newHomeTimeline }], error: null },
+    ]);
+
+    await expect(
+      updateEvent(client, "event-1", {
+        timeline_id: newHomeTimeline,
+        detail_timeline_id: detailTimeline,
+      }),
+    ).rejects.toThrow("detail_timeline_id cannot reach timeline_id");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -761,6 +792,17 @@ describe("setEventDetailTimeline", () => {
     await expect(
       setEventDetailTimeline(client, "event-1", "tl-sub"),
     ).rejects.toThrow("EventService.setEventDetailTimeline: update failed");
+  });
+
+  it("uses caller-neutral cycle error prefix", async () => {
+    const client = makeSequencedClient([
+      { data: [{ id: "event-1", detail_timeline_id: null }], error: null },
+      { data: [], error: null },
+    ]);
+
+    await expect(
+      setEventDetailTimeline(client, "event-1", "tl-sub"),
+    ).rejects.toThrow("EventService.assertNoDetailTimelineCycle");
   });
 });
 
