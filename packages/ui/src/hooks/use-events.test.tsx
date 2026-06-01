@@ -216,7 +216,7 @@ describe("useDeleteEvent", () => {
 });
 
 describe("usePublishEvent", () => {
-  it("calls publishEvent and invalidates detail + list", async () => {
+  it("calls publishEvent and invalidates all event caches", async () => {
     vi.mocked(publishEvent).mockResolvedValue(mockEvent as never);
 
     const { wrapper, queryClient } = createWrapper();
@@ -230,16 +230,13 @@ describe("usePublishEvent", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(publishEvent).toHaveBeenCalledWith(mockClient, "evt-1");
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),
-    );
-    expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: eventKeys.lists() }),
+      expect.objectContaining({ queryKey: eventKeys.all }),
     );
   });
 });
 
 describe("useUnpublishEvent", () => {
-  it("calls unpublishEvent and invalidates detail + list", async () => {
+  it("calls unpublishEvent and invalidates all event caches", async () => {
     vi.mocked(unpublishEvent).mockResolvedValue(mockEvent as never);
 
     const { wrapper, queryClient } = createWrapper();
@@ -253,10 +250,7 @@ describe("useUnpublishEvent", () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(unpublishEvent).toHaveBeenCalledWith(mockClient, "evt-1");
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),
-    );
-    expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: eventKeys.lists() }),
+      expect.objectContaining({ queryKey: eventKeys.all }),
     );
   });
 });

@@ -195,9 +195,10 @@ export function usePublishEvent(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => publishEvent(client, id),
-    onSuccess: (_data, id) => {
-      void queryClient.invalidateQueries({ queryKey: eventKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix so bySlug and temporalRange queries stay consistent
+      // with RLS visibility changes — mirrors usePublishTimeline.
+      void queryClient.invalidateQueries({ queryKey: eventKeys.all });
     },
   });
 }
@@ -207,9 +208,10 @@ export function useUnpublishEvent(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => unpublishEvent(client, id),
-    onSuccess: (_data, id) => {
-      void queryClient.invalidateQueries({ queryKey: eventKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix so bySlug and temporalRange queries stay consistent
+      // with RLS visibility changes — mirrors useUnpublishTimeline.
+      void queryClient.invalidateQueries({ queryKey: eventKeys.all });
     },
   });
 }
