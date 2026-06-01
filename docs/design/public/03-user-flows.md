@@ -214,7 +214,7 @@ Tab through explore grid → Space to activate **Add to compare** on each card. 
 
 ## F6 — Period exploration: hierarchy, overlaid timelines, events in range
 
-**Persona:** A palaeontology enthusiast exploring the Mesozoic Era period, drilling through the hierarchy, discovering overlaid timelines, and viewing computed events in range.
+**Persona:** A palaeontology enthusiast exploring the Cambrian period, drilling up through the hierarchy, discovering overlaid timelines, and viewing computed events in range.
 
 ### Steps
 
@@ -318,4 +318,4 @@ All six flows support keyboard-only traversal and a reduced-motion mode. The pri
 **Verification checks (from #169):**
 
 - [x] **Flows referenced by wireframe and interaction-spec issues** — [Handoff](#handoff) table maps each of #170–#173 to the flow sections they consume.
-- [x] **Flow IDs map to acceptance criteria in #65–#69** — [#65–#69 flow mapping](#6569-flow-mapping) table with per-ticket hosting flows and notes.
+- [x] **Flow IDs map to acceptance criteria in #65–#69** — [#65–#69 flow mapping](#65-69-flow-mapping) table with per-ticket hosting flows and notes.
