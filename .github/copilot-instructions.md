@@ -139,6 +139,22 @@ Or run steps 2–6 at once (minus db:test) via `pnpm verify`.
 - **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work. `docs/design/admin/` contains the fidelity-1 wireframes for the admin app (characters + events CRUD plus the relationships editor) — read these alongside PRD §7.11 when doing UI work in `apps/admin`. Divergences between the wireframes and PRD §7.11 are tracked in #127.
 - **App package names**: The app package names are `admin` and `docs`; Turborepo references them as `admin:*` and `docs:*`.
 
+## GitHub Tool Workarounds
+
+Some VS Code Copilot GitHub tools have known reliability issues. Use these proven alternatives:
+
+### Reading PR review comments
+
+**Do not use** `github-pull-request_pullRequestInViewport` to read review comments — it consistently returns "no active pull request" even when a PR is open and active. **Do not use** `github-pull-request_issue_fetch` for PR review threads — its `comments` array only contains issue-style (non-review) comments; inline review threads are always empty.
+
+**Working approach:** Use `fetch_webpage` on the PR URL directly:
+
+```
+fetch_webpage(urls: ["https://github.com/shaes-farm/time-traveler/pull/<PR_NUMBER>"], query: "review comments")
+```
+
+This returns the full PR page content including all Copilot and human review comments with their severity and line context. Parse the returned HTML/text for comment bodies. Use this whenever you need to read, respond to, or address PR review comments.
+
 ## When You're Blocked
 
 - If a required API, package, or service is unavailable — STOP. Add a `// BLOCKED: [reason]` comment and move on. Do not mock, stub, or simulate the missing dependency.
