@@ -344,7 +344,7 @@ CREATE TABLE events (
   importance INTEGER DEFAULT 5 CHECK (importance BETWEEN 1 AND 10),
   parent_event_id UUID REFERENCES events(id) ON DELETE CASCADE,  -- DEPRECATED (#180): event-to-event nesting; superseded by detail_timeline_id
   timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,  -- primary containing timeline (RLS source)
-  detail_timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,  -- PENDING (#177): the sub-timeline this event expands into (forward fractal drill-down)
+  detail_timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,  -- #177 (migration 00017): the sub-timeline this event expands into (forward fractal drill-down)
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
     to_tsvector('english'::regconfig,
@@ -378,7 +378,7 @@ CREATE UNIQUE INDEX events_slug_idx ON events (user_id, slug);
 | ---------------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `events.timeline_id`         | containment       | The event's **primary / home** timeline. **This is the RLS source** — `read_events` / `update_events` derive collaborator access from it (§9), and `idx_events_timeline_sort` is built on it. One event → one home timeline. |
 | `timeline_events` junction   | containment       | **Additional** "also appears in" timelines (e.g. an event surfaced in a comparative timeline). Many-to-many; carries `sort_order` for editorial arrangement (§3.4). Does **not** affect RLS.                                 |
-| `events.detail_timeline_id`  | decomposition     | The **sub-timeline this event expands into** — the forward fractal drill-down. One event → one sub-timeline. `ON DELETE SET NULL`. Pending migration #177.                                                                   |
+| `events.detail_timeline_id`  | decomposition     | The **sub-timeline this event expands into** — the forward fractal drill-down. One event → one sub-timeline. `ON DELETE SET NULL`. Migration 00017 (#177).                                                                   |
 | ~~`events.parent_event_id`~~ | ~~decomposition~~ | **Deprecated (#180).** Event-to-event nesting — redundant with, and weaker than, `detail_timeline_id`. Being tombstoned and dropped.                                                                                         |
 
 **Nesting is forward-only.** The hierarchy is `timeline → events → (event expands into) sub-timeline → events`, recursing on the timeline — not a backward `parent_event_id` tree. This preserves the committed event RLS untouched (access is keyed on the _containing_ `timeline_id`, never on the _child_ `detail_timeline_id`), eliminates the cross-timeline parent-link integrity holes `parent_event_id` permits, and keeps reads to one bounded query per zoom level. The forward model is the IA spec across the admin wireframes (`docs/design/admin/`).
@@ -567,7 +567,7 @@ All junction tables use composite primary keys, no surrogate `id`, no `user_id`.
 
 > **Self-referential FK cycles:** `parent_period_id` and `parent_category_id` are unconstrained at the database level — cycles (A → B → A) are accepted by PostgreSQL. Cycle prevention is enforced in the service layer during create/update operations (#31, #59, #60); the database intentionally does not attempt to detect cycles via constraints. (`parent_event_id` formerly belonged to this set but is deprecated — #180.)
 >
-> **Fractal-decomposition cycles:** the forward fractal mechanism `events.detail_timeline_id` → timeline can also form a cycle (an event expands into a timeline that, transitively, contains the event itself). Like the self-FK cases, this is **not** DB-constrained — the service layer rejects an `detail_timeline_id` assignment that would close such a loop (#177). The `detail_timeline_id` FK is `ON DELETE SET NULL`, so deleting a sub-timeline detaches the drill-down rather than cascading into the parent event.
+> **Fractal-decomposition cycles:** the forward fractal mechanism `events.detail_timeline_id` → timeline can also form a cycle (an event expands into a timeline that, transitively, contains the event itself). Like the self-FK cases, this is **not** DB-constrained — the service layer (`assertNoDetailTimelineCycle` in the event service) rejects a `detail_timeline_id` assignment that would close such a loop (#177). The `detail_timeline_id` FK is `ON DELETE SET NULL`, so deleting a sub-timeline detaches the drill-down rather than cascading into the parent event.
 
 ```sql
 -- Events ↔ Categories
