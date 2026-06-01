@@ -1,0 +1,159 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import { CollaboratorList, type Collaborator } from "./collaborator-list";
+
+const COLLABORATORS: Collaborator[] = [
+  {
+    id: "1",
+    username: "irenejc",
+    displayName: "Irène Joliot-Curie",
+    role: "editor",
+  },
+];
+
+describe("CollaboratorList", () => {
+  it("renders collaborators and the non-removable owner line", () => {
+    render(<CollaboratorList collaborators={COLLABORATORS} ownerName="Ada" />);
+    expect(screen.getByText("@irenejc")).toBeInTheDocument();
+    expect(screen.getByText(/Owner: Ada/)).toBeInTheDocument();
+  });
+
+  it("shows an empty state when there are no collaborators", () => {
+    render(<CollaboratorList collaborators={[]} ownerName="Ada" />);
+    expect(screen.getByText(/No collaborators yet/)).toBeInTheDocument();
+  });
+
+  it("adds a collaborator by username", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        onAdd={onAdd}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add collaborator" }));
+    await user.type(screen.getByLabelText("Username"), "@newbie");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(onAdd).toHaveBeenCalledWith("newbie", "viewer");
+  });
+
+  it("removes a collaborator after confirming the dialog", async () => {
+    const onRemove = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        onRemove={onRemove}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Remove Irène Joliot-Curie" }),
+    );
+    // Dialog should appear before removing.
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(onRemove).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(onRemove).toHaveBeenCalledWith("1");
+  });
+
+  it("does not remove when the confirm dialog is cancelled", async () => {
+    const onRemove = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        onRemove={onRemove}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", { name: "Remove Irène Joliot-Curie" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onRemove).not.toHaveBeenCalled();
+  });
+
+  it("rejects a duplicate username", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        onAdd={onAdd}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add collaborator" }));
+    // Try to add the existing collaborator's username.
+    await user.type(screen.getByLabelText("Username"), "@irenejc");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(screen.getByText("Already a collaborator.")).toBeInTheDocument();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("rejects the timeline owner's username", async () => {
+    const onAdd = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada Lovelace"
+        ownerUsername="ada"
+        onAdd={onAdd}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add collaborator" }));
+    await user.type(screen.getByLabelText("Username"), "@ada");
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(screen.getByText("Already a collaborator.")).toBeInTheDocument();
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it("changes a collaborator role", async () => {
+    const onRoleChange = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        onRoleChange={onRoleChange}
+      />,
+    );
+
+    await user.selectOptions(
+      screen.getByLabelText("Role for Irène Joliot-Curie"),
+      "admin",
+    );
+    expect(onRoleChange).toHaveBeenCalledWith("1", "admin");
+  });
+
+  it("hides management controls when canManage is false", () => {
+    render(
+      <CollaboratorList
+        collaborators={COLLABORATORS}
+        ownerName="Ada"
+        canManage={false}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Add collaborator" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Remove Irène Joliot-Curie" }),
+    ).not.toBeInTheDocument();
+  });
+});

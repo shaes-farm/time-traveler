@@ -119,11 +119,14 @@ Coverage reports are written to `packages/*/coverage/`. Do not add apps to the t
 Run these in order — all must pass:
 
 1. `pnpm install` — if you added/changed dependencies
-2. `pnpm run check-types` — TypeScript must compile with no errors
-3. `pnpm run lint` — zero ESLint errors or warnings
-4. `pnpm run build` — must produce a successful Next.js build
-5. `pnpm run test:coverage` — all tests must pass with ≥80% coverage
-6. `pnpm run db:test` — if you made database schema changes
+2. **`pnpm run format`** — run this **before `git add`**; the husky pre-commit hook runs `format:check` and will block the commit if any `.ts`, `.tsx`, or `.md` file is not formatted. One write-pass here prevents hook-related commit failures.
+3. `pnpm run check-types` — TypeScript must compile with no errors
+4. `pnpm run lint` — zero ESLint errors or warnings
+5. `pnpm run build` — must produce a successful Next.js build
+6. `pnpm run test:coverage` — all tests must pass with ≥80% coverage
+7. `pnpm run db:test` — if you made database schema changes
+
+Or run steps 2–6 at once (minus db:test) via `pnpm verify`.
 
 ## Important Rules & Conventions
 
