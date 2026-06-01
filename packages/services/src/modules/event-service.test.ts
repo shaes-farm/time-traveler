@@ -8,6 +8,8 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
+  publishEvent,
+  unpublishEvent,
   getChildEvents,
   setParentEvent,
   getEventsInTemporalRange,
@@ -450,6 +452,80 @@ describe("createEvent", () => {
 
     await expect(createEvent(client, validInput)).rejects.toThrow(
       "unique violation",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// publishEvent / unpublishEvent
+// ---------------------------------------------------------------------------
+
+describe("publishEvent", () => {
+  it("sets published=true and published_at timestamp", async () => {
+    const publishedRow = {
+      ...sampleEvent,
+      published: true,
+      published_at: "2026-01-02T12:34:56Z",
+    };
+    const client = makeClient({
+      fromResult: { data: publishedRow, error: null },
+    });
+
+    const result = await publishEvent(client, "event-1");
+
+    expect(result).toEqual(publishedRow);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        published: true,
+        published_at: expect.any(String),
+      }),
+    );
+    expect(builder.eq).toHaveBeenCalledWith("id", "event-1");
+  });
+
+  it("throws on publish error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "publish failed" } },
+    });
+
+    await expect(publishEvent(client, "event-1")).rejects.toThrow(
+      "EventService.publishEvent: publish failed",
+    );
+  });
+});
+
+describe("unpublishEvent", () => {
+  it("sets published=false and clears published_at", async () => {
+    const unpublishedRow = {
+      ...sampleEvent,
+      published: false,
+      published_at: null,
+    };
+    const client = makeClient({
+      fromResult: { data: unpublishedRow, error: null },
+    });
+
+    const result = await unpublishEvent(client, "event-1");
+
+    expect(result).toEqual(unpublishedRow);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith({
+      published: false,
+      published_at: null,
+    });
+    expect(builder.eq).toHaveBeenCalledWith("id", "event-1");
+  });
+
+  it("throws on unpublish error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "unpublish failed" } },
+    });
+
+    await expect(unpublishEvent(client, "event-1")).rejects.toThrow(
+      "EventService.unpublishEvent: unpublish failed",
     );
   });
 });

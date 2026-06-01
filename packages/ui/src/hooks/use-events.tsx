@@ -16,6 +16,8 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
+  publishEvent,
+  unpublishEvent,
   getEventParticipants,
   getEventsInTemporalRange,
   addCharacterToEvent,
@@ -184,6 +186,32 @@ export function useDeleteEvent(client: ServiceClient) {
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: eventKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
+    },
+  });
+}
+
+/** Publish an event (set published=true and published_at timestamp). */
+export function usePublishEvent(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => publishEvent(client, id),
+    onSuccess: () => {
+      // Invalidate by prefix so bySlug and temporalRange queries stay consistent
+      // with RLS visibility changes — mirrors usePublishTimeline.
+      void queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    },
+  });
+}
+
+/** Unpublish an event (set published=false and clear published_at). */
+export function useUnpublishEvent(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unpublishEvent(client, id),
+    onSuccess: () => {
+      // Invalidate by prefix so bySlug and temporalRange queries stay consistent
+      // with RLS visibility changes — mirrors useUnpublishTimeline.
+      void queryClient.invalidateQueries({ queryKey: eventKeys.all });
     },
   });
 }
