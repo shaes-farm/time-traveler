@@ -58,7 +58,7 @@
 1. **Facets are URL state.** `?narrator=` / `?perspective=` / `?tag=` are URL-encoded and preserved on refresh/share ([00](../00-ia-route-model.md) §3.2; F3 step 2). Data: `stories.narrator_type`, perspective character ref, story tags.
 2. **Narrator badge (◈) + perspective chip (☻).** Narrator type is a badge; the perspective character is a chip rendered icon + type label + name — never icon-alone ([00](../00-ia-route-model.md) §5.2 rule 3). A story may have no perspective character ("(none)"). Data: `stories.narrator_type`, perspective `characters` row.
 3. **Perspective facet is a typeahead.** Because the perspective-character space is large, `?perspective=` is set via a `⌕` typeahead resolving to a character; exact UX owned by #171. Tag facet is a checkbox set with counts.
-4. **Cover thumbnails.** Story cards lead with a cover image (story media); a typed placeholder renders when a story has no cover. Data: story cover media ([ADR-0016](../../adr/adr-0016-storage-buckets-graduated-access.md)).
+4. **Cover thumbnails.** Story cards lead with a cover image (story media); a typed placeholder renders when a story has no cover. Data: story cover media ([ADR-0016](../../../adr/adr-0016-storage-buckets-graduated-access.md)).
 5. **Card → reader is `cross-fade`, not `fractal-zoom`.** Opening a story moves from a list to a reading surface — a content swap, not a temporal-scale change (F3 step 3; [01](../01-ux-principles.md) §6). This deliberately differs from Explore's `fractal-zoom`.
 6. **Tag chips on cards.** Up to ~2 tags shown inline (`#triumph #science`), the rest truncated. Tags are also the `?tag=` facet values.
 

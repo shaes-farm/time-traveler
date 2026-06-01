@@ -1,6 +1,6 @@
 # 08 — Period Detail
 
-**Purpose.** The reader view for a single period (`/:username/periods/:slug`) — the period's temporal span, its place in the period hierarchy, the timelines overlaid on it, and the computed events-in-range (PRD §2.2.6; [ADR-0028](../../adr/adr-0028-period-span-overlay-and-hierarchy-axes.md); [02](../02-screen-inventory.md) §2 screen 8). A shared leaf and the home of F6.
+**Purpose.** The reader view for a single period (`/:username/periods/:slug`) — the period's temporal span, its place in the period hierarchy, the timelines overlaid on it, and the computed events-in-range (PRD §2.2.6; [ADR-0028](../../../adr/adr-0028-period-span-overlay-and-hierarchy-axes.md); [02](../02-screen-inventory.md) §2 screen 8). A shared leaf and the home of F6.
 
 **Flows:** F6 (hierarchy → overlaid timelines → events in range).
 
@@ -55,7 +55,7 @@
 ## Annotations
 
 1. **Hierarchy breadcrumb = `parent_period_id` chain.** Ancestors render as a breadcrumb; each links to its period detail (`context-shift`, F6 step 4). Deep hierarchies truncate middle levels with `…` (same pattern as the timeline zoom-stack; model owned by #171). Data: `periods.parent_period_id` chain.
-2. **`TemporalDisplay` span with era + precision.** "538–485 MYA · approximate" ([00](../00-ia-route-model.md) §5.2 rule 4; [ADR-0028](../../adr/adr-0028-period-span-overlay-and-hierarchy-axes.md)). Data: period temporal JSONB (start/end + precision).
+2. **`TemporalDisplay` span with era + precision.** "538–485 MYA · approximate" ([00](../00-ia-route-model.md) §5.2 rule 4; [ADR-0028](../../../adr/adr-0028-period-span-overlay-and-hierarchy-axes.md)). Data: period temporal JSONB (start/end + precision).
 3. **Overlaid timelines = `period_timelines`.** The timelines explicitly overlaid on this period; each opens the canvas (`fractal-zoom`, F6 step 5). On the canvas, period bands link back here (F6 step 6) — the loop. Data: `period_timelines` junction.
 4. **Events in range = computed span intersection.** Events whose temporal range intersects the period span — a date-range intersection, so partially-overlapping events appear ("overlapping this period", not "contained in"; copy owned by #171). When the period has overlaid timelines, the range is scoped to them; with none, the conservative fallback computes across all published timelines ([03](../03-user-flows.md) F6 edge cases). Data: event ranges ∩ period span, scoped by `period_timelines`.
 5. **Child periods.** Direct children (the inverse `parent_period_id` relation) listed for downward navigation. Data: child `periods` rows.

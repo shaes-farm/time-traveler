@@ -16,7 +16,7 @@ Builds on: [00 — IA + route model](../00-ia-route-model.md) · [01 — UX prin
 - **Desktop is the primary frame.** Tablet/mobile reflow is captured in prose under each screen's _Responsive behavior_ section; a second ASCII frame is drawn only where the reflow is structural (landing, explore, timeline reader, story reader).
 - **Annotations are numbered** and call out interaction intent + the data dependency behind each module (table/column/junction/RPC), matching the admin wireframe convention in [`docs/design/admin/02-wireframes/`](../../admin/02-wireframes/).
 - **Flow IDs (F1–F6)** reference [03 — User flows](../03-user-flows.md); each screen lists the flows that traverse it so the storyboard maps frame-to-frame.
-- **Dark-mode only** ([ADR-0023](../../adr/adr-0023-dark-mode-only-fidelity-2.md)); shared tokens, divergent motion/composition from admin ([ADR-0031](../../adr/adr-0031-public-reader-design-divergence.md)).
+- **Dark-mode only** ([ADR-0023](../../../adr/adr-0023-dark-mode-only-fidelity-2.md)); shared tokens, divergent motion/composition from admin ([ADR-0031](../../../adr/adr-0031-public-reader-design-divergence.md)).
 
 ## Wireframe index
 

@@ -77,7 +77,7 @@
 
 ## Annotations
 
-1. **Prose is the primary surface.** A single, comfortable reading column — the immersive register that diverges from the admin's dense authoring layout ([ADR-0031](../../adr/adr-0031-public-reader-design-divergence.md); [01](../01-ux-principles.md)). Data: `stories.content` (narrative body).
+1. **Prose is the primary surface.** A single, comfortable reading column — the immersive register that diverges from the admin's dense authoring layout ([ADR-0031](../../../adr/adr-0031-public-reader-design-divergence.md); [01](../01-ux-principles.md)). Data: `stories.content` (narrative body).
 2. **Ordered event rail = `story_events.sort_order` (#183, BLOCKED for ordering).** Events appear in narrative order, numbered, each with `TemporalDisplay` (era + precision always present — "1898 CE · exact", [00](../00-ia-route-model.md) §5.2 rule 4). **Blocked on [#183](https://github.com/shaes-farm/time-traveler/issues/183)**: until `story_events.sort_order` ships, events render in chronological fallback order with a note "Events shown in chronological order"; the (admin) drag-reorder affordance is not a reader concern. Data: `story_events` junction + event rows.
 3. **Perspective chip → character profile.** The header chip "Marie Curie · Human" (icon + type + name — never icon-alone, [00](../00-ia-route-model.md) §5.2 rule 3) links to screen 07 (F4 step 2, `context-shift`). A story may have no perspective character. Data: perspective `characters` row.
 4. **Narrator-type badge (◈).** Surfaces the narrative voice (first / third / omniscient). Data: `stories.narrator_type`.

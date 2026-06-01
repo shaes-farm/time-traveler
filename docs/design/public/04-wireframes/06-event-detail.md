@@ -60,13 +60,13 @@
 ## Annotations
 
 1. **Shared-leaf reconvergence.** Both entry spines terminate here; the "Appears in" section is the pivot back out — a timeline link re-enters the canvas (`fractal-zoom`), a story link enters the reader (`cross-fade`) ([00](../00-ia-route-model.md) §5.3; F3 step 6, F4 step 6). Data: `timeline_events`, `story_events` junctions.
-2. **`TemporalDisplay` leads the header.** Era + precision always present — "538 MYA · approximate" ([00](../00-ia-route-model.md) §5.2 rule 4; [ADR-0024](../../adr/adr-0024-accessibility-first-visual-language.md)). Data: event temporal JSONB (start/end + precision).
-3. **Importance = single-hue ★ ramp; type = badge.** Significance renders as a sequential ★ ramp (not a literal rating; [ADR-0024](../../adr/adr-0024-accessibility-first-visual-language.md) amber ramp); event type is a labelled badge (◆ + label, never color-only). Data: `events.importance`, `events.event_type`.
+2. **`TemporalDisplay` leads the header.** Era + precision always present — "538 MYA · approximate" ([00](../00-ia-route-model.md) §5.2 rule 4; [ADR-0024](../../../adr/adr-0024-accessibility-first-visual-language.md)). Data: event temporal JSONB (start/end + precision).
+3. **Importance = single-hue ★ ramp; type = badge.** Significance renders as a sequential ★ ramp (not a literal rating; [ADR-0024](../../../adr/adr-0024-accessibility-first-visual-language.md) amber ramp); event type is a labelled badge (◆ + label, never color-only). Data: `events.importance`, `events.event_type`.
 4. **Participants = typed chips (`event_characters`).** Each participant is a chip with character-type icon + type label + name (never icon-alone, [00](../00-ia-route-model.md) §5.2 rule 3), linking to character profile (F4 step 8). Overflow collapses to "(N more)". Unpublished participants render as inert text. Data: `event_characters` junction → `characters`.
-5. **Categories → faceted explore.** A category is not a destination page; it links to `/explore?category=…` ([00](../00-ia-route-model.md) §3.3; [ADR-0028](../../adr/adr-0028-period-span-overlay-and-hierarchy-axes.md)). Data: event category junction.
+5. **Categories → faceted explore.** A category is not a destination page; it links to `/explore?category=…` ([00](../00-ia-route-model.md) §3.3; [ADR-0028](../../../adr/adr-0028-period-span-overlay-and-hierarchy-axes.md)). Data: event category junction.
 6. **"Part of period" → period detail (F6 entry).** Links to screen 08 (`context-shift`, F6 step 2). Data: period containing the event's range (`period_timelines` / range intersection).
 7. **"Zoom into ⤵" = #177 (BLOCKED).** Shown only when `events.detail_timeline_id` is set; distinct from the "appears in" lateral links (decomposition vs. containment, [00](../00-ia-route-model.md) §5.2 rule 2). **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177)** — hidden until the column ships.
-8. **No 403 — only 404.** An unpublished or missing event returns the 404 screen (11), never a 403 ([00](../00-ia-route-model.md) §4.3; [ADR-0011](../../adr/adr-0011-publication-model.md)/[ADR-0014](../../adr/adr-0014-rls-single-source-of-authorization.md)).
+8. **No 403 — only 404.** An unpublished or missing event returns the 404 screen (11), never a 403 ([00](../00-ia-route-model.md) §4.3; [ADR-0011](../../../adr/adr-0011-publication-model.md)/[ADR-0014](../../../adr/adr-0014-rls-single-source-of-authorization.md)).
 
 ## Edge cases
 
