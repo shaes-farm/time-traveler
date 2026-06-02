@@ -26,7 +26,8 @@ export const eventSchema = z.object({
   location: z.string().max(2000).optional(),
   spatial_data: z.record(z.string(), z.unknown()).optional(),
   importance: z.number().int().min(1).max(10).default(5),
-  parent_event_id: z.string().uuid().optional(),
+  // Fractal nesting is forward-only via detail_timeline_id (#177); the backward
+  // event-to-event parent_event_id field is retired (#180).
   timeline_id: z.string().uuid().optional(),
   detail_timeline_id: z.string().uuid().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),

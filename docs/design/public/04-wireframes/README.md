@@ -54,14 +54,14 @@ Every canonical flow in [03](../03-user-flows.md) traverses a known set of these
 
 These are the unresolved items surfaced while wireframing; each is owned downstream so implementation is not silently blocked:
 
-| Item                                                                          | Affects                    | Owner / blocker                                                                                                                 |
-| ----------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `events.detail_timeline_id` (fractal drill-in `⤵` affordance)                 | 03 timeline reader (F2)    | [#177](https://github.com/shaes-farm/time-traveler/issues/177) — column ships                                                   |
-| `story_events.sort_order` (narrative event ordering / reorder)                | 05 story reader (F3)       | [#183](https://github.com/shaes-farm/time-traveler/issues/183) — column ships                                                   |
-| Exact key bindings, cluster-expand affordance, graph-layout for character net | 03, 07                     | [#171](https://github.com/shaes-farm/time-traveler/issues/171) interaction spec                                                 |
-| Motion timing/easing, visual comps, stale-content banner copy/placement       | all                        | [#172](https://github.com/shaes-farm/time-traveler/issues/172) mid-fi + motion                                                  |
-| Comparative-viewer shared-event indicator + track-limit UX                    | 09 comparative viewer (F5) | [#172](https://github.com/shaes-farm/time-traveler/issues/172) / [#171](https://github.com/shaes-farm/time-traveler/issues/171) |
-| Global search full-text retrieval + result page                               | 10 search                  | Post-MVP (stubbed at launch, [02](../02-screen-inventory.md) §2)                                                                |
+| Item                                                                          | Affects                    | Owner / blocker                                                                                                                                                                             |
+| ----------------------------------------------------------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `events.detail_timeline_id` (fractal drill-in `⤵` affordance)                 | 03 timeline reader (F2)    | [#177](https://github.com/shaes-farm/time-traveler/issues/177) — column ships                                                                                                               |
+| `story_events.sort_order` (narrative event ordering / reorder)                | 05 story reader (F3)       | [#183](https://github.com/shaes-farm/time-traveler/issues/183) — column ships                                                                                                               |
+| Exact key bindings, cluster-expand affordance, graph-layout for character net | 03, 07                     | [#171](https://github.com/shaes-farm/time-traveler/issues/171) interaction spec                                                                                                             |
+| Motion timing/easing, visual comps, stale-content banner copy/placement       | all                        | ✅ Resolved by [#172](https://github.com/shaes-farm/time-traveler/issues/172) — [06 mid-fidelity](../06-mid-fidelity/) ([motion-spec](../06-mid-fidelity/motion-spec.md), per-screen comps) |
+| Comparative-viewer shared-event indicator + track-limit UX                    | 09 comparative viewer (F5) | ✅ Resolved by [#172](https://github.com/shaes-farm/time-traveler/issues/172) — [06/09 comparative viewer](../06-mid-fidelity/09-comparative-viewer.md)                                     |
+| Global search full-text retrieval + result page                               | 10 search                  | Post-MVP (stubbed at launch, [02](../02-screen-inventory.md) §2)                                                                                                                            |
 
 ## Handoff
 

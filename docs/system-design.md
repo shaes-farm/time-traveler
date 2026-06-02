@@ -342,7 +342,7 @@ CREATE TABLE events (
   location VARCHAR(2000),
   spatial_data JSONB,
   importance INTEGER DEFAULT 5 CHECK (importance BETWEEN 1 AND 10),
-  parent_event_id UUID REFERENCES events(id) ON DELETE CASCADE,  -- DEPRECATED (#180): event-to-event nesting; superseded by detail_timeline_id
+  -- parent_event_id (event-to-event nesting) was added here in 00001 and DROPPED in migration 00019 (#180); superseded by forward detail_timeline_id (#177)
   timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,  -- primary containing timeline (RLS source)
   detail_timeline_id UUID REFERENCES timelines(id) ON DELETE SET NULL,  -- #177 (migration 00017): the sub-timeline this event expands into (forward fractal drill-down)
   metadata JSONB DEFAULT '{}',
@@ -364,7 +364,7 @@ CREATE UNIQUE INDEX events_slug_idx ON events (user_id, slug);
 > **Key changes from prior schema:**
 >
 > - Renamed from `historical_events` to `events`. The table name `historical_events` created awkward FK names (`historical_event_id`) throughout the entire schema. In a greenfield build, brevity wins.
-> - ~~Added `parent_event_id` self-reference for fractal nesting.~~ **Deprecated (#180).** Fractal nesting is now forward-only via `detail_timeline_id` → sub-timeline (#177); see the fractal-model callout below. `parent_event_id` is being tombstoned (no data uses it) and dropped in a later migration.
+> - ~~Added `parent_event_id` self-reference for fractal nesting.~~ **Removed (#180).** Fractal nesting is now forward-only via `detail_timeline_id` → sub-timeline (#177); see the fractal-model callout below. `parent_event_id` (no data used it) was tombstoned in the service layer and dropped in migration 00019.
 > - Added `event_type` with CHECK constraint.
 > - Added `spatial_data JSONB` alongside the free-form `location` string.
 > - Added `search_vector` as a generated column.
@@ -379,7 +379,7 @@ CREATE UNIQUE INDEX events_slug_idx ON events (user_id, slug);
 | `events.timeline_id`         | containment       | The event's **primary / home** timeline. **This is the RLS source** — `read_events` / `update_events` derive collaborator access from it (§9), and `idx_events_timeline_sort` is built on it. One event → one home timeline. |
 | `timeline_events` junction   | containment       | **Additional** "also appears in" timelines (e.g. an event surfaced in a comparative timeline). Many-to-many; carries `sort_order` for editorial arrangement (§3.4). Does **not** affect RLS.                                 |
 | `events.detail_timeline_id`  | decomposition     | The **sub-timeline this event expands into** — the forward fractal drill-down. One event → one sub-timeline. `ON DELETE SET NULL`. Migration 00017 (#177).                                                                   |
-| ~~`events.parent_event_id`~~ | ~~decomposition~~ | **Deprecated (#180).** Event-to-event nesting — redundant with, and weaker than, `detail_timeline_id`. Being tombstoned and dropped.                                                                                         |
+| ~~`events.parent_event_id`~~ | ~~decomposition~~ | **Removed (#180).** Event-to-event nesting — redundant with, and weaker than, `detail_timeline_id`. Tombstoned, then dropped in migration 00019.                                                                             |
 
 **Nesting is forward-only.** The hierarchy is `timeline → events → (event expands into) sub-timeline → events`, recursing on the timeline — not a backward `parent_event_id` tree. This preserves the committed event RLS untouched (access is keyed on the _containing_ `timeline_id`, never on the _child_ `detail_timeline_id`), eliminates the cross-timeline parent-link integrity holes `parent_event_id` permits, and keeps reads to one bounded query per zoom level. The forward model is the IA spec across the admin wireframes (`docs/design/admin/`).
 
@@ -1415,7 +1415,7 @@ CREATE INDEX idx_char_rels_related ON character_relationships (related_character
 CREATE INDEX idx_timeline_events_event ON timeline_events (event_id);
 
 -- Parent lookups (hierarchy)
-CREATE INDEX idx_events_parent ON events (parent_event_id);  -- DEPRECATED (#180): dropped with the column
+-- idx_events_parent ON events (parent_event_id) was added here in 00005 and DROPPED in migration 00019 (#180), with the column
 CREATE INDEX idx_periods_parent ON periods (parent_period_id);
 CREATE INDEX idx_categories_parent ON categories (parent_category_id);
 
