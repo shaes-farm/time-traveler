@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-query";
 import {
   getTimelines,
+  getTimelinesPage,
   getTimelineById,
   getTimelineBySlug,
   createTimeline,
@@ -19,12 +20,13 @@ import {
   publishTimeline,
   unpublishTimeline,
   getCollaborators,
-} from "@repo/services/timeline-service.js";
+} from "@repo/services/timeline-service";
 import type {
   TimelineFilters,
+  TimelinesPage,
   TimelineWithRelations,
   CreateTimelineInput,
-} from "@repo/services/timeline-service.js";
+} from "@repo/services/timeline-service";
 
 type ServiceClient = Parameters<typeof getTimelines>[0];
 type TimelineUpdateData = Parameters<typeof updateTimeline>[2];
@@ -50,7 +52,7 @@ export const timelineKeys = {
 // Query hooks
 // ---------------------------------------------------------------------------
 
-/** Fetch a paginated, optionally filtered list of timelines. */
+/** Fetch a paginated, optionally filtered list of timelines (rows only). */
 export function useTimelines(
   client: ServiceClient,
   filters: TimelineFilters = {},
@@ -62,6 +64,23 @@ export function useTimelines(
   return useQuery({
     queryKey: timelineKeys.list(filters),
     queryFn: () => getTimelines(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/**
+ * Fetch a paginated, optionally filtered list of timelines together with
+ * the total filtered count (for pagination controls).
+ */
+export function useTimelinesPage(
+  client: ServiceClient,
+  filters: TimelineFilters = {},
+  options?: Omit<UseQueryOptions<TimelinesPage>, "queryKey" | "queryFn">,
+) {
+  return useQuery({
+    queryKey: timelineKeys.list(filters),
+    queryFn: () => getTimelinesPage(client, filters),
     staleTime: 30_000,
     ...options,
   });

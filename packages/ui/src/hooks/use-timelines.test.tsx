@@ -5,6 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   useTimelines,
   useTimeline,
+  useTimelinesPage,
   useCreateTimeline,
   useUpdateTimeline,
   useDeleteTimeline,
@@ -14,8 +15,9 @@ import {
   timelineKeys,
 } from "./use-timelines";
 
-vi.mock("@repo/services/timeline-service.js", () => ({
+vi.mock("@repo/services/timeline-service", () => ({
   getTimelines: vi.fn(),
+  getTimelinesPage: vi.fn(),
   getTimelineById: vi.fn(),
   getTimelineBySlug: vi.fn(),
   createTimeline: vi.fn(),
@@ -34,6 +36,7 @@ vi.mock("@repo/services/timeline-service.js", () => ({
 
 import {
   getTimelines,
+  getTimelinesPage,
   getTimelineById,
   createTimeline,
   updateTimeline,
@@ -41,7 +44,7 @@ import {
   publishTimeline,
   unpublishTimeline,
   getCollaborators,
-} from "@repo/services/timeline-service.js";
+} from "@repo/services/timeline-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockClient = {} as any;
@@ -247,5 +250,47 @@ describe("timelineKeys", () => {
       "collaborators",
       "tl-1",
     ]);
+  });
+});
+
+describe("useTimelinesPage", () => {
+  const mockPage = { rows: [{ id: "tl-1", slug: "medieval" }], total: 1 };
+
+  beforeEach(() => {
+    vi.mocked(getTimelinesPage).mockResolvedValue(mockPage as never);
+  });
+
+  it("returns rows and total from getTimelinesPage", async () => {
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useTimelinesPage(mockClient, {}), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getTimelinesPage).toHaveBeenCalledWith(mockClient, {});
+    expect(result.current.data).toEqual(mockPage);
+  });
+
+  it("passes filters to getTimelinesPage", async () => {
+    const filters = { timelineType: "biographical" as const, published: true };
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useTimelinesPage(mockClient, filters), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getTimelinesPage).toHaveBeenCalledWith(mockClient, filters);
+  });
+
+  it("uses timelineKeys.list(filters) as the query key", async () => {
+    const filters = { sortBy: "title" as const };
+    const { wrapper, queryClient } = createWrapper();
+    renderHook(() => useTimelinesPage(mockClient, filters), { wrapper });
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData(timelineKeys.list(filters)),
+      ).toBeDefined(),
+    );
   });
 });
