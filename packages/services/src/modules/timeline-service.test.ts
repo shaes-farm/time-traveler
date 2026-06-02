@@ -149,15 +149,38 @@ describe("getTimelines", () => {
     expect(builder.eq).toHaveBeenCalledWith("user_id", "user-abc");
   });
 
-  it("applies search filter via full-text search", async () => {
+  it("applies search filter via full-text search with prefix matching", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await getTimelines(client, { search: "ancient" });
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
+    // Single word → appended with :* so partial tokens match stored lexemes.
     expect(builder.textSearch).toHaveBeenCalledWith(
       "search_vector",
-      "ancient",
-      { type: "websearch" },
+      "ancient:*",
+    );
+  });
+
+  it("applies multi-word search with prefix matching on the last token", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getTimelines(client, { search: "history phys" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    // Earlier words joined with &; last word appended with :*
+    expect(builder.textSearch).toHaveBeenCalledWith(
+      "search_vector",
+      "history & phys:*",
+    );
+  });
+
+  it("strips tsquery metacharacters from search input", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getTimelines(client, { search: "anc&ient | hist!ory" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.textSearch).toHaveBeenCalledWith(
+      "search_vector",
+      "anc & ient & hist & ory:*",
     );
   });
 

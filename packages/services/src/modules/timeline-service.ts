@@ -179,8 +179,26 @@ export async function getTimelinesPage(
   }
 
   if (search !== undefined && search.length > 0) {
-    // Leverage the GIN index on search_vector
-    query = query.textSearch("search_vector", search, { type: "websearch" });
+    // Build a prefix-aware tsquery for type-as-you-search UX.
+    // The tsvector is indexed with 'english' stemming (e.g. 'physics' → 'physic').
+    // websearch_to_tsquery treats tokens as complete words, so 'phys' never matches
+    // the stored lexeme 'physic'. Using raw to_tsquery with ':*' on the last token
+    // enables prefix matching: 'phys:*' matches 'physic', 'ph:*' matches 'physic', etc.
+    //
+    // Input is sanitized first: tsquery metacharacters are stripped to prevent injection.
+    const words = search
+      .replace(/[&|!:*'"<>()[\]{}\\]/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.length > 0) {
+      const tsQuery = [
+        ...words.slice(0, -1),
+        `${words[words.length - 1]!}:*`,
+      ].join(" & ");
+      // No 'type' → PostgREST calls to_tsquery(), which supports :* prefix syntax.
+      query = query.textSearch("search_vector", tsQuery);
+    }
   }
 
   const ascending = sortDirection === "asc";
