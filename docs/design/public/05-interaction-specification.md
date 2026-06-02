@@ -1,8 +1,8 @@
-# Public Reader - Interaction Specification
+# Public Reader — Interaction Specification
 
-Status: draft 1 - interaction and state-machine contract for timeline + story-browser behavior
-Parent epic: [#165](https://github.com/shaes-farm/time-traveler/issues/165) | Issue: [#171](https://github.com/shaes-farm/time-traveler/issues/171)
-Builds on: [00 - IA + route model](00-ia-route-model.md) | [01 - UX principles](01-ux-principles.md) | [02 - Screen inventory](02-screen-inventory.md) | [03 - User flows](03-user-flows.md) | [04 - Wireframes](04-wireframes/)
+Status: **draft 1** — interaction and state-machine contract for timeline + story-browser behavior
+Parent epic: [#165](https://github.com/shaes-farm/time-traveler/issues/165) · Issue: [#171](https://github.com/shaes-farm/time-traveler/issues/171)
+Builds on: [00 — IA + route model](00-ia-route-model.md) · [01 — UX principles](01-ux-principles.md) · [02 — Screen inventory](02-screen-inventory.md) · [03 — User flows](03-user-flows.md) · [04 — Wireframes](04-wireframes/)
 
 > What this document is: the strict interaction and behavior contract for public-reader timeline and story-browser interactions. It defines input mappings, state machines, threshold rules, reduced-motion behavior, and testable contracts for #65-#69.
 >
@@ -163,8 +163,8 @@ Keyboard:
 ### 5.1 Defaults and persistence
 
 - Default scale mode on timeline entry: logarithmic.
-- scaleMode persists in URL query via ?scale=logarithmic|linear.
-- Invalid ?scale values are coerced to logarithmic.
+- scaleMode persists in URL query via `?scale=logarithmic` (default) or `?scale=linear`.
+- Invalid `?scale` values are coerced to logarithmic.
 
 ### 5.2 Toggle contract
 
@@ -280,10 +280,7 @@ Cluster is defined as >1 event whose marker centers fall within an 18px radius a
 From story reader:
 
 - Activating an event rail item routes to event detail.
-- Event route carries return context query:
-  - ?from=story
-  - ?story=<story-ref>
-  - ?storyPos=<rail-index>
+  - Event route carries return context query: `?from=story&story=<story-ref>&storyPos=<rail-index>`
 
 ### 9.2 Event -> Story return
 
