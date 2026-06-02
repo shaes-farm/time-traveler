@@ -497,7 +497,9 @@ CREATE TABLE media (
   slug VARCHAR(100) NOT NULL,
   alt_text TEXT,
   caption TEXT,
-  storage_path TEXT NOT NULL,
+  source VARCHAR(20) NOT NULL DEFAULT 'upload'
+    CHECK (source IN ('upload', 'external')),
+  storage_path TEXT,
   url TEXT NOT NULL,
   media_type VARCHAR(50) CHECK (
     media_type IN ('image', 'video', 'audio', 'document')
@@ -508,13 +510,20 @@ CREATE TABLE media (
   mime_type VARCHAR(200),
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  -- Uploads carry a Storage object path; external embeds must not.
+  CONSTRAINT media_source_storage_ck CHECK (
+    (source = 'upload'   AND storage_path IS NOT NULL) OR
+    (source = 'external' AND storage_path IS NULL)
+  )
 );
 
 CREATE UNIQUE INDEX media_slug_idx ON media (user_id, slug);
 ```
 
 > **Changes from prior schema:** Added `storage_path` (Supabase Storage object path, separate from the public URL), `media_type` with CHECK constraint, `file_size_bytes`, and `mime_type`. Renamed `alternativetext` to `alt_text`. Replaced the `formats` TEXT column (unclear purpose) with `metadata JSONB`.
+>
+> **Migration `00018` (issue #179):** Added the `source` discriminator (`'upload' | 'external'`), made `storage_path` nullable, and added the `media_source_storage_ck` guard. This lets a media row represent an **external URL embed** — a publicly hosted resource (`url`) with no Storage object (`storage_path IS NULL`, `source = 'external'`) — which #49's External-URL tab requires. The distinction drives **delete semantics**: deleting an `upload` row must also remove its Storage object; deleting an `external` row must not. The service layer (`packages/services/src/modules/media-service.ts`) keys off `source`, replacing the earlier `storage_path = url` sentinel.
 
 ### 3.3 Relationship Tables
 
@@ -1261,6 +1270,8 @@ const channel = supabase
 | `media`   | Yes    | Event and character media            |
 | `avatars` | Yes    | User profile avatars                 |
 | `exports` | No     | Private timeline exports (PDF, JSON) |
+
+> Not every `media` row has an object in the `media` bucket: rows with `source = 'external'` (§3.2) are URL-only embeds (`storage_path IS NULL`) pointing at an externally hosted resource. Storage operations — signed-URL generation and delete-original — apply only to `source = 'upload'` rows; external rows resolve directly to their public `url` and never touch the bucket.
 
 ---
 
