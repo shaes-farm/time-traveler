@@ -22,4 +22,5 @@
 DROP INDEX IF EXISTS idx_events_parent;
 
 ALTER TABLE events
+  DROP CONSTRAINT IF EXISTS events_parent_event_id_fkey,
   DROP COLUMN IF EXISTS parent_event_id;
