@@ -9,7 +9,7 @@ Resolves for this screen: band/overlay/event visual treatment, `fractal-zoom` ti
 ## Visual hierarchy + token callouts
 
 - **Zoom-stack breadcrumb** ([05 §8.2](../05-interaction-specification.md)): Body M, segments separated by `▸`; current segment `--color-foreground`, ancestors `--color-foreground-muted` (links). Up to 3 inline; depth ≥4 collapses middle into a `…` `enter-exit` popover ([05 §8.3](../05-interaction-specification.md)). **Reset zoom** control right-aligned.
-- **Canvas controls:** scale toggle (`●Log / ○Linear`, radio with labels + `aria-pressed`), overlay toggles ([✓ Periods] [✓ Characters]), compare `⤢`. On `--color-surface` control strip.
+- **Canvas controls:** scale toggle (`●Log / ○Linear`, a **radio group** — native `<input type="radio">` or `role="radio"` + `aria-checked`, **not** `aria-pressed`, since log/linear are mutually exclusive), overlay toggles ([✓ Periods] [✓ Characters], independent toggle buttons), compare `⤢`. On `--color-surface` control strip.
 - **Period bands** (#69, `period_timelines`): horizontal background bands behind the axis; differentiated by **label + low-luminance fill** (never fill-only); era-adjacent hues stay within the dark shell so event markers read on top ([01 §4.2](../01-ux-principles.md)).
 - **Event markers:** dot size + prominence scale with `--color-importance-*` (more important = larger/brighter); paired with ★ + label at L2/L3 ([05 §6](../05-interaction-specification.md)). Drill-in `⤵` (#68/#177) is a distinct decomposition glyph, visually separate from the "appears in" lateral link.
 - **Character overlay lanes** (#69, `event_characters`): dashed lanes spanning a participation window, labelled with the character name + type icon.
@@ -39,15 +39,15 @@ A cluster is >1 marker within an 18px radius ([05 §7](../05-interaction-specifi
 
 ## Component states
 
-| Module             | States                                                                         |
-| ------------------ | ------------------------------------------------------------------------------ |
-| Breadcrumb segment | default · hover · focus-visible · current (non-link) · `…` collapsed           |
-| Scale toggle       | log (default) · linear · focus-visible (`aria-pressed`)                        |
-| Overlay toggle     | on · off · focus-visible                                                       |
-| Event marker       | default · hover (tooltip) · focus-visible · selected (`aria-selected` + ring)  |
-| Cluster marker     | default · hover (summary tooltip) · focus-visible · open                       |
-| Drill-in `⤵`       | present (when `detail_timeline_id`) · absent · focus-visible (BLOCKED on #177) |
-| Reset zoom         | default · focus-visible · (at root: still active, re-fits)                     |
+| Module             | States                                                                          |
+| ------------------ | ------------------------------------------------------------------------------- |
+| Breadcrumb segment | default · hover · focus-visible · current (non-link) · `…` collapsed            |
+| Scale toggle       | log (default) · linear · focus-visible (radio group; `aria-checked` per option) |
+| Overlay toggle     | on · off · focus-visible                                                        |
+| Event marker       | default · hover (tooltip) · focus-visible · selected (`aria-selected` + ring)   |
+| Cluster marker     | default · hover (summary tooltip) · focus-visible · open                        |
+| Drill-in `⤵`       | present (when `detail_timeline_id`) · absent · focus-visible (BLOCKED on #177)  |
+| Reset zoom         | default · focus-visible · (at root: still active, re-fits)                      |
 
 ## System states
 

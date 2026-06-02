@@ -129,7 +129,7 @@ Every meaningful signal is redundant with text and/or icon ([ADR-0024](../../../
 | Character type (7)                   | `--color-type-*` tint       | Lucide icon + literal type **label**                                                       |
 | Significance/importance              | `--color-importance-*` ramp | ★ rating + numeric value                                                                   |
 | Published vs. unpublished cross-link | (none)                      | Published = link; unpublished = **inert text** ([00 §5.2 rule 1](../00-ia-route-model.md)) |
-| Active scale (log/linear)            | control accent              | Radio label text + `aria-pressed`                                                          |
+| Active scale (log/linear)            | control accent              | Radio label text + `aria-checked` (radio group, not `aria-pressed`)                        |
 | Active facets                        | chip accent                 | Chip **label** + remove affordance + result count                                          |
 | Selected event/marker                | accent ring                 | `aria-selected` + focus ring + popover                                                     |
 | Connection state                     | banner accent               | Banner **text** ([motion-spec §3](motion-spec.md))                                         |

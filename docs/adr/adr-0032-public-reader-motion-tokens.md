@@ -33,7 +33,7 @@ Two facts force a decision rather than ad-hoc values:
 
 1. **There are no motion tokens in the design system today.** [`packages/ui/src/styles/tokens.css`](../../packages/ui/src/styles/tokens.css)
    and `tokens.ts` define color, type, radius, and spacing tokens but **no `--duration-*`
-   or `--easing-*` tokens**. Motion in `@repo/ui` today is ad-hoc Tailwind utilities
+   or `--ease-*` tokens**. Motion in `@repo/ui` today is ad-hoc Tailwind utilities
    (`duration-200`, `duration-300/500` on `sheet`/`dialog`, `duration-150` on `shell`).
    Pinning the reader's motion to free-floating millisecond values would repeat that
    fragmentation across a whole new app.
