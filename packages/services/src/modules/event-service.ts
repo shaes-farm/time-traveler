@@ -280,19 +280,39 @@ export async function updateEvent(
   // The "expands into" drill-down can be set through a plain update, so the
   // fractal-cycle guard that setEventDetailTimeline applies must also run here
   // (an event must not expand into a timeline that transitively contains it).
-  if (
-    validated.detail_timeline_id !== undefined &&
-    validated.detail_timeline_id !== null
-  ) {
+  // Both fields are Zod `string | undefined` after parsing — never null — so a
+  // `!== undefined` check is sufficient.
+  if (validated.detail_timeline_id !== undefined) {
     await assertNoDetailTimelineCycle(client, id, validated.detail_timeline_id);
 
     // When `timeline_id` and `detail_timeline_id` are updated together, also
     // ensure the detail root cannot reach the new home timeline. Otherwise the
-    // check above can miss a cycle that only appears after the update lands.
-    if (validated.timeline_id !== undefined && validated.timeline_id !== null) {
+    // check above can miss a cycle that only appears after the update lands —
+    // the new home is not yet reflected in the DB.
+    if (validated.timeline_id !== undefined) {
       await assertNoTimelineReachableFromDetailRoot(
         client,
         validated.detail_timeline_id,
+        validated.timeline_id,
+      );
+    }
+  } else if (validated.timeline_id !== undefined) {
+    // Only the home timeline is changing. If the event already expands into a
+    // sub-timeline, that existing drill-down must not reach the new home (which
+    // would then contain the event). The drill-down itself is unchanged, so its
+    // prior containment was already validated when it was assigned; only the new
+    // home — not yet in the DB — needs checking.
+    const { data: current, error: currentError } = await client
+      .from("events")
+      .select("detail_timeline_id")
+      .eq("id", id)
+      .single();
+    assertNoError(currentError, "updateEvent(fetchCurrentDetail)");
+    const currentDetail = current?.detail_timeline_id ?? null;
+    if (currentDetail !== null) {
+      await assertNoTimelineReachableFromDetailRoot(
+        client,
+        currentDetail,
         validated.timeline_id,
       );
     }

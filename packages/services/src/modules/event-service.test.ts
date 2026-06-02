@@ -629,6 +629,44 @@ describe("updateEvent", () => {
       }),
     ).rejects.toThrow("detail_timeline_id cannot reach timeline_id");
   });
+
+  it("guards a timeline_id-only update against an existing drill-down (#5)", async () => {
+    const newHome = "22222222-2222-4222-8222-222222222222";
+    // The event already expands into `newHome`; moving it there closes a cycle.
+    const client = makeSequencedClient([
+      { data: { detail_timeline_id: newHome }, error: null }, // current detail fetch
+    ]);
+    await expect(
+      updateEvent(client, "event-1", { timeline_id: newHome }),
+    ).rejects.toThrow("fractal cycle");
+  });
+
+  it("detects a transitive cycle on a timeline_id-only update (#5)", async () => {
+    const newHome = "22222222-2222-4222-8222-222222222222";
+    const detail = "11111111-1111-4111-8111-111111111111";
+    // Existing drill-down `detail` reaches `newHome` two hops out.
+    const client = makeSequencedClient([
+      { data: { detail_timeline_id: detail }, error: null }, // current detail fetch
+      { data: [{ detail_timeline_id: newHome }], error: null }, // home events of `detail`
+      { data: [], error: null }, // guest junction of `detail`
+    ]);
+    await expect(
+      updateEvent(client, "event-1", { timeline_id: newHome }),
+    ).rejects.toThrow("fractal cycle");
+  });
+
+  it("allows a timeline_id-only update when the event has no drill-down (#5)", async () => {
+    const newHome = "22222222-2222-4222-8222-222222222222";
+    const updated = { ...sampleEvent, timeline_id: newHome };
+    const client = makeSequencedClient([
+      { data: { detail_timeline_id: null }, error: null }, // current detail = none
+      { data: updated, error: null }, // the update
+    ]);
+    const result = await updateEvent(client, "event-1", {
+      timeline_id: newHome,
+    });
+    expect(result).toEqual(updated);
+  });
 });
 
 // ---------------------------------------------------------------------------
