@@ -10,8 +10,6 @@ import {
   deleteEvent,
   publishEvent,
   unpublishEvent,
-  getChildEvents,
-  setParentEvent,
   setEventDetailTimeline,
   getEventsDetailedBy,
   getEventsInTemporalRange,
@@ -124,7 +122,6 @@ const sampleEvent = {
   location: "Sea of Tranquility, Moon",
   spatial_data: null,
   importance: 10,
-  parent_event_id: null,
   timeline_id: null,
   detail_timeline_id: null,
   metadata: null,
@@ -685,76 +682,6 @@ describe("deleteEvent", () => {
     });
     await expect(deleteEvent(client, "event-1")).rejects.toThrow(
       "EventService.deleteEvent: delete failed",
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getChildEvents
-// ---------------------------------------------------------------------------
-
-describe("getChildEvents", () => {
-  it("returns child events ordered by sort_order_years", async () => {
-    const child = { ...sampleEvent, id: "event-2", parent_event_id: "event-1" };
-    const client = makeClient({ fromResult: { data: [child], error: null } });
-    const result = await getChildEvents(client, "event-1");
-    expect(result).toEqual([child]);
-    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
-      ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.eq).toHaveBeenCalledWith("parent_event_id", "event-1");
-    expect(builder.order).toHaveBeenCalledWith("sort_order_years", {
-      ascending: true,
-    });
-  });
-
-  it("returns empty array when data is null", async () => {
-    const client = makeClient({ fromResult: { data: null, error: null } });
-    expect(await getChildEvents(client, "event-1")).toEqual([]);
-  });
-
-  it("throws on Supabase error", async () => {
-    const client = makeClient({
-      fromResult: { data: null, error: { message: "DB error" } },
-    });
-    await expect(getChildEvents(client, "event-1")).rejects.toThrow(
-      "EventService.getChildEvents: DB error",
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// setParentEvent
-// ---------------------------------------------------------------------------
-
-describe("setParentEvent", () => {
-  it("returns updated event with parent set", async () => {
-    const updated = { ...sampleEvent, parent_event_id: "event-parent" };
-    const client = makeClient({ fromResult: { data: updated, error: null } });
-    const result = await setParentEvent(client, "event-1", "event-parent");
-    expect(result).toEqual(updated);
-    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
-      ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.update).toHaveBeenCalledWith({
-      parent_event_id: "event-parent",
-    });
-  });
-
-  it("accepts null to remove parent association", async () => {
-    const updated = { ...sampleEvent, parent_event_id: null };
-    const client = makeClient({ fromResult: { data: updated, error: null } });
-    const result = await setParentEvent(client, "event-1", null);
-    expect(result).toEqual(updated);
-    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
-      ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.update).toHaveBeenCalledWith({ parent_event_id: null });
-  });
-
-  it("throws on Supabase error", async () => {
-    const client = makeClient({
-      fromResult: { data: null, error: { message: "update failed" } },
-    });
-    await expect(setParentEvent(client, "event-1", "parent-1")).rejects.toThrow(
-      "EventService.setParentEvent: update failed",
     );
   });
 });
