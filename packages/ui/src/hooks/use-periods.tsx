@@ -19,12 +19,12 @@ import {
   getChildPeriods,
   addPeriodToTimeline,
   removePeriodFromTimeline,
-} from "@repo/services/period-service.js";
+} from "@repo/services/period-service";
 import type {
   PeriodFilters,
   PeriodWithRelations,
   CreatePeriodInput,
-} from "@repo/services/period-service.js";
+} from "@repo/services/period-service";
 
 type ServiceClient = Parameters<typeof getPeriods>[0];
 type PeriodUpdateData = Parameters<typeof updatePeriod>[2];

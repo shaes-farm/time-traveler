@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
+import type { Database } from "../supabase/types";
 import {
   getRelationships,
   getRelationshipById,
@@ -11,7 +11,7 @@ import {
   getCharacterNetwork,
   getMutualRelationships,
   computeReciprocalRow,
-} from "./character-relationship-service.js";
+} from "./character-relationship-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers

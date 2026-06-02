@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { storySchema, narratorTypeEnum } from "../schemas/story.js";
-import type { StoryInput } from "../schemas/story.js";
-import { generateSlug, resolveCollision } from "../utils/slug.js";
-import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
-import type { Database } from "../supabase/types.js";
+import { storySchema, narratorTypeEnum } from "../schemas/story";
+import type { StoryInput } from "../schemas/story";
+import { generateSlug, resolveCollision } from "../utils/slug";
+import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import type { Database } from "../supabase/types";
 
 type StoryRow = Database["public"]["Tables"]["stories"]["Row"];
 type StoryPeriodRow = Database["public"]["Tables"]["story_periods"]["Row"];

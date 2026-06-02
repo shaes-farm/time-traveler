@@ -25,7 +25,7 @@ import {
   type Era,
   type Precision,
   type TemporalData,
-} from "@repo/services/schemas/temporal.js";
+} from "@repo/services/schemas/temporal";
 
 export interface TemporalInputProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import type { TemporalData } from "@repo/services/schemas/temporal.js";
+import type { TemporalData } from "@repo/services/schemas/temporal";
 import { TemporalDisplay } from "./temporal-display";
 
 const meta = {

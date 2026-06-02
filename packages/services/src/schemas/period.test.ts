@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { periodSchema } from "./period.js";
+import { periodSchema } from "./period";
 
 const validTemporal = {
   year: 66,

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
+import type { Database } from "../supabase/types";
 import {
   getMedia,
   getMediaById,
@@ -9,8 +9,8 @@ import {
   updateMedia,
   deleteMedia,
   getSignedUrl,
-} from "./media-service.js";
-import { mediaInsertSchema } from "../schemas/media.js";
+} from "./media-service";
+import { mediaInsertSchema } from "../schemas/media";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers

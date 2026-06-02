@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
+import type { Database } from "../supabase/types";
 import {
   getEvents,
   getEventById,
@@ -20,7 +20,7 @@ import {
   addCharacterToEvent,
   removeCharacterFromEvent,
   getEventParticipants,
-} from "./event-service.js";
+} from "./event-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers

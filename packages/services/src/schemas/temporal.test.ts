@@ -4,7 +4,7 @@ import {
   eraToSortableYears,
   temporalDataSchema,
   temporalRangeSchema,
-} from "./temporal.js";
+} from "./temporal";
 
 describe("temporalDataSchema", () => {
   it("accepts a valid CE date", () => {

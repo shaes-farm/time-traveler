@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
+import type { Database } from "../supabase/types";
 import {
   getCategories,
   getCategoryById,
@@ -9,7 +9,7 @@ import {
   updateCategory,
   deleteCategory,
   getCategoryTree,
-} from "./category-service.js";
+} from "./category-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers

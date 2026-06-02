@@ -5,7 +5,7 @@ import * as React from "react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { cn } from "@repo/ui/lib/utils";
-import { generateSlug, resolveCollision } from "@repo/services/utils/slug.js";
+import { generateSlug, resolveCollision } from "@repo/services/utils/slug";
 
 export interface SlugFieldProps extends Omit<
   React.ComponentPropsWithoutRef<typeof Input>,

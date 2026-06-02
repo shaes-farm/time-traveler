@@ -1,1 +1,1 @@
-export * from "./modules/timeline-service.js";
+export * from "./modules/timeline-service";

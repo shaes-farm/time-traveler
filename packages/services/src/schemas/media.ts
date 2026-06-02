@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { slugSchema } from "./slug.js";
+import { slugSchema } from "./slug";
 
 export const mediaTypeEnum = z.enum(["image", "video", "audio", "document"]);
 

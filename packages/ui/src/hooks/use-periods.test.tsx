@@ -15,7 +15,7 @@ import {
   periodKeys,
 } from "./use-periods";
 
-vi.mock("@repo/services/period-service.js", () => ({
+vi.mock("@repo/services/period-service", () => ({
   getPeriods: vi.fn(),
   getPeriodById: vi.fn(),
   getPeriodBySlug: vi.fn(),
@@ -37,7 +37,7 @@ import {
   getChildPeriods,
   addPeriodToTimeline,
   removePeriodFromTimeline,
-} from "@repo/services/period-service.js";
+} from "@repo/services/period-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockClient = {} as any;

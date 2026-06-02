@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { slugSchema } from "./slug.js";
-import { temporalDataSchema } from "./temporal.js";
+import { slugSchema } from "./slug";
+import { temporalDataSchema } from "./temporal";
 
 export const timelineTypeEnum = z.enum([
   "general",

@@ -1,1 +1,1 @@
-export * from "./modules/character-relationship-service.js";
+export * from "./modules/character-relationship-service";

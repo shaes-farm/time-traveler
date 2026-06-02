@@ -8,7 +8,7 @@ import {
   validateTypeRoleCombination,
   characterRelationshipSchema,
   characterRelationshipBaseSchema,
-} from "./character-relationship.js";
+} from "./character-relationship";
 
 // ---------------------------------------------------------------------------
 // relationshipTypeEnum

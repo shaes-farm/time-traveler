@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { temporalDataSchema, compareTemporal } from "./temporal.js";
+import { temporalDataSchema, compareTemporal } from "./temporal";
 
 // NOTE: The relationship types below match the DB CHECK constraint in
 // supabase/migrations/00002_relationships_junctions.sql. Issue #32 lists a

@@ -10,7 +10,7 @@ import {
   LayoutDashboard,
   Users,
 } from "lucide-react";
-import type { TemporalData } from "@repo/services/schemas/temporal.js";
+import type { TemporalData } from "@repo/services/schemas/temporal";
 import { useUiStore } from "@repo/ui/stores";
 import { AutosaveIndicator } from "./autosave-indicator";
 import { Button } from "./button";

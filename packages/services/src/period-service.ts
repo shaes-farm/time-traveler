@@ -1,1 +1,1 @@
-export * from "./modules/period-service.js";
+export * from "./modules/period-service";
