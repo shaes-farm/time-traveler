@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { mediaSchema, mediaTypeEnum } from "../schemas/media.js";
+import {
+  mediaInsertSchema,
+  mediaSchema,
+  mediaSourceEnum,
+  mediaTypeEnum,
+} from "../schemas/media.js";
 import type { MediaInput } from "../schemas/media.js";
 import { generateSlug, resolveCollision } from "../utils/slug.js";
 import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
@@ -14,6 +19,7 @@ const MEDIA_BUCKET = "media";
 export interface MediaFilters {
   userId?: string;
   mediaType?: z.infer<typeof mediaTypeEnum>;
+  source?: z.infer<typeof mediaSourceEnum>;
   page?: number;
   pageSize?: number;
 }
@@ -69,7 +75,7 @@ export async function getMedia(
   client: SupabaseClient<Database>,
   filters: MediaFilters = {},
 ): Promise<MediaRow[]> {
-  const { userId, mediaType, page, pageSize } = filters;
+  const { userId, mediaType, source, page, pageSize } = filters;
 
   const safePage = Math.max(1, Math.floor(page ?? 1));
   const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize ?? 20)));
@@ -87,6 +93,9 @@ export async function getMedia(
   }
   if (mediaType !== undefined) {
     query = query.eq("media_type", mediaType);
+  }
+  if (source !== undefined) {
+    query = query.eq("source", source);
   }
 
   const { data, error } = await query;
@@ -168,8 +177,9 @@ export async function uploadMedia(
   let attemptSlug = slug;
 
   for (let attempt = 0; attempt < MAX_SLUG_RETRIES; attempt++) {
-    const validated = mediaSchema.parse({
+    const validated = mediaInsertSchema.parse({
       slug: attemptSlug,
+      source: "upload",
       storage_path: storagePath,
       url: publicUrl,
       alt_text: input.altText,
@@ -210,7 +220,8 @@ export async function uploadMedia(
 
 /**
  * Create a media record for an externally hosted resource (no Storage upload).
- * `storage_path` is set to the URL itself since there is no hosted object.
+ * The row is marked `source = 'external'` with a NULL `storage_path` — there is
+ * no hosted object — which the DB guard (media_source_storage_ck) enforces.
  *
  * @param client - Supabase client instance
  * @param data - External media data including the public URL
@@ -253,10 +264,11 @@ export async function createExternalMedia(
   let attemptSlug = slug;
 
   for (let attempt = 0; attempt < MAX_SLUG_RETRIES; attempt++) {
-    // For external media, storage_path mirrors url — satisfies schema min(1)
-    const validated = mediaSchema.parse({
+    // External media has no Storage object: source='external', storage_path=null
+    const validated = mediaInsertSchema.parse({
       slug: attemptSlug,
-      storage_path: data.url,
+      source: "external",
+      storage_path: null,
       url: data.url,
       alt_text: data.altText,
       caption: data.caption,
@@ -320,9 +332,9 @@ export async function updateMedia(
 }
 
 /**
- * Delete a media record and, if it has a hosted storage object, remove it
- * from Supabase Storage too. External media records (where `storage_path`
- * equals the public URL) only have the DB row deleted.
+ * Delete a media record and, if it is an uploaded asset, remove its object
+ * from Supabase Storage too. External media records (`source = 'external'`,
+ * no `storage_path`) only have the DB row deleted.
  *
  * @param client - Supabase client instance
  * @param id - Media UUID
@@ -331,17 +343,17 @@ export async function deleteMedia(
   client: SupabaseClient<Database>,
   id: string,
 ): Promise<void> {
-  // Fetch the row first to get storage_path
+  // Fetch the row first to learn its source + storage_path
   const { data: row, error: fetchError } = await client
     .from("media")
-    .select("storage_path, url")
+    .select("source, storage_path")
     .eq("id", id)
     .single();
   assertNoError(fetchError, "deleteMedia.fetch");
 
-  // Remove the Storage object only when storage_path differs from url,
-  // indicating a hosted (non-external) file.
-  if (row.storage_path !== row.url) {
+  // Remove the Storage object only for uploaded media (external embeds have no
+  // hosted object — storage_path is NULL).
+  if (row.source === "upload" && row.storage_path !== null) {
     const { error: storageError } = await client.storage
       .from(MEDIA_BUCKET)
       .remove([row.storage_path]);
@@ -367,14 +379,14 @@ export async function getSignedUrl(
 ): Promise<string> {
   const { data: row, error: fetchError } = await client
     .from("media")
-    .select("storage_path, url")
+    .select("source, storage_path, url")
     .eq("id", mediaId)
     .single();
   assertNoError(fetchError, "getSignedUrl.fetch");
 
-  // External media records have storage_path === url (no hosted object).
-  // Return the public URL directly rather than attempting a signed URL.
-  if (row.storage_path === row.url) {
+  // External media has no hosted object (storage_path is NULL): return the
+  // public URL directly rather than attempting a signed URL.
+  if (row.source === "external" || row.storage_path === null) {
     return row.url;
   }
 
