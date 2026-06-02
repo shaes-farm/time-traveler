@@ -270,8 +270,6 @@ export async function updateEvent(
   if (
     validated.detail_timeline_id !== undefined &&
     validated.timeline_id !== undefined &&
-    validated.detail_timeline_id !== null &&
-    validated.timeline_id !== null &&
     validated.detail_timeline_id === validated.timeline_id
   ) {
     throw new Error(
