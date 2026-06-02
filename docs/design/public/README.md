@@ -16,7 +16,7 @@ Design-first workstream for the **public-facing reader experience** (timeline na
 | 04  | [Low-fidelity wireframes](04-wireframes/)                      | [#170](https://github.com/shaes-farm/time-traveler/issues/170) | draft  |
 | 05  | [Interaction specification](05-interaction-specification.md)   | [#171](https://github.com/shaes-farm/time-traveler/issues/171) | draft  |
 | 06  | [Mid-fidelity + motion + accessibility spec](06-mid-fidelity/) | [#172](https://github.com/shaes-farm/time-traveler/issues/172) | draft  |
-| 07  | Prototype validation + readiness                               | [#173](https://github.com/shaes-farm/time-traveler/issues/173) | todo   |
+| 07  | [Prototype validation + readiness](07-prototype-validation/)   | [#173](https://github.com/shaes-farm/time-traveler/issues/173) | draft  |
 
 ## Sequencing
 
