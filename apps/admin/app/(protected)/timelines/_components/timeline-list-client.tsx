@@ -67,6 +67,33 @@ function arrayToCsv(values: string[]): string {
   return values.join(",");
 }
 
+/**
+ * Returns a windowed list of page numbers and "ellipsis" placeholders.
+ * Always shows first, last, current ±2, with "ellipsis" gaps between.
+ */
+function buildPageWindows(
+  current: number,
+  total: number,
+): Array<number | "ellipsis"> {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  const pages = new Set<number>([1, total]);
+  for (let d = -2; d <= 2; d++) {
+    const p = current + d;
+    if (p >= 1 && p <= total) pages.add(p);
+  }
+  const sorted = [...pages].sort((a, b) => a - b);
+  const result: Array<number | "ellipsis"> = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i]! - sorted[i - 1]! > 1) {
+      result.push("ellipsis");
+    }
+    result.push(sorted[i]!);
+  }
+  return result;
+}
+
 function readFiltersFromParams(params: URLSearchParams): {
   types: string[];
   visibilities: string[];
@@ -77,14 +104,21 @@ function readFiltersFromParams(params: URLSearchParams): {
   page: number;
   includeSubTimelines: boolean;
 } {
+  const VALID_SORT = new Set(["title", "updated_at", "created_at"]);
+  const rawSort = params.get("sort") ?? "updated_at";
+  const sortBy = VALID_SORT.has(rawSort) ? rawSort : "updated_at";
+
+  const rawPage = parseInt(params.get("page") ?? "1", 10);
+  const page = Number.isFinite(rawPage) ? Math.max(1, rawPage) : 1;
+
   return {
     types: csvToArray(params.get("type")),
     visibilities: csvToArray(params.get("vis")),
     publications: csvToArray(params.get("pub")),
     search: params.get("q") ?? "",
-    sortBy: params.get("sort") ?? "updated_at",
+    sortBy,
     sortDir: params.get("dir") === "asc" ? "asc" : "desc",
-    page: Math.max(1, parseInt(params.get("page") ?? "1", 10)),
+    page,
     includeSubTimelines: params.get("sub") === "1",
   };
 }
@@ -184,7 +218,10 @@ function buildColumns(
           <button
             type="button"
             className="flex flex-col gap-0.5 text-left w-full hover:opacity-80 transition-opacity"
-            onClick={() => onRowClick(t)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onRowClick(t);
+            }}
           >
             <span className="font-medium text-foreground leading-tight">
               {t.title}
@@ -278,6 +315,7 @@ export function TimelineListClient() {
     includeSubTimelines,
   } = readFiltersFromParams(searchParams);
 
+  const searchDebounceRef = React.useRef<number | null>(null);
   const client = React.useMemo(() => getBrowserSupabaseClient(), []);
 
   const typesKey = types.join(",");
@@ -355,7 +393,13 @@ export function TimelineListClient() {
     });
   }
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    updateParams({ q: e.target.value || null, page: null });
+    const value = e.target.value;
+    if (searchDebounceRef.current !== null) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = window.setTimeout(() => {
+      updateParams({ q: value || null, page: null });
+    }, 300);
   }
   function handleSortChange(e: React.ChangeEvent<HTMLSelectElement>) {
     updateParams({ sort: e.target.value, page: null });
@@ -559,21 +603,31 @@ export function TimelineListClient() {
               >
                 ‹
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => handlePageChange(p)}
-                  aria-current={p === page ? "page" : undefined}
-                  className={`rounded px-2 py-1 text-sm ${
-                    p === page
-                      ? "bg-primary text-primary-foreground"
-                      : "text-foreground-muted hover:text-foreground"
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+              {buildPageWindows(page, totalPages).map((item, idx) =>
+                item === "ellipsis" ? (
+                  <span
+                    key={`ellipsis-${idx}`}
+                    className="px-1 text-sm text-foreground-muted"
+                    aria-hidden
+                  >
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => handlePageChange(item)}
+                    aria-current={item === page ? "page" : undefined}
+                    className={`rounded px-2 py-1 text-sm ${
+                      item === page
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground-muted hover:text-foreground"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ),
+              )}
               <button
                 type="button"
                 onClick={() => handlePageChange(page + 1)}

@@ -282,15 +282,19 @@ describe("useTimelinesPage", () => {
     expect(getTimelinesPage).toHaveBeenCalledWith(mockClient, filters);
   });
 
-  it("uses timelineKeys.list(filters) as the query key", async () => {
+  it("uses timelineKeys.page(filters) as the query key (distinct from list)", async () => {
     const filters = { sortBy: "title" as const };
     const { wrapper, queryClient } = createWrapper();
     renderHook(() => useTimelinesPage(mockClient, filters), { wrapper });
 
     await waitFor(() =>
       expect(
-        queryClient.getQueryData(timelineKeys.list(filters)),
+        queryClient.getQueryData(timelineKeys.page(filters)),
       ).toBeDefined(),
     );
+    // Must NOT collide with the rows-only list key
+    expect(
+      queryClient.getQueryData(timelineKeys.list(filters)),
+    ).toBeUndefined();
   });
 });

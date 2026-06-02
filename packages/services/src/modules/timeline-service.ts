@@ -47,9 +47,10 @@ export interface TimelineFilters {
   pageSize?: number;
   /**
    * When true, include sub-timelines (those referenced by an event's
-   * detail_timeline_id). Defaults to false (root-only view).
-   * BLOCKED: #177 — detail_timeline_id column not present; root/sub partition
-   * is a no-op until that issue lands (all timelines are treated as root).
+   * `events.detail_timeline_id` FK). Defaults to false (root-only view).
+   * NOTE: the `detail_timeline_id` column exists (migration 00017) but the
+   * root/sub query partition is not yet implemented — this flag is a no-op
+   * and all timelines are currently returned regardless of this setting.
    */
   includeSubTimelines?: boolean;
 }
@@ -95,10 +96,6 @@ function assertNoError(
     throw new Error(`TimelineService.${context}: ${error.message}`);
   }
 }
-
-// ---------------------------------------------------------------------------
-// CRUD
-// ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
 // CRUD

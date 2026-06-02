@@ -40,6 +40,10 @@ export const timelineKeys = {
   lists: () => [...timelineKeys.all, "list"] as const,
   list: (filters: TimelineFilters) =>
     [...timelineKeys.lists(), filters] as const,
+  /** Distinct key for paginated queries that return { rows, total }. */
+  pages: () => [...timelineKeys.all, "page"] as const,
+  page: (filters: TimelineFilters) =>
+    [...timelineKeys.pages(), filters] as const,
   details: () => [...timelineKeys.all, "detail"] as const,
   detail: (id: string) => [...timelineKeys.details(), id] as const,
   bySlug: (userId: string, slug: string) =>
@@ -79,7 +83,7 @@ export function useTimelinesPage(
   options?: Omit<UseQueryOptions<TimelinesPage>, "queryKey" | "queryFn">,
 ) {
   return useQuery({
-    queryKey: timelineKeys.list(filters),
+    queryKey: timelineKeys.page(filters),
     queryFn: () => getTimelinesPage(client, filters),
     staleTime: 30_000,
     ...options,
