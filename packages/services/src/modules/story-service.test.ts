@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
+import type { Database } from "../supabase/types";
 import {
   getStories,
   getStoryById,
@@ -15,7 +15,7 @@ import {
   reorderStoryEvent,
   addPeriodToStory,
   removePeriodFromStory,
-} from "./story-service.js";
+} from "./story-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers

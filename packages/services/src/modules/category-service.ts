@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { categorySchema } from "../schemas/category.js";
-import type { CategoryInput } from "../schemas/category.js";
-import { generateSlug, resolveCollision } from "../utils/slug.js";
-import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
-import type { Database } from "../supabase/types.js";
+import { categorySchema } from "../schemas/category";
+import type { CategoryInput } from "../schemas/category";
+import { generateSlug, resolveCollision } from "../utils/slug";
+import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import type { Database } from "../supabase/types";
 
 type CategoryRow = Database["public"]["Tables"]["categories"]["Row"];
 

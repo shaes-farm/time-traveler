@@ -1,1 +1,1 @@
-export * from "./modules/story-service.js";
+export * from "./modules/story-service";

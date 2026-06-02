@@ -1,4 +1,4 @@
-import { MAX_SLUG_LENGTH, slugSchema } from "../schemas/slug.js";
+import { MAX_SLUG_LENGTH, slugSchema } from "../schemas/slug";
 
 /**
  * Converts an arbitrary title to a URL-safe slug:

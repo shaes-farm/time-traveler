@@ -18,12 +18,12 @@ import {
   getSharedEvents,
   getCharacterNetwork,
   getMutualRelationships,
-} from "@repo/services/character-relationship-service.js";
+} from "@repo/services/character-relationship-service";
 import type {
   RelationshipFilters,
   CreateRelationshipInput,
   UpdateRelationshipInput,
-} from "@repo/services/character-relationship-service.js";
+} from "@repo/services/character-relationship-service";
 
 type ServiceClient = Parameters<typeof getRelationships>[0];
 

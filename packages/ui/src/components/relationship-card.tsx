@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { AlertTriangle, Link2, MoreHorizontal } from "lucide-react";
-import type { TemporalData } from "@repo/services/schemas/temporal.js";
+import type { TemporalData } from "@repo/services/schemas/temporal";
 
 import { Avatar, AvatarFallback } from "./avatar";
 import { Badge } from "./badge";

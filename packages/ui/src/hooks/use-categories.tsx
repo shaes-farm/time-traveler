@@ -17,12 +17,12 @@ import {
   updateCategory,
   deleteCategory,
   getCategoryTree,
-} from "@repo/services/category-service.js";
+} from "@repo/services/category-service";
 import type {
   CategoryFilters,
   CategoryNode,
   CreateCategoryInput,
-} from "@repo/services/category-service.js";
+} from "@repo/services/category-service";
 
 type ServiceClient = Parameters<typeof getCategories>[0];
 type CategoryUpdateData = Parameters<typeof updateCategory>[2];

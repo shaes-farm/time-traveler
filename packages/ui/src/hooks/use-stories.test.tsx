@@ -17,7 +17,7 @@ import {
   storyKeys,
 } from "./use-stories";
 
-vi.mock("@repo/services/story-service.js", () => ({
+vi.mock("@repo/services/story-service", () => ({
   getStories: vi.fn(),
   getStoryById: vi.fn(),
   getStoryBySlug: vi.fn(),
@@ -44,7 +44,7 @@ import {
   removeEventFromStory,
   addPeriodToStory,
   removePeriodFromStory,
-} from "@repo/services/story-service.js";
+} from "@repo/services/story-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockClient = {} as any;

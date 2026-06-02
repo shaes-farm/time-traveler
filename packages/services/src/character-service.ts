@@ -1,1 +1,1 @@
-export * from "./modules/character-service.js";
+export * from "./modules/character-service";

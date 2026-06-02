@@ -12,7 +12,7 @@ import {
   MapPin,
   Users,
 } from "lucide-react";
-import type { TemporalData } from "@repo/services/schemas/temporal.js";
+import type { TemporalData } from "@repo/services/schemas/temporal";
 import { useUiStore } from "@repo/ui/stores";
 import { Avatar, AvatarFallback } from "./avatar";
 import { Badge } from "./badge";

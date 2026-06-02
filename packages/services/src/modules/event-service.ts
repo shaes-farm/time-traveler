@@ -1,10 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { eventSchema, eventTypeEnum } from "../schemas/event.js";
-import type { EventInput } from "../schemas/event.js";
-import { generateSlug, resolveCollision } from "../utils/slug.js";
-import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
-import type { Database } from "../supabase/types.js";
+import { eventSchema, eventTypeEnum } from "../schemas/event";
+import type { EventInput } from "../schemas/event";
+import { generateSlug, resolveCollision } from "../utils/slug";
+import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import type { Database } from "../supabase/types";
 
 // ---------------------------------------------------------------------------
 // Type aliases

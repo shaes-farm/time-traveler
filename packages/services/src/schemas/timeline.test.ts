@@ -3,7 +3,7 @@ import {
   timelineSchema,
   timelineTypeEnum,
   timelineVisibilityEnum,
-} from "./timeline.js";
+} from "./timeline";
 
 const validTemporal = {
   year: 1,

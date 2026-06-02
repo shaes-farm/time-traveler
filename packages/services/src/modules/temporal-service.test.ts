@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { TemporalService } from "./temporal-service.js";
-import type { TemporalData } from "../schemas/temporal.js";
+import { TemporalService } from "./temporal-service";
+import type { TemporalData } from "../schemas/temporal";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 

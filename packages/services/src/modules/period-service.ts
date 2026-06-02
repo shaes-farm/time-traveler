@@ -1,10 +1,10 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { periodSchema } from "../schemas/period.js";
-import type { PeriodInput } from "../schemas/period.js";
-import { generateSlug, resolveCollision } from "../utils/slug.js";
-import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
-import type { Database } from "../supabase/types.js";
+import { periodSchema } from "../schemas/period";
+import type { PeriodInput } from "../schemas/period";
+import { generateSlug, resolveCollision } from "../utils/slug";
+import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import type { Database } from "../supabase/types";
 
 type PeriodRow = Database["public"]["Tables"]["periods"]["Row"];
 type PeriodTimelineRow =

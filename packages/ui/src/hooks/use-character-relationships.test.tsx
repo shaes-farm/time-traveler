@@ -14,7 +14,7 @@ import {
   relationshipKeys,
 } from "./use-character-relationships";
 
-vi.mock("@repo/services/character-relationship-service.js", () => ({
+vi.mock("@repo/services/character-relationship-service", () => ({
   getRelationships: vi.fn(),
   getRelationshipById: vi.fn(),
   createRelationship: vi.fn(),
@@ -34,7 +34,7 @@ import {
   getSharedEvents,
   getCharacterNetwork,
   getMutualRelationships,
-} from "@repo/services/character-relationship-service.js";
+} from "@repo/services/character-relationship-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockClient = {} as any;

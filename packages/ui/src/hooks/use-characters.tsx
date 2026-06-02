@@ -22,12 +22,12 @@ import {
   deleteCharacter,
   getCharacterTimeline,
   getCharacterNetwork,
-} from "@repo/services/character-service.js";
+} from "@repo/services/character-service";
 import type {
   CharacterFilters,
   CharacterWithRelations,
   CreateCharacterInput,
-} from "@repo/services/character-service.js";
+} from "@repo/services/character-service";
 
 /** Derived from `updateCharacter`'s third parameter — avoids importing nested schema types. */
 type CharacterUpdateData = Parameters<typeof updateCharacter>[2];

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { slugSchema } from "./slug.js";
+import { slugSchema } from "./slug";
 
 export const categorySchema = z.object({
   slug: slugSchema,

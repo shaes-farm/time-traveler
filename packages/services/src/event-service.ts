@@ -1,1 +1,1 @@
-export * from "./modules/event-service.js";
+export * from "./modules/event-service";

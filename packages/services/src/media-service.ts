@@ -1,1 +1,1 @@
-export * from "./modules/media-service.js";
+export * from "./modules/media-service";

@@ -1,9 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { timelineSchema } from "../schemas/timeline.js";
-import type { TimelineInput } from "../schemas/timeline.js";
-import { generateSlug, resolveCollision } from "../utils/slug.js";
-import type { Database } from "../supabase/types.js";
+import { timelineSchema } from "../schemas/timeline";
+import type { TimelineInput } from "../schemas/timeline";
+import { generateSlug, resolveCollision } from "../utils/slug";
+import type { Database } from "../supabase/types";
 
 // ---------------------------------------------------------------------------
 // Type aliases
@@ -21,13 +21,43 @@ type TimelineMediaRow = Database["public"]["Tables"]["timeline_media"]["Row"];
 /** Roles as defined by the DB CHECK constraint on timeline_collaborators.role */
 export type CollaboratorRole = "viewer" | "editor" | "admin";
 
-/** Optional filters accepted by getTimelines */
+/** Optional filters accepted by getTimelines / getTimelinesPage */
 export interface TimelineFilters {
-  visibility?: "private" | "public" | "shared";
+  /** Scalar or multi-value visibility filter; multiple values use SQL IN. */
+  visibility?:
+    | "private"
+    | "public"
+    | "shared"
+    | Array<"private" | "public" | "shared">;
+  /** Scalar or multi-value timeline_type filter; multiple values use SQL IN. */
+  timelineType?:
+    | "general"
+    | "biographical"
+    | "comparative"
+    | Array<"general" | "biographical" | "comparative">;
+  /** When true → only published rows; false → only draft rows; omit → no filter. */
+  published?: boolean;
   userId?: string;
   search?: string;
+  /** Sort column. Defaults to "updated_at". */
+  sortBy?: "title" | "updated_at" | "created_at";
+  /** Sort direction. Defaults to "desc". */
+  sortDirection?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+  /**
+   * When true, include sub-timelines (those referenced by an event's
+   * detail_timeline_id). Defaults to false (root-only view).
+   * BLOCKED: #177 — detail_timeline_id column not present; root/sub partition
+   * is a no-op until that issue lands (all timelines are treated as root).
+   */
+  includeSubTimelines?: boolean;
+}
+
+/** Paginated result from getTimelinesPage — includes the total filtered count. */
+export interface TimelinesPage {
+  rows: TimelineRow[];
+  total: number;
 }
 
 /** A timeline row with its related junction rows eagerly loaded */
@@ -70,17 +100,47 @@ function assertNoError(
 // CRUD
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// CRUD
+// ---------------------------------------------------------------------------
+
 /**
- * Returns a page of timelines, optionally filtered by visibility, owner, or
- * full-text search using the `search_vector` GIN index.
+ * Returns a page of timelines, optionally filtered by visibility, timeline_type,
+ * published state, owner, or full-text search using the `search_vector` GIN index.
  *
  * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
+ *
+ * Backward-compatible wrapper around getTimelinesPage that returns only the row
+ * array. Prefer getTimelinesPage when a total count is needed.
  */
 export async function getTimelines(
   client: SupabaseClient<Database>,
   filters: TimelineFilters = {},
 ): Promise<TimelineRow[]> {
-  const { visibility, userId, search } = filters;
+  const { rows } = await getTimelinesPage(client, filters);
+  return rows;
+}
+
+/**
+ * Returns a page of timelines together with the total filtered count, enabling
+ * accurate pagination controls.
+ *
+ * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
+ */
+export async function getTimelinesPage(
+  client: SupabaseClient<Database>,
+  filters: TimelineFilters = {},
+): Promise<TimelinesPage> {
+  const {
+    visibility,
+    timelineType,
+    published,
+    userId,
+    search,
+    sortBy = "updated_at",
+    sortDirection = "desc",
+  } = filters;
+
   const safePage = Math.max(1, Math.floor(filters.page ?? 1));
   const safePageSize = Math.min(
     100,
@@ -89,24 +149,49 @@ export async function getTimelines(
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  let query = client.from("timelines").select("*");
+  let query = client.from("timelines").select("*", { count: "exact" });
 
   if (visibility !== undefined) {
-    query = query.eq("visibility", visibility);
+    if (Array.isArray(visibility) && visibility.length > 1) {
+      query = query.in("visibility", visibility);
+    } else {
+      const scalar = Array.isArray(visibility) ? visibility[0] : visibility;
+      if (scalar !== undefined) query = query.eq("visibility", scalar);
+    }
   }
+
+  if (timelineType !== undefined) {
+    if (Array.isArray(timelineType) && timelineType.length > 1) {
+      query = query.in("timeline_type", timelineType);
+    } else {
+      const scalar = Array.isArray(timelineType)
+        ? timelineType[0]
+        : timelineType;
+      if (scalar !== undefined) query = query.eq("timeline_type", scalar);
+    }
+  }
+
+  // Only filter by published when exactly one value is requested.
+  // Omitting the predicate when both or neither are selected avoids a no-op filter.
+  if (published !== undefined) {
+    query = query.eq("published", published);
+  }
+
   if (userId !== undefined) {
     query = query.eq("user_id", userId);
   }
+
   if (search !== undefined && search.length > 0) {
-    // Use PostgREST full-text search to leverage the GIN index on search_vector
+    // Leverage the GIN index on search_vector
     query = query.textSearch("search_vector", search, { type: "websearch" });
   }
 
-  query = query.range(from, to).order("sort_order_start", { ascending: true });
+  const ascending = sortDirection === "asc";
+  query = query.order(sortBy, { ascending, nullsFirst: false }).range(from, to);
 
-  const { data, error } = await query;
-  assertNoError(error, "getTimelines");
-  return data ?? [];
+  const { data, count, error } = await query;
+  assertNoError(error, "getTimelinesPage");
+  return { rows: data ?? [], total: count ?? 0 };
 }
 
 /**

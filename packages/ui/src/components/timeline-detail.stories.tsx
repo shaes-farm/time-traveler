@@ -18,7 +18,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { TemporalData } from "@repo/services/schemas/temporal.js";
+import type { TemporalData } from "@repo/services/schemas/temporal";
 import { useUiStore } from "@repo/ui/stores";
 import { Badge } from "./badge";
 import { Button } from "./button";

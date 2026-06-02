@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
-import type { CreatePeriodInput } from "./period-service.js";
+import type { Database } from "../supabase/types";
+import type { CreatePeriodInput } from "./period-service";
 import {
   getPeriods,
   getPeriodById,
@@ -12,7 +12,7 @@ import {
   getChildPeriods,
   addPeriodToTimeline,
   removePeriodFromTimeline,
-} from "./period-service.js";
+} from "./period-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers

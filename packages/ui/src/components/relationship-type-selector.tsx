@@ -7,7 +7,7 @@ import {
   professionalRoleEnum,
   relationshipTypeEnum,
   typeAcceptsRole,
-} from "@repo/services/schemas/character-relationship.js";
+} from "@repo/services/schemas/character-relationship";
 import { z } from "zod";
 
 import { Label } from "./label";

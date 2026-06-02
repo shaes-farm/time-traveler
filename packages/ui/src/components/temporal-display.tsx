@@ -1,11 +1,11 @@
 import * as React from "react";
 import { cn } from "@repo/ui/lib/utils";
-import { TemporalService } from "@repo/services/modules/temporal-service.js";
+import { TemporalService } from "@repo/services/modules/temporal-service";
 import type {
   Era,
   Precision,
   TemporalData,
-} from "@repo/services/schemas/temporal.js";
+} from "@repo/services/schemas/temporal";
 
 /**
  * TemporalDisplay — the canonical visual for any date in the admin app.
