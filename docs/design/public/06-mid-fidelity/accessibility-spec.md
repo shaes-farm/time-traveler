@@ -49,7 +49,7 @@ Focus order **follows reading order** ([01 §7](../01-ux-principles.md)): skip-l
 
 From [05 §8.4](../05-interaction-specification.md), generalized to all navigations:
 
-- **Primary target:** focus moves to the **main heading (`h1`)** of the destination screen (the main-content landmark is the focus root).
+- **Primary target:** focus moves to the **main heading (`h1`)** of the destination screen (the main-content landmark is the focus root). _Implementation note:_ a heading is not focusable by default — the `h1` (or the `main` landmark) must be made **programmatically focusable** with `tabindex="-1"` so it can receive focus on navigation without joining the normal Tab order.
 - **Secondary target (keyboard-initiated nav only):** if a keyboard activation triggered the navigation (e.g. a breadcrumb jump), focus may instead return to the **control that initiated it** when the reader stays on the same screen type (breadcrumb segment, facet).
 - **Overlay dismissal:** closing an overlay returns focus to the trigger that opened it (event popover → the event marker; mobile nav panel → the menu button).
 - **`context-shift` / `fractal-zoom`:** focus restoration is independent of motion — it happens at the static end state, so reduced-motion users get identical focus behavior.

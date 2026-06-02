@@ -36,7 +36,7 @@ Route: `/:username/stories/:slug` · Flows: F3, F4 ([03](../03-user-flows.md))
 
 ## Motion
 
-- **`context-shift`** following an event/character link; **`fractal-zoom`** when pivoting to a timeline canvas via an event; **`enter-exit`** media lightbox; **`ambient-presence`** new-event signal (text-only). **Reduced-motion:** all instant; new-event signal static ([motion-spec §5](motion-spec.md)).
+- **`context-shift`** following an event/character link; **`fractal-zoom`** when pivoting to a timeline canvas via an event; **`enter-exit`** media lightbox; **`ambient-presence`** stale-content banner (live dot + banner per [motion-spec §2.5/§3](motion-spec.md); text-only, e.g. signalling a newly-published event mid-read). **Reduced-motion:** all instant; the `ambient-presence` banner is a static state change ([motion-spec §5](motion-spec.md)).
 
 ## Accessibility
 
