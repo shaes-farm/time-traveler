@@ -378,10 +378,10 @@ Equivalent outcomes across modalities are required:
 
 The following are intentionally deferred and should be tracked as follow-ups if not already covered:
 
-1. Exact motion duration/easing values and choreography polish: #172.
-2. Cluster panel pagination UX details (page size controls, virtualized scrolling): #172 or implementation ticket under #69.
-3. Compare-view shared-axis keyboard map finalization if /compare is included at MVP: follow-up under #67.
-4. Screen-reader verbosity tuning for high-frequency zoom updates: follow-up accessibility task under #172.
+1. Exact motion duration/easing values and choreography polish: #172 — ✅ resolved in [06 motion-spec](06-mid-fidelity/motion-spec.md) §1–§2 + [ADR-0032](../../adr/adr-0032-public-reader-motion-tokens.md).
+2. Cluster panel pagination UX details (page size controls, virtualized scrolling): #172 / impl under #69 — ✅ resolved in [06 timeline reader](06-mid-fidelity/03-timeline-reader.md) (cluster-panel pagination) + [06 accessibility-spec](06-mid-fidelity/accessibility-spec.md) §4.2.
+3. Compare-view shared-axis keyboard map finalization if /compare is included at MVP: follow-up under #67 — see [06 comparative viewer](06-mid-fidelity/09-comparative-viewer.md) + [06 accessibility-spec](06-mid-fidelity/accessibility-spec.md) §1.2.
+4. Screen-reader verbosity tuning for high-frequency zoom updates: #172 — ✅ resolved in [06 accessibility-spec](06-mid-fidelity/accessibility-spec.md) §4.1.
 
 ---
 
