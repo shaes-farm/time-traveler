@@ -1,6 +1,6 @@
 # Time Traveler Custom Agents: Quick Cheatsheet
 
-Use this as the fast operational companion to the full guide in [docs/custom-agents-guide.md](docs/custom-agents-guide.md).
+Use this as the fast operational companion to the full guide in [docs/custom-agents-guide.md](./custom-agents-guide.md).
 
 ## 1. Which Agent to Use
 
