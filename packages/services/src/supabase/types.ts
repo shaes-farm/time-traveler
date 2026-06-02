@@ -525,6 +525,7 @@ export type Database = {
           computed_start_date: string | null;
           created_at: string | null;
           detail: string | null;
+          detail_timeline_id: string | null;
           end_temporal_data: Json | null;
           event_type: string | null;
           id: string;
@@ -551,6 +552,7 @@ export type Database = {
           computed_start_date?: string | null;
           created_at?: string | null;
           detail?: string | null;
+          detail_timeline_id?: string | null;
           end_temporal_data?: Json | null;
           event_type?: string | null;
           id?: string;
@@ -577,6 +579,7 @@ export type Database = {
           computed_start_date?: string | null;
           created_at?: string | null;
           detail?: string | null;
+          detail_timeline_id?: string | null;
           end_temporal_data?: Json | null;
           event_type?: string | null;
           id?: string;
@@ -599,6 +602,13 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "events_detail_timeline_id_fkey";
+            columns: ["detail_timeline_id"];
+            isOneToOne: false;
+            referencedRelation: "timelines";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "events_parent_event_id_fkey";
             columns: ["parent_event_id"];
@@ -1348,6 +1358,7 @@ export type Database = {
           computed_start_date: string | null;
           created_at: string | null;
           detail: string | null;
+          detail_timeline_id: string | null;
           end_temporal_data: Json | null;
           event_type: string | null;
           id: string;
@@ -1383,6 +1394,7 @@ export type Database = {
           computed_start_date: string | null;
           created_at: string | null;
           detail: string | null;
+          detail_timeline_id: string | null;
           end_temporal_data: Json | null;
           event_type: string | null;
           id: string;

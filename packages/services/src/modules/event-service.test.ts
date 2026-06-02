@@ -12,6 +12,8 @@ import {
   unpublishEvent,
   getChildEvents,
   setParentEvent,
+  setEventDetailTimeline,
+  getEventsDetailedBy,
   getEventsInTemporalRange,
   addCategoryToEvent,
   removeCategoryFromEvent,
@@ -34,6 +36,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
     gte: vi.fn().mockReturnThis(),
     lte: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
@@ -60,6 +63,35 @@ function makeClient(overrides: {
         .mockResolvedValue(
           authUser ?? { data: { user: { id: "user-123" } }, error: null },
         ),
+    },
+  };
+  return client as unknown as SupabaseClient<Database>;
+}
+
+/**
+ * Builds a client whose `from()` returns a fresh builder per call, drawn in
+ * order from `results`. Once the sequence is exhausted the last result repeats.
+ * Used for the cycle-guard tests, which issue several queries per call.
+ */
+function makeSequencedClient(
+  results: { data: unknown; error: unknown }[],
+): SupabaseClient<Database> {
+  const builders = results.map((r) => makeBuilder(r));
+  let i = 0;
+  const from = vi.fn(() => {
+    const builder = builders[Math.min(i, builders.length - 1)];
+    i += 1;
+    if (builder === undefined) {
+      throw new Error("makeSequencedClient: no builders configured");
+    }
+    return builder;
+  });
+  const client = {
+    from,
+    auth: {
+      getUser: vi
+        .fn()
+        .mockResolvedValue({ data: { user: { id: "user-123" } }, error: null }),
     },
   };
   return client as unknown as SupabaseClient<Database>;
@@ -94,6 +126,7 @@ const sampleEvent = {
   importance: 10,
   parent_event_id: null,
   timeline_id: null,
+  detail_timeline_id: null,
   metadata: null,
   search_vector: null,
   published: false,
@@ -552,6 +585,88 @@ describe("updateEvent", () => {
       updateEvent(client, "event-1", { title: "x" }),
     ).rejects.toThrow("EventService.updateEvent: update failed");
   });
+
+  it("runs the fractal-cycle guard when detail_timeline_id is set", async () => {
+    // The target timeline already contains event-1 → updating its drill-down to
+    // it cycles. (Zod requires a real UUID, unlike the setEventDetailTimeline path.)
+    const targetTimeline = "11111111-1111-4111-8111-111111111111";
+    const client = makeSequencedClient([
+      { data: [{ id: "event-1", detail_timeline_id: null }], error: null },
+      { data: [], error: null },
+    ]);
+    await expect(
+      updateEvent(client, "event-1", { detail_timeline_id: targetTimeline }),
+    ).rejects.toThrow("fractal cycle");
+  });
+
+  it("rejects update when detail_timeline_id equals timeline_id", async () => {
+    const timelineId = "11111111-1111-4111-8111-111111111111";
+    const client = makeClient({
+      fromResult: { data: sampleEvent, error: null },
+    });
+
+    await expect(
+      updateEvent(client, "event-1", {
+        timeline_id: timelineId,
+        detail_timeline_id: timelineId,
+      }),
+    ).rejects.toThrow("detail_timeline_id cannot equal timeline_id");
+  });
+
+  it("rejects when detail_timeline_id transitively reaches the new timeline_id", async () => {
+    const newHomeTimeline = "22222222-2222-4222-8222-222222222222";
+    const detailTimeline = "11111111-1111-4111-8111-111111111111";
+    const client = makeSequencedClient([
+      { data: [], error: null },
+      { data: [{ event_id: "event-2" }], error: null },
+      { data: [{ detail_timeline_id: newHomeTimeline }], error: null },
+    ]);
+
+    await expect(
+      updateEvent(client, "event-1", {
+        timeline_id: newHomeTimeline,
+        detail_timeline_id: detailTimeline,
+      }),
+    ).rejects.toThrow("detail_timeline_id cannot reach timeline_id");
+  });
+
+  it("guards a timeline_id-only update against an existing drill-down (#5)", async () => {
+    const newHome = "22222222-2222-4222-8222-222222222222";
+    // The event already expands into `newHome`; moving it there closes a cycle.
+    const client = makeSequencedClient([
+      { data: { detail_timeline_id: newHome }, error: null }, // current detail fetch
+    ]);
+    await expect(
+      updateEvent(client, "event-1", { timeline_id: newHome }),
+    ).rejects.toThrow("fractal cycle");
+  });
+
+  it("detects a transitive cycle on a timeline_id-only update (#5)", async () => {
+    const newHome = "22222222-2222-4222-8222-222222222222";
+    const detail = "11111111-1111-4111-8111-111111111111";
+    // Existing drill-down `detail` reaches `newHome` two hops out.
+    const client = makeSequencedClient([
+      { data: { detail_timeline_id: detail }, error: null }, // current detail fetch
+      { data: [{ detail_timeline_id: newHome }], error: null }, // home events of `detail`
+      { data: [], error: null }, // guest junction of `detail`
+    ]);
+    await expect(
+      updateEvent(client, "event-1", { timeline_id: newHome }),
+    ).rejects.toThrow("fractal cycle");
+  });
+
+  it("allows a timeline_id-only update when the event has no drill-down (#5)", async () => {
+    const newHome = "22222222-2222-4222-8222-222222222222";
+    const updated = { ...sampleEvent, timeline_id: newHome };
+    const client = makeSequencedClient([
+      { data: { detail_timeline_id: null }, error: null }, // current detail = none
+      { data: updated, error: null }, // the update
+    ]);
+    const result = await updateEvent(client, "event-1", {
+      timeline_id: newHome,
+    });
+    expect(result).toEqual(updated);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -640,6 +755,126 @@ describe("setParentEvent", () => {
     });
     await expect(setParentEvent(client, "event-1", "parent-1")).rejects.toThrow(
       "EventService.setParentEvent: update failed",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setEventDetailTimeline
+// ---------------------------------------------------------------------------
+
+describe("setEventDetailTimeline", () => {
+  it("sets the drill-down timeline when there is no cycle", async () => {
+    const updated = { ...sampleEvent, detail_timeline_id: "tl-sub" };
+    // 1: home events of tl-sub (none) · 2: guest junction (none) · 3: update
+    const client = makeSequencedClient([
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: updated, error: null },
+    ]);
+    const result = await setEventDetailTimeline(client, "event-1", "tl-sub");
+    expect(result).toEqual(updated);
+    const updateBuilder = (client.from as ReturnType<typeof vi.fn>).mock
+      .results[2]?.value as ReturnType<typeof makeBuilder>;
+    expect(updateBuilder.update).toHaveBeenCalledWith({
+      detail_timeline_id: "tl-sub",
+    });
+  });
+
+  it("clears the drill-down with null and skips the cycle check", async () => {
+    const updated = { ...sampleEvent, detail_timeline_id: null };
+    const client = makeClient({ fromResult: { data: updated, error: null } });
+    const result = await setEventDetailTimeline(client, "event-1", null);
+    expect(result).toEqual(updated);
+    // Only the update query runs — no BFS.
+    expect((client.from as ReturnType<typeof vi.fn>).mock.calls).toHaveLength(
+      1,
+    );
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith({ detail_timeline_id: null });
+  });
+
+  it("rejects an assignment that would close a fractal cycle", async () => {
+    // tl-sub already contains event-1 (its home timeline) → cycle.
+    const client = makeSequencedClient([
+      { data: [{ id: "event-1", detail_timeline_id: null }], error: null },
+      { data: [], error: null },
+    ]);
+    await expect(
+      setEventDetailTimeline(client, "event-1", "tl-sub"),
+    ).rejects.toThrow("fractal cycle");
+  });
+
+  it("detects a cycle reached transitively through a guest appearance", async () => {
+    // tl-sub contains event-2 (guest); event-2 expands into tl-deep; tl-deep
+    // contains event-1 → cycle two hops out.
+    const client = makeSequencedClient([
+      { data: [], error: null }, // tl-sub home events
+      { data: [{ event_id: "event-2" }], error: null }, // tl-sub guest junction
+      { data: [{ id: "event-2", detail_timeline_id: "tl-deep" }], error: null }, // guest events
+      { data: [{ id: "event-1", detail_timeline_id: null }], error: null }, // tl-deep home events
+      { data: [], error: null }, // tl-deep guest junction
+    ]);
+    await expect(
+      setEventDetailTimeline(client, "event-1", "tl-sub"),
+    ).rejects.toThrow("fractal cycle");
+  });
+
+  it("throws on Supabase error during update", async () => {
+    const client = makeSequencedClient([
+      { data: [], error: null },
+      { data: [], error: null },
+      { data: null, error: { message: "update failed" } },
+    ]);
+    await expect(
+      setEventDetailTimeline(client, "event-1", "tl-sub"),
+    ).rejects.toThrow("EventService.setEventDetailTimeline: update failed");
+  });
+
+  it("uses caller-neutral cycle error prefix", async () => {
+    const client = makeSequencedClient([
+      { data: [{ id: "event-1", detail_timeline_id: null }], error: null },
+      { data: [], error: null },
+    ]);
+
+    await expect(
+      setEventDetailTimeline(client, "event-1", "tl-sub"),
+    ).rejects.toThrow("EventService.assertNoDetailTimelineCycle");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getEventsDetailedBy
+// ---------------------------------------------------------------------------
+
+describe("getEventsDetailedBy", () => {
+  it("returns events that expand into the given timeline", async () => {
+    const detailing = { ...sampleEvent, detail_timeline_id: "tl-sub" };
+    const client = makeClient({
+      fromResult: { data: [detailing], error: null },
+    });
+    const result = await getEventsDetailedBy(client, "tl-sub");
+    expect(result).toEqual([detailing]);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("detail_timeline_id", "tl-sub");
+    expect(builder.order).toHaveBeenCalledWith("sort_order_years", {
+      ascending: true,
+    });
+  });
+
+  it("returns empty array when data is null", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    expect(await getEventsDetailedBy(client, "tl-sub")).toEqual([]);
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "DB error" } },
+    });
+    await expect(getEventsDetailedBy(client, "tl-sub")).rejects.toThrow(
+      "EventService.getEventsDetailedBy: DB error",
     );
   });
 });

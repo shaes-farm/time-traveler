@@ -28,6 +28,7 @@ export const eventSchema = z.object({
   importance: z.number().int().min(1).max(10).default(5),
   parent_event_id: z.string().uuid().optional(),
   timeline_id: z.string().uuid().optional(),
+  detail_timeline_id: z.string().uuid().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
