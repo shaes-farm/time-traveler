@@ -334,7 +334,6 @@ export async function updateEvent(
  * Permanently deletes an event. The DB FK constraints on deletion are:
  * - `event_categories`, `event_media`, `event_characters` junction rows are
  *   removed via `ON DELETE CASCADE` on their `event_id` FK.
- * - Child events (`parent_event_id` FK) are also deleted via `ON DELETE CASCADE`.
  * - The event's `timeline_id` FK has `ON DELETE SET NULL` on the *timelines*
  *   table — deleting an event does not affect the timeline, only deleting the
  *   timeline would null out the event's `timeline_id`.
@@ -384,50 +383,15 @@ export async function unpublishEvent(
 }
 
 // ---------------------------------------------------------------------------
-// Fractal nesting
-// ---------------------------------------------------------------------------
-
-/**
- * Returns all direct child events of the given parent event.
- * Results are ordered by `sort_order_years` ascending.
- */
-export async function getChildEvents(
-  client: SupabaseClient<Database>,
-  parentId: string,
-): Promise<EventRow[]> {
-  const { data, error } = await client
-    .from("events")
-    .select("*")
-    .eq("parent_event_id", parentId)
-    .order("sort_order_years", { ascending: true });
-
-  assertNoError(error, "getChildEvents");
-  return data ?? [];
-}
-
-/**
- * Assigns a parent event to an event, enabling fractal timeline nesting.
- * Pass `null` as `parentId` to remove the parent association.
- */
-export async function setParentEvent(
-  client: SupabaseClient<Database>,
-  eventId: string,
-  parentId: string | null,
-): Promise<EventRow> {
-  const { data, error } = await client
-    .from("events")
-    .update({ parent_event_id: parentId })
-    .eq("id", eventId)
-    .select()
-    .single();
-
-  assertNoError(error, "setParentEvent");
-  return data as EventRow;
-}
-
-// ---------------------------------------------------------------------------
 // Fractal decomposition (forward drill-down)
 // ---------------------------------------------------------------------------
+//
+// Nesting is forward-only: an event expands into a sub-timeline via
+// `detail_timeline_id` (#177), which in turn contains finer events. The earlier
+// backward event-to-event `parent_event_id` mechanism — and its `getChildEvents`
+// / `setParentEvent` helpers — are retired (#180). To list the events that make
+// up an event's decomposition, fetch the events of its `detail_timeline_id` with
+// `getEvents({ timelineId })`; `getEventsDetailedBy` is the reverse lookup.
 
 /**
  * Throws if assigning `timelineId` as the drill-down sub-timeline
