@@ -110,7 +110,7 @@ their self-referential parent FK — `periods.parent_period_id` and
   drill-down rather than cascading into the parent event (§3.2, §3.4).
 - **IMP-002**: Reverse-lookup index
   `idx_events_detail_timeline ON events (detail_timeline_id) WHERE detail_timeline_id IS NOT NULL`
-  (pending #177) answers "which event details this timeline?".
+  (added in migration 00017, #177) answers "which event details this timeline?".
 - **IMP-003**: `parent_event_id`, its self-FK, and `idx_events_parent` were
   confirmed unused and dropped in migration 00019 (#180).
 
