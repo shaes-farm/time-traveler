@@ -651,7 +651,8 @@ export type Database = {
           metadata: Json | null;
           mime_type: string | null;
           slug: string;
-          storage_path: string;
+          source: string;
+          storage_path: string | null;
           updated_at: string | null;
           url: string;
           user_id: string;
@@ -668,7 +669,8 @@ export type Database = {
           metadata?: Json | null;
           mime_type?: string | null;
           slug: string;
-          storage_path: string;
+          source?: string;
+          storage_path?: string | null;
           updated_at?: string | null;
           url: string;
           user_id: string;
@@ -685,7 +687,8 @@ export type Database = {
           metadata?: Json | null;
           mime_type?: string | null;
           slug?: string;
-          storage_path?: string;
+          source?: string;
+          storage_path?: string | null;
           updated_at?: string | null;
           url?: string;
           user_id?: string;

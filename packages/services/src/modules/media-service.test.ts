@@ -10,6 +10,7 @@ import {
   deleteMedia,
   getSignedUrl,
 } from "./media-service.js";
+import { mediaInsertSchema } from "../schemas/media.js";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers
@@ -117,7 +118,7 @@ function makeUploadClient(opts: {
   } as unknown as SupabaseClient<Database>;
 }
 
-// deleteMedia: call 1 = select (fetch storage_path+url), call 2 = delete
+// deleteMedia: call 1 = select (fetch source+storage_path), call 2 = delete
 function makeDeleteClient(opts: {
   fetchResult: { data: unknown; error: unknown };
   deleteResult?: { data: unknown; error: unknown };
@@ -156,6 +157,7 @@ const sampleMedia = {
   slug: "sample-image",
   alt_text: "A sample image",
   caption: null,
+  source: "upload",
   storage_path: "user-123/sample.jpg",
   url: "https://example.com/media/user-123/sample.jpg",
   media_type: "image",
@@ -171,7 +173,8 @@ const sampleMedia = {
 const externalMedia = {
   ...sampleMedia,
   id: "media-2",
-  storage_path: "https://external.com/image.jpg",
+  source: "external",
+  storage_path: null,
   url: "https://external.com/image.jpg",
 };
 
@@ -206,6 +209,14 @@ describe("getMedia", () => {
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
     expect(builder.eq).toHaveBeenCalledWith("media_type", "video");
+  });
+
+  it("applies source filter", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getMedia(client, { source: "external" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("source", "external");
   });
 
   it("throws on query error", async () => {
@@ -303,7 +314,7 @@ describe("uploadMedia", () => {
 // ---------------------------------------------------------------------------
 
 describe("createExternalMedia", () => {
-  it("creates a media record with the external URL as storage_path", async () => {
+  it("creates an external-source record with a null storage_path", async () => {
     const client = makeUploadClient({
       insertResult: { data: externalMedia, error: null },
     });
@@ -311,6 +322,13 @@ describe("createExternalMedia", () => {
       url: "https://external.com/image.jpg",
     });
     expect(result).toEqual(externalMedia);
+
+    // The insert (second from() call) must mark the row external with no path.
+    const insertBuilder = (client.from as ReturnType<typeof vi.fn>).mock
+      .results[1]?.value as ReturnType<typeof makeBuilder>;
+    expect(insertBuilder.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ source: "external", storage_path: null }),
+    );
   });
 
   it("uses an explicit slug when provided", async () => {
@@ -381,8 +399,8 @@ describe("deleteMedia", () => {
     const client = makeDeleteClient({
       fetchResult: {
         data: {
+          source: "upload",
           storage_path: "user-123/photo.jpg",
-          url: "https://cdn.example.com/photo.jpg",
         },
         error: null,
       },
@@ -392,12 +410,11 @@ describe("deleteMedia", () => {
     expect(bucket.remove).toHaveBeenCalledWith(["user-123/photo.jpg"]);
   });
 
-  it("skips Storage removal for external media (storage_path === url)", async () => {
+  it("skips Storage removal for external media (source = external)", async () => {
     const bucket = makeStorageBucket({});
-    const externalUrl = "https://external.com/image.jpg";
     const client = makeDeleteClient({
       fetchResult: {
-        data: { storage_path: externalUrl, url: externalUrl },
+        data: { source: "external", storage_path: null },
         error: null,
       },
       storageBucket: bucket,
@@ -422,8 +439,8 @@ describe("deleteMedia", () => {
     const client = makeDeleteClient({
       fetchResult: {
         data: {
+          source: "upload",
           storage_path: "user-123/photo.jpg",
-          url: "https://cdn.example.com/photo.jpg",
         },
         error: null,
       },
@@ -437,10 +454,7 @@ describe("deleteMedia", () => {
   it("throws when DB delete fails", async () => {
     const client = makeDeleteClient({
       fetchResult: {
-        data: {
-          storage_path: "https://ext.com/img.jpg",
-          url: "https://ext.com/img.jpg",
-        },
+        data: { source: "external", storage_path: null },
         error: null,
       },
       deleteResult: { data: null, error: { message: "delete failed" } },
@@ -460,6 +474,7 @@ describe("getSignedUrl", () => {
     // Call 1: fetch storage_path via .select().eq().single()
     const fetchBuilder = makeBuilder({
       data: {
+        source: "upload",
         storage_path: "user-123/private.jpg",
         url: "https://cdn.example.com/private.jpg",
       },
@@ -493,6 +508,7 @@ describe("getSignedUrl", () => {
   it("respects a custom expiresIn value", async () => {
     const fetchBuilder = makeBuilder({
       data: {
+        source: "upload",
         storage_path: "user-123/private.jpg",
         url: "https://cdn.example.com/private.jpg",
       },
@@ -529,6 +545,7 @@ describe("getSignedUrl", () => {
   it("throws when createSignedUrl fails", async () => {
     const fetchBuilder = makeBuilder({
       data: {
+        source: "upload",
         storage_path: "user-123/private.jpg",
         url: "https://cdn.example.com/private.jpg",
       },
@@ -556,7 +573,7 @@ describe("getSignedUrl", () => {
   it("returns the public URL directly for external media", async () => {
     const externalUrl = "https://external.com/image.jpg";
     const fetchBuilder = makeBuilder({
-      data: { storage_path: externalUrl, url: externalUrl },
+      data: { source: "external", storage_path: null, url: externalUrl },
       error: null,
     });
     const bucket = makeStorageBucket({});
@@ -574,5 +591,45 @@ describe("getSignedUrl", () => {
     const url = await getSignedUrl(client, "media-2");
     expect(url).toBe(externalUrl);
     expect(bucket.createSignedUrl).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// mediaInsertSchema — guard mirrors the DB media_source_storage_ck constraint
+// ---------------------------------------------------------------------------
+
+describe("mediaInsertSchema", () => {
+  const base = { slug: "x", url: "https://example.com/x.jpg" };
+
+  it("accepts an upload with a storage_path", () => {
+    expect(
+      mediaInsertSchema.safeParse({
+        ...base,
+        source: "upload",
+        storage_path: "user-123/x.jpg",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("accepts an external embed with no storage_path", () => {
+    expect(
+      mediaInsertSchema.safeParse({ ...base, source: "external" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an upload missing a storage_path", () => {
+    expect(
+      mediaInsertSchema.safeParse({ ...base, source: "upload" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects an external embed carrying a storage_path", () => {
+    expect(
+      mediaInsertSchema.safeParse({
+        ...base,
+        source: "external",
+        storage_path: "user-123/x.jpg",
+      }).success,
+    ).toBe(false);
   });
 });
