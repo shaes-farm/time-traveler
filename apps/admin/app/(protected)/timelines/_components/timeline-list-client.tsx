@@ -141,18 +141,25 @@ function buildServiceFilters(
     includeSubTimelines,
   };
 
-  if (visibilities.length > 0) {
+  const VALID_VISIBILITY = new Set<string>(["private", "public", "shared"]);
+  const VALID_TYPE = new Set<string>([
+    "general",
+    "biographical",
+    "comparative",
+  ]);
+
+  const safeVisibilities = visibilities.filter((v) =>
+    VALID_VISIBILITY.has(v),
+  ) as Visibility[];
+  const safeTypes = types.filter((t) => VALID_TYPE.has(t)) as TimelineType[];
+
+  if (safeVisibilities.length > 0) {
     filters.visibility =
-      visibilities.length === 1
-        ? (visibilities[0] as Visibility)
-        : (visibilities as Visibility[]);
+      safeVisibilities.length === 1 ? safeVisibilities[0]! : safeVisibilities;
   }
 
-  if (types.length > 0) {
-    filters.timelineType =
-      types.length === 1
-        ? (types[0] as TimelineType)
-        : (types as TimelineType[]);
+  if (safeTypes.length > 0) {
+    filters.timelineType = safeTypes.length === 1 ? safeTypes[0]! : safeTypes;
   }
 
   // published filter: exactly one value selected → filter; otherwise omit
@@ -316,6 +323,25 @@ export function TimelineListClient() {
   } = readFiltersFromParams(searchParams);
 
   const searchDebounceRef = React.useRef<number | null>(null);
+  // Local state for immediate input feedback while the debounced URL update is pending.
+  const [searchInput, setSearchInput] = React.useState(search);
+  // Track previous URL-derived search to detect external changes (e.g. browser back/forward
+  // or "Clear all filters"), and reset the input without a useEffect.
+  const [prevUrlSearch, setPrevUrlSearch] = React.useState(search);
+  if (search !== prevUrlSearch) {
+    setPrevUrlSearch(search);
+    setSearchInput(search);
+  }
+
+  // Clear pending debounce on unmount to avoid state updates on unmounted component.
+  React.useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current !== null) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
+
   const client = React.useMemo(() => getBrowserSupabaseClient(), []);
 
   const typesKey = types.join(",");
@@ -394,6 +420,7 @@ export function TimelineListClient() {
   }
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
+    setSearchInput(value);
     if (searchDebounceRef.current !== null) {
       clearTimeout(searchDebounceRef.current);
     }
@@ -519,7 +546,7 @@ export function TimelineListClient() {
           <input
             type="search"
             placeholder="Search title, summary, detail…"
-            value={search}
+            value={searchInput}
             onChange={handleSearchChange}
             className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-ring"
             aria-label="Search timelines"

@@ -31,13 +31,13 @@ The dominant work is **not** UI assembly (the story is a near-complete blueprint
 - **CON-001**: `getTimelines` returns only `TimelineRow[]` today; total/filtered count must be obtained without breaking existing callers/tests.
 - **CON-002**: No `nuqs` dependency in the repo — URL state must use Next `useSearchParams` + `useRouter` from `next/navigation`.
 - **CON-003**: Event count and collaborator count are **deferred-tolerant** — the row must render correctly when those counts are absent. Do not block the list on a count query contract.
-- **CON-004**: The `detail_timeline_id` column the root/sub partition reads from does not exist yet (blocked on #177). Do not invent it.
+- **CON-004**: The `detail_timeline_id` column exists (added in migration `00017_events_detail_timeline_id.sql`), but the root/sub partition query logic is not yet implemented. `includeSubTimelines` is a no-op until that logic lands.
 - **CON-005**: TypeScript strict mode + `--max-warnings 0` ESLint; both apps are ESM (`"type": "module"`).
 - **CON-006**: Card/grid view and bulk actions are explicit non-goals for #42.
 - **GUD-001**: Reuse `@repo/ui` primitives (`DataTable`, `FilterRail`, `StatusBadge`, `TemporalDisplay`, `Button`, `Skeleton`) before authoring new components — the story already demonstrates the exact composition.
 - **GUD-002**: Server component by default; mark the interactive list a client component (`"use client"`) only at the leaf that owns filter/sort/query state.
 - **PAT-001**: Follow the service convention in `packages/services/src/modules/timeline-service.ts` (clamp paging, `assertNoError`, leverage `search_vector` GIN via `textSearch(... { type: "websearch" })`).
-- **PAT-002**: Obtain the browser Supabase client via `getBrowserClient()` from `apps/admin/lib/auth/browser-client.ts`.
+- **PAT-002**: Obtain the browser Supabase client via `getBrowserSupabaseClient()` from `apps/admin/lib/auth/browser-client.ts`.
 
 ## 2. Implementation Steps
 
