@@ -1,1 +1,1 @@
-export * from "./modules/category-service.js";
+export * from "./modules/category-service";

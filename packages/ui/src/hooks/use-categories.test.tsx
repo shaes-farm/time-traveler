@@ -13,7 +13,7 @@ import {
   categoryKeys,
 } from "./use-categories";
 
-vi.mock("@repo/services/category-service.js", () => ({
+vi.mock("@repo/services/category-service", () => ({
   getCategories: vi.fn(),
   getCategoryById: vi.fn(),
   getCategoryBySlug: vi.fn(),
@@ -31,7 +31,7 @@ import {
   updateCategory,
   deleteCategory,
   getCategoryTree,
-} from "@repo/services/category-service.js";
+} from "@repo/services/category-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockClient = {} as any;

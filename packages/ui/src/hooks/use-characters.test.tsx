@@ -17,7 +17,7 @@ import {
 // Mock the character service
 // ---------------------------------------------------------------------------
 
-vi.mock("@repo/services/character-service.js", () => ({
+vi.mock("@repo/services/character-service", () => ({
   getCharacters: vi.fn(),
   getCharacterById: vi.fn(),
   getCharacterBySlug: vi.fn(),
@@ -36,7 +36,7 @@ import {
   deleteCharacter,
   getCharacterTimeline,
   getCharacterNetwork,
-} from "@repo/services/character-service.js";
+} from "@repo/services/character-service";
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -26,14 +26,14 @@ import {
   removeCategoryFromEvent,
   addMediaToEvent,
   removeMediaFromEvent,
-} from "@repo/services/event-service.js";
+} from "@repo/services/event-service";
 import type {
   EventFilters,
   EventWithRelations,
   CreateEventInput,
   CharacterRole,
   CharacterSignificance,
-} from "@repo/services/event-service.js";
+} from "@repo/services/event-service";
 
 type ServiceClient = Parameters<typeof getEvents>[0];
 type EventUpdateData = Parameters<typeof updateEvent>[2];

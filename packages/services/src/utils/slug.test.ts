@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateSlug, resolveCollision, validateSlug } from "./slug.js";
+import { generateSlug, resolveCollision, validateSlug } from "./slug";
 
 // ─── generateSlug ─────────────────────────────────────────────────────────────
 

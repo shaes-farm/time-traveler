@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { slugSchema } from "./slug.js";
-import { temporalDataSchema } from "./temporal.js";
-import { significanceEnum } from "./character.js";
+import { slugSchema } from "./slug";
+import { temporalDataSchema } from "./temporal";
+import { significanceEnum } from "./character";
 
 export const periodSchema = z.object({
   slug: slugSchema,

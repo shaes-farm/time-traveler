@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
+import type { Database } from "../supabase/types";
 import {
   getCharacters,
   getCharacterById,
@@ -13,7 +13,7 @@ import {
   getCharacterEvents,
   addMediaToCharacter,
   removeMediaFromCharacter,
-} from "./character-service.js";
+} from "./character-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers (mirrors event-service.test.ts pattern)

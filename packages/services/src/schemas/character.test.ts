@@ -3,7 +3,7 @@ import {
   characterSchema,
   characterTypeEnum,
   significanceEnum,
-} from "./character.js";
+} from "./character";
 
 const validBase = {
   slug: "frodo-baggins",

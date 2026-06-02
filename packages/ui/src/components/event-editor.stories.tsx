@@ -13,7 +13,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import type { TemporalData } from "@repo/services/schemas/temporal.js";
+import type { TemporalData } from "@repo/services/schemas/temporal";
 import { useUiStore } from "@repo/ui/stores";
 import { AutosaveIndicator } from "./autosave-indicator";
 import { Avatar, AvatarFallback } from "./avatar";

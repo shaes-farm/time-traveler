@@ -21,7 +21,7 @@ import {
   eventKeys,
 } from "./use-events";
 
-vi.mock("@repo/services/event-service.js", () => ({
+vi.mock("@repo/services/event-service", () => ({
   getEvents: vi.fn(),
   getEventById: vi.fn(),
   getEventBySlug: vi.fn(),
@@ -58,7 +58,7 @@ import {
   removeCategoryFromEvent,
   addMediaToEvent,
   removeMediaFromEvent,
-} from "@repo/services/event-service.js";
+} from "@repo/services/event-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockClient = {} as any;

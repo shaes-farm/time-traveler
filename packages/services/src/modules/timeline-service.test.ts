@@ -1,8 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../supabase/types.js";
+import type { Database } from "../supabase/types";
 import {
   getTimelines,
+  getTimelinesPage,
   getTimelineById,
   getTimelineBySlug,
   createTimeline,
@@ -17,7 +18,7 @@ import {
   addEventToTimeline,
   removeEventFromTimeline,
   addMediaToTimeline,
-} from "./timeline-service.js";
+} from "./timeline-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers
@@ -26,9 +27,13 @@ import {
 /**
  * Creates a chainable query builder mock that resolves with the given result.
  * Methods return `this` to support chaining; the terminal call returns a
- * promise that resolves to `{ data, error }`.
+ * promise that resolves to `{ data, error, count }`.
  */
-function makeBuilder(result: { data: unknown; error: unknown }) {
+function makeBuilder(result: {
+  data: unknown;
+  error: unknown;
+  count?: number | null;
+}) {
   const terminal = vi.fn().mockResolvedValue(result);
   const builder = {
     select: vi.fn().mockReturnThis(),
@@ -36,6 +41,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
     ilike: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
@@ -55,7 +61,7 @@ function makeQuery(result: { data: unknown; error: unknown }) {
 }
 
 function makeClient(overrides: {
-  fromResult?: { data: unknown; error: unknown };
+  fromResult?: { data: unknown; error: unknown; count?: number | null };
   authUser?: { data: { user: unknown }; error: unknown };
 }) {
   const { fromResult = { data: null, error: null }, authUser } = overrides;
@@ -143,15 +149,38 @@ describe("getTimelines", () => {
     expect(builder.eq).toHaveBeenCalledWith("user_id", "user-abc");
   });
 
-  it("applies search filter via full-text search", async () => {
+  it("applies search filter via full-text search with prefix matching", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await getTimelines(client, { search: "ancient" });
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
+    // Single word → appended with :* so partial tokens match stored lexemes.
     expect(builder.textSearch).toHaveBeenCalledWith(
       "search_vector",
-      "ancient",
-      { type: "websearch" },
+      "ancient:*",
+    );
+  });
+
+  it("applies multi-word search with prefix matching on the last token", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getTimelines(client, { search: "history phys" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    // Earlier words joined with &; last word appended with :*
+    expect(builder.textSearch).toHaveBeenCalledWith(
+      "search_vector",
+      "history & phys:*",
+    );
+  });
+
+  it("strips tsquery metacharacters from search input", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getTimelines(client, { search: "anc&ient | hist!ory" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.textSearch).toHaveBeenCalledWith(
+      "search_vector",
+      "anc & ient & hist & ory:*",
     );
   });
 
@@ -186,8 +215,141 @@ describe("getTimelines", () => {
     const client = makeClient({
       fromResult: { data: null, error: { message: "DB error" } },
     });
+    // getTimelines delegates to getTimelinesPage which owns the error context
     await expect(getTimelines(client)).rejects.toThrow(
-      "TimelineService.getTimelines: DB error",
+      "TimelineService.getTimelinesPage: DB error",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getTimelinesPage
+// ---------------------------------------------------------------------------
+
+describe("getTimelinesPage", () => {
+  it("returns rows and total count", async () => {
+    const client = makeClient({
+      fromResult: { data: [sampleTimeline], error: null, count: 42 },
+    });
+    const result = await getTimelinesPage(client);
+    expect(result.rows).toEqual([sampleTimeline]);
+    expect(result.total).toBe(42);
+  });
+
+  it("returns total 0 when count is null", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: null },
+    });
+    const result = await getTimelinesPage(client);
+    expect(result.total).toBe(0);
+  });
+
+  it("applies timeline_type scalar filter", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client, { timelineType: "biographical" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("timeline_type", "biographical");
+  });
+
+  it("applies timeline_type array filter via .in()", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client, {
+      timelineType: ["general", "comparative"],
+    });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.in).toHaveBeenCalledWith("timeline_type", [
+      "general",
+      "comparative",
+    ]);
+  });
+
+  it("applies visibility array filter via .in()", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client, { visibility: ["public", "shared"] });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.in).toHaveBeenCalledWith("visibility", ["public", "shared"]);
+  });
+
+  it("applies published=true filter", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client, { published: true });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("published", true);
+  });
+
+  it("applies published=false filter", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client, { published: false });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("published", false);
+  });
+
+  it("sorts by title ascending", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client, {
+      sortBy: "title",
+      sortDirection: "asc",
+    });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("title", {
+      ascending: true,
+      nullsFirst: false,
+    });
+  });
+
+  it("sorts by updated_at descending by default", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("updated_at", {
+      ascending: false,
+      nullsFirst: false,
+    });
+  });
+
+  it("sorts by created_at", async () => {
+    const client = makeClient({
+      fromResult: { data: [], error: null, count: 0 },
+    });
+    await getTimelinesPage(client, {
+      sortBy: "created_at",
+      sortDirection: "asc",
+    });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("created_at", {
+      ascending: true,
+      nullsFirst: false,
+    });
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "page error" } },
+    });
+    await expect(getTimelinesPage(client)).rejects.toThrow(
+      "TimelineService.getTimelinesPage: page error",
     );
   });
 });

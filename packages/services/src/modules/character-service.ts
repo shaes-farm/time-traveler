@@ -4,14 +4,14 @@ import {
   characterSchema,
   characterTypeEnum,
   characterTypeProfileSchema,
-} from "../schemas/character.js";
+} from "../schemas/character";
 import type {
   CharacterInput,
   CreateCharacterInput,
-} from "../schemas/character.js";
-import { generateSlug, resolveCollision } from "../utils/slug.js";
-import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
-import type { Database } from "../supabase/types.js";
+} from "../schemas/character";
+import { generateSlug, resolveCollision } from "../utils/slug";
+import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import type { Database } from "../supabase/types";
 
 // ---------------------------------------------------------------------------
 // Type aliases

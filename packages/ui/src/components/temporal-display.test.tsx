@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import type { TemporalData } from "@repo/services/schemas/temporal.js";
+import type { TemporalData } from "@repo/services/schemas/temporal";
 import { TemporalDisplay } from "./temporal-display";
 
 const T = (data: Partial<TemporalData> & Pick<TemporalData, "year" | "era">) =>

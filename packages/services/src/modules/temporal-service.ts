@@ -7,7 +7,7 @@ import {
   type Precision,
   type TemporalData,
   type TemporalRange,
-} from "../schemas/temporal.js";
+} from "../schemas/temporal";
 
 const MONTH_NAMES = [
   "January",

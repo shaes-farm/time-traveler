@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eventSchema, eventTypeEnum } from "./event.js";
+import { eventSchema, eventTypeEnum } from "./event";
 
 const validTemporal = {
   year: 1969,

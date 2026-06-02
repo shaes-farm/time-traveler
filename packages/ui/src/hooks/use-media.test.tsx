@@ -13,7 +13,7 @@ import {
   mediaKeys,
 } from "./use-media";
 
-vi.mock("@repo/services/media-service.js", () => ({
+vi.mock("@repo/services/media-service", () => ({
   getMedia: vi.fn(),
   getMediaById: vi.fn(),
   uploadMedia: vi.fn(),
@@ -31,7 +31,7 @@ import {
   updateMedia,
   deleteMedia,
   getSignedUrl,
-} from "@repo/services/media-service.js";
+} from "@repo/services/media-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockClient = {} as any;

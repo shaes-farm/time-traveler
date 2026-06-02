@@ -22,13 +22,13 @@ import {
   removeEventFromStory,
   addPeriodToStory,
   removePeriodFromStory,
-} from "@repo/services/story-service.js";
+} from "@repo/services/story-service";
 import type {
   StoryFilters,
   StoryWithRelations,
   CreateStoryInput,
   StoryCharacterRole,
-} from "@repo/services/story-service.js";
+} from "@repo/services/story-service";
 
 type ServiceClient = Parameters<typeof getStories>[0];
 type StoryUpdateData = Parameters<typeof updateStory>[2];

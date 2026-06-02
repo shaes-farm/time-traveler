@@ -5,11 +5,11 @@ import {
   mediaSchema,
   mediaSourceEnum,
   mediaTypeEnum,
-} from "../schemas/media.js";
-import type { MediaInput } from "../schemas/media.js";
-import { generateSlug, resolveCollision } from "../utils/slug.js";
-import { MAX_SLUG_LENGTH } from "../schemas/slug.js";
-import type { Database } from "../supabase/types.js";
+} from "../schemas/media";
+import type { MediaInput } from "../schemas/media";
+import { generateSlug, resolveCollision } from "../utils/slug";
+import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import type { Database } from "../supabase/types";
 
 type MediaRow = Database["public"]["Tables"]["media"]["Row"];
 

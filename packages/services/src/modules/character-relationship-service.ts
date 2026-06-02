@@ -5,8 +5,8 @@ import {
   characterRelationshipBaseSchema,
   relationshipTypeEnum,
   validateTypeRoleCombination,
-} from "../schemas/character-relationship.js";
-import type { Database } from "../supabase/types.js";
+} from "../schemas/character-relationship";
+import type { Database } from "../supabase/types";
 
 type CharacterRelationshipRow =
   Database["public"]["Tables"]["character_relationships"]["Row"];

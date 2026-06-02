@@ -17,12 +17,12 @@ import {
   updateMedia,
   deleteMedia,
   getSignedUrl,
-} from "@repo/services/media-service.js";
+} from "@repo/services/media-service";
 import type {
   MediaFilters,
   UploadMediaInput,
   CreateExternalMediaInput,
-} from "@repo/services/media-service.js";
+} from "@repo/services/media-service";
 
 type ServiceClient = Parameters<typeof getMedia>[0];
 type MediaUpdateData = Parameters<typeof updateMedia>[2];
