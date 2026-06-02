@@ -4,7 +4,7 @@ status: "Accepted (retroactively documented 2026-05-30)"
 date: "2026-05-21"
 authors: "Time Traveler engineering (reconstructed retroactively)"
 tags: ["architecture", "decision", "data-model", "fractal", "timeline"]
-supersedes: "Original event-to-event parent_event_id nesting (never given its own ADR; tombstoned per #180)"
+supersedes: "Original event-to-event parent_event_id nesting (never given its own ADR; dropped in migration 00019 per #180)"
 superseded_by: ""
 amends: ""
 amended_by: ""
@@ -43,12 +43,12 @@ Make nesting **forward-only** through the timeline: the recursion unit is the
 the timeline. The two event↔timeline axes are kept strictly separate
 (`docs/system-design.md` §3.2):
 
-| Mechanism             | Axis          | Meaning                                              |
-| --------------------- | ------------- | ---------------------------------------------------- |
-| `events.timeline_id`  | containment   | Primary/home timeline — **the RLS source**           |
-| `timeline_events`     | containment   | Additional "also appears in" membership (not RLS)    |
-| `detail_timeline_id`  | decomposition | The sub-timeline this event drills into              |
-| ~~`parent_event_id`~~ | decomposition | **Deprecated (#180)** — tombstoned and to be dropped |
+| Mechanism             | Axis          | Meaning                                                          |
+| --------------------- | ------------- | ---------------------------------------------------------------- |
+| `events.timeline_id`  | containment   | Primary/home timeline — **the RLS source**                       |
+| `timeline_events`     | containment   | Additional "also appears in" membership (not RLS)                |
+| `detail_timeline_id`  | decomposition | The sub-timeline this event drills into                          |
+| ~~`parent_event_id`~~ | decomposition | **Removed (#180)** — tombstoned, then dropped in migration 00019 |
 
 Access flows from the containing timeline _down_ to its events; a sub-timeline's
 collaborators never gain access to the parent event through the fractal link.
@@ -79,9 +79,10 @@ their self-referential parent FK — `periods.parent_period_id` and
   transitively contains it) are **not** DB-constrained; the service layer must
   reject cycle-closing `detail_timeline_id` assignments (#177,
   `docs/system-design.md` §3.4).
-- **NEG-002**: The full transition is staged — `detail_timeline_id` is pending
-  migration #177 and `parent_event_id` is tombstoned pending its drop (#180), so
-  the schema temporarily carries both mechanisms.
+- **NEG-002**: The transition was staged — `detail_timeline_id` was added in
+  migration 00017 (#177), then `parent_event_id` was tombstoned in the service
+  layer and dropped in migration 00019 (#180). The schema no longer carries the
+  backward mechanism.
 
 ## Alternatives Considered
 
@@ -91,7 +92,8 @@ their self-referential parent FK — `periods.parent_period_id` and
   tree of events.
 - **ALT-002**: **Rejection Reason**: Conflates containment with decomposition,
   allows parent links across timelines (RLS/integrity holes), and turns each zoom
-  into a recursive tree walk. Superseded by the forward model; tombstoned (#180).
+  into a recursive tree walk. Superseded by the forward model; dropped in
+  migration 00019 (#180).
 
 ### Materialized-path / nested-set on events
 
@@ -108,9 +110,9 @@ their self-referential parent FK — `periods.parent_period_id` and
   drill-down rather than cascading into the parent event (§3.2, §3.4).
 - **IMP-002**: Reverse-lookup index
   `idx_events_detail_timeline ON events (detail_timeline_id) WHERE detail_timeline_id IS NOT NULL`
-  (pending #177) answers "which event details this timeline?".
-- **IMP-003**: `parent_event_id` and `idx_events_parent` are deprecated and
-  dropped in a later migration once confirmed unused (#180).
+  (added in migration 00017, #177) answers "which event details this timeline?".
+- **IMP-003**: `parent_event_id`, its self-FK, and `idx_events_parent` were
+  confirmed unused and dropped in migration 00019 (#180).
 
 ## References
 

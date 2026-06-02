@@ -69,6 +69,7 @@ model); the next new ADR is the next free number (`0029` onward), per the
 | [0029](adr-0029-public-reader-route-scheme.md)             | Public reader entity reference scheme (`/:username/:type/:slug`)                | Accepted         | —                                          |
 | [0030](adr-0030-public-reader-app-placement.md)            | Public reader lives in dedicated `apps/reader` Next.js app                      | Accepted         | Amends 0003                                |
 | [0031](adr-0031-public-reader-design-divergence.md)        | Public reader design divergence (shared tokens, divergent motion + composition) | Accepted         | —                                          |
+| [0032](adr-0032-public-reader-motion-tokens.md)            | Public reader motion-token scale (durations, easing, reduced-motion contract)   | Accepted         | —                                          |
 
 † ADR `0006` supersedes the original event-to-event `parent_event_id` nesting
 approach, which was never given its own ADR; it is documented inside `0006` as

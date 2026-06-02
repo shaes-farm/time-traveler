@@ -532,7 +532,6 @@ export type Database = {
           importance: number | null;
           location: string | null;
           metadata: Json | null;
-          parent_event_id: string | null;
           published: boolean | null;
           published_at: string | null;
           search_vector: unknown;
@@ -559,7 +558,6 @@ export type Database = {
           importance?: number | null;
           location?: string | null;
           metadata?: Json | null;
-          parent_event_id?: string | null;
           published?: boolean | null;
           published_at?: string | null;
           search_vector?: unknown;
@@ -586,7 +584,6 @@ export type Database = {
           importance?: number | null;
           location?: string | null;
           metadata?: Json | null;
-          parent_event_id?: string | null;
           published?: boolean | null;
           published_at?: string | null;
           search_vector?: unknown;
@@ -607,27 +604,6 @@ export type Database = {
             columns: ["detail_timeline_id"];
             isOneToOne: false;
             referencedRelation: "timelines";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "events_parent_event_id_fkey";
-            columns: ["parent_event_id"];
-            isOneToOne: false;
-            referencedRelation: "character_timeline_view";
-            referencedColumns: ["event_id"];
-          },
-          {
-            foreignKeyName: "events_parent_event_id_fkey";
-            columns: ["parent_event_id"];
-            isOneToOne: false;
-            referencedRelation: "event_participants_view";
-            referencedColumns: ["event_id"];
-          },
-          {
-            foreignKeyName: "events_parent_event_id_fkey";
-            columns: ["parent_event_id"];
-            isOneToOne: false;
-            referencedRelation: "events";
             referencedColumns: ["id"];
           },
           {
@@ -1368,7 +1344,6 @@ export type Database = {
           importance: number | null;
           location: string | null;
           metadata: Json | null;
-          parent_event_id: string | null;
           published: boolean | null;
           published_at: string | null;
           search_vector: unknown;
@@ -1404,7 +1379,6 @@ export type Database = {
           importance: number | null;
           location: string | null;
           metadata: Json | null;
-          parent_event_id: string | null;
           published: boolean | null;
           published_at: string | null;
           search_vector: unknown;

@@ -1522,32 +1522,33 @@ Events are the fundamental temporal data points representing specific occurrence
 
 #### 4.2.1 Core Fields
 
-| Field                 | Type          | Required | Constraints                         | Description                            |
-| --------------------- | ------------- | -------- | ----------------------------------- | -------------------------------------- |
-| `id`                  | UUID          | Yes      | Primary key, auto-generated         | Unique identifier                      |
-| `user_id`             | UUID          | Yes      | References auth.users               | Owner of the event                     |
-| `slug`                | VARCHAR(100)  | Yes      | Unique per user, URL-safe           | URL-friendly identifier                |
-| `title`               | VARCHAR(2000) | Yes      | 1-2000 characters                   | Display name                           |
-| `summary`             | TEXT          | No       | -                                   | Brief description                      |
-| `detail`              | TEXT          | No       | -                                   | Full description with Markdown support |
-| `event_type`          | VARCHAR(100)  | Yes      | Enum: see 4.2.2                     | Category of event                      |
-| `temporal_data`       | JSONB         | Yes      | Valid TemporalData object           | Start date/time                        |
-| `sort_order_years`    | BIGINT        | Yes      | Generated from temporal_data        | Sortable temporal value                |
-| `computed_start_date` | TIMESTAMPTZ   | No       | Generated for CE dates              | PostgreSQL timestamp                   |
-| `end_temporal_data`   | JSONB         | No       | Valid TemporalData object           | End date/time for durations            |
-| `sort_order_end`      | BIGINT        | No       | Generated from end_temporal_data    | Sortable end value                     |
-| `computed_end_date`   | TIMESTAMPTZ   | No       | Generated for CE end dates          | PostgreSQL end timestamp               |
-| `location`            | VARCHAR(2000) | No       | -                                   | Free-text location                     |
-| `spatial_data`        | JSONB         | No       | -                                   | Structured coordinates                 |
-| `importance`          | INTEGER       | Yes      | Default: 5, Range: 1-10             | Significance rating                    |
-| `parent_event_id`     | UUID          | No       | References events(id), CASCADE      | Parent for nested events               |
-| `timeline_id`         | UUID          | No       | References timelines(id), SET NULL  | Primary timeline association           |
-| `metadata`            | JSONB         | No       | -                                   | Extensible metadata                    |
-| `search_vector`       | TSVECTOR      | Yes      | Generated from title/summary/detail | Full-text search index                 |
-| `published`           | BOOLEAN       | Yes      | Default: false                      | Publication status                     |
-| `published_at`        | TIMESTAMPTZ   | No       | Set when published=true             | Publication timestamp                  |
-| `created_at`          | TIMESTAMPTZ   | Yes      | Auto-generated                      | Creation timestamp                     |
-| `updated_at`          | TIMESTAMPTZ   | Yes      | Auto-updated                        | Last modification timestamp            |
+| Field                 | Type          | Required | Constraints                         | Description                                                                                                                           |
+| --------------------- | ------------- | -------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                  | UUID          | Yes      | Primary key, auto-generated         | Unique identifier                                                                                                                     |
+| `user_id`             | UUID          | Yes      | References auth.users               | Owner of the event                                                                                                                    |
+| `slug`                | VARCHAR(100)  | Yes      | Unique per user, URL-safe           | URL-friendly identifier                                                                                                               |
+| `title`               | VARCHAR(2000) | Yes      | 1-2000 characters                   | Display name                                                                                                                          |
+| `summary`             | TEXT          | No       | -                                   | Brief description                                                                                                                     |
+| `detail`              | TEXT          | No       | -                                   | Full description with Markdown support                                                                                                |
+| `event_type`          | VARCHAR(100)  | Yes      | Enum: see 4.2.2                     | Category of event                                                                                                                     |
+| `temporal_data`       | JSONB         | Yes      | Valid TemporalData object           | Start date/time                                                                                                                       |
+| `sort_order_years`    | BIGINT        | Yes      | Generated from temporal_data        | Sortable temporal value                                                                                                               |
+| `computed_start_date` | TIMESTAMPTZ   | No       | Generated for CE dates              | PostgreSQL timestamp                                                                                                                  |
+| `end_temporal_data`   | JSONB         | No       | Valid TemporalData object           | End date/time for durations                                                                                                           |
+| `sort_order_end`      | BIGINT        | No       | Generated from end_temporal_data    | Sortable end value                                                                                                                    |
+| `computed_end_date`   | TIMESTAMPTZ   | No       | Generated for CE end dates          | PostgreSQL end timestamp                                                                                                              |
+| `location`            | VARCHAR(2000) | No       | -                                   | Free-text location                                                                                                                    |
+| `spatial_data`        | JSONB         | No       | -                                   | Structured coordinates                                                                                                                |
+| `importance`          | INTEGER       | Yes      | Default: 5, Range: 1-10             | Significance rating                                                                                                                   |
+| ~~`parent_event_id`~~ | UUID          | No       | References events(id), CASCADE      | **Removed (#180)** — backward event-to-event nesting, retired in favor of forward `detail_timeline_id` (#177) and dropped in migration 00019. |
+| `timeline_id`         | UUID          | No       | References timelines(id), SET NULL  | Primary timeline association                                                                                                          |
+| `detail_timeline_id`  | UUID          | No       | References timelines(id), SET NULL  | Sub-timeline this event expands into (forward fractal nesting, #177)                                                                  |
+| `metadata`            | JSONB         | No       | -                                   | Extensible metadata                                                                                                                   |
+| `search_vector`       | TSVECTOR      | Yes      | Generated from title/summary/detail | Full-text search index                                                                                                                |
+| `published`           | BOOLEAN       | Yes      | Default: false                      | Publication status                                                                                                                    |
+| `published_at`        | TIMESTAMPTZ   | No       | Set when published=true             | Publication timestamp                                                                                                                 |
+| `created_at`          | TIMESTAMPTZ   | Yes      | Auto-generated                      | Creation timestamp                                                                                                                    |
+| `updated_at`          | TIMESTAMPTZ   | Yes      | Auto-updated                        | Last modification timestamp                                                                                                           |
 
 #### 4.2.2 Event Types
 
@@ -1564,27 +1565,29 @@ Events are the fundamental temporal data points representing specific occurrence
 | `conflict`       | Battle, war, or dispute                | Battle of Waterloo, legal case, labor strike                 |
 | `ceremony`       | Ritual or formal event                 | Coronation, wedding, treaty signing                          |
 
-#### 4.2.3 Parent-Child Relationships (Fractal Nesting)
+#### 4.2.3 Fractal Nesting (Forward Decomposition)
+
+Nesting is **forward-only**: the recursion unit is the timeline. An event expands into a sub-timeline via `detail_timeline_id` (#177), and that sub-timeline contains the finer events. The earlier backward event-to-event `parent_event_id` mechanism is retired (#180).
 
 **Rules:**
 
-- Events can have a parent event via `parent_event_id`
-- Maximum nesting depth controlled by timeline's `fractal_depth`
-- Parent event's temporal scope should contain child event (soft validation)
-- Circular references prevented (child cannot be ancestor of parent)
-- Orphan events (no parent) represent top-level events
+- An event can _expand into_ a sub-timeline via `detail_timeline_id`; that sub-timeline contains the event's decomposition.
+- Maximum nesting depth controlled by the timeline's `fractal_depth`.
+- The parent event's temporal scope should contain its sub-timeline's events (soft validation).
+- Fractal cycles prevented in the service layer: an event may not expand into a timeline that transitively contains it.
+- Events with no `detail_timeline_id` are leaves (no further decomposition).
 
 **Use cases:**
 
-- "World War II" event contains "Battle of Stalingrad" which contains "Day 1", "Day 2", etc.
-- "Apollo 11 Mission" contains "Launch", "Moon Landing", "Return to Earth"
-- "Evolution of Life" contains geological eras, which contain epochs, which contain speciation events
+- "World War II" expands into a sub-timeline containing "Battle of Stalingrad", which expands into a sub-timeline of "Day 1", "Day 2", etc.
+- "Apollo 11 Mission" expands into a sub-timeline of "Launch", "Moon Landing", "Return to Earth".
+- "Evolution of Life" expands into geological eras, which expand into epochs, which expand into speciation events.
 
 **Visualization:**
 
-- Fractal zoom reveals child events
-- Parent context always visible (breadcrumb navigation)
-- Hierarchical tree view available as alternative to timeline
+- Fractal zoom follows `detail_timeline_id` into the sub-timeline's events.
+- Containing context always visible (breadcrumb navigation up the timeline chain).
+- Hierarchical tree view available as alternative to timeline.
 
 #### 4.2.4 Timeline Association
 

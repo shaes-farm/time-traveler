@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(31);
+select plan(30);
 
 -- ============================================================================
 -- 18 new indexes from 00005 exist
@@ -32,7 +32,8 @@ select has_index('public', 'character_relationships', 'idx_char_rels_related',  
 select has_index('public', 'timeline_events',         'idx_timeline_events_event', 'idx_timeline_events_event exists');
 
 -- Parent self-reference
-select has_index('public', 'events',     'idx_events_parent',     'idx_events_parent exists');
+-- NB: idx_events_parent was dropped with events.parent_event_id (#180, migration
+-- 00019); its drop is asserted in 00019_drop_events_parent_event_id_test.sql.
 select has_index('public', 'periods',    'idx_periods_parent',    'idx_periods_parent exists');
 select has_index('public', 'categories', 'idx_categories_parent', 'idx_categories_parent exists');
 

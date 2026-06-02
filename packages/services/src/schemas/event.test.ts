@@ -81,14 +81,6 @@ describe("eventSchema — invalid inputs", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects non-UUID parent_event_id", () => {
-    const result = eventSchema.safeParse({
-      ...validBase,
-      parent_event_id: "not-a-uuid",
-    });
-    expect(result.success).toBe(false);
-  });
-
   it("rejects an empty title", () => {
     const result = eventSchema.safeParse({ ...validBase, title: "" });
     expect(result.success).toBe(false);
