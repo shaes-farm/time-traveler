@@ -22,6 +22,7 @@ import {
   compareTemporal,
 } from "@repo/services/schemas/temporal";
 import type { TemporalData } from "@repo/services/schemas/temporal";
+import { generateSlug } from "@repo/services/utils/slug";
 
 import {
   useTimelineBySlug,
@@ -174,6 +175,12 @@ const BLANK_VALUES: TimelineFormValues = {
   metadata: undefined,
 };
 
+/** Coerce stored JSON to TemporalData, treating invalid/empty (`{}`) as null. */
+export function toTemporalOrNull(json: unknown): TemporalData | null {
+  const result = temporalDataSchema.safeParse(json);
+  return result.success ? result.data : null;
+}
+
 export function mapRowToFormValues(
   row: TimelineWithRelations,
 ): TimelineFormValues {
@@ -183,8 +190,13 @@ export function mapRowToFormValues(
     summary: row.summary ?? "",
     detail: row.detail ?? "",
     scale: row.scale ?? "",
-    temporal_data: (row.temporal_data as TemporalData | null) ?? null,
-    end_temporal_data: (row.end_temporal_data as TemporalData | null) ?? null,
+    // `temporal_data`/`end_temporal_data` default to `'{}'::jsonb` in the DB
+    // (migration 00001), so an absent end date reads back as `{}` rather than
+    // null. Validate the JSON and treat anything that isn't a real TemporalData
+    // as null, so the editor doesn't render a garbage "undefined …" value
+    // (#215 tracks fixing the underlying DB default / nullable contract).
+    temporal_data: toTemporalOrNull(row.temporal_data),
+    end_temporal_data: toTemporalOrNull(row.end_temporal_data),
     timeline_type: (row.timeline_type as TimelineType | null) ?? "general",
     subject_character_id: row.subject_character_id ?? undefined,
     visibility: (row.visibility as Visibility | null) ?? "private",
@@ -201,6 +213,11 @@ function toPersistedFields(values: TimelineFormValues) {
     detail: values.detail || undefined,
     scale: values.scale || undefined,
     temporal_data: values.temporal_data as TemporalData,
+    // LIMITATION (#215): `timelineSchema.end_temporal_data` is `.optional()`,
+    // not `.nullable()`, and the column defaults to `'{}'::jsonb`. A cleared end
+    // date maps to `undefined` and is dropped from the PATCH, so it can't be
+    // unset on an existing row until the schema accepts null and the DB default
+    // becomes NULL. Send `null` here once #215 lands.
     end_temporal_data: values.end_temporal_data ?? undefined,
     timeline_type: values.timeline_type,
     subject_character_id: values.subject_character_id || undefined,
@@ -455,6 +472,18 @@ export function TimelineFormClient(props: Props) {
 
   const submit = React.useCallback(
     (opts?: { addAnother?: boolean }) => {
+      // SlugField generates the slug from the title on a debounce, so a quick
+      // title→Save can fire before it lands and trip the schema's min-length
+      // slug rule. Flush it synchronously here (mirroring the service's own
+      // title→slug fallback) so a quick-save never hard-fails on that timing.
+      const { slug, title } = form.getValues();
+      if (slug.trim().length === 0 && title.trim().length > 0) {
+        try {
+          form.setValue("slug", generateSlug(title), { shouldValidate: false });
+        } catch {
+          // Non-sluggable title (e.g. emoji-only) — let validation surface it.
+        }
+      }
       addAnotherRef.current = opts?.addAnother ?? false;
       void form.handleSubmit(onValid)();
     },
