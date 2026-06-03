@@ -19,7 +19,7 @@ export const timelineSchema = z.object({
   temporal_data: temporalDataSchema,
   end_temporal_data: temporalDataSchema.optional(),
   timeline_type: timelineTypeEnum.default("general"),
-  subject_character_id: z.string().uuid().optional(),
+  subject_character_id: z.string().uuid().nullable().optional(),
   visibility: timelineVisibilityEnum.default("private"),
   fractal_depth: z.number().int().min(1).default(5),
   metadata: z.record(z.string(), z.unknown()).optional(),
