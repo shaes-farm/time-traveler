@@ -26,16 +26,16 @@ For the product specification, see [`docs/prd/PRD-0001-time-traveler-system.md`]
 
 ## Status
 
-**Greenfield, mid-development.** The Supabase layer is largely complete: 13 numbered migrations cover schema, RLS, indexes, views, functions, storage, and follow-up data integrity fixes, with pgTAP tests for the database surface. The two Next.js apps under `apps/` are currently Turborepo boilerplate — the admin app's fidelity-1 IA + interaction wireframes are documented in [`docs/design/admin/`](docs/design/admin/) and ready for implementation.
+**Greenfield, mid-development.** The Supabase layer is largely complete: 19 numbered migrations cover schema, RLS, indexes, views, functions, storage, and follow-up data-integrity fixes, with pgTAP tests for the database surface. `apps/admin` is under active development against the fidelity-1 wireframes in [`docs/design/admin/`](docs/design/admin/) — auth, the app shell, dashboard, entity list pages, the timeline create/edit editor, and a public reader are in place. `apps/docs` is still Turborepo boilerplate.
 
 ## Stack
 
 | Layer         | Technology                                                                         |
 | ------------- | ---------------------------------------------------------------------------------- |
 | Frontend      | Next.js 16 (App Router), React 19, TypeScript 6.0                                  |
-| UI            | CSS Modules, global CSS, shared React components in `@repo/ui`                     |
-| Server state  | Planned: TanStack Query                                                            |
-| Client state  | Planned: Zustand                                                                   |
+| UI            | Tailwind CSS + shadcn/ui primitives in `@repo/ui`                                  |
+| Server state  | TanStack Query (`@repo/ui/hooks`)                                                  |
+| Client state  | Zustand (`@repo/ui/stores`)                                                        |
 | Backend / API | Supabase PostgREST (auto-generated REST), `@supabase/supabase-js`, `@supabase/ssr` |
 | Database      | Supabase PostgreSQL 17 with JSONB temporal storage and RLS                         |
 | Auth          | Supabase Auth (email, magic link, OAuth)                                           |
@@ -43,7 +43,7 @@ For the product specification, see [`docs/prd/PRD-0001-time-traveler-system.md`]
 | Storage       | Supabase Storage                                                                   |
 | Hosting       | Vercel (frontend) + Supabase Cloud (backend / database)                            |
 
-Toolchain: **Node ≥24** (pinned via `.nvmrc`), **pnpm 11.2.2**, **Turborepo 2.9.14**, **TypeScript 6.0.3**, **Supabase CLI ^2.101**.
+Toolchain: **Node ≥24** (pinned via `.nvmrc`), **pnpm 11.2.2**, **Turborepo 2.9.16**, **TypeScript 6.0.3**, **Supabase CLI ^2.101**.
 
 ## Repository layout
 
@@ -57,7 +57,7 @@ packages/
   eslint-config/               # @repo/eslint-config — shared ESLint configs
   typescript-config/           # @repo/typescript-config — shared tsconfig presets
 supabase/
-  migrations/                  # numbered SQL migrations (00001 → 00013)
+  migrations/                  # numbered SQL migrations (00001 → 00019)
   tests/database/              # pgTAP database tests
 docs/
   prd/                         # product requirements (authoritative)
@@ -89,7 +89,7 @@ pnpm run db:start      # boot local Supabase stack (Postgres 17 + Auth + Storage
 
 ### Validate before submitting changes
 
-Run all four; each must pass:
+Run all five; each must pass:
 
 ```bash
 pnpm run format:check     # Prettier format check
@@ -105,7 +105,7 @@ For database schema changes also run:
 pnpm run db:test          # pgTAP database tests
 ```
 
-The same four validations run in GitHub Actions on every push and pull request (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+These validations run in GitHub Actions on every push and pull request (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 ### Common tasks
 
