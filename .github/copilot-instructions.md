@@ -6,7 +6,7 @@ Trust these instructions. Only search the codebase if information here is incomp
 
 **Time Traveler** is a temporal content management system for storing, visualizing, and interacting with historical events and narratives across the full span of time. Key features include fractal zoomable timelines, multi-dimensional character modeling (7 types: Human, Animal, Mythological, Fictional, Organization, Divine, Artifact), and a hybrid temporal system supporting dates from the Big Bang to the far future. The planned stack is **Next.js 16+ (App Router), React 19, TypeScript, Supabase (PostgreSQL + JSONB, Auth, Realtime, RLS), TanStack Query, Zustand, shadcn/ui, Tailwind CSS, D3.js**. Target hosting is **Vercel** (frontend) + **Supabase** (backend/database).
 
-**Current state:** `apps/admin` and `apps/docs` still contain Turborepo boilerplate pages, while the Supabase layer already has nine schema/policy/function/storage migrations plus pgTAP database tests.
+**Current state:** `apps/admin` is under active feature development — auth, the app shell, dashboard, list pages (timelines, characters, events, periods, stories, categories, media), the timeline create/edit editor, and a public reader — backed by `@repo/services` (nine service modules + Zod schemas) and `@repo/ui` (TanStack Query hooks, a Zustand store, shadcn/ui primitives). `apps/docs` is still Turborepo boilerplate. The Supabase layer has 19 numbered migrations plus pgTAP database tests.
 
 ## Repository Layout
 
@@ -18,7 +18,7 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 │   ├── admin/          # Next.js 16 administration app (port 3000) — package name: "admin"
 │   └── docs/           # Next.js 16 docs app (port 3001) — package name: "docs"
 ├── packages/
-│   ├── ui/             # @repo/ui — shared React components (button, card, code)
+│   ├── ui/             # @repo/ui — shared React components (shadcn/ui-based), TanStack Query hooks, Zustand store
 │   ├── services/       # @repo/services — shared Supabase clients, schemas, and service modules
 │   ├── eslint-config/  # @repo/eslint-config — shared ESLint configs (base, next, react-internal)
 │   └── typescript-config/ # @repo/typescript-config — shared tsconfig (base, nextjs, react-library)
@@ -39,16 +39,16 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 - `packages/ui/tsconfig.json` — extends `@repo/typescript-config/react-library.json`
 - `packages/services/eslint.config.mjs` — extends `@repo/eslint-config/base`
 - `packages/services/tsconfig.json` — extends `@repo/typescript-config/base.json`
-- `packages/ui/package.json` — exports via `"./*": "./src/*.tsx"`
+- `packages/ui/package.json` — subpath exports: components via `"./components/*"`, hooks via `"./hooks/*"`, store via `"./stores"`, styles via `"./styles/*"`
 - `packages/services/package.json` — exports via `"./*": "./src/*.ts"`
 
 ## Runtime & Tool Versions
 
 - **Node.js:** ≥24 (`.nvmrc` specifies v24; run `nvm use` if using nvm)
-- **pnpm:** 9.0.0 (specified in `package.json` `packageManager` field)
-- **Turborepo:** 2.8.20
-- **TypeScript:** 5.9.2 (all packages)
-- **Next.js:** 16.2.0 (both apps)
+- **pnpm:** 11.2.2 (specified in `package.json` `packageManager` field)
+- **Turborepo:** 2.9.16
+- **TypeScript:** 6.0.3 (all packages)
+- **Next.js:** 16.2.x (both apps)
 - **React:** 19.2.x (both apps)
 
 ## Build & Validation Commands
@@ -133,7 +133,7 @@ Or run steps 2–6 at once (minus db:test) via `pnpm verify`.
 - **TypeScript strict mode** is enabled (`strict: true`, `strictNullChecks: true`, `noUncheckedIndexedAccess: true`). All types must be explicit and correct.
 - **ESLint zero-warnings policy**: `--max-warnings 0` is enforced in every app and package. Any warning is treated as an error.
 - **ESM modules**: Both app `package.json` files have `"type": "module"`. Use ESM import/export syntax everywhere.
-- **Shared packages**: Import UI components as `@repo/ui/button`, `@repo/ui/card`, etc. (resolved via `packages/ui/src/*.tsx`). Import configs as `@repo/eslint-config/...` and `@repo/typescript-config/...`.
+- **Shared packages**: Import UI components as `@repo/ui/components/button`, `@repo/ui/components/card`, etc.; hooks via `@repo/ui/hooks/*`; the Zustand store via `@repo/ui/stores`. Import `@repo/services` schemas/modules as `@repo/services/schemas/*` and `@repo/services/<entity>-service`. Import configs as `@repo/eslint-config/...` and `@repo/typescript-config/...`.
 - **Turborepo task graph**: `build` depends on `^build` (packages build before apps). Do not run per-app builds in isolation unless you have already built the packages.
 - **GitHub Actions workflows**: CI runs Lint, Type Check, Build, and Test on every push/PR. All four jobs are required status checks on `main`.
 - **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work. `docs/design/admin/` contains the fidelity-1 wireframes for the admin app (characters + events CRUD plus the relationships editor) — read these alongside PRD §7.11 when doing UI work in `apps/admin`. Divergences between the wireframes and PRD §7.11 are tracked in #127.
@@ -168,8 +168,8 @@ If implementing a task reveals a bug in the spec (`docs/system-design.md`, PRD),
 
 ## When to Write an ADR
 
-Architectural decisions are recorded as Architecture Decision Records in `docs/adr/`. The retroactive series ADR-0001 through ADR-0027 documents every load-bearing decision made to date; the index, format rules, and process live in `docs/adr/README.md`.
+Architectural decisions are recorded as Architecture Decision Records in `docs/adr/`. The series ADR-0001 through ADR-0032 documents every load-bearing decision made to date; the index, format rules, and process live in `docs/adr/README.md`.
 
 - Write a new ADR when a decision is **hard to reverse, cross-cutting, or precedent-setting** — e.g., a new platform/dependency, a schema or RLS pattern, an API boundary, a state/data-flow choice, or a design-system rule. Routine, local, easily-reversible changes do not need one.
-- **Number new ADRs from 0029 onward** (0028 records the Milestone 7 period/category model). Copy `docs/adr/adr-0000-template.md`, fill in every section, cite concrete evidence (a migration file/section or a doc section), and add a row to the `docs/adr/README.md` index.
+- **Number new ADRs from the next free number** — the series currently runs through ADR-0032, so check `docs/adr/README.md` for the latest before numbering. Copy `docs/adr/adr-0000-template.md`, fill in every section, cite concrete evidence (a migration file/section or a doc section), and add a row to the `docs/adr/README.md` index.
 - If a new decision **supersedes or amends** an existing ADR, set the `supersedes`/`superseded_by` front matter on both ADRs and update the index status accordingly.
