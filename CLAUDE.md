@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Hybrid temporal system** — JSONB-encoded dates extend beyond SQL date limits to handle prehistoric/geological/cosmological dates, with precision metadata and uncertainty ranges. See `docs/system-design.md` §4 for the era conversion formula used by all `sort_order` generated columns.
 - **Seven character types** — Human, Animal, Mythological, Fictional, Organization, Divine, Artifact — with temporally-scoped relationships and event participation.
 
-**Current state:** Database schema migrations exist (`supabase/migrations/`), but `apps/admin` and `apps/docs` are still Turborepo boilerplate — the product features are not yet implemented.
+**Current state:** The Supabase layer is mature (19 numbered migrations + pgTAP tests). `apps/admin` is under active feature development — auth, the app shell, dashboard, list pages (timelines, characters, events, periods, stories, categories, media), the timeline create/edit editor, and a public reader all exist — backed by `@repo/services` (nine service modules + Zod schemas) and `@repo/ui` (TanStack Query hooks, a Zustand store, shadcn/ui primitives). `apps/docs` is still Turborepo boilerplate.
 
 ## Repository Layout
 
@@ -18,19 +18,20 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 
 - `apps/admin` — Next.js 16 admin app (port 3000). Package name is `admin`.
 - `apps/docs` — Next.js 16 docs app (port 3001). Package name is `docs`.
-- `packages/ui` — `@repo/ui` shared React components. Import as `@repo/ui/button`, `@repo/ui/card`, etc. (resolved via `packages/ui/src/*.tsx`).
-- `packages/eslint-config` — `@repo/eslint-config` (`base`, `next`, `react-internal`).
+- `packages/ui` — `@repo/ui` shared React components (shadcn/ui-based). Import components as `@repo/ui/components/button`, `@repo/ui/components/card`, etc.; TanStack Query hooks via `@repo/ui/hooks/*`; the Zustand store via `@repo/ui/stores` (subpath exports — see `packages/ui/package.json`).
+- `packages/services` — `@repo/services` Supabase clients, Zod schemas (`@repo/services/schemas/*`), and service modules (`@repo/services/<entity>-service`). Wildcard subpath exports (`./*` → `src/*.ts`).
+- `packages/eslint-config` — `@repo/eslint-config` (`base`, `next-js`, `react-internal`).
 - `packages/typescript-config` — `@repo/typescript-config` (`base.json`, `nextjs.json`, `react-library.json`).
 - `supabase/migrations` — numbered SQL migrations. Migration `00001_initial_schema.sql` defines core tables (profiles, characters, …); `00002_relationships_junctions.sql` defines `character_relationships` and 11 junction tables.
 - `docs/prd/PRD-0001-time-traveler-system.md` and `docs/system-design.md` are the authoritative references for feature/schema work.
 - `docs/design/admin/` contains the fidelity-1 wireframes for the admin app (characters + events CRUD plus the relationships editor). When doing UI work in `apps/admin`, these are the IA + interaction spec — read alongside PRD §7.11 (some divergences are tracked in #127).
-- There is no CI build pipeline — **validation is local-only**.
+- CI runs on GitHub Actions (`.github/workflows/ci.yml`): format, lint, type-check, build, and test on every push/PR; these are required checks on `main`.
 
 ## Toolchain
 
 - **Node ≥24** (`.nvmrc` pins v24)
-- **pnpm 9.0.0** (declared in `package.json` `packageManager`)
-- **Turborepo 2.8.20**, **TypeScript 5.9.2**, **Next.js 16.2.0**, **React 19.2.x**
+- **pnpm 11.2.2** (declared in `package.json` `packageManager`)
+- **Turborepo 2.9.16**, **TypeScript 6.0.3**, **Next.js 16.2.x**, **React 19.2.x**
 - **Supabase CLI** ^2.101.0 — local stack runs Postgres 17
 
 ## Commands
@@ -39,7 +40,9 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 pnpm install              # bootstrap; run after dependency changes
 pnpm run build            # turbo run build across all packages/apps
 pnpm run lint             # ESLint with --max-warnings 0 (warnings fail)
-pnpm run check-types      # next typegen && tsc --noEmit in each Next app, tsc --noEmit in packages/ui
+pnpm run check-types      # next typegen && tsc --noEmit in each Next app, tsc --noEmit in packages/ui and packages/services
+pnpm run test             # turbo run test (Vitest in packages/ui + packages/services)
+pnpm run test:coverage    # Vitest with an 80% coverage threshold
 pnpm run format           # prettier --write "**/*.{ts,tsx,md}"
 pnpm run dev              # admin on :3000, docs on :3001
 ```
@@ -58,7 +61,7 @@ pnpm run db:gen:migration <n>  # scaffold a new migration
 pnpm run db:gen:types          # regenerate ./packages/services/src/supabase/types.ts
 ```
 
-**No test framework is configured.** There is no `test` script in any `package.json`. Do not invent `pnpm test`.
+**Vitest** powers unit tests in `packages/ui` and `packages/services` (`pnpm test`, `pnpm test:coverage` — the latter enforces an 80% threshold). Tests live next to source as `*.test.ts(x)`. `apps/*` have no tests yet. The husky **pre-push** hook runs `test:coverage`, so a push fails if tests fail or coverage drops.
 
 ### Validation before submitting changes
 
@@ -68,7 +71,8 @@ Run in order — all must pass:
 2. **`pnpm run format`** — run this **before** `git add`; the husky pre-commit hook runs `format:check` and will block the commit if any file is not formatted. One write-pass here prevents all hook-related thrashing.
 3. `pnpm run check-types`
 4. `pnpm run lint`
-5. `pnpm run build`
+5. `pnpm run test:coverage` (also enforced by the pre-push hook)
+6. `pnpm run build`
 
 Or run the full suite at once: `pnpm verify` (`format:check && lint && check-types && test:coverage && build`).
 
@@ -95,8 +99,8 @@ If implementing a task reveals a bug in the spec (`docs/system-design.md`, PRD),
 
 ## When to write an ADR
 
-Architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/). The retroactive series ADR-0001…0027 documents every load-bearing decision made to date; the index and process live in [`docs/adr/README.md`](docs/adr/README.md).
+Architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/). The series ADR-0001…0032 documents every load-bearing decision made to date; the index and process live in [`docs/adr/README.md`](docs/adr/README.md).
 
 - Write a new ADR when you make a decision that is **hard to reverse, cross-cutting, or sets a precedent** — a new dependency/platform, a schema/RLS pattern, an API boundary, a state/data-flow choice, or a design-system rule. Routine, local, easily-reversible changes do not need one.
-- **Number new ADRs from 0029 onward** (0028 records the Milestone 7 period/category model). Copy [`docs/adr/adr-0000-template.md`](docs/adr/adr-0000-template.md), fill it in, cite concrete evidence (migration file/section or doc section), and add a row to the README index.
+- **Number new ADRs from the next free number** — the series currently runs through ADR-0032, so check [`docs/adr/README.md`](docs/adr/README.md) for the latest before numbering. Copy [`docs/adr/adr-0000-template.md`](docs/adr/adr-0000-template.md), fill it in, cite concrete evidence (migration file/section or doc section), and add a row to the README index.
 - If a new decision **supersedes or amends** an existing ADR, set the `supersedes`/`superseded_by` front matter on both sides and update the index status.
