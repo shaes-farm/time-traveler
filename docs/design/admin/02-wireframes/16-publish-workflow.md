@@ -1,6 +1,6 @@
 # 16 — Publish / Unpublish Workflow (cross-cutting)
 
-**Purpose.** Define the one consistent publish/unpublish pattern used by **timelines** and **events** across their list, detail, and editor surfaces. Like media ([15](15-media-management.md)) and TemporalInput ([10](10-temporal-input.md)), this is a cross-cutting behavior, not a screen — the badges and the confirm dialog appear on screens designed elsewhere, so the rules live here once.
+**Purpose.** Define the one consistent publish/unpublish pattern used by **timelines** and **events** across their list and detail surfaces (plus the event-editor convenience toggle). Like media ([15](15-media-management.md)) and TemporalInput ([10](10-temporal-input.md)), this is a cross-cutting behavior, not a screen — the badges and the confirm dialog appear on screens designed elsewhere, so the rules live here once.
 
 Scope is **timelines + events only** (issue #48). Characters carry a `published` column and already show a publish badge on their list/detail (the schema is uniform), but a _characters/stories/periods_ publish workflow is an explicit #48 non-goal — this pass formalizes the pattern for the two entities #48 names, and the same pattern extends to the others later without change.
 
@@ -15,6 +15,10 @@ The invariant (issue #48 acceptance):
 
 - **Publish** → `published = true`, `published_at = now()`.
 - **Unpublish** → `published = false`, `published_at = NULL` (cleared, not retained).
+
+Timeline-specific precondition (issue #212):
+
+- **Timeline publish gate** → a timeline must have at least one linked event before publish is allowed. Enforce in both UI (disabled/hidden publish affordance with helper text) and service guard (reject transition if no linked events).
 
 > **Publication is not visibility.** This is the single most important distinction in the timeline/event model and the reason the two axes get separate badges everywhere:
 >
@@ -66,9 +70,11 @@ Three states, used identically on every list row and detail header (already refe
 ## Surfaces and behavior
 
 1. **Detail header (canonical).** The publish/unpublish action lives in the detail header for both entities — [08-event-detail.md](08-event-detail.md) and [13-timeline-detail.md](13-timeline-detail.md). A draft shows `[ Publish ]`; a published row shows `[ ✓ Published ▾ ]` whose dropdown holds **Unpublish**. Both transitions go through the confirmation dialog above (issue #48 acceptance: "confirmation dialog exists for both actions").
-2. **Editor (convenience).** The timeline ([12](12-timeline-editor.md)) and event ([09](09-event-editor.md)) editors carry a Draft/publish toggle on the right rail as a _create-and-publish-in-one-shot_ convenience. The toggle still routes through the confirm dialog on the publish transition. **Auto-save never publishes** — it only writes draft state (per PRD §7.11.3). Draft→Published is always an explicit, confirmed action.
+2. **Editor behavior.** Timeline editor ([12](12-timeline-editor.md)) has **no publication control**; it writes draft content only and never changes live state. Timeline publish/unpublish is detail-page-only (item 1) so the linked-events precondition can be evaluated in context. Event editor ([09](09-event-editor.md)) retains a Draft/publish convenience toggle because events can be self-contained rows; publish transitions still route through confirmation. **Auto-save never publishes** — it only writes draft state (per PRD §7.11.3). Draft→Published is always an explicit, confirmed action.
 3. **List rows (badge + bulk).** Every list row shows the status badge ([07](07-events-list.md), [11](11-timeline-list.md)). The bulk multi-select action bar offers **Publish** / **Unpublish** across selected rows; bulk transitions show a single batched confirm ("Publish 4 events?") rather than one dialog per row.
 4. **List filters.** Both the [events list](07-events-list.md) and [timelines list](11-timeline-list.md) carry a Status filter group (`Published` / `Draft`) with counts — issue #48 acceptance: "publication-state filtering works on relevant list pages."
+
+> Issue alignment note: issue #212 records the spec divergence discovered during #43 and sets the canonical rule that timeline publication is detail-page-only with the linked-events precondition.
 
 ## Ownership & permission gating
 
@@ -88,9 +94,10 @@ UI gating mirrors the service/RLS check — the control's _visibility_ is comput
 
 ## Edge cases
 
-- **Publishing a timeline with draft events (or vice versa).** No cascade — publication is per-row. A timeline can be published while some of its events are drafts. Surface a non-blocking note on the timeline detail Events tab when this happens ("3 events in this timeline are still drafts"), mirroring [04-character-detail.md](04-character-detail.md) Edge Cases ("2 events not yet published"). Never auto-publish children.
+- **Publishing a timeline with no linked events.** Block publish. Surface clear guidance: "Add at least one linked event before publishing this timeline." Enforce in both UI and service guard.
+- **Publishing a timeline with draft events (or vice versa).** No cascade — publication is per-row. A timeline can be published while some of its events are drafts once the linked-events precondition is met. Surface a non-blocking note on the timeline detail Events tab when this happens ("3 events in this timeline are still drafts"), mirroring [04-character-detail.md](04-character-detail.md) Edge Cases ("2 events not yet published"). Never auto-publish children.
 - **Unpublishing something others can currently see.** The confirm dialog states the consequence; on unpublish, `published = false` narrows RLS read access back to owner/editors. Anyone relying on public reach loses it immediately on their next request.
-- **Publish on an unsaved new entity.** The editor's publish toggle applies on save; you cannot publish a row that doesn't exist yet. The confirm fires as part of the save when the toggle is on.
+- **Publish on an unsaved new entity.** Timelines are not publishable from the editor, so this case does not apply to timelines. Events may publish on save from the editor toggle; the confirm fires as part of the save when the toggle is on.
 - **Optimistic transition failure.** Badge flips optimistically; on service error it rolls back and toasts ("Couldn't publish — try again").
 - **`published_at` retention.** Unpublish clears `published_at` to NULL (issue #48). If a future analytics need wants "first published at" history, that's a separate audit-column decision — flagged, not built.
 
