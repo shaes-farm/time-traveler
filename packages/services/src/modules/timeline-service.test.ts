@@ -11,6 +11,7 @@ import {
   deleteTimeline,
   publishTimeline,
   unpublishTimeline,
+  TimelinePublishError,
   getCollaborators,
   addCollaborator,
   removeCollaborator,
@@ -634,24 +635,68 @@ describe("deleteTimeline", () => {
 // ---------------------------------------------------------------------------
 
 describe("publishTimeline", () => {
-  it("returns updated row with published:true", async () => {
+  it("returns updated row with published:true when events exist", async () => {
     const published = {
       ...sampleTimeline,
       published: true,
       published_at: "2026-01-01T00:00:00.000Z",
     };
-    const client = makeClient({ fromResult: { data: published, error: null } });
+    // First from(): timeline_events count check (count: 1 → guard passes)
+    // Second from(): timelines update (returns published row)
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 1 }))
+        .mockReturnValueOnce(makeBuilder({ data: published, error: null })),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
     const result = await publishTimeline(client, "timeline-1");
     expect(result.published).toBe(true);
     expect(result.published_at).toBeTruthy();
   });
 
-  it("throws on Supabase error", async () => {
-    const client = makeClient({
-      fromResult: { data: null, error: { message: "publish failed" } },
-    });
+  it("throws TimelinePublishError when no events are linked", async () => {
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(
+          makeBuilder({ data: null, error: null, count: 0 }),
+        ),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
     await expect(publishTimeline(client, "timeline-1")).rejects.toThrow(
-      "TimelineService.publishTimeline: publish failed",
+      TimelinePublishError,
+    );
+  });
+
+  it("throws on Supabase error during event count check", async () => {
+    const client = {
+      from: vi.fn().mockReturnValueOnce(
+        makeBuilder({
+          data: null,
+          error: { message: "count failed" },
+          count: null,
+        }),
+      ),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+    await expect(publishTimeline(client, "timeline-1")).rejects.toThrow(
+      "TimelineService.publishTimeline.eventCount: count failed",
     );
   });
 });
