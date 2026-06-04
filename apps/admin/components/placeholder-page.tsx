@@ -15,6 +15,11 @@ export function PlaceholderPage({
   trackedIn,
   rows = 5,
 }: PlaceholderPageProps) {
+  const rowIds = Array.from(
+    { length: rows },
+    (_, position) => `row-${position + 1}`,
+  );
+
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <header className="space-y-1">
@@ -25,8 +30,8 @@ export function PlaceholderPage({
         </p>
       </header>
       <div className="space-y-2 rounded-md border border-border bg-surface p-4">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3">
+        {rowIds.map((rowId) => (
+          <div key={rowId} className="flex items-center gap-3">
             <Skeleton className="h-9 w-9 rounded-full" />
             <div className="flex-1 space-y-1.5">
               <Skeleton className="h-3 w-1/3" />

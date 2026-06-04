@@ -294,10 +294,12 @@ function buildColumns(
 // ---------------------------------------------------------------------------
 
 function TableSkeleton() {
+  const skeletonRowIds = ["row-1", "row-2", "row-3", "row-4", "row-5", "row-6"];
+
   return (
     <div className="space-y-2">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Skeleton key={i} className="h-14 w-full rounded-md" />
+      {skeletonRowIds.map((rowId) => (
+        <Skeleton key={rowId} className="h-14 w-full rounded-md" />
       ))}
     </div>
   );
@@ -436,6 +438,40 @@ export function TimelineListClient() {
   }
   function handlePageChange(newPage: number) {
     updateParams({ page: newPage === 1 ? null : String(newPage) });
+  }
+
+  const pageWindowElements: React.ReactNode[] = [];
+  let ellipsisCount = 0;
+  for (const item of buildPageWindows(page, totalPages)) {
+    if (item === "ellipsis") {
+      ellipsisCount += 1;
+      pageWindowElements.push(
+        <span
+          key={`ellipsis-${ellipsisCount}`}
+          className="px-1 text-sm text-foreground-muted"
+          aria-hidden
+        >
+          …
+        </span>,
+      );
+      continue;
+    }
+
+    pageWindowElements.push(
+      <button
+        key={item}
+        type="button"
+        onClick={() => handlePageChange(item)}
+        aria-current={item === page ? "page" : undefined}
+        className={`rounded px-2 py-1 text-sm ${
+          item === page
+            ? "bg-primary text-primary-foreground"
+            : "text-foreground-muted hover:text-foreground"
+        }`}
+      >
+        {item}
+      </button>,
+    );
   }
   function handleClearAll() {
     router.replace("?", { scroll: false });
@@ -630,31 +666,7 @@ export function TimelineListClient() {
               >
                 ‹
               </button>
-              {buildPageWindows(page, totalPages).map((item, idx) =>
-                item === "ellipsis" ? (
-                  <span
-                    key={`ellipsis-${idx}`}
-                    className="px-1 text-sm text-foreground-muted"
-                    aria-hidden
-                  >
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => handlePageChange(item)}
-                    aria-current={item === page ? "page" : undefined}
-                    className={`rounded px-2 py-1 text-sm ${
-                      item === page
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground-muted hover:text-foreground"
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ),
-              )}
+              {pageWindowElements}
               <button
                 type="button"
                 onClick={() => handlePageChange(page + 1)}

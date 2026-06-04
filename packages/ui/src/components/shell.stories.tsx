@@ -59,6 +59,8 @@ const resetShellUiState = () => {
   });
 };
 
+const placeholderRowIds = ["row-1", "row-2", "row-3", "row-4", "row-5"];
+
 const PlaceholderContent = ({
   title,
   description,
@@ -72,8 +74,8 @@ const PlaceholderContent = ({
       <p className="font-body text-sm text-foreground-muted">{description}</p>
     </header>
     <div className="space-y-2 rounded-md border border-border bg-surface p-4">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="flex items-center gap-3">
+      {placeholderRowIds.map((rowId) => (
+        <div key={rowId} className="flex items-center gap-3">
           <Skeleton className="h-9 w-9 rounded-full" />
           <div className="flex-1 space-y-1.5">
             <Skeleton className="h-3 w-1/3" />

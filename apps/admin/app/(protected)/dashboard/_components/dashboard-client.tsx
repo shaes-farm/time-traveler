@@ -76,11 +76,26 @@ const formatRelativeTime = (timestamp: string): string => {
 
 const formatSevenDayBadge = (count: number): string => `▴ ${count} new`;
 
+const metricCardSkeletonIds = [
+  "metric-1",
+  "metric-2",
+  "metric-3",
+  "metric-4",
+  "metric-5",
+];
+const eventRowSkeletonIds = ["event-1", "event-2", "event-3", "event-4"];
+const timelineRowSkeletonIds = [
+  "timeline-1",
+  "timeline-2",
+  "timeline-3",
+  "timeline-4",
+];
+
 const DashboardLoadingState = () => (
   <div className="space-y-6">
     <section className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Card key={index}>
+      {metricCardSkeletonIds.map((skeletonId) => (
+        <Card key={skeletonId}>
           <CardHeader className="space-y-2 pb-3">
             <Skeleton className="h-4 w-24" />
           </CardHeader>
@@ -97,8 +112,8 @@ const DashboardLoadingState = () => (
           <Skeleton className="h-5 w-32" />
         </CardHeader>
         <CardContent className="space-y-3">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-12 w-full" />
+          {eventRowSkeletonIds.map((skeletonId) => (
+            <Skeleton key={skeletonId} className="h-12 w-full" />
           ))}
         </CardContent>
       </Card>
@@ -108,8 +123,8 @@ const DashboardLoadingState = () => (
           <Skeleton className="h-5 w-32" />
         </CardHeader>
         <CardContent className="space-y-2">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-9 w-full" />
+          {timelineRowSkeletonIds.map((skeletonId) => (
+            <Skeleton key={skeletonId} className="h-9 w-full" />
           ))}
         </CardContent>
       </Card>

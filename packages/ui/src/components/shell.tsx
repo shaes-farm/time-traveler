@@ -261,7 +261,7 @@ export const ShellBreadcrumb = ({
         {items.map((item, index) => {
           const last = index === items.length - 1;
           return (
-            <Fragment key={`${item.label}-${index}`}>
+            <Fragment key={`${item.href ?? "current"}-${item.label}`}>
               <BreadcrumbItem>
                 {last || !item.href ? (
                   <BreadcrumbPage>{item.label}</BreadcrumbPage>

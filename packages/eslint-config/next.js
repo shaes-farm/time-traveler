@@ -52,7 +52,6 @@ export const nextJsConfig = [
       "@eslint-react/no-forward-ref": "off",
       "@eslint-react/no-context-provider": "off",
       "@eslint-react/no-use-context": "off",
-      "@eslint-react/no-array-index-key": "off",
       "@eslint-react/purity": "off",
       "@eslint-react/exhaustive-deps": "off",
     },
