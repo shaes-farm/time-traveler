@@ -190,11 +190,9 @@ export function mapRowToFormValues(
     summary: row.summary ?? "",
     detail: row.detail ?? "",
     scale: row.scale ?? "",
-    // `temporal_data`/`end_temporal_data` default to `'{}'::jsonb` in the DB
-    // (migration 00001), so an absent end date reads back as `{}` rather than
-    // null. Validate the JSON and treat anything that isn't a real TemporalData
-    // as null, so the editor doesn't render a garbage "undefined …" value
-    // (#215 tracks fixing the underlying DB default / nullable contract).
+    // Legacy rows may still contain '{}' JSON from migration 00001 defaults.
+    // Validate the JSON and treat anything that isn't a real TemporalData as
+    // null, so the editor doesn't render a garbage "undefined …" value.
     temporal_data: toTemporalOrNull(row.temporal_data),
     end_temporal_data: toTemporalOrNull(row.end_temporal_data),
     timeline_type: (row.timeline_type as TimelineType | null) ?? "general",
@@ -213,12 +211,7 @@ function toPersistedFields(values: TimelineFormValues) {
     detail: values.detail || undefined,
     scale: values.scale || undefined,
     temporal_data: values.temporal_data as TemporalData,
-    // LIMITATION (#215): `timelineSchema.end_temporal_data` is `.optional()`,
-    // not `.nullable()`, and the column defaults to `'{}'::jsonb`. A cleared end
-    // date maps to `undefined` and is dropped from the PATCH, so it can't be
-    // unset on an existing row until the schema accepts null and the DB default
-    // becomes NULL. Send `null` here once #215 lands.
-    end_temporal_data: values.end_temporal_data ?? undefined,
+    end_temporal_data: values.end_temporal_data ?? null,
     timeline_type: values.timeline_type,
     subject_character_id: values.subject_character_id || undefined,
     visibility: values.visibility,
