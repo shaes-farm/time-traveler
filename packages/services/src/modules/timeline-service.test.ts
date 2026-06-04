@@ -591,6 +591,22 @@ describe("updateTimeline", () => {
       updateTimeline(client, "timeline-1", { fractal_depth: 0 }),
     ).rejects.toThrow();
   });
+
+  it("allows clearing subject_character_id with null", async () => {
+    const updated = { ...sampleTimeline, subject_character_id: null };
+    const client = makeClient({ fromResult: { data: updated, error: null } });
+
+    const result = await updateTimeline(client, "timeline-1", {
+      subject_character_id: null,
+    });
+
+    expect(result.subject_character_id).toBeNull();
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ subject_character_id: null }),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------

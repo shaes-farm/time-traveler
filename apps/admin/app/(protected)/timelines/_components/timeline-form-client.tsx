@@ -237,14 +237,9 @@ export function toCreateInput(values: TimelineFormValues): CreateTimelineInput {
 export function toUpdateData(
   values: TimelineFormValues,
 ): Partial<TimelineInput> {
-  // LIMITATION (#209): `timelineSchema.subject_character_id` is `.optional()`,
-  // not `.nullable()`, so an emptied subject maps to `undefined` here and is
-  // dropped from the PATCH rather than written as NULL. The form clears the
-  // field on a biographical→other type switch (the UI AC), but persisting that
-  // clear on an existing row needs the schema to accept null. Once #209 makes
-  // the field nullable, send `null` here when the subject is empty in edit mode.
   return {
     ...toPersistedFields(values),
+    subject_character_id: values.subject_character_id ?? null,
     slug: values.slug,
   };
 }

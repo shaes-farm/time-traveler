@@ -75,6 +75,14 @@ describe("timelineSchema — valid inputs", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("accepts subject_character_id as null", () => {
+    const result = timelineSchema.safeParse({
+      ...validBase,
+      subject_character_id: null,
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 describe("timelineSchema — invalid inputs", () => {
