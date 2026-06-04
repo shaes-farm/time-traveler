@@ -17,6 +17,7 @@ import type { TemporalData } from "@repo/services/schemas/temporal";
 import {
   getTimelineBySlug,
   getTimelineEventsUnion,
+  TimelinePublishError,
   type TimelineEventWithMembership,
 } from "@repo/services/timeline-service";
 import { getEventsDetailedBy, getEvents } from "@repo/services/event-service";
@@ -991,7 +992,24 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
               published={timeline.published ?? false}
               entityLabel="timeline"
               canPublish={isOwner}
-              onPublish={() => publish.mutate(timeline.id)}
+              publishDisabledReason={
+                localEvents.length === 0
+                  ? "Link at least one event to publish"
+                  : undefined
+              }
+              onPublish={() =>
+                publish.mutate(timeline.id, {
+                  onError: (err) => {
+                    if (
+                      err instanceof TimelinePublishError &&
+                      err.code === "no_events"
+                    ) {
+                      // BLOCKED: no toast infrastructure yet — button is already disabled by publishDisabledReason
+                      console.error("Publish blocked: no linked events");
+                    }
+                  },
+                })
+              }
               onUnpublish={() => unpublish.mutate(timeline.id)}
             />
             {canEdit && (

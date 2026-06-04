@@ -81,6 +81,20 @@ export type CreateTimelineInput = Omit<
 };
 
 // ---------------------------------------------------------------------------
+// Typed errors
+// ---------------------------------------------------------------------------
+
+export class TimelinePublishError extends Error {
+  constructor(
+    public readonly code: "no_events",
+    message: string,
+  ) {
+    super(message);
+    this.name = "TimelinePublishError";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
 
@@ -371,6 +385,20 @@ export async function publishTimeline(
   client: SupabaseClient<Database>,
   id: string,
 ): Promise<TimelineRow> {
+  const { count, error: countError } = await client
+    .from("timeline_events")
+    .select("*", { count: "exact", head: true })
+    .eq("timeline_id", id);
+
+  assertNoError(countError, "publishTimeline.eventCount");
+
+  if ((count ?? 0) === 0) {
+    throw new TimelinePublishError(
+      "no_events",
+      "Cannot publish a timeline with no linked events.",
+    );
+  }
+
   const { data, error } = await client
     .from("timelines")
     .update({ published: true, published_at: new Date().toISOString() })

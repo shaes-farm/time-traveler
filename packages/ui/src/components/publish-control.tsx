@@ -31,6 +31,8 @@ export interface PublishControlProps {
   onUnpublish?: () => void;
   /** Owner-only gate for the action button. Defaults to true. */
   canPublish?: boolean;
+  /** When set, the publish button is disabled with this text as a native tooltip. Unpublish is unaffected. */
+  publishDisabledReason?: string;
   /** Noun used in the confirm copy, e.g. "timeline" or "event". */
   entityLabel?: string;
   className?: string;
@@ -41,6 +43,7 @@ export function PublishControl({
   onPublish,
   onUnpublish,
   canPublish = true,
+  publishDisabledReason,
   entityLabel = "item",
   className,
 }: PublishControlProps) {
@@ -61,6 +64,8 @@ export function PublishControl({
           size="sm"
           variant={published ? "secondary" : "primary"}
           onClick={() => setOpen(true)}
+          disabled={!published && !!publishDisabledReason}
+          title={!published ? publishDisabledReason : undefined}
         >
           {published ? "Unpublish" : "Publish"}
         </Button>
