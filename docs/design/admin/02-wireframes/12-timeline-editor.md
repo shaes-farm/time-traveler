@@ -53,9 +53,9 @@ Publication note:
 │  │  └─────────────────────────────┘    │     timeline actually live.      │  │
 │  │                                     │                                  │  │
 │  │  Detail                             │  Publication                     │  │
-│  │  ┌─────────────────────────────┐    │  ◯ Draft (publish from detail)   │  │
+│  │  ┌─────────────────────────────┐    │  ⓘ Draft — publish from detail   │  │
 │  │  │ Long-form description…      │    │                                  │  │
-│  │  │                             │    │                                  │  │
+│  │  │                             │    │    once it has ≥1 event          │  │
 │  │  └─────────────────────────────┘    │                                  │  │
 │  │                                     │                                  │  │
 │  │  Span                               │                                  │  │
