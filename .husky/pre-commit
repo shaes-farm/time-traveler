@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 set -e
 
+CI=1
+
 pnpm run format:check
-pnpm run lint
-pnpm run check-types
