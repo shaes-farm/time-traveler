@@ -36,8 +36,6 @@ export const config = [
       "@eslint-react/no-use-context": "off",
       "@eslint-react/no-array-index-key": "off",
       "@eslint-react/unsupported-syntax": "off",
-      "@eslint-react/naming-convention-id-name": "off",
-      "@eslint-react/naming-convention-ref-name": "off",
       "@eslint-react/purity": "off",
       "@eslint-react/exhaustive-deps": "off",
     },
