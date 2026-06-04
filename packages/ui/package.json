@@ -26,7 +26,7 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@storybook/react-vite": "^10.4.0",
+    "@storybook/react-vite": "^10.4.1",
     "@tailwindcss/vite": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -38,7 +38,7 @@
     "@vitest/coverage-v8": "^4.1.8",
     "eslint": "^9.39.1",
     "jsdom": "^29.1.1",
-    "storybook": "^10.4.0",
+    "storybook": "^10.4.1",
     "tailwindcss": "^4.3.0",
     "typescript": "6.0.3",
     "vite": "^8.0.14",
@@ -61,7 +61,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@repo/services": "workspace:*",
-    "@tanstack/react-query": "^5.80.5",
+    "@tanstack/react-query": "^5.100.14",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -72,9 +72,9 @@
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.76.1",
     "sonner": "^2.0.7",
-    "tailwind-merge": "^2.5.5",
+    "tailwind-merge": "^2.6.1",
     "zod": "^4.4.3",
-    "zustand": "^5.0.5"
+    "zustand": "^5.0.13"
   },
   "peerDependencies": {
     "@supabase/supabase-js": ">=2"
