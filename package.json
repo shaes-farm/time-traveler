@@ -42,7 +42,7 @@
     "supabase": "^2.104.0",
     "turbo": "^2.9.16",
     "typescript": "6.0.3",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   },
   "packageManager": "pnpm@11.2.2",
   "engines": {

@@ -39,12 +39,20 @@ updates:
           - "typescript"
           - "@types/node"
           - "eslint"
+          - "@eslint/*"
           - "@typescript-eslint/*"
           - "prettier"
           - "turbo"
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: "eslint"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "@eslint/*"
+        update-types:
+          - version-update:semver-major
     labels:
       - "dependencies"
     commit-message:

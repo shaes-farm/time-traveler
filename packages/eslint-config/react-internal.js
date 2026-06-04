@@ -2,7 +2,7 @@ import js from "@eslint/js";
 import eslintConfigPrettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 import pluginReactHooks from "eslint-plugin-react-hooks";
-import pluginReact from "eslint-plugin-react";
+import reactPlugin from "@eslint-react/eslint-plugin";
 import globals from "globals";
 import { config as baseConfig } from "./base.js";
 
@@ -15,10 +15,10 @@ export const config = [
   js.configs.recommended,
   eslintConfigPrettier,
   ...tseslint.configs.recommended,
-  pluginReact.configs.flat.recommended,
+  reactPlugin.configs.recommended,
+  reactPlugin.configs["recommended-typescript"],
   {
     languageOptions: {
-      ...pluginReact.configs.flat.recommended.languageOptions,
       globals: {
         ...globals.serviceworker,
         ...globals.browser,
@@ -29,14 +29,17 @@ export const config = [
     plugins: {
       "react-hooks": pluginReactHooks,
     },
-    settings: { react: { version: "detect" } },
     rules: {
       ...pluginReactHooks.configs.recommended.rules,
-      // React scope no longer necessary with new JSX transform.
-      "react/react-in-jsx-scope": "off",
-      // TypeScript types serve the same purpose as prop-types; the rule
-      // produces false positives on HTML attribute types like ThHTMLAttributes.
-      "react/prop-types": "off",
+      "@eslint-react/no-forward-ref": "off",
+      "@eslint-react/no-context-provider": "off",
+      "@eslint-react/no-use-context": "off",
+      "@eslint-react/no-array-index-key": "off",
+      "@eslint-react/unsupported-syntax": "off",
+      "@eslint-react/naming-convention-id-name": "off",
+      "@eslint-react/naming-convention-ref-name": "off",
+      "@eslint-react/purity": "off",
+      "@eslint-react/exhaustive-deps": "off",
     },
   },
 ];
