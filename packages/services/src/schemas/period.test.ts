@@ -33,6 +33,14 @@ describe("periodSchema — valid inputs", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts null for end_temporal_data", () => {
+    const result = periodSchema.safeParse({
+      ...validBase,
+      end_temporal_data: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("accepts characteristics array", () => {
     const result = periodSchema.safeParse({
       ...validBase,

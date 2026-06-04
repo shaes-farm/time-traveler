@@ -67,11 +67,27 @@ describe("timelineSchema — valid inputs", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts null for end_temporal_data", () => {
+    const result = timelineSchema.safeParse({
+      ...validBase,
+      end_temporal_data: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("accepts subject_character_id as a UUID", () => {
     const result = timelineSchema.safeParse({
       ...validBase,
       timeline_type: "biographical",
       subject_character_id: "123e4567-e89b-12d3-a456-426614174000",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts subject_character_id as null", () => {
+    const result = timelineSchema.safeParse({
+      ...validBase,
+      subject_character_id: null,
     });
     expect(result.success).toBe(true);
   });

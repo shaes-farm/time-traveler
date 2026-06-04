@@ -9,7 +9,7 @@ export const periodSchema = z.object({
   summary: z.string().optional(),
   detail: z.string().optional(),
   temporal_data: temporalDataSchema,
-  end_temporal_data: temporalDataSchema.optional(),
+  end_temporal_data: temporalDataSchema.nullable().optional(),
   parent_period_id: z.string().uuid().optional(),
   significance: significanceEnum.default("medium"),
   characteristics: z.array(z.string()).optional(),

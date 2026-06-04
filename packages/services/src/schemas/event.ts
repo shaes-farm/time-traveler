@@ -22,7 +22,7 @@ export const eventSchema = z.object({
   detail: z.string().optional(),
   event_type: eventTypeEnum.default("milestone"),
   temporal_data: temporalDataSchema,
-  end_temporal_data: temporalDataSchema.optional(),
+  end_temporal_data: temporalDataSchema.nullable().optional(),
   location: z.string().max(2000).optional(),
   spatial_data: z.record(z.string(), z.unknown()).optional(),
   importance: z.number().int().min(1).max(10).default(5),

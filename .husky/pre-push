@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
 set -e
 
+CI=1
+
+pnpm run lint
+pnpm run check-types
 pnpm run test:coverage

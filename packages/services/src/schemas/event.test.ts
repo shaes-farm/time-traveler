@@ -46,6 +46,14 @@ describe("eventSchema — valid inputs", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts null for end_temporal_data", () => {
+    const result = eventSchema.safeParse({
+      ...validBase,
+      end_temporal_data: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("accepts importance within range [1..10]", () => {
     const lo = eventSchema.safeParse({ ...validBase, importance: 1 });
     const hi = eventSchema.safeParse({ ...validBase, importance: 10 });
