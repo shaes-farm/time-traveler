@@ -62,6 +62,9 @@
 ## Annotations
 
 1. **Header mirrors the character/event detail headers** ([04](04-character-detail.md), [08](08-event-detail.md)): breadcrumb, title, a type/visibility/scale metadata line, and the action cluster `[Edit] [Publish] [⋯]`. The `[⋯]` overflow carries secondary actions (copy ID, view raw JSON, duplicate-deferred).
+
+- **Publish precondition:** timeline publish is available only when at least one event is linked to the timeline (home or linked). Before then, the publish control is hidden/disabled with helper text and the service path rejects transition attempts.
+
 2. **Two independent state badges in the header**, never merged: `visibility` (🔒/🌐/👥) and the publish badge. See [11-timeline-list.md](11-timeline-list.md) annotation #3 — the orthogonality of visibility and publication is a recurring source of confusion and the detail page is where authors act on both.
 3. **Fractal context line (`ⓘ Details the event:`)** is the inverse lookup of `events.detail_timeline_id` ([#177](https://github.com/shaes-farm/time-traveler/issues/177)). When some event drills down _into_ this timeline, the header shows which event (and the timeline that event lives in), with a jump link. This is how an author navigates _up_ the fractal hierarchy — from a sub-timeline back to the event it expands. When no event details this timeline (it's a top-level timeline), the line is omitted. **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177)** — until the column lands, this line is hidden.
 4. **Tabs:** Events | Periods | Collaborators | Media — the structure from issue #44. Counts in the labels (the established detail-tab convention). Tabs lazy-load on activation.
