@@ -423,7 +423,7 @@ describe("getTimelineBySlug", () => {
       timeline_media: [],
     };
     const client = makeClient({ fromResult: { data: full, error: null } });
-    const result = await getTimelineBySlug(client, "user-123", "my-timeline");
+    const result = await getTimelineBySlug(client, "my-timeline");
     expect(result).toEqual(full);
   });
 
@@ -431,9 +431,9 @@ describe("getTimelineBySlug", () => {
     const client = makeClient({
       fromResult: { data: null, error: { message: "not found" } },
     });
-    await expect(
-      getTimelineBySlug(client, "user-123", "missing"),
-    ).rejects.toThrow("TimelineService.getTimelineBySlug: not found");
+    await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
+      "TimelineService.getTimelineBySlug: not found",
+    );
   });
 });
 
@@ -663,19 +663,19 @@ describe("deleteTimeline", () => {
 // ---------------------------------------------------------------------------
 
 describe("publishTimeline", () => {
-  it("returns updated row with published:true when events exist", async () => {
+  it("returns updated row with published:true when home events exist", async () => {
     const published = {
       ...sampleTimeline,
       published: true,
       published_at: "2026-01-01T00:00:00.000Z",
     };
-    // First from(): timeline_events count check (count: 1 → guard passes)
-    // Second from(): timelines update (returns published row)
+    // Promise.all: home count + linked count in parallel, then the update.
     const client = {
       from: vi
         .fn()
-        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 1 }))
-        .mockReturnValueOnce(makeBuilder({ data: published, error: null })),
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 1 })) // home events
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 })) // junction events
+        .mockReturnValueOnce(makeBuilder({ data: published, error: null })), // timelines update
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: { id: "user-123" } },
@@ -688,13 +688,37 @@ describe("publishTimeline", () => {
     expect(result.published_at).toBeTruthy();
   });
 
+  it("returns updated row with published:true when only junction events exist", async () => {
+    const published = {
+      ...sampleTimeline,
+      published: true,
+      published_at: "2026-01-01T00:00:00.000Z",
+    };
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 })) // home events — none
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 2 })) // junction events
+        .mockReturnValueOnce(makeBuilder({ data: published, error: null })),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+    const result = await publishTimeline(client, "timeline-1");
+    expect(result.published).toBe(true);
+  });
+
   it("throws TimelinePublishError when no events are linked", async () => {
     const client = {
       from: vi
         .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 })) // home events — none
         .mockReturnValueOnce(
           makeBuilder({ data: null, error: null, count: 0 }),
-        ),
+        ), // junction events — none
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: { id: "user-123" } },
@@ -707,15 +731,20 @@ describe("publishTimeline", () => {
     );
   });
 
-  it("throws on Supabase error during event count check", async () => {
+  it("throws on Supabase error during home event count check", async () => {
     const client = {
-      from: vi.fn().mockReturnValueOnce(
-        makeBuilder({
-          data: null,
-          error: { message: "count failed" },
-          count: null,
-        }),
-      ),
+      from: vi
+        .fn()
+        .mockReturnValueOnce(
+          makeBuilder({
+            data: null,
+            error: { message: "count failed" },
+            count: null,
+          }),
+        )
+        .mockReturnValueOnce(
+          makeBuilder({ data: null, error: null, count: 0 }),
+        ),
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: { id: "user-123" } },
@@ -724,7 +753,31 @@ describe("publishTimeline", () => {
       },
     } as unknown as SupabaseClient<Database>;
     await expect(publishTimeline(client, "timeline-1")).rejects.toThrow(
-      "TimelineService.publishTimeline.eventCount: count failed",
+      "TimelineService.publishTimeline.homeEventCount: count failed",
+    );
+  });
+
+  it("throws on Supabase error during linked event count check", async () => {
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 }))
+        .mockReturnValueOnce(
+          makeBuilder({
+            data: null,
+            error: { message: "count failed" },
+            count: null,
+          }),
+        ),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+    await expect(publishTimeline(client, "timeline-1")).rejects.toThrow(
+      "TimelineService.publishTimeline.linkedEventCount: count failed",
     );
   });
 });

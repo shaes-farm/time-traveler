@@ -368,12 +368,9 @@ export function TimelineFormClient(props: Props) {
 
   // Edit mode: fetch the existing row (userId resolved server-side).
   const isEdit = props.mode === "edit";
-  const editQuery = useTimelineBySlug(
-    client,
-    isEdit ? props.userId : "",
-    isEdit ? props.slug : "",
-    { enabled: isEdit },
-  );
+  const editQuery = useTimelineBySlug(client, isEdit ? props.slug : "", {
+    enabled: isEdit,
+  });
 
   const form = useForm<TimelineFormValues>({
     resolver: zodResolver(timelineFormSchema) as Resolver<TimelineFormValues>,

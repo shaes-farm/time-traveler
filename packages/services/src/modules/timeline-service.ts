@@ -252,7 +252,6 @@ export async function getTimelineById(
  */
 export async function getTimelineBySlug(
   client: SupabaseClient<Database>,
-  userId: string,
   slug: string,
 ): Promise<TimelineWithRelations> {
   const { data, error } = await client
@@ -260,7 +259,6 @@ export async function getTimelineBySlug(
     .select(
       "*, timeline_collaborators(*), timeline_events(*), timeline_media(*)",
     )
-    .eq("user_id", userId)
     .eq("slug", slug)
     .single();
 
@@ -385,14 +383,26 @@ export async function publishTimeline(
   client: SupabaseClient<Database>,
   id: string,
 ): Promise<TimelineRow> {
-  const { count, error: countError } = await client
-    .from("timeline_events")
-    .select("*", { count: "exact", head: true })
-    .eq("timeline_id", id);
+  // Check both home events (events.timeline_id) and junction events (timeline_events)
+  // to match what the UI shows via getTimelineEventsUnion.
+  const [
+    { count: homeCount, error: homeErr },
+    { count: linkedCount, error: linkedErr },
+  ] = await Promise.all([
+    client
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("timeline_id", id),
+    client
+      .from("timeline_events")
+      .select("*", { count: "exact", head: true })
+      .eq("timeline_id", id),
+  ]);
 
-  assertNoError(countError, "publishTimeline.eventCount");
+  assertNoError(homeErr, "publishTimeline.homeEventCount");
+  assertNoError(linkedErr, "publishTimeline.linkedEventCount");
 
-  if ((count ?? 0) === 0) {
+  if ((homeCount ?? 0) + (linkedCount ?? 0) === 0) {
     throw new TimelinePublishError(
       "no_events",
       "Cannot publish a timeline with no linked events.",
@@ -668,7 +678,12 @@ export async function getTimelineEventsUnion(
   const hasEditorialOrder = merged.some((e) => e.junction_sort_order !== 0);
 
   if (hasEditorialOrder) {
-    merged.sort((a, b) => a.junction_sort_order - b.junction_sort_order);
+    // Treat sort_order=0 as "not yet placed" and push those events after explicit positions.
+    merged.sort((a, b) => {
+      if (a.junction_sort_order === 0 && b.junction_sort_order !== 0) return 1;
+      if (a.junction_sort_order !== 0 && b.junction_sort_order === 0) return -1;
+      return a.junction_sort_order - b.junction_sort_order;
+    });
   } else {
     merged.sort(
       (a, b) => (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0),

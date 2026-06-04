@@ -118,6 +118,8 @@ function deriveRole(timeline: TimelineRow, userId: string): ViewerRole {
   const collab = timeline.timeline_collaborators.find(
     (c) => c.user_id === userId,
   );
+  // DECISION NEEDED: should collaborator role "admin" grant owner-level privileges
+  // (publish, delete, manage collaborators)? Current implementation says yes; see #219 review.
   if (collab?.role === "admin") return "owner";
   if (collab?.role === "editor") return "editor";
   return "viewer";
@@ -365,7 +367,8 @@ interface MediaTabProps {
   mediaItems: MediaItem[];
   isLoading: boolean;
   canEdit: boolean;
-  onDetach: () => void;
+  /** Undefined until media detach is implemented (issue #49). Button is disabled when absent. */
+  onDetach?: () => void;
   onMoveUp: (mediaId: string) => void;
   onMoveDown: (mediaId: string) => void;
 }
@@ -460,7 +463,11 @@ function MediaTab({
                 <button
                   type="button"
                   onClick={onDetach}
-                  className="p-1 rounded text-muted-foreground hover:text-destructive shrink-0"
+                  disabled={!onDetach}
+                  title={
+                    !onDetach ? "Media detach coming in issue #49" : undefined
+                  }
+                  className="p-1 rounded text-muted-foreground hover:text-destructive disabled:opacity-30 shrink-0"
                   aria-label="Detach media"
                 >
                   <X className="h-3.5 w-3.5" />
@@ -721,7 +728,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
         error: authError,
       } = await client.auth.getUser();
       if (authError || !user) throw new Error("Not authenticated");
-      const timeline = await getTimelineBySlug(client, user.id, slug);
+      const timeline = await getTimelineBySlug(client, slug);
       return { timeline, userId: user.id };
     },
     staleTime: 60_000,
@@ -1070,10 +1077,12 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
         <TabsContent value="collaborators" className="pt-4">
           <CollaboratorList
             collaborators={collaborators}
-            ownerName={userId}
-            ownerUsername={userId}
+            ownerName={timeline.user_id}
+            ownerUsername={timeline.user_id}
             canManage={isOwner}
             onAdd={(username, role) => {
+              // BLOCKED: username→userId lookup pending profiles join (issue #49).
+              // Field currently accepts a raw user UUID until profile resolution is built.
               addCollaborator.mutate({
                 timelineId: timeline.id,
                 userId: username,

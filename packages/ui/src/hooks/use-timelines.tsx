@@ -53,8 +53,7 @@ export const timelineKeys = {
     [...timelineKeys.pages(), filters] as const,
   details: () => [...timelineKeys.all, "detail"] as const,
   detail: (id: string) => [...timelineKeys.details(), id] as const,
-  bySlug: (userId: string, slug: string) =>
-    [...timelineKeys.all, "slug", userId, slug] as const,
+  bySlug: (slug: string) => [...timelineKeys.all, "slug", slug] as const,
   collaborators: (id: string) =>
     [...timelineKeys.all, "collaborators", id] as const,
 };
@@ -114,10 +113,9 @@ export function useTimeline(
   });
 }
 
-/** Fetch a single timeline by owner user ID and slug. */
+/** Fetch a single timeline by slug. Access is governed by RLS. */
 export function useTimelineBySlug(
   client: ServiceClient,
-  userId: string,
   slug: string,
   options?: Omit<
     UseQueryOptions<TimelineWithRelations>,
@@ -125,8 +123,8 @@ export function useTimelineBySlug(
   >,
 ) {
   return useQuery({
-    queryKey: timelineKeys.bySlug(userId, slug),
-    queryFn: () => getTimelineBySlug(client, userId, slug),
+    queryKey: timelineKeys.bySlug(slug),
+    queryFn: () => getTimelineBySlug(client, slug),
     staleTime: 60_000,
     ...options,
   });
