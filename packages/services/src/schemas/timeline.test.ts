@@ -67,6 +67,14 @@ describe("timelineSchema — valid inputs", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts null for end_temporal_data", () => {
+    const result = timelineSchema.safeParse({
+      ...validBase,
+      end_temporal_data: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("accepts subject_character_id as a UUID", () => {
     const result = timelineSchema.safeParse({
       ...validBase,

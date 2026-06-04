@@ -17,7 +17,7 @@ export const timelineSchema = z.object({
   detail: z.string().optional(),
   scale: z.string().max(2000).optional(),
   temporal_data: temporalDataSchema,
-  end_temporal_data: temporalDataSchema.optional(),
+  end_temporal_data: temporalDataSchema.nullable().optional(),
   timeline_type: timelineTypeEnum.default("general"),
   subject_character_id: z.string().uuid().nullable().optional(),
   visibility: timelineVisibilityEnum.default("private"),
