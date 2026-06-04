@@ -1,0 +1,21 @@
+{
+  "terminal.integrated.scrollback": 10000,
+  "chat.tools.terminal.autoApprove": {
+    "npx tsc": true,
+    "pnpm exec prettier":true,
+    "pnpm run format": true,
+    "pnpm run check-types": true,
+    "pnpm run lint": true,
+    "pnpm run test": true,
+    "pnpm run build": true
+  },
+  "chat.tools.terminal.terminalProfile.linux": {
+      "path": "bash",
+      "args": ["-l"],
+      "env": {
+          "CI": "1", 
+          "GIT_PAGER": "cat",
+          "PAGER": "cat"
+      }
+  }
+}
