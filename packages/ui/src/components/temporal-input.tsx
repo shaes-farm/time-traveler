@@ -500,7 +500,12 @@ export function TemporalInput({
       <div className="flex items-center justify-between gap-3">
         <label className="text-sm font-medium text-foreground">
           {label}
-          {required ? <span className="text-foreground-muted"> *</span> : null}
+          {required ? (
+            <span aria-label="required" className="text-destructive">
+              {" "}
+              *
+            </span>
+          ) : null}
         </label>
         <div className="flex items-center gap-2">
           {value && (
@@ -516,7 +521,15 @@ export function TemporalInput({
           )}
           <Popover open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
-              <Button type="button" variant="secondary" disabled={disabled}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={disabled}
+                aria-invalid={error ? true : undefined}
+                className={cn(
+                  error && "border border-destructive ring-1 ring-destructive",
+                )}
+              >
                 {previewValue ? (
                   <TemporalDisplay value={previewValue} format="compact" />
                 ) : (
@@ -779,14 +792,16 @@ export function TemporalInput({
               )}
 
               {/* Catch-all error — surfaces the first non-year/era schema
-                  issue so users can recover (e.g. "day: ... invalid for month"). */}
+                  issue in the current draft so users can recover (e.g.
+                  "day: ... invalid for month"). The parent-supplied `error`
+                  prop is shown in its own slot below the field, not here, to
+                  avoid duplicating it while the popover is open. */}
               {hasInteracted &&
                 candidate == null &&
                 !fieldErrors.year &&
                 !fieldErrors.era && (
                   <p className="text-sm text-destructive">
-                    {error ??
-                      genericError ??
+                    {genericError ??
                       "Complete the required fields to save this temporal value."}
                   </p>
                 )}
@@ -820,6 +835,10 @@ export function TemporalInput({
           {required ? "Required temporal value." : "Optional temporal value."}
         </p>
       )}
+
+      {/* Field-level error surfaced by the parent form (e.g. a cross-field rule
+          like end-before-start), shown even while the popover is closed. */}
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
     </div>
   );
 }
