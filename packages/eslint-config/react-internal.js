@@ -32,7 +32,6 @@ export const config = [
     rules: {
       ...pluginReactHooks.configs.recommended.rules,
       "@eslint-react/no-forward-ref": "off",
-      "@eslint-react/no-context-provider": "off",
       "@eslint-react/no-use-context": "off",
       "@eslint-react/purity": "off",
       "@eslint-react/exhaustive-deps": "off",
