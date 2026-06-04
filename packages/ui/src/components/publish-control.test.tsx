@@ -45,4 +45,28 @@ describe("PublishControl", () => {
       screen.queryByRole("button", { name: "Unpublish" }),
     ).not.toBeInTheDocument();
   });
+
+  it("disables the publish button and shows a tooltip when publishDisabledReason is set", () => {
+    render(
+      <PublishControl
+        published={false}
+        publishDisabledReason="Link at least one event to publish"
+      />,
+    );
+    const btn = screen.getByRole("button", { name: "Publish" });
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute("title", "Link at least one event to publish");
+  });
+
+  it("does not disable unpublish when publishDisabledReason is set on a published item", () => {
+    render(
+      <PublishControl
+        published
+        publishDisabledReason="Link at least one event to publish"
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Unpublish" }),
+    ).not.toBeDisabled();
+  });
 });
