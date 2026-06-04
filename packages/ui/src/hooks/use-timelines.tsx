@@ -20,12 +20,19 @@ import {
   publishTimeline,
   unpublishTimeline,
   getCollaborators,
+  addCollaborator,
+  removeCollaborator,
+  updateCollaboratorRole,
+  addEventToTimeline,
+  removeEventFromTimeline,
+  setTimelineEventSortOrder,
 } from "@repo/services/timeline-service";
 import type {
   TimelineFilters,
   TimelinesPage,
   TimelineWithRelations,
   CreateTimelineInput,
+  CollaboratorRole,
 } from "@repo/services/timeline-service";
 
 type ServiceClient = Parameters<typeof getTimelines>[0];
@@ -220,6 +227,124 @@ export function useUnpublishTimeline(client: ServiceClient) {
     onSuccess: () => {
       // Invalidate by prefix to keep lists, bySlug, and collaborator queries consistent.
       void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
+    },
+  });
+}
+
+/** Add a collaborator to a timeline. */
+export function useAddCollaborator(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      userId,
+      role,
+    }: {
+      timelineId: string;
+      userId: string;
+      role: CollaboratorRole;
+    }) => addCollaborator(client, timelineId, userId, role),
+    onSuccess: (_data, { timelineId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: timelineKeys.collaborators(timelineId),
+      });
+    },
+  });
+}
+
+/** Remove a collaborator from a timeline. */
+export function useRemoveCollaborator(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      userId,
+    }: {
+      timelineId: string;
+      userId: string;
+    }) => removeCollaborator(client, timelineId, userId),
+    onSuccess: (_data, { timelineId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: timelineKeys.collaborators(timelineId),
+      });
+    },
+  });
+}
+
+/** Update a collaborator's role on a timeline. */
+export function useUpdateCollaboratorRole(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      userId,
+      role,
+    }: {
+      timelineId: string;
+      userId: string;
+      role: CollaboratorRole;
+    }) => updateCollaboratorRole(client, timelineId, userId, role),
+    onSuccess: (_data, { timelineId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: timelineKeys.collaborators(timelineId),
+      });
+    },
+  });
+}
+
+/** Link an event to a timeline via the junction table. */
+export function useAddEventToTimeline(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      eventId,
+      sortOrder,
+    }: {
+      timelineId: string;
+      eventId: string;
+      sortOrder?: number;
+    }) => addEventToTimeline(client, timelineId, eventId, sortOrder),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
+    },
+  });
+}
+
+/** Unlink an event from a timeline (removes the junction row). */
+export function useRemoveEventFromTimeline(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      eventId,
+    }: {
+      timelineId: string;
+      eventId: string;
+    }) => removeEventFromTimeline(client, timelineId, eventId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
+    },
+  });
+}
+
+/** Set the editorial sort_order for an event on a timeline. */
+export function useSetTimelineEventSortOrder(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      eventId,
+      sortOrder,
+    }: {
+      timelineId: string;
+      eventId: string;
+      sortOrder: number;
+    }) => setTimelineEventSortOrder(client, timelineId, eventId, sortOrder),
+    onSuccess: (_data, { timelineId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: timelineKeys.detail(timelineId),
+      });
     },
   });
 }

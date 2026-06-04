@@ -36,6 +36,13 @@ const ADMIN_PREFIX = "/admin";
  * rule below ("already signed in → /dashboard") can run before the gate.
  * Public timeline detail (`/timelines/<slug>`) is handled by the regex
  * below since it shares the `/timelines` prefix with a protected list.
+ *
+ * WORKAROUND (#210): The (public)/timelines/[slug] placeholder was removed
+ * because it conflicted with the new (protected)/timelines/[slug] admin detail
+ * page. Until the routing strategy is decided (#210), unauthenticated visitors
+ * to /timelines/<slug> will pass through this proxy but be redirected to login
+ * by the (protected) layout. The regex below is kept intentionally to make the
+ * intent explicit — remove it once a public reader route is established.
  */
 const PUBLIC_TIMELINE_DETAIL = /^\/timelines\/[^/]+\/?$/;
 

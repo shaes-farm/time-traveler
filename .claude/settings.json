@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run format)",
+      "Bash(pnpm run check-types)",
+      "Bash(pnpm run lint)",
+      "Bash(pnpm run build)",
+      "Bash(pnpm run dev)",
+      "Bash(pnpm run verify)",
+      "Bash(pnpm install)"
+    ]
+  }
+}

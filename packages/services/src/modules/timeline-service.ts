@@ -559,3 +559,120 @@ export async function addMediaToTimeline(
   assertNoError(error, "addMediaToTimeline");
   return data;
 }
+
+// ---------------------------------------------------------------------------
+// Union query: home + linked events for the detail page Events tab
+// ---------------------------------------------------------------------------
+
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
+
+/** An event row tagged with its containment relationship to this timeline. */
+export interface TimelineEventWithMembership extends EventRow {
+  /** "home" = primary timeline_id points here; "linked" = via timeline_events junction. */
+  membership: "home" | "linked";
+  /** The sort_order from the timeline_events junction row (0 when not set). */
+  junction_sort_order: number;
+}
+
+/**
+ * Returns all events for a timeline as a merged, sorted list.
+ *
+ * "Home" events have `events.timeline_id = timelineId`.
+ * "Linked" events are connected via the `timeline_events` junction table.
+ *
+ * If any junction row has a non-zero `sort_order`, results are ordered by
+ * `junction_sort_order ASC` (editorial order). Otherwise results fall back to
+ * `sort_order_years ASC` (chronological). Home events win deduplication when
+ * an event appears in both sets.
+ */
+export async function getTimelineEventsUnion(
+  client: SupabaseClient<Database>,
+  timelineId: string,
+): Promise<TimelineEventWithMembership[]> {
+  const [homeResult, junctionResult] = await Promise.all([
+    client.from("events").select("*").eq("timeline_id", timelineId),
+    client
+      .from("timeline_events")
+      .select("event_id, sort_order")
+      .eq("timeline_id", timelineId),
+  ]);
+
+  assertNoError(homeResult.error, "getTimelineEventsUnion(home)");
+  assertNoError(junctionResult.error, "getTimelineEventsUnion(junction)");
+
+  const homeRows = (homeResult.data ?? []) as EventRow[];
+  const junctionRows = junctionResult.data ?? [];
+
+  const homeIds = new Set(homeRows.map((e) => e.id));
+
+  const linkedEventIds = junctionRows
+    .map((j) => j.event_id)
+    .filter((id) => !homeIds.has(id));
+
+  let linkedRows: EventRow[] = [];
+  if (linkedEventIds.length > 0) {
+    const { data, error } = await client
+      .from("events")
+      .select("*")
+      .in("id", linkedEventIds);
+    assertNoError(error, "getTimelineEventsUnion(linked)");
+    linkedRows = (data ?? []) as EventRow[];
+  }
+
+  const sortOrderMap = new Map<string, number>();
+  for (const j of junctionRows) {
+    sortOrderMap.set(j.event_id, j.sort_order ?? 0);
+  }
+
+  const merged: TimelineEventWithMembership[] = [
+    ...homeRows.map((e) => ({
+      ...e,
+      membership: "home" as const,
+      junction_sort_order: sortOrderMap.get(e.id) ?? 0,
+    })),
+    ...linkedRows.map((e) => ({
+      ...e,
+      membership: "linked" as const,
+      junction_sort_order: sortOrderMap.get(e.id) ?? 0,
+    })),
+  ];
+
+  const hasEditorialOrder = merged.some((e) => e.junction_sort_order !== 0);
+
+  if (hasEditorialOrder) {
+    merged.sort((a, b) => a.junction_sort_order - b.junction_sort_order);
+  } else {
+    merged.sort(
+      (a, b) => (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0),
+    );
+  }
+
+  return merged;
+}
+
+/**
+ * Sets the editorial sort_order for an event on a timeline.
+ *
+ * For "linked" events this upserts into the `timeline_events` junction row.
+ * For "home" events (where `events.timeline_id = timelineId`) a junction row is
+ * upserted so all events share a single editorial ordering mechanism once manual
+ * reordering begins.
+ */
+export async function setTimelineEventSortOrder(
+  client: SupabaseClient<Database>,
+  timelineId: string,
+  eventId: string,
+  sortOrder: number,
+): Promise<TimelineEventRow> {
+  const { data, error } = await client
+    .from("timeline_events")
+    .upsert(
+      { timeline_id: timelineId, event_id: eventId, sort_order: sortOrder },
+      { onConflict: "timeline_id,event_id" },
+    )
+    .select()
+    .single();
+
+  assertNoError(error, "setTimelineEventSortOrder");
+  return data;
+}
