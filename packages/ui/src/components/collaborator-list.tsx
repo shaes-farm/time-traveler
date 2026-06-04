@@ -110,6 +110,11 @@ export function CollaboratorList({
     }
   };
 
+  const pendingCollaborator =
+    pendingRemoveId === null
+      ? null
+      : collaborators.find((c) => c.id === pendingRemoveId);
+
   return (
     <div className={cn("space-y-4", className)}>
       {canManage && (
@@ -255,12 +260,9 @@ export function CollaboratorList({
           <DialogHeader>
             <DialogTitle>Remove collaborator?</DialogTitle>
             <DialogDescription>
-              {(() => {
-                const c = collaborators.find((x) => x.id === pendingRemoveId);
-                return c
-                  ? `${c.displayName} will lose access to this timeline.`
-                  : "This collaborator will lose access to this timeline.";
-              })()}
+              {pendingCollaborator
+                ? `${pendingCollaborator.displayName} will lose access to this timeline.`
+                : "This collaborator will lose access to this timeline."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

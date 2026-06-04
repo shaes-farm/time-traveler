@@ -35,7 +35,6 @@ export const config = [
       "@eslint-react/no-context-provider": "off",
       "@eslint-react/no-use-context": "off",
       "@eslint-react/no-array-index-key": "off",
-      "@eslint-react/unsupported-syntax": "off",
       "@eslint-react/purity": "off",
       "@eslint-react/exhaustive-deps": "off",
     },
