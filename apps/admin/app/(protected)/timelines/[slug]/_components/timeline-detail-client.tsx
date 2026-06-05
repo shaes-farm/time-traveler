@@ -7,9 +7,13 @@ import {
   ChevronDown,
   ChevronUp,
   CornerRightDown,
+  Globe,
   GripVertical,
   Link2,
+  Lock,
+  MoreHorizontal,
   Plus,
+  Users,
   X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -20,9 +24,16 @@ import {
   TimelinePublishError,
   type TimelineEventWithMembership,
 } from "@repo/services/timeline-service";
+import { getCharacterById } from "@repo/services/character-service";
 import { getEventsDetailedBy, getEvents } from "@repo/services/event-service";
 import { Badge } from "@repo/ui/components/badge";
 import { Button, buttonVariants } from "@repo/ui/components/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/dropdown-menu";
 import { CollaboratorList } from "@repo/ui/components/collaborator-list";
 import type { Collaborator } from "@repo/ui/components/collaborator-list";
 import {
@@ -74,6 +85,7 @@ interface TimelineRow {
   scale: string | null;
   published: boolean | null;
   user_id: string;
+  subject_character_id: string | null;
   temporal_data: TemporalData;
   end_temporal_data: TemporalData | null;
   timeline_collaborators: Array<{
@@ -108,6 +120,33 @@ const EMPTY_MEDIA_ROWS: Array<{
   url: string | null;
   storage_path: string | null;
 }> = [];
+
+// ---------------------------------------------------------------------------
+// Visibility display
+// ---------------------------------------------------------------------------
+
+const VISIBILITY_META = {
+  private: { icon: Lock, label: "Private" },
+  public: { icon: Globe, label: "Public" },
+  shared: { icon: Users, label: "Shared" },
+} as const;
+
+function VisibilityChip({ v }: { v: string }) {
+  const meta = VISIBILITY_META[v as keyof typeof VISIBILITY_META];
+  if (!meta)
+    return (
+      <Badge variant="secondary" className="capitalize text-xs">
+        {v}
+      </Badge>
+    );
+  const Icon = meta.icon;
+  return (
+    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      {meta.label}
+    </span>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -257,6 +296,7 @@ interface EventsTabProps {
 }
 
 function EventsTab({
+  timelineId,
   canEdit,
   events,
   isLoading,
@@ -287,8 +327,8 @@ function EventsTab({
   if (isLoading) {
     return (
       <div className="space-y-2 p-1">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 w-full rounded-md" />
+        {[1, 2, 3].map((step) => (
+          <Skeleton key={step} className="h-14 w-full rounded-md" />
         ))}
       </div>
     );
@@ -307,12 +347,26 @@ function EventsTab({
 
       {events.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
-          <p className="text-sm">No events yet.</p>
+          <p className="text-sm">
+            No events linked yet. Link existing events, or create one in this
+            timeline.
+          </p>
           {canEdit && (
-            <Button size="sm" variant="secondary" onClick={onLinkEvent}>
-              <Plus className="h-4 w-4 mr-1.5" />
-              Link your first event
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button size="sm" variant="secondary" onClick={onLinkEvent}>
+                <Link2 className="h-4 w-4 mr-1.5" />
+                Link existing event
+              </Button>
+              {/* DECISION NEEDED: enable once the event editor supports
+                  ?timeline_id= pre-fill to land the new event as "home". */}
+              <Link
+                href={`/events/new?timeline_id=${timelineId}`}
+                className={buttonVariants({ variant: "ghost", size: "sm" })}
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Create new event in this timeline
+              </Link>
+            </div>
           )}
         </div>
       ) : (
@@ -384,8 +438,8 @@ function MediaTab({
   if (isLoading) {
     return (
       <div className="space-y-2 p-1">
-        {Array.from({ length: 2 }).map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full rounded-md" />
+        {[1, 2].map((step) => (
+          <Skeleton key={step} className="h-12 w-full rounded-md" />
         ))}
       </div>
     );
@@ -572,8 +626,8 @@ function LinkEventDialog({
         <div className="max-h-72 overflow-y-auto space-y-1 mt-2">
           {isFetching && (
             <div className="space-y-1">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full rounded" />
+              {[1, 2, 3].map((step) => (
+                <Skeleton key={step} className="h-10 w-full rounded" />
               ))}
             </div>
           )}
@@ -767,6 +821,16 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     staleTime: 60_000,
   });
 
+  // --- Biographical subject character ---
+  const { data: subjectCharacter } = useQuery({
+    queryKey: ["character-detail", timeline?.subject_character_id],
+    queryFn: () => getCharacterById(client, timeline!.subject_character_id!),
+    enabled:
+      !!timeline?.subject_character_id &&
+      timeline.timeline_type === "biographical",
+    staleTime: 60_000,
+  });
+
   // --- Collaborators ---
   const { data: collaboratorRows = [] } = useTimelineCollaborators(
     client,
@@ -819,11 +883,12 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     role: c.role as "viewer" | "editor" | "admin",
   }));
 
-  // --- Dialog state ---
+  // --- Dialog / disclosure state ---
   const [showLinkEvent, setShowLinkEvent] = React.useState(false);
   const [unlinkHomeEvent, setUnlinkHomeEvent] =
     React.useState<TimelineEventWithMembership | null>(null);
   const [showDelete, setShowDelete] = React.useState(false);
+  const [showDangerZone, setShowDangerZone] = React.useState(false);
 
   const existingEventIds = React.useMemo(
     () => new Set(localEvents.map((e) => e.id)),
@@ -929,8 +994,8 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
         <Skeleton className="h-4 w-96 rounded-md" />
         <Skeleton className="h-4 w-48 rounded-md" />
         <div className="mt-6 space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-md" />
+          {[1, 2, 3, 4, 5].map((step) => (
+            <Skeleton key={step} className="h-14 w-full rounded-md" />
           ))}
         </div>
       </div>
@@ -970,10 +1035,14 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
                   {timeline.timeline_type}
                 </Badge>
               )}
+              {subjectCharacter && (
+                <span className="text-xs text-muted-foreground">
+                  about{" "}
+                  <span className="font-medium">{subjectCharacter.name}</span>
+                </span>
+              )}
               {timeline.visibility && (
-                <Badge variant="secondary" className="capitalize text-xs">
-                  {timeline.visibility}
-                </Badge>
+                <VisibilityChip v={timeline.visibility} />
               )}
               {timeline.scale && (
                 <span className="text-xs">{timeline.scale}</span>
@@ -988,6 +1057,8 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             </div>
             {detailsEvent && (
               <p className="text-xs text-muted-foreground">
+                {/* BLOCKED: #177 — should be a jump link to the parent event/timeline
+                    once the event detail route is live. */}
                 Details the event:{" "}
                 <span className="font-medium">{detailsEvent.title}</span>
               </p>
@@ -1027,16 +1098,29 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
                 Edit
               </Link>
             )}
-            {isOwner && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={() => setShowDelete(true)}
-              >
-                Delete
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  aria-label="More actions"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() =>
+                    void navigator.clipboard.writeText(timeline.id)
+                  }
+                >
+                  Copy ID
+                </DropdownMenuItem>
+                {/* View raw JSON — coming soon (issue #221) */}
+                {/* Duplicate — coming soon (issue #221) */}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -1051,7 +1135,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
           <TabsTrigger value="events">
             Events ({localEvents.length})
           </TabsTrigger>
-          <TabsTrigger value="periods">Periods</TabsTrigger>
+          <TabsTrigger value="periods">Periods (0)</TabsTrigger>
           <TabsTrigger value="collaborators">
             Collaborators ({collabCount})
           </TabsTrigger>
@@ -1116,6 +1200,39 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
           />
         </TabsContent>
       </Tabs>
+
+      {/* Danger zone */}
+      {isOwner && (
+        <div className="border border-destructive/30 rounded-md">
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-destructive/5 transition-colors"
+            onClick={() => setShowDangerZone((v) => !v)}
+          >
+            {showDangerZone ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+            Danger zone
+          </button>
+          {showDangerZone && (
+            <div className="px-4 pb-4 pt-1 border-t border-destructive/20">
+              <p className="text-xs text-muted-foreground mb-3">
+                Deleting a timeline is permanent and cannot be undone. All event
+                associations will be removed.
+              </p>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowDelete(true)}
+              >
+                Delete timeline
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Dialogs */}
       <LinkEventDialog

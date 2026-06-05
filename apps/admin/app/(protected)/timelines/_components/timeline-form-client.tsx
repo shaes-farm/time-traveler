@@ -696,7 +696,7 @@ export function TimelineFormClient(props: Props) {
                         <Textarea
                           {...field}
                           placeholder="One-paragraph summary…"
-                          className="min-h-[80px]"
+                          className="min-h-20"
                         />
                       </FormControl>
                       <FormMessage />
@@ -714,7 +714,7 @@ export function TimelineFormClient(props: Props) {
                         <Textarea
                           {...field}
                           placeholder="Long-form description…"
-                          className="min-h-[140px]"
+                          className="min-h-35"
                         />
                       </FormControl>
                       <FormMessage />
@@ -796,7 +796,7 @@ export function TimelineFormClient(props: Props) {
                             type="number"
                             min={1}
                             max={10}
-                            className={`${INPUT_CLASS} max-w-[120px]`}
+                            className={`${INPUT_CLASS} max-w-30`}
                             value={
                               Number.isFinite(field.value) ? field.value : ""
                             }

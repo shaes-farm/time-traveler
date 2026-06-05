@@ -20,8 +20,8 @@ export default async function TimelineDetailPage({
           <Skeleton className="h-4 w-96 rounded-md" />
           <Skeleton className="h-4 w-32 rounded-md" />
           <div className="mt-6 space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Skeleton key={i} className="h-14 w-full rounded-md" />
+            {[1, 2, 3, 4, 5].map((step) => (
+              <Skeleton key={step} className="h-14 w-full rounded-md" />
             ))}
           </div>
         </div>

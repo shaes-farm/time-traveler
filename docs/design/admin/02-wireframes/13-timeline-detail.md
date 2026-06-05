@@ -24,7 +24,7 @@
 
 ## Layout
 
-```
+```text
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │  Timelines ▸ Curie scientific biography              [Edit] [Publish ✓] [⋯]  │
 │                                                                              │
@@ -65,27 +65,27 @@
 
 - **Publish precondition:** timeline publish is available only when at least one event is linked to the timeline (home or linked). Before then, the publish control is hidden/disabled with helper text and the service path rejects transition attempts.
 
-2. **Two independent state badges in the header**, never merged: `visibility` (🔒/🌐/👥) and the publish badge. See [11-timeline-list.md](11-timeline-list.md) annotation #3 — the orthogonality of visibility and publication is a recurring source of confusion and the detail page is where authors act on both.
-3. **Fractal context line (`ⓘ Details the event:`)** is the inverse lookup of `events.detail_timeline_id` ([#177](https://github.com/shaes-farm/time-traveler/issues/177)). When some event drills down _into_ this timeline, the header shows which event (and the timeline that event lives in), with a jump link. This is how an author navigates _up_ the fractal hierarchy — from a sub-timeline back to the event it expands. When no event details this timeline (it's a top-level timeline), the line is omitted. **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177)** — until the column lands, this line is hidden.
-4. **Tabs:** Events | Periods | Collaborators | Media — the structure from issue #44. Counts in the labels (the established detail-tab convention). Tabs lazy-load on activation.
-5. **Events tab is the heart of the page.** It lists every event contained by this timeline and lets the author link existing events in and unlink them.
+1. **Two independent state badges in the header**, never merged: `visibility` (🔒/🌐/👥) and the publish badge. See [11-timeline-list.md](11-timeline-list.md) annotation #3 — the orthogonality of visibility and publication is a recurring source of confusion and the detail page is where authors act on both.
+1. **Fractal context line (`ⓘ Details the event:`)** is the inverse lookup of `events.detail_timeline_id` ([#177](https://github.com/shaes-farm/time-traveler/issues/177)). When some event drills down _into_ this timeline, the header shows which event (and the timeline that event lives in), with a jump link. This is how an author navigates _up_ the fractal hierarchy — from a sub-timeline back to the event it expands. When no event details this timeline (it's a top-level timeline), the line is omitted. **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177)** — until the column lands, this line is hidden.
+1. **Tabs:** Events | Periods | Collaborators | Media — the structure from issue #44. Counts in the labels (the established detail-tab convention). Tabs lazy-load on activation.
+1. **Events tab is the heart of the page.** It lists every event contained by this timeline and lets the author link existing events in and unlink them.
    - **Containment is the union of two sources** (resolved fractal model, [#177](https://github.com/shaes-farm/time-traveler/issues/177)): events whose **primary** `timeline_id` is this timeline (badge: `home`) **plus** events linked via the `timeline_events` junction (badge: `linked`). The `home`/`linked` chip tells the author whether this is the event's primary home or a secondary appearance.
    - **Ordering is editorial `timeline_events.sort_order` ascending, with a chronological fallback.** The junction carries a `sort_order` column (migration `00012`, issue #122); the service layer's convention is: when every row shares the default `0`, fall back to the joined `events.sort_order_start` (chronological). So a timeline that hasn't been hand-arranged reads chronologically, and dragging a row to reorder writes a non-zero `sort_order` (e.g. for a comparative or thematic timeline where narrative beats matter more than dates). A short note under the list states the active ordering. Drag handle (`⠿`) per row enables manual arrangement.
-6. **`[ + Link event ▾ ]`** opens a searchable combobox over the user's events (the same command-palette pattern as the event editor's timeline pickers, [09](09-event-editor.md) annotation #15). Selecting an event inserts a `timeline_events` junction row → it appears as `linked`. The split-button `▾` offers **Create new event in this timeline**, which deep-links to the [event editor](09-event-editor.md) with this timeline pre-filled as the primary `timeline_id` (so the new event lands as `home`).
-7. **Unlink (`[×]`) semantics depend on home vs. linked:**
+1. **`[ + Link event ▾ ]`** opens a searchable combobox over the user's events (the same command-palette pattern as the event editor's timeline pickers, [09](09-event-editor.md) annotation #15). Selecting an event inserts a `timeline_events` junction row → it appears as `linked`. The split-button `▾` offers **Create new event in this timeline**, which deep-links to the [event editor](09-event-editor.md) with this timeline pre-filled as the primary `timeline_id` (so the new event lands as `home`).
+1. **Unlink (`[×]`) semantics depend on home vs. linked:**
    - `linked` event → `[×]` deletes only the `timeline_events` junction row. The event is untouched and keeps its own home timeline.
    - `home` event → `[×]` is a heavier action: it would orphan the event's primary timeline. Confirm: "Remove this event's home timeline? It will have no primary timeline until you set a new one." (Sets `events.timeline_id = NULL`, per the FK's `ON DELETE SET NULL` spirit, done explicitly.) This guard prevents accidental orphaning.
-8. **Per-row fractal drill-down marker (`⤵`)** appears on events that themselves have a `detail_timeline_id` — i.e. events you can zoom _into_ from here. Clicking `⤵` navigates to that sub-timeline's detail page. This is the "zoom in" direction; annotation #3's header line is the "zoom out" direction. **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177).**
-9. **Periods tab is a read-only stub this pass** (resolved decision). Period CRUD arrives in Phase 6 (milestone 7). The tab renders linked periods (`period_timelines` junction) read-only if any exist, otherwise an empty state: "Period management arrives in a later release." Keeping the tab preserves issue #44's IA without designing period-linking prematurely.
-10. **Collaborators tab** hosts the full collaborator panel — add by username, role select, remove, with owner safeguards. Fully specified in [14-collaborators.md](14-collaborators.md). The tab count excludes the owner (the owner is `timelines.user_id`, not a `timeline_collaborators` row).
-11. **Media tab** uses the shared media management surface — attach (upload or external URL), reorder via `timeline_media.sort_order`, detach. Fully specified in [15-media-management.md](15-media-management.md).
-12. **Edit/Delete are owner-gated; collaborator capability follows role.** Per system-design §9 RLS: the owner and admins see Edit/Delete; a collaborator-editor sees Edit (and event link/unlink) but not Delete; a collaborator-viewer gets a read-only page. The publish control is owner-only (see [16-publish-workflow.md](16-publish-workflow.md)). Action visibility is computed from the viewer's role, mirroring [08-event-detail.md](08-event-detail.md) Edge Cases.
+1. **Per-row fractal drill-down marker (`⤵`)** appears on events that themselves have a `detail_timeline_id` — i.e. events you can zoom _into_ from here. Clicking `⤵` navigates to that sub-timeline's detail page. This is the "zoom in" direction; annotation #3's header line is the "zoom out" direction. **Blocked on [#177](https://github.com/shaes-farm/time-traveler/issues/177).**
+1. **Periods tab is a read-only stub this pass** (resolved decision). Period CRUD arrives in Phase 6 (milestone 7). The tab renders linked periods (`period_timelines` junction) read-only if any exist, otherwise an empty state: "Period management arrives in a later release." Keeping the tab preserves issue #44's IA without designing period-linking prematurely.
+1. **Collaborators tab** hosts the full collaborator panel — add by username, role select, remove, with owner safeguards. Fully specified in [14-collaborators.md](14-collaborators.md). The tab count excludes the owner (the owner is `timelines.user_id`, not a `timeline_collaborators` row).
+1. **Media tab** uses the shared media management surface — attach (upload or external URL), reorder via `timeline_media.sort_order`, detach. Fully specified in [15-media-management.md](15-media-management.md).
+1. **Edit/Delete are owner-gated; collaborator capability follows role.** Per system-design §9 RLS: the owner and admins see Edit/Delete; a collaborator-editor sees Edit (and event link/unlink) but not Delete; a collaborator-viewer gets a read-only page. The publish control is owner-only (see [16-publish-workflow.md](16-publish-workflow.md)). Action visibility is computed from the viewer's role, mirroring [08-event-detail.md](08-event-detail.md) Edge Cases.
 
 ## Tab variations
 
 ### Collaborators tab (summary — full spec in [14](14-collaborators.md))
 
-```
+```text
   Collaborators (2)                                  [ + Add collaborator ]
   ───────────────────────────────────────────────────────────────────────
   @irenejc       Irène Joliot-Curie   editor ▾   [ remove ]
@@ -96,7 +96,7 @@
 
 ### Media tab (summary — full spec in [15](15-media-management.md))
 
-```
+```text
   Media (3)                            [ + Attach media ]
   ───────────────────────────────────────────────────────
   [cover] [thumb] [thumb]      drag ⠿ to reorder (timeline_media.sort_order)
@@ -104,7 +104,7 @@
 
 ### Periods tab (read-only stub)
 
-```
+```text
   Periods (0)
   ───────────────────────────────────────────────────────
   — Period management arrives in a later release (Phase 6) —
