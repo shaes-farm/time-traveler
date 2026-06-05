@@ -12,6 +12,7 @@ import {
   publishTimeline,
   unpublishTimeline,
   TimelinePublishError,
+  TimelineLookupError,
   getTimelineEventsUnion,
   getCollaborators,
   addCollaborator,
@@ -417,24 +418,48 @@ describe("getTimelineById", () => {
 // ---------------------------------------------------------------------------
 
 describe("getTimelineBySlug", () => {
-  it("returns a timeline with relations", async () => {
-    const full = {
-      ...sampleTimeline,
-      timeline_collaborators: [],
-      timeline_events: [],
-      timeline_media: [],
-    };
-    const client = makeClient({ fromResult: { data: full, error: null } });
+  const full = {
+    ...sampleTimeline,
+    timeline_collaborators: [],
+    timeline_events: [],
+    timeline_media: [],
+  };
+
+  it("returns the single matching timeline with relations", async () => {
+    const client = makeClient({ fromResult: { data: [full], error: null } });
     const result = await getTimelineBySlug(client, "my-timeline");
     expect(result).toEqual(full);
   });
 
+  it("throws TimelineLookupError(not_found) when no rows match", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
+      TimelineLookupError,
+    );
+    await expect(getTimelineBySlug(client, "missing")).rejects.toMatchObject({
+      code: "not_found",
+    });
+  });
+
+  it("throws TimelineLookupError(ambiguous_slug) when slug matches multiple owners", async () => {
+    const other = { ...full, id: "timeline-2", user_id: "user-456" };
+    const client = makeClient({
+      fromResult: { data: [full, other], error: null },
+    });
+    await expect(getTimelineBySlug(client, "my-timeline")).rejects.toThrow(
+      TimelineLookupError,
+    );
+    await expect(
+      getTimelineBySlug(client, "my-timeline"),
+    ).rejects.toMatchObject({ code: "ambiguous_slug" });
+  });
+
   it("throws on Supabase error", async () => {
     const client = makeClient({
-      fromResult: { data: null, error: { message: "not found" } },
+      fromResult: { data: null, error: { message: "boom" } },
     });
     await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
-      "TimelineService.getTimelineBySlug: not found",
+      "TimelineService.getTimelineBySlug: boom",
     );
   });
 });
@@ -1151,6 +1176,51 @@ describe("getTimelineEventsUnion", () => {
     const result = await getTimelineEventsUnion(client, "timeline-1");
     expect(result[0]?.id).toBe("event-b"); // lower sort_order_years first
     expect(result[1]?.id).toBe("event-a");
+  });
+
+  it("breaks editorial ties by sort_order_years then id, with sort_order=0 pushed last", async () => {
+    // event-a and event-b share editorial order 1 → tie broken by sort_order_years.
+    // event-c/event-d have sort_order 0 → pushed last, tie broken by id.
+    const eventA = { ...sampleEvent, id: "event-a", sort_order_years: 200 };
+    const eventB = { ...sampleEvent, id: "event-b", sort_order_years: 100 };
+    const eventC = { ...sampleEvent, id: "event-c", sort_order_years: 50 };
+    const eventD = { ...sampleEvent, id: "event-d", sort_order_years: 50 };
+    const client = makeSequencedClient([
+      { data: [eventA, eventB, eventC, eventD], error: null }, // events (home)
+      {
+        data: [
+          { event_id: "event-a", sort_order: 1 },
+          { event_id: "event-b", sort_order: 1 },
+          { event_id: "event-c", sort_order: 0 },
+          { event_id: "event-d", sort_order: 0 },
+        ],
+        error: null,
+      },
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result.map((e) => e.id)).toEqual([
+      "event-b", // order 1, years 100
+      "event-a", // order 1, years 200
+      "event-c", // order 0 (last), years 50, id < event-d
+      "event-d", // order 0 (last), years 50
+    ]);
+  });
+
+  it("is deterministic when sort_order and sort_order_years are equal (id tie-break)", async () => {
+    const eventY = { ...sampleEvent, id: "event-y", sort_order_years: 100 };
+    const eventX = { ...sampleEvent, id: "event-x", sort_order_years: 100 };
+    const client = makeSequencedClient([
+      { data: [eventY, eventX], error: null }, // events (home), returned y-before-x
+      {
+        data: [
+          { event_id: "event-y", sort_order: 3 },
+          { event_id: "event-x", sort_order: 3 },
+        ],
+        error: null,
+      },
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result.map((e) => e.id)).toEqual(["event-x", "event-y"]);
   });
 
   it("throws on home events query error", async () => {

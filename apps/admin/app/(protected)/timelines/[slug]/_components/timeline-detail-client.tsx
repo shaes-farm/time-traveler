@@ -157,11 +157,10 @@ function deriveRole(timeline: TimelineRow, userId: string): ViewerRole {
   const collab = timeline.timeline_collaborators.find(
     (c) => c.user_id === userId,
   );
-  // DECISION NEEDED (#235): should collaborator role "admin" grant owner-level
-  // privileges (publish, delete, manage collaborators)? Current implementation
-  // collapses admin → owner pending that decision.
-  if (collab?.role === "admin") return "owner";
-  if (collab?.role === "editor") return "editor";
+  // "owner" is strictly timelines.user_id (see isOwner). A collaborator "admin"
+  // is a privileged editor — it grants edit access (canEdit) but never the
+  // owner-only controls (publish, delete, manage collaborators). See #235.
+  if (collab?.role === "admin" || collab?.role === "editor") return "editor";
   return "viewer";
 }
 
@@ -577,6 +576,14 @@ function LinkEventDialog({
     debounceRef.current = setTimeout(() => setDebouncedSearch(v), 300);
   }
 
+  // Clear any pending debounce timer on unmount so it can't fire afterwards.
+  React.useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    },
+    [],
+  );
+
   const { data: results = [], isFetching } = useQuery({
     queryKey: ["event-search-link", debouncedSearch],
     queryFn: () =>
@@ -804,7 +811,10 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     staleTime: 30_000,
   });
 
-  // Local event order (for optimistic reorder UI — derived state pattern avoids useEffect).
+  // Local event order for optimistic reorder UI. Reset when the query data
+  // changes using React's "storing information from previous renders" pattern
+  // (conditional set during render) — intentionally not useEffect, which would
+  // add an extra render/flash. See react.dev/reference/react/useState.
   const [prevEventsRaw, setPrevEventsRaw] =
     React.useState<TimelineEventWithMembership[]>(eventsRaw);
   const [localEvents, setLocalEvents] =
@@ -862,7 +872,8 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     const junction = mediaJunctionRows.find((j) => j.media_id === m.id);
     return { ...m, sort_order: junction?.sort_order ?? 0 };
   });
-  // Derived state pattern — keeps local reorder optimistic without useEffect.
+  // Keeps local reorder optimistic; reset on query-data change via the same
+  // conditional-set-during-render pattern as localEvents above (not useEffect).
   const [prevRawMedia, setPrevRawMedia] = React.useState(rawMediaItems);
   const [localMedia, setLocalMedia] = React.useState<MediaItem[]>(mediaItems);
   if (rawMediaItems !== prevRawMedia) {
@@ -872,7 +883,9 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
 
   // --- Derived state ---
   const role = timeline ? deriveRole(timeline, userId) : "viewer";
-  const isOwner = role === "owner";
+  // Owner-only controls (publish, delete, manage collaborators) gate on actual
+  // ownership, not the derived role — a collaborator "admin" must not inherit them.
+  const isOwner = !!timeline && timeline.user_id === userId;
   const canEdit = role === "owner" || role === "editor";
 
   // Map collaborator rows to CollaboratorList shape

@@ -94,6 +94,21 @@ export class TimelinePublishError extends Error {
   }
 }
 
+/**
+ * Thrown by getTimelineBySlug when a slug resolves to zero rows (`not_found`)
+ * or — because slug is only unique per owner (`UNIQUE (user_id, slug)`) — to
+ * more than one visible row (`ambiguous_slug`).
+ */
+export class TimelineLookupError extends Error {
+  constructor(
+    public readonly code: "not_found" | "ambiguous_slug",
+    message: string,
+  ) {
+    super(message);
+    this.name = "TimelineLookupError";
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
@@ -247,9 +262,12 @@ export async function getTimelineById(
  * Fetches a single timeline by slug under RLS (so collaborators, not just the
  * owner, can load it), including collaborators, linked events, and linked media.
  *
- * NOTE: the DB uniqueness constraint is `UNIQUE (user_id, slug)`, so slug is not
- * globally unique — `.single()` can throw if a viewer can see two same-slug
- * timelines from different owners. Lookup strategy is tracked in #234.
+ * Because the DB uniqueness constraint is `UNIQUE (user_id, slug)`, slug is not
+ * globally unique: a viewer who can see two same-slug timelines from different
+ * owners would match multiple rows. Rather than letting `.single()` surface a
+ * raw PostgREST error, this throws a typed `TimelineLookupError` —
+ * `ambiguous_slug` for >1 match, `not_found` for 0. A future route redesign
+ * (key on UUID or owner+slug) is tracked in #234.
  */
 export async function getTimelineBySlug(
   client: SupabaseClient<Database>,
@@ -260,11 +278,24 @@ export async function getTimelineBySlug(
     .select(
       "*, timeline_collaborators(*), timeline_events(*), timeline_media(*)",
     )
-    .eq("slug", slug)
-    .single();
+    .eq("slug", slug);
 
   assertNoError(error, "getTimelineBySlug");
-  return data as TimelineWithRelations;
+
+  const rows = (data ?? []) as TimelineWithRelations[];
+  if (rows.length > 1) {
+    throw new TimelineLookupError(
+      "ambiguous_slug",
+      `Slug "${slug}" matches ${rows.length} timelines; it is unique only per owner.`,
+    );
+  }
+  if (rows.length === 0) {
+    throw new TimelineLookupError(
+      "not_found",
+      `No timeline found for slug "${slug}".`,
+    );
+  }
+  return rows[0]!;
 }
 
 /**
@@ -678,17 +709,29 @@ export async function getTimelineEventsUnion(
 
   const hasEditorialOrder = merged.some((e) => e.junction_sort_order !== 0);
 
+  // Stable tie-break shared by both ordering modes so the list is deterministic
+  // across fetches (DB row order is not guaranteed): chronological, then id.
+  const byChronologyThenId = (
+    a: TimelineEventWithMembership,
+    b: TimelineEventWithMembership,
+  ) =>
+    (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0) ||
+    a.id.localeCompare(b.id);
+
   if (hasEditorialOrder) {
-    // Treat sort_order=0 as "not yet placed" and push those events after explicit positions.
     merged.sort((a, b) => {
+      // Treat sort_order=0 as "not yet placed" and push those events after explicit positions.
       if (a.junction_sort_order === 0 && b.junction_sort_order !== 0) return 1;
       if (a.junction_sort_order !== 0 && b.junction_sort_order === 0) return -1;
-      return a.junction_sort_order - b.junction_sort_order;
+      // Within the same editorial position (incl. all-zero ties), fall back to
+      // chronological then id so equal/unset values have a stable order.
+      return (
+        a.junction_sort_order - b.junction_sort_order ||
+        byChronologyThenId(a, b)
+      );
     });
   } else {
-    merged.sort(
-      (a, b) => (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0),
-    );
+    merged.sort(byChronologyThenId);
   }
 
   return merged;
