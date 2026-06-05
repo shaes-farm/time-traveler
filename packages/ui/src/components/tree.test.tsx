@@ -50,7 +50,7 @@ describe("Tree", () => {
     render(<Tree aria-label="Hierarchy" nodes={NODES} />);
 
     const rootRow = rowFor("Root timeline");
-    rootRow.focus();
+    await user.click(rootRow);
     await user.keyboard("{ArrowLeft}");
 
     expect(rootRow).toHaveAttribute("aria-expanded", "false");
@@ -63,8 +63,7 @@ describe("Tree", () => {
     const user = userEvent.setup();
     render(<Tree aria-label="Hierarchy" nodes={nodes} />);
 
-    const row = rowFor("Leaf");
-    row.focus();
+    await user.tab();
     await user.keyboard("{Enter}");
     expect(onActivate).toHaveBeenCalledOnce();
   });
@@ -74,7 +73,7 @@ describe("Tree", () => {
     render(<Tree aria-label="Hierarchy" nodes={NODES} />);
 
     const rootRow = rowFor("Root timeline");
-    rootRow.focus();
+    await user.click(rootRow);
     await user.keyboard("{ArrowDown}");
 
     // Focus moved: Event A now has tabIndex 0 (roving focus), root has -1.
@@ -88,7 +87,7 @@ describe("Tree", () => {
 
     // Focus Event A (a leaf child of Root).
     const eventARow = rowFor("Event A");
-    eventARow.focus();
+    await user.click(eventARow);
     await user.keyboard("{ArrowLeft}");
 
     // Focus should move up to Root timeline.
