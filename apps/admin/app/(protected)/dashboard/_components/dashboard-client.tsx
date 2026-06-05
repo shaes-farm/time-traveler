@@ -200,11 +200,12 @@ const DashboardEmptyState = () => (
 
 export const DashboardClient = () => {
   const { data, isPending, isError, error, refetch } = useDashboardData();
+  const [now] = React.useState(() => new Date());
 
   const greeting =
-    new Date().getHours() < 12
+    now.getHours() < 12
       ? "Good morning"
-      : new Date().getHours() < 18
+      : now.getHours() < 18
         ? "Good afternoon"
         : "Good evening";
 
@@ -213,7 +214,7 @@ export const DashboardClient = () => {
     month: "long",
     day: "numeric",
     year: "numeric",
-  }).format(new Date());
+  }).format(now);
 
   if (isPending) {
     return (
