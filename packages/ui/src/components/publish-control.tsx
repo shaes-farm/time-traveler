@@ -31,7 +31,7 @@ export interface PublishControlProps {
   onUnpublish?: () => void;
   /** Owner-only gate for the action button. Defaults to true. */
   canPublish?: boolean;
-  /** When set, the publish button is disabled with this text as a native tooltip. Unpublish is unaffected. */
+  /** When set, the publish button is disabled and this text is shown as visible helper text beside it (and as a native tooltip). Unpublish is unaffected. */
   publishDisabledReason?: string;
   /** Noun used in the confirm copy, e.g. "timeline" or "event". */
   entityLabel?: string;
@@ -48,12 +48,16 @@ export function PublishControl({
   className,
 }: PublishControlProps) {
   const [open, setOpen] = React.useState(false);
+  const reasonId = React.useId();
 
   const confirm = () => {
     if (published) onUnpublish?.();
     else onPublish?.();
     setOpen(false);
   };
+
+  // The reason only applies to the (enabled→disabled) Publish action, never Unpublish.
+  const showReason = canPublish && !published && !!publishDisabledReason;
 
   return (
     <div className={cn("inline-flex items-center gap-2", className)}>
@@ -64,11 +68,17 @@ export function PublishControl({
           size="sm"
           variant={published ? "secondary" : "primary"}
           onClick={() => setOpen(true)}
-          disabled={!published && !!publishDisabledReason}
+          disabled={showReason}
+          aria-describedby={showReason ? reasonId : undefined}
           title={!published ? publishDisabledReason : undefined}
         >
           {published ? "Unpublish" : "Publish"}
         </Button>
+      )}
+      {showReason && (
+        <span id={reasonId} className="text-xs text-muted-foreground">
+          {publishDisabledReason}
+        </span>
       )}
 
       <Dialog open={open} onOpenChange={setOpen}>

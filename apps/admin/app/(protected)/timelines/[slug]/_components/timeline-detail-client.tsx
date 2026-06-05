@@ -157,8 +157,9 @@ function deriveRole(timeline: TimelineRow, userId: string): ViewerRole {
   const collab = timeline.timeline_collaborators.find(
     (c) => c.user_id === userId,
   );
-  // DECISION NEEDED: should collaborator role "admin" grant owner-level privileges
-  // (publish, delete, manage collaborators)? Current implementation says yes; see #219 review.
+  // DECISION NEEDED (#235): should collaborator role "admin" grant owner-level
+  // privileges (publish, delete, manage collaborators)? Current implementation
+  // collapses admin → owner pending that decision.
   if (collab?.role === "admin") return "owner";
   if (collab?.role === "editor") return "editor";
   return "viewer";
@@ -956,10 +957,9 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     );
   }
 
-  function handleMediaDetach() {
-    // DECISION NEEDED: removeMediaFromTimeline not yet wired to a mutation hook.
-    // Add useRemoveMediaFromTimeline when media management (issue #49) is built.
-  }
+  // Media detach is intentionally not wired yet: passing `onDetach` keeps the
+  // button enabled, so it stays undefined (MediaTab disables the control) until
+  // removeMediaFromTimeline lands with media management (issue #49).
 
   function handleMediaMoveUp(mediaId: string) {
     const idx = localMedia.findIndex((m) => m.id === mediaId);
@@ -1165,7 +1165,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             ownerUsername={timeline.user_id}
             canManage={isOwner}
             onAdd={(username, role) => {
-              // BLOCKED: username→userId lookup pending profiles join (issue #49).
+              // BLOCKED: username→userId lookup pending profiles join (issue #50).
               // Field currently accepts a raw user UUID until profile resolution is built.
               addCollaborator.mutate({
                 timelineId: timeline.id,
@@ -1194,7 +1194,6 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             mediaItems={localMedia}
             isLoading={mediaPending}
             canEdit={canEdit}
-            onDetach={handleMediaDetach}
             onMoveUp={handleMediaMoveUp}
             onMoveDown={handleMediaMoveDown}
           />

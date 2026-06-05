@@ -58,6 +58,31 @@ describe("PublishControl", () => {
     expect(btn).toHaveAttribute("title", "Link at least one event to publish");
   });
 
+  it("renders the disabled reason as visible helper text describing the button", () => {
+    render(
+      <PublishControl
+        published={false}
+        publishDisabledReason="Link at least one event to publish"
+      />,
+    );
+    const reason = screen.getByText("Link at least one event to publish");
+    expect(reason).toBeInTheDocument();
+    const btn = screen.getByRole("button", { name: "Publish" });
+    expect(btn).toHaveAttribute("aria-describedby", reason.id);
+  });
+
+  it("does not render disabled-reason helper text on a published item", () => {
+    render(
+      <PublishControl
+        published
+        publishDisabledReason="Link at least one event to publish"
+      />,
+    );
+    expect(
+      screen.queryByText("Link at least one event to publish"),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not disable unpublish when publishDisabledReason is set on a published item", () => {
     render(
       <PublishControl

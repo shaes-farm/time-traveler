@@ -19,6 +19,7 @@ import {
   updateCollaboratorRole,
   addEventToTimeline,
   removeEventFromTimeline,
+  setTimelineEventSortOrder,
   addMediaToTimeline,
 } from "./timeline-service";
 
@@ -41,6 +42,7 @@ function makeBuilder(result: {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
@@ -971,6 +973,47 @@ describe("removeEventFromTimeline", () => {
     await expect(
       removeEventFromTimeline(client, "timeline-1", "event-1"),
     ).rejects.toThrow("TimelineService.removeEventFromTimeline: unlink failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setTimelineEventSortOrder
+// ---------------------------------------------------------------------------
+
+describe("setTimelineEventSortOrder", () => {
+  it("upserts the junction row keyed on (timeline_id, event_id) and returns it", async () => {
+    const row = {
+      timeline_id: "timeline-1",
+      event_id: "event-1",
+      sort_order: 3,
+    };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+
+    const result = await setTimelineEventSortOrder(
+      client,
+      "timeline-1",
+      "event-1",
+      3,
+    );
+
+    expect(result).toEqual(row);
+    expect(client.from).toHaveBeenCalledWith("timeline_events");
+    const builder = vi.mocked(client.from).mock.results[0]!.value;
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { timeline_id: "timeline-1", event_id: "event-1", sort_order: 3 },
+      { onConflict: "timeline_id,event_id" },
+    );
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "reorder failed" } },
+    });
+    await expect(
+      setTimelineEventSortOrder(client, "timeline-1", "event-1", 3),
+    ).rejects.toThrow(
+      "TimelineService.setTimelineEventSortOrder: reorder failed",
+    );
   });
 });
 

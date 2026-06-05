@@ -244,11 +244,12 @@ export async function getTimelineById(
 }
 
 /**
- * Fetches a single timeline by (userId, slug), including collaborators, linked
- * events, and linked media.
+ * Fetches a single timeline by slug under RLS (so collaborators, not just the
+ * owner, can load it), including collaborators, linked events, and linked media.
  *
- * Both `userId` and `slug` are required because the DB uniqueness constraint is
- * `UNIQUE (user_id, slug)` — slug alone is not globally unique.
+ * NOTE: the DB uniqueness constraint is `UNIQUE (user_id, slug)`, so slug is not
+ * globally unique — `.single()` can throw if a viewer can see two same-slug
+ * timelines from different owners. Lookup strategy is tracked in #234.
  */
 export async function getTimelineBySlug(
   client: SupabaseClient<Database>,
