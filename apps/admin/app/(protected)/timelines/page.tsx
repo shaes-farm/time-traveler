@@ -6,6 +6,8 @@ export const metadata = {
   title: "Timelines",
 };
 
+const loadingRowIds = ["row-1", "row-2", "row-3", "row-4", "row-5", "row-6"];
+
 export default function TimelinesPage() {
   return (
     // Suspense is required because TimelineListClient calls useSearchParams(),
@@ -13,8 +15,8 @@ export default function TimelinesPage() {
     <Suspense
       fallback={
         <div className="p-6 space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 w-full rounded-md" />
+          {loadingRowIds.map((rowId) => (
+            <Skeleton key={rowId} className="h-14 w-full rounded-md" />
           ))}
         </div>
       }
