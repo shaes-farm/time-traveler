@@ -346,10 +346,6 @@ export function TimelineListClient() {
 
   const client = React.useMemo(() => getBrowserSupabaseClient(), []);
 
-  const typesKey = types.join(",");
-  const visibilitiesKey = visibilities.join(",");
-  const publicationsKey = publications.join(",");
-
   const filters = React.useMemo(
     () =>
       buildServiceFilters(
@@ -362,11 +358,10 @@ export function TimelineListClient() {
         page,
         includeSubTimelines,
       ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      typesKey,
-      visibilitiesKey,
-      publicationsKey,
+      types,
+      visibilities,
+      publications,
       search,
       sortBy,
       sortDir,
@@ -476,9 +471,12 @@ export function TimelineListClient() {
   function handleClearAll() {
     router.replace("?", { scroll: false });
   }
-  function handleRowClick(row: TimelineRow) {
-    router.push(`/timelines/${row.slug}`);
-  }
+  const handleRowClick = React.useCallback(
+    (row: TimelineRow) => {
+      router.push(`/timelines/${row.slug}`);
+    },
+    [router],
+  );
 
   // ---------------------------------------------------------------------------
   // Filter groups
@@ -541,8 +539,7 @@ export function TimelineListClient() {
 
   const columns = React.useMemo(
     () => buildColumns(handleRowClick),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [handleRowClick],
   );
 
   // ---------------------------------------------------------------------------

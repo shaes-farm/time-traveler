@@ -10,7 +10,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import { useState, type ComponentType } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
 import { Badge } from "@repo/ui/components/badge";
 import { Button, buttonVariants } from "@repo/ui/components/button";
@@ -200,7 +200,7 @@ const DashboardEmptyState = () => (
 
 export const DashboardClient = () => {
   const { data, isPending, isError, error, refetch } = useDashboardData();
-  const [now] = React.useState(() => new Date());
+  const [now] = useState(() => new Date());
 
   const greeting =
     now.getHours() < 12
