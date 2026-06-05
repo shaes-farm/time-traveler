@@ -88,7 +88,7 @@ export function RelationshipTypeSelector({
 }: RelationshipTypeSelectorProps) {
   // Unique per-instance prefix so multiple selectors on the same page don't
   // collide on id/htmlFor pairs.
-  const idPrefix = React.useId();
+  const selectorId = React.useId();
 
   // Shared by all five per-fieldset RadioGroups. Each fieldset is its own
   // Radix RadioGroup so the role RadioGroup (rendered as a sibling within
@@ -139,11 +139,11 @@ export function RelationshipTypeSelector({
               >
                 <div className="flex items-center gap-2">
                   <RadioGroupItem
-                    id={`${idPrefix}-type-${typeValue}`}
+                    id={`${selectorId}-type-${typeValue}`}
                     value={typeValue}
                   />
                   <Label
-                    htmlFor={`${idPrefix}-type-${typeValue}`}
+                    htmlFor={`${selectorId}-type-${typeValue}`}
                     className="font-normal capitalize text-foreground"
                   >
                     {humanize(typeValue)}
@@ -156,7 +156,7 @@ export function RelationshipTypeSelector({
                   <SubRoleRadios
                     role={role}
                     options={ROLE_OPTIONS[typeValue]!}
-                    idPrefix={idPrefix}
+                    idPrefix={selectorId}
                     disabled={disabled}
                     onChange={(nextRole) => onChange({ type, role: nextRole })}
                   />
