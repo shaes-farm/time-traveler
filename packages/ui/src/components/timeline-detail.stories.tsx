@@ -368,14 +368,23 @@ function TimelineDetailPage() {
           <TabsContent value="collaborators" className="pt-4">
             <CollaboratorList
               collaborators={collaborators}
-              ownerName="Philipe Banglarian (you)"
-              onAdd={(username, role) =>
+              owner={{
+                displayName: "Philipe Banglarian (you)",
+                username: "philipeb",
+              }}
+              ownerUserId="owner-1"
+              resolveUsername={async (username) => ({
+                id: String(Date.now()),
+                username,
+                displayName: username,
+              })}
+              onAdd={(userId, role) =>
                 setCollaborators((prev) => [
                   ...prev,
                   {
-                    id: String(Date.now()),
-                    username,
-                    displayName: username,
+                    id: userId,
+                    username: userId,
+                    displayName: userId,
                     role,
                   },
                 ])

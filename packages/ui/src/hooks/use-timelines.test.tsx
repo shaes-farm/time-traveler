@@ -12,6 +12,9 @@ import {
   usePublishTimeline,
   useUnpublishTimeline,
   useTimelineCollaborators,
+  useAddCollaborator,
+  useRemoveCollaborator,
+  useUpdateCollaboratorRole,
   timelineKeys,
 } from "./use-timelines";
 
@@ -44,6 +47,9 @@ import {
   publishTimeline,
   unpublishTimeline,
   getCollaborators,
+  addCollaborator,
+  removeCollaborator,
+  updateCollaboratorRole,
 } from "@repo/services/timeline-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -296,5 +302,128 @@ describe("useTimelinesPage", () => {
     expect(
       queryClient.getQueryData(timelineKeys.list(filters)),
     ).toBeUndefined();
+  });
+});
+
+const collabRows = [
+  { timeline_id: "tl-1", user_id: "user-2", role: "viewer" },
+  { timeline_id: "tl-1", user_id: "user-3", role: "editor" },
+];
+
+describe("useAddCollaborator", () => {
+  it("calls addCollaborator and invalidates the collaborator list", async () => {
+    vi.mocked(addCollaborator).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useAddCollaborator(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      timelineId: "tl-1",
+      userId: "user-2",
+      role: "viewer",
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(addCollaborator).toHaveBeenCalledWith(
+      mockClient,
+      "tl-1",
+      "user-2",
+      "viewer",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: timelineKeys.collaborators("tl-1"),
+      }),
+    );
+  });
+});
+
+describe("useUpdateCollaboratorRole", () => {
+  it("optimistically rewrites the role in the cached list", async () => {
+    vi.mocked(updateCollaboratorRole).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(timelineKeys.collaborators("tl-1"), collabRows);
+
+    const { result } = renderHook(() => useUpdateCollaboratorRole(mockClient), {
+      wrapper,
+    });
+    result.current.mutate({
+      timelineId: "tl-1",
+      userId: "user-2",
+      role: "admin",
+    });
+
+    await waitFor(() => {
+      const rows = queryClient.getQueryData<typeof collabRows>(
+        timelineKeys.collaborators("tl-1"),
+      );
+      expect(rows?.find((r) => r.user_id === "user-2")?.role).toBe("admin");
+    });
+  });
+
+  it("rolls back the optimistic role change on error", async () => {
+    vi.mocked(updateCollaboratorRole).mockRejectedValue(new Error("fail"));
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(timelineKeys.collaborators("tl-1"), collabRows);
+
+    const { result } = renderHook(() => useUpdateCollaboratorRole(mockClient), {
+      wrapper,
+    });
+    result.current.mutate({
+      timelineId: "tl-1",
+      userId: "user-2",
+      role: "admin",
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    const rows = queryClient.getQueryData<typeof collabRows>(
+      timelineKeys.collaborators("tl-1"),
+    );
+    expect(rows?.find((r) => r.user_id === "user-2")?.role).toBe("viewer");
+  });
+});
+
+describe("useRemoveCollaborator", () => {
+  it("optimistically drops the row, then invalidates", async () => {
+    vi.mocked(removeCollaborator).mockResolvedValue(undefined as never);
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(timelineKeys.collaborators("tl-1"), collabRows);
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useRemoveCollaborator(mockClient), {
+      wrapper,
+    });
+    result.current.mutate({ timelineId: "tl-1", userId: "user-2" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(removeCollaborator).toHaveBeenCalledWith(
+      mockClient,
+      "tl-1",
+      "user-2",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: timelineKeys.collaborators("tl-1"),
+      }),
+    );
+  });
+
+  it("rolls back the optimistic removal on error", async () => {
+    vi.mocked(removeCollaborator).mockRejectedValue(new Error("fail"));
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(timelineKeys.collaborators("tl-1"), collabRows);
+
+    const { result } = renderHook(() => useRemoveCollaborator(mockClient), {
+      wrapper,
+    });
+    result.current.mutate({ timelineId: "tl-1", userId: "user-2" });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    const rows = queryClient.getQueryData<typeof collabRows>(
+      timelineKeys.collaborators("tl-1"),
+    );
+    expect(rows?.some((r) => r.user_id === "user-2")).toBe(true);
   });
 });
