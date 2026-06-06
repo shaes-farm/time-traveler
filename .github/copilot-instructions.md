@@ -136,7 +136,7 @@ Or run steps 2–6 at once (minus db:test) via `pnpm verify`.
 - **Shared packages**: Import UI components as `@repo/ui/components/button`, `@repo/ui/components/card`, etc.; hooks via `@repo/ui/hooks/*`; the Zustand store via `@repo/ui/stores`. Import `@repo/services` schemas/modules as `@repo/services/schemas/*` and `@repo/services/<entity>-service`. Import configs as `@repo/eslint-config/...` and `@repo/typescript-config/...`.
 - **Turborepo task graph**: `build` depends on `^build` (packages build before apps). Do not run per-app builds in isolation unless you have already built the packages.
 - **GitHub Actions workflows**: CI runs Lint, Type Check, Build, and Test on every push/PR. All four jobs are required status checks on `main`.
-- **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are the authoritative references for feature work. `docs/design/admin/` contains the fidelity-1 wireframes for the admin app (characters + events CRUD plus the relationships editor) — read these alongside PRD §7.11 when doing UI work in `apps/admin`. Divergences between the wireframes and PRD §7.11 are tracked in #127.
+- **Documentation**: `docs/prd/PRD-0001-time-traveler-system.md` (product requirements) and `docs/system-design.md` (architecture, schema, API design) are authoritative. `docs/design/admin/` has fidelity-1 wireframes for the admin app (IA + interaction spec for characters, events, relationships). `docs/design/public/` has comprehensive design for the public reader: UX principles, wireframes, mid-fidelity + motion + accessibility specs, interaction spec, and prototype validation. Read design alongside the PRD when doing UI work. Divergences in admin design are tracked in #127. Architectural decisions are in `docs/adr/` (index + 32 ADRs; 0001–0027 retroactively documented May 2026; 0028+ forward decisions).
 - **App package names**: The app package names are `admin` and `docs`; Turborepo references them as `admin:*` and `docs:*`.
 
 ## GitHub Tool Workarounds
@@ -168,7 +168,7 @@ If implementing a task reveals a bug in the spec (`docs/system-design.md`, PRD),
 
 ## When to Write an ADR
 
-Architectural decisions are recorded as Architecture Decision Records in `docs/adr/`. The series ADR-0001 through ADR-0032 documents every load-bearing decision made to date; the index, format rules, and process live in `docs/adr/README.md`.
+Architectural decisions are recorded as Architecture Decision Records in `docs/adr/`. The series ADR-0001 through ADR-0032 documents every load-bearing decision made to date. ADRs 0001–0027 were retroactively documented in May 2026 to close a knowledge gap; decisions 0028 onward are recorded forward as decisions are made. The index, format rules, and process live in `docs/adr/README.md`.
 
 - Write a new ADR when a decision is **hard to reverse, cross-cutting, or precedent-setting** — e.g., a new platform/dependency, a schema or RLS pattern, an API boundary, a state/data-flow choice, or a design-system rule. Routine, local, easily-reversible changes do not need one.
 - **Number new ADRs from the next free number** — the series currently runs through ADR-0032, so check `docs/adr/README.md` for the latest before numbering. Copy `docs/adr/adr-0000-template.md`, fill in every section, cite concrete evidence (a migration file/section or a doc section), and add a row to the `docs/adr/README.md` index.
