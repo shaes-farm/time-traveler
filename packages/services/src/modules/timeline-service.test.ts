@@ -11,12 +11,16 @@ import {
   deleteTimeline,
   publishTimeline,
   unpublishTimeline,
+  TimelinePublishError,
+  TimelineLookupError,
+  getTimelineEventsUnion,
   getCollaborators,
   addCollaborator,
   removeCollaborator,
   updateCollaboratorRole,
   addEventToTimeline,
   removeEventFromTimeline,
+  setTimelineEventSortOrder,
   addMediaToTimeline,
 } from "./timeline-service";
 
@@ -39,6 +43,7 @@ function makeBuilder(result: {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
@@ -112,6 +117,33 @@ const sampleCollaborator = {
   user_id: "user-456",
   role: "viewer",
   created_at: "2026-01-01T00:00:00Z",
+};
+
+const sampleEvent = {
+  id: "event-1",
+  user_id: "user-123",
+  slug: "event-one",
+  title: "Event One",
+  summary: null,
+  detail: null,
+  event_type: "milestone",
+  temporal_data: {},
+  sort_order_years: 100,
+  end_temporal_data: null,
+  sort_order_end: null,
+  computed_start_date: null,
+  computed_end_date: null,
+  location: null,
+  spatial_data: null,
+  importance: 5,
+  timeline_id: "timeline-1",
+  detail_timeline_id: null,
+  metadata: null,
+  search_vector: null,
+  published: false,
+  published_at: null,
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
 };
 
 // ---------------------------------------------------------------------------
@@ -386,25 +418,49 @@ describe("getTimelineById", () => {
 // ---------------------------------------------------------------------------
 
 describe("getTimelineBySlug", () => {
-  it("returns a timeline with relations", async () => {
-    const full = {
-      ...sampleTimeline,
-      timeline_collaborators: [],
-      timeline_events: [],
-      timeline_media: [],
-    };
-    const client = makeClient({ fromResult: { data: full, error: null } });
-    const result = await getTimelineBySlug(client, "user-123", "my-timeline");
+  const full = {
+    ...sampleTimeline,
+    timeline_collaborators: [],
+    timeline_events: [],
+    timeline_media: [],
+  };
+
+  it("returns the single matching timeline with relations", async () => {
+    const client = makeClient({ fromResult: { data: [full], error: null } });
+    const result = await getTimelineBySlug(client, "my-timeline");
     expect(result).toEqual(full);
+  });
+
+  it("throws TimelineLookupError(not_found) when no rows match", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
+      TimelineLookupError,
+    );
+    await expect(getTimelineBySlug(client, "missing")).rejects.toMatchObject({
+      code: "not_found",
+    });
+  });
+
+  it("throws TimelineLookupError(ambiguous_slug) when slug matches multiple owners", async () => {
+    const other = { ...full, id: "timeline-2", user_id: "user-456" };
+    const client = makeClient({
+      fromResult: { data: [full, other], error: null },
+    });
+    await expect(getTimelineBySlug(client, "my-timeline")).rejects.toThrow(
+      TimelineLookupError,
+    );
+    await expect(
+      getTimelineBySlug(client, "my-timeline"),
+    ).rejects.toMatchObject({ code: "ambiguous_slug" });
   });
 
   it("throws on Supabase error", async () => {
     const client = makeClient({
-      fromResult: { data: null, error: { message: "not found" } },
+      fromResult: { data: null, error: { message: "boom" } },
     });
-    await expect(
-      getTimelineBySlug(client, "user-123", "missing"),
-    ).rejects.toThrow("TimelineService.getTimelineBySlug: not found");
+    await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
+      "TimelineService.getTimelineBySlug: boom",
+    );
   });
 });
 
@@ -634,24 +690,121 @@ describe("deleteTimeline", () => {
 // ---------------------------------------------------------------------------
 
 describe("publishTimeline", () => {
-  it("returns updated row with published:true", async () => {
+  it("returns updated row with published:true when home events exist", async () => {
     const published = {
       ...sampleTimeline,
       published: true,
       published_at: "2026-01-01T00:00:00.000Z",
     };
-    const client = makeClient({ fromResult: { data: published, error: null } });
+    // Promise.all: home count + linked count in parallel, then the update.
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 1 })) // home events
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 })) // junction events
+        .mockReturnValueOnce(makeBuilder({ data: published, error: null })), // timelines update
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
     const result = await publishTimeline(client, "timeline-1");
     expect(result.published).toBe(true);
     expect(result.published_at).toBeTruthy();
   });
 
-  it("throws on Supabase error", async () => {
-    const client = makeClient({
-      fromResult: { data: null, error: { message: "publish failed" } },
-    });
+  it("returns updated row with published:true when only junction events exist", async () => {
+    const published = {
+      ...sampleTimeline,
+      published: true,
+      published_at: "2026-01-01T00:00:00.000Z",
+    };
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 })) // home events — none
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 2 })) // junction events
+        .mockReturnValueOnce(makeBuilder({ data: published, error: null })),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+    const result = await publishTimeline(client, "timeline-1");
+    expect(result.published).toBe(true);
+  });
+
+  it("throws TimelinePublishError when no events are linked", async () => {
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 })) // home events — none
+        .mockReturnValueOnce(
+          makeBuilder({ data: null, error: null, count: 0 }),
+        ), // junction events — none
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
     await expect(publishTimeline(client, "timeline-1")).rejects.toThrow(
-      "TimelineService.publishTimeline: publish failed",
+      TimelinePublishError,
+    );
+  });
+
+  it("throws on Supabase error during home event count check", async () => {
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(
+          makeBuilder({
+            data: null,
+            error: { message: "count failed" },
+            count: null,
+          }),
+        )
+        .mockReturnValueOnce(
+          makeBuilder({ data: null, error: null, count: 0 }),
+        ),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+    await expect(publishTimeline(client, "timeline-1")).rejects.toThrow(
+      "TimelineService.publishTimeline.homeEventCount: count failed",
+    );
+  });
+
+  it("throws on Supabase error during linked event count check", async () => {
+    const client = {
+      from: vi
+        .fn()
+        .mockReturnValueOnce(makeBuilder({ data: null, error: null, count: 0 }))
+        .mockReturnValueOnce(
+          makeBuilder({
+            data: null,
+            error: { message: "count failed" },
+            count: null,
+          }),
+        ),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+    await expect(publishTimeline(client, "timeline-1")).rejects.toThrow(
+      "TimelineService.publishTimeline.linkedEventCount: count failed",
     );
   });
 });
@@ -849,6 +1002,47 @@ describe("removeEventFromTimeline", () => {
 });
 
 // ---------------------------------------------------------------------------
+// setTimelineEventSortOrder
+// ---------------------------------------------------------------------------
+
+describe("setTimelineEventSortOrder", () => {
+  it("upserts the junction row keyed on (timeline_id, event_id) and returns it", async () => {
+    const row = {
+      timeline_id: "timeline-1",
+      event_id: "event-1",
+      sort_order: 3,
+    };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+
+    const result = await setTimelineEventSortOrder(
+      client,
+      "timeline-1",
+      "event-1",
+      3,
+    );
+
+    expect(result).toEqual(row);
+    expect(client.from).toHaveBeenCalledWith("timeline_events");
+    const builder = vi.mocked(client.from).mock.results[0]!.value;
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { timeline_id: "timeline-1", event_id: "event-1", sort_order: 3 },
+      { onConflict: "timeline_id,event_id" },
+    );
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "reorder failed" } },
+    });
+    await expect(
+      setTimelineEventSortOrder(client, "timeline-1", "event-1", 3),
+    ).rejects.toThrow(
+      "TimelineService.setTimelineEventSortOrder: reorder failed",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // addMediaToTimeline
 // ---------------------------------------------------------------------------
 
@@ -882,5 +1076,170 @@ describe("addMediaToTimeline", () => {
     await expect(
       addMediaToTimeline(client, "timeline-1", "media-1"),
     ).rejects.toThrow("TimelineService.addMediaToTimeline: media link failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getTimelineEventsUnion
+// ---------------------------------------------------------------------------
+
+/**
+ * Builds a client whose from() calls are served in sequence, each returning
+ * its own builder. Used for getTimelineEventsUnion which issues 2-3 queries.
+ */
+function makeSequencedClient(
+  results: { data: unknown; error: unknown; count?: number | null }[],
+): SupabaseClient<Database> {
+  let i = 0;
+  const from = vi.fn(() => {
+    const result = results[Math.min(i, results.length - 1)]!;
+    i += 1;
+    return makeBuilder(result);
+  });
+  return {
+    from,
+    auth: {
+      getUser: vi
+        .fn()
+        .mockResolvedValue({ data: { user: { id: "user-123" } }, error: null }),
+    },
+  } as unknown as SupabaseClient<Database>;
+}
+
+describe("getTimelineEventsUnion", () => {
+  it("returns home events tagged with membership 'home'", async () => {
+    const client = makeSequencedClient([
+      { data: [sampleEvent], error: null }, // events (home)
+      { data: [], error: null }, // timeline_events (junction)
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.membership).toBe("home");
+    expect(result[0]?.id).toBe("event-1");
+  });
+
+  it("returns linked events tagged with membership 'linked'", async () => {
+    const linkedEvent = { ...sampleEvent, id: "event-2", timeline_id: null };
+    const client = makeSequencedClient([
+      { data: [], error: null }, // events (home) — none
+      { data: [{ event_id: "event-2", sort_order: 0 }], error: null }, // timeline_events
+      { data: [linkedEvent], error: null }, // events .in() for linked IDs
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.membership).toBe("linked");
+    expect(result[0]?.id).toBe("event-2");
+  });
+
+  it("home wins deduplication when the same event appears in both home and junction", async () => {
+    const client = makeSequencedClient([
+      { data: [sampleEvent], error: null }, // events (home) — event-1
+      // junction also references event-1; filter removes it from linkedEventIds
+      { data: [{ event_id: "event-1", sort_order: 0 }], error: null },
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result).toHaveLength(1);
+    expect(result[0]?.membership).toBe("home");
+  });
+
+  it("sorts by junction_sort_order when any event has a non-zero editorial order", async () => {
+    const eventA = { ...sampleEvent, id: "event-a" };
+    const eventB = { ...sampleEvent, id: "event-b" };
+    const client = makeSequencedClient([
+      { data: [eventA, eventB], error: null }, // events (home)
+      {
+        data: [
+          { event_id: "event-a", sort_order: 2 },
+          { event_id: "event-b", sort_order: 1 },
+        ],
+        error: null,
+      },
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result[0]?.id).toBe("event-b");
+    expect(result[1]?.id).toBe("event-a");
+  });
+
+  it("falls back to sort_order_years when no editorial order is set", async () => {
+    const eventA = { ...sampleEvent, id: "event-a", sort_order_years: 200 };
+    const eventB = { ...sampleEvent, id: "event-b", sort_order_years: 100 };
+    const client = makeSequencedClient([
+      { data: [eventA, eventB], error: null }, // events (home)
+      {
+        data: [
+          { event_id: "event-a", sort_order: 0 },
+          { event_id: "event-b", sort_order: 0 },
+        ],
+        error: null,
+      },
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result[0]?.id).toBe("event-b"); // lower sort_order_years first
+    expect(result[1]?.id).toBe("event-a");
+  });
+
+  it("breaks editorial ties by sort_order_years then id, with sort_order=0 pushed last", async () => {
+    // event-a and event-b share editorial order 1 → tie broken by sort_order_years.
+    // event-c/event-d have sort_order 0 → pushed last, tie broken by id.
+    const eventA = { ...sampleEvent, id: "event-a", sort_order_years: 200 };
+    const eventB = { ...sampleEvent, id: "event-b", sort_order_years: 100 };
+    const eventC = { ...sampleEvent, id: "event-c", sort_order_years: 50 };
+    const eventD = { ...sampleEvent, id: "event-d", sort_order_years: 50 };
+    const client = makeSequencedClient([
+      { data: [eventA, eventB, eventC, eventD], error: null }, // events (home)
+      {
+        data: [
+          { event_id: "event-a", sort_order: 1 },
+          { event_id: "event-b", sort_order: 1 },
+          { event_id: "event-c", sort_order: 0 },
+          { event_id: "event-d", sort_order: 0 },
+        ],
+        error: null,
+      },
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result.map((e) => e.id)).toEqual([
+      "event-b", // order 1, years 100
+      "event-a", // order 1, years 200
+      "event-c", // order 0 (last), years 50, id < event-d
+      "event-d", // order 0 (last), years 50
+    ]);
+  });
+
+  it("is deterministic when sort_order and sort_order_years are equal (id tie-break)", async () => {
+    const eventY = { ...sampleEvent, id: "event-y", sort_order_years: 100 };
+    const eventX = { ...sampleEvent, id: "event-x", sort_order_years: 100 };
+    const client = makeSequencedClient([
+      { data: [eventY, eventX], error: null }, // events (home), returned y-before-x
+      {
+        data: [
+          { event_id: "event-y", sort_order: 3 },
+          { event_id: "event-x", sort_order: 3 },
+        ],
+        error: null,
+      },
+    ]);
+    const result = await getTimelineEventsUnion(client, "timeline-1");
+    expect(result.map((e) => e.id)).toEqual(["event-x", "event-y"]);
+  });
+
+  it("throws on home events query error", async () => {
+    const client = makeSequencedClient([
+      { data: null, error: { message: "home failed" } }, // events (home)
+      { data: [], error: null }, // timeline_events
+    ]);
+    await expect(getTimelineEventsUnion(client, "timeline-1")).rejects.toThrow(
+      "TimelineService.getTimelineEventsUnion(home): home failed",
+    );
+  });
+
+  it("throws on junction query error", async () => {
+    const client = makeSequencedClient([
+      { data: [], error: null }, // events (home)
+      { data: null, error: { message: "junction failed" } }, // timeline_events
+    ]);
+    await expect(getTimelineEventsUnion(client, "timeline-1")).rejects.toThrow(
+      "TimelineService.getTimelineEventsUnion(junction): junction failed",
+    );
   });
 });

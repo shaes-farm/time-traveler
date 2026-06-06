@@ -81,6 +81,35 @@ export type CreateTimelineInput = Omit<
 };
 
 // ---------------------------------------------------------------------------
+// Typed errors
+// ---------------------------------------------------------------------------
+
+export class TimelinePublishError extends Error {
+  constructor(
+    public readonly code: "no_events",
+    message: string,
+  ) {
+    super(message);
+    this.name = "TimelinePublishError";
+  }
+}
+
+/**
+ * Thrown by getTimelineBySlug when a slug resolves to zero rows (`not_found`)
+ * or — because slug is only unique per owner (`UNIQUE (user_id, slug)`) — to
+ * more than one visible row (`ambiguous_slug`).
+ */
+export class TimelineLookupError extends Error {
+  constructor(
+    public readonly code: "not_found" | "ambiguous_slug",
+    message: string,
+  ) {
+    super(message);
+    this.name = "TimelineLookupError";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
 
@@ -230,15 +259,18 @@ export async function getTimelineById(
 }
 
 /**
- * Fetches a single timeline by (userId, slug), including collaborators, linked
- * events, and linked media.
+ * Fetches a single timeline by slug under RLS (so collaborators, not just the
+ * owner, can load it), including collaborators, linked events, and linked media.
  *
- * Both `userId` and `slug` are required because the DB uniqueness constraint is
- * `UNIQUE (user_id, slug)` — slug alone is not globally unique.
+ * Because the DB uniqueness constraint is `UNIQUE (user_id, slug)`, slug is not
+ * globally unique: a viewer who can see two same-slug timelines from different
+ * owners would match multiple rows. Rather than letting `.single()` surface a
+ * raw PostgREST error, this throws a typed `TimelineLookupError` —
+ * `ambiguous_slug` for >1 match, `not_found` for 0. A future route redesign
+ * (key on UUID or owner+slug) is tracked in #234.
  */
 export async function getTimelineBySlug(
   client: SupabaseClient<Database>,
-  userId: string,
   slug: string,
 ): Promise<TimelineWithRelations> {
   const { data, error } = await client
@@ -246,12 +278,24 @@ export async function getTimelineBySlug(
     .select(
       "*, timeline_collaborators(*), timeline_events(*), timeline_media(*)",
     )
-    .eq("user_id", userId)
-    .eq("slug", slug)
-    .single();
+    .eq("slug", slug);
 
   assertNoError(error, "getTimelineBySlug");
-  return data as TimelineWithRelations;
+
+  const rows = (data ?? []) as TimelineWithRelations[];
+  if (rows.length > 1) {
+    throw new TimelineLookupError(
+      "ambiguous_slug",
+      `Slug "${slug}" matches ${rows.length} timelines; it is unique only per owner.`,
+    );
+  }
+  if (rows.length === 0) {
+    throw new TimelineLookupError(
+      "not_found",
+      `No timeline found for slug "${slug}".`,
+    );
+  }
+  return rows[0]!;
 }
 
 /**
@@ -371,6 +415,32 @@ export async function publishTimeline(
   client: SupabaseClient<Database>,
   id: string,
 ): Promise<TimelineRow> {
+  // Check both home events (events.timeline_id) and junction events (timeline_events)
+  // to match what the UI shows via getTimelineEventsUnion.
+  const [
+    { count: homeCount, error: homeErr },
+    { count: linkedCount, error: linkedErr },
+  ] = await Promise.all([
+    client
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("timeline_id", id),
+    client
+      .from("timeline_events")
+      .select("*", { count: "exact", head: true })
+      .eq("timeline_id", id),
+  ]);
+
+  assertNoError(homeErr, "publishTimeline.homeEventCount");
+  assertNoError(linkedErr, "publishTimeline.linkedEventCount");
+
+  if ((homeCount ?? 0) + (linkedCount ?? 0) === 0) {
+    throw new TimelinePublishError(
+      "no_events",
+      "Cannot publish a timeline with no linked events.",
+    );
+  }
+
   const { data, error } = await client
     .from("timelines")
     .update({ published: true, published_at: new Date().toISOString() })
@@ -557,5 +627,139 @@ export async function addMediaToTimeline(
     .single();
 
   assertNoError(error, "addMediaToTimeline");
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Union query: home + linked events for the detail page Events tab
+// ---------------------------------------------------------------------------
+
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
+
+/** An event row tagged with its containment relationship to this timeline. */
+export interface TimelineEventWithMembership extends EventRow {
+  /** "home" = primary timeline_id points here; "linked" = via timeline_events junction. */
+  membership: "home" | "linked";
+  /** The sort_order from the timeline_events junction row (0 when not set). */
+  junction_sort_order: number;
+}
+
+/**
+ * Returns all events for a timeline as a merged, sorted list.
+ *
+ * "Home" events have `events.timeline_id = timelineId`.
+ * "Linked" events are connected via the `timeline_events` junction table.
+ *
+ * If any junction row has a non-zero `sort_order`, results are ordered by
+ * `junction_sort_order ASC` (editorial order). Otherwise results fall back to
+ * `sort_order_years ASC` (chronological). Home events win deduplication when
+ * an event appears in both sets.
+ */
+export async function getTimelineEventsUnion(
+  client: SupabaseClient<Database>,
+  timelineId: string,
+): Promise<TimelineEventWithMembership[]> {
+  const [homeResult, junctionResult] = await Promise.all([
+    client.from("events").select("*").eq("timeline_id", timelineId),
+    client
+      .from("timeline_events")
+      .select("event_id, sort_order")
+      .eq("timeline_id", timelineId),
+  ]);
+
+  assertNoError(homeResult.error, "getTimelineEventsUnion(home)");
+  assertNoError(junctionResult.error, "getTimelineEventsUnion(junction)");
+
+  const homeRows = (homeResult.data ?? []) as EventRow[];
+  const junctionRows = junctionResult.data ?? [];
+
+  const homeIds = new Set(homeRows.map((e) => e.id));
+
+  const linkedEventIds = junctionRows
+    .map((j) => j.event_id)
+    .filter((id) => !homeIds.has(id));
+
+  let linkedRows: EventRow[] = [];
+  if (linkedEventIds.length > 0) {
+    const { data, error } = await client
+      .from("events")
+      .select("*")
+      .in("id", linkedEventIds);
+    assertNoError(error, "getTimelineEventsUnion(linked)");
+    linkedRows = (data ?? []) as EventRow[];
+  }
+
+  const sortOrderMap = new Map<string, number>();
+  for (const j of junctionRows) {
+    sortOrderMap.set(j.event_id, j.sort_order ?? 0);
+  }
+
+  const merged: TimelineEventWithMembership[] = [
+    ...homeRows.map((e) => ({
+      ...e,
+      membership: "home" as const,
+      junction_sort_order: sortOrderMap.get(e.id) ?? 0,
+    })),
+    ...linkedRows.map((e) => ({
+      ...e,
+      membership: "linked" as const,
+      junction_sort_order: sortOrderMap.get(e.id) ?? 0,
+    })),
+  ];
+
+  const hasEditorialOrder = merged.some((e) => e.junction_sort_order !== 0);
+
+  // Stable tie-break shared by both ordering modes so the list is deterministic
+  // across fetches (DB row order is not guaranteed): chronological, then id.
+  const byChronologyThenId = (
+    a: TimelineEventWithMembership,
+    b: TimelineEventWithMembership,
+  ) =>
+    (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0) ||
+    a.id.localeCompare(b.id);
+
+  if (hasEditorialOrder) {
+    merged.sort((a, b) => {
+      // Treat sort_order=0 as "not yet placed" and push those events after explicit positions.
+      if (a.junction_sort_order === 0 && b.junction_sort_order !== 0) return 1;
+      if (a.junction_sort_order !== 0 && b.junction_sort_order === 0) return -1;
+      // Within the same editorial position (incl. all-zero ties), fall back to
+      // chronological then id so equal/unset values have a stable order.
+      return (
+        a.junction_sort_order - b.junction_sort_order ||
+        byChronologyThenId(a, b)
+      );
+    });
+  } else {
+    merged.sort(byChronologyThenId);
+  }
+
+  return merged;
+}
+
+/**
+ * Sets the editorial sort_order for an event on a timeline.
+ *
+ * For "linked" events this upserts into the `timeline_events` junction row.
+ * For "home" events (where `events.timeline_id = timelineId`) a junction row is
+ * upserted so all events share a single editorial ordering mechanism once manual
+ * reordering begins.
+ */
+export async function setTimelineEventSortOrder(
+  client: SupabaseClient<Database>,
+  timelineId: string,
+  eventId: string,
+  sortOrder: number,
+): Promise<TimelineEventRow> {
+  const { data, error } = await client
+    .from("timeline_events")
+    .upsert(
+      { timeline_id: timelineId, event_id: eventId, sort_order: sortOrder },
+      { onConflict: "timeline_id,event_id" },
+    )
+    .select()
+    .single();
+
+  assertNoError(error, "setTimelineEventSortOrder");
   return data;
 }

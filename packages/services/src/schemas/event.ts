@@ -28,8 +28,9 @@ export const eventSchema = z.object({
   importance: z.number().int().min(1).max(10).default(5),
   // Fractal nesting is forward-only via detail_timeline_id (#177); the backward
   // event-to-event parent_event_id field is retired (#180).
-  timeline_id: z.string().uuid().optional(),
-  detail_timeline_id: z.string().uuid().optional(),
+  // Both fields are nullable — null explicitly clears the association (e.g. unlinking a home event).
+  timeline_id: z.string().uuid().nullish(),
+  detail_timeline_id: z.string().uuid().nullish(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
