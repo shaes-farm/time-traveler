@@ -55,6 +55,7 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import {
+  timelineKeys,
   useTimelineCollaborators,
   usePublishTimeline,
   useUnpublishTimeline,
@@ -797,7 +798,11 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     isPending: timelinePending,
     isError: timelineError,
   } = useQuery({
-    queryKey: ["timeline-detail-slug", slug],
+    // Key under the timelines namespace so timeline mutations (publish/unpublish,
+    // collaborator changes) that invalidate `timelineKeys.all` also refresh this
+    // page. The trailing "detail-auth" distinguishes its { timeline, userId }
+    // shape from the shared useTimelineBySlug cache entry.
+    queryKey: [...timelineKeys.bySlug(slug), "detail-auth"],
     queryFn: async () => {
       const {
         data: { user },
