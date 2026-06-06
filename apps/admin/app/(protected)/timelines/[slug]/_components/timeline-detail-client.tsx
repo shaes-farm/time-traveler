@@ -199,7 +199,7 @@ function EventRowItem({
   onUnlink,
 }: EventRowProps) {
   return (
-    <div className="flex items-center gap-2 px-4 py-3 border rounded-md bg-background hover:bg-muted/30 transition-colors">
+    <div className="flex items-center gap-2 px-4 py-3 border border-border rounded-md bg-background hover:bg-muted/30 transition-colors">
       {canEdit && (
         <div className="flex flex-col gap-0.5 shrink-0">
           <button
@@ -485,7 +485,7 @@ function MediaTab({
           {mediaItems.map((item, idx) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 px-4 py-3 border rounded-md bg-background"
+              className="flex items-center gap-3 px-4 py-3 border border-border rounded-md bg-background"
             >
               {canEdit && (
                 <div className="flex flex-col gap-0.5 shrink-0">
