@@ -397,18 +397,32 @@ function EventsTab({
 }
 
 // ---------------------------------------------------------------------------
-// PeriodsTab — read-only stub
+// PeriodsTab — empty state (period linking lands in Phase 6; see #44)
 // ---------------------------------------------------------------------------
 
-function PeriodsTab() {
+function PeriodsTab({ canEdit }: { canEdit: boolean }) {
+  // No periods are associated with timelines yet, so this is always empty for
+  // now. Mirrors MediaTab: show the real empty state and surface the not-yet-
+  // built management affordance as a disabled button, not as headline copy.
   return (
-    <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
-      <p className="text-sm font-medium">
-        Period management arrives in a later release.
-      </p>
-      <p className="text-xs">
-        Periods will be linkable and viewable here in Phase 6.
-      </p>
+    <div className="space-y-3">
+      {canEdit && (
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled
+            title="Period management coming in a later release"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Link period
+          </Button>
+        </div>
+      )}
+
+      <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+        <p className="text-sm">No periods associated with this timeline.</p>
+      </div>
     </div>
   );
 }
@@ -1168,7 +1182,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
         </TabsContent>
 
         <TabsContent value="periods" className="pt-4">
-          <PeriodsTab />
+          <PeriodsTab canEdit={canEdit} />
         </TabsContent>
 
         <TabsContent value="collaborators" className="pt-4">
