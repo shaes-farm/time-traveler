@@ -26,7 +26,7 @@ For the product specification, see [`docs/prd/PRD-0001-time-traveler-system.md`]
 
 ## Status
 
-**Greenfield, mid-development.** The Supabase layer is largely complete: 19 numbered migrations cover schema, RLS, indexes, views, functions, storage, and follow-up data-integrity fixes, with pgTAP tests for the database surface. `apps/admin` is under active development against the fidelity-1 wireframes in [`docs/design/admin/`](docs/design/admin/) — auth, the app shell, dashboard, entity list pages, the timeline create/edit editor, and a public reader are in place. `apps/docs` is still Turborepo boilerplate.
+**Greenfield, mid-development.** The Supabase layer is largely complete: 19 numbered migrations cover schema, RLS, indexes, views, functions, storage, and follow-up data-integrity fixes, with pgTAP tests for the database surface. `apps/admin` is under active development against fidelity-1 wireframes in [`docs/design/admin/`](docs/design/admin/) — auth, the app shell, dashboard, entity list pages, and the timeline create/edit editor are in place. The public-facing reader is designed (comprehensive UX artifacts in [`docs/design/public/`](docs/design/public/)) but not yet implemented; it will live in a dedicated `apps/reader` per [ADR-0030](docs/adr/adr-0030-public-reader-app-placement.md). All 32 load-bearing architectural decisions are documented in [`docs/adr/`](docs/adr/) — the first 27 were retroactively recorded in May 2026; the series continues with forward decisions (0028 onward). `apps/docs` is still Turborepo boilerplate.
 
 ## Stack
 
@@ -95,8 +95,8 @@ Run all five; each must pass:
 pnpm run format:check     # Prettier format check
 pnpm run check-types      # TypeScript: next typegen + tsc --noEmit
 pnpm run lint             # ESLint with --max-warnings 0 (warnings fail)
-pnpm run build            # Turborepo: build all packages and apps
 pnpm run test:coverage    # Vitest with 80% coverage threshold
+pnpm run build            # Turborepo: build all packages and apps
 ```
 
 For database schema changes also run:
@@ -122,12 +122,36 @@ Manual dataset seeding docs: [docs/seeding-discovery.md](docs/seeding-discovery.
 
 ## Documentation
 
+### Product & System
+
 | Document                                         | Purpose                                                        |
 | ------------------------------------------------ | -------------------------------------------------------------- |
 | [PRD](docs/prd/PRD-0001-time-traveler-system.md) | Product requirements and functional specs (authoritative)      |
 | [System Design](docs/system-design.md)           | Architecture, schema, RLS policies, API design (authoritative) |
-| [Admin Design Wireframes](docs/design/admin/)    | Fidelity-1 IA + interaction spec for the admin app             |
-| [Historical Papers](docs/historical-papers/)     | Reference material                                             |
+
+### Design Artifacts
+
+| Document                                                                                | Purpose                                                                  |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [Admin Design](docs/design/admin/)                                                      | Fidelity-1 wireframes, IA, interaction spec, and aesthetic notes         |
+| [Public Reader Design](docs/design/public/)                                             | Complete UX design for public-facing timeline explorer and story browser |
+| [Public Reader Motion Spec](docs/design/public/06-mid-fidelity/motion-spec.md)          | Animation durations, easing, reduced-motion contract                     |
+| [Public Reader Accessibility](docs/design/public/06-mid-fidelity/accessibility-spec.md) | WCAG compliance + keyboard navigation spec                               |
+
+### Architecture & Decisions
+
+| Document                        | Purpose                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------- |
+| [ADR Index](docs/adr/README.md) | All 32 load-bearing architectural decisions (retroactive 0001–0027, forward 0028–0032) |
+
+**Notable ADRs:** [0001 Supabase](docs/adr/adr-0001-supabase-backend-platform.md) • [0005 Temporal system](docs/adr/adr-0005-hybrid-temporal-system.md) • [0014 RLS](docs/adr/adr-0014-rls-single-source-of-authorization.md) • [0030 Public reader placement](docs/adr/adr-0030-public-reader-app-placement.md)
+
+### Reference
+
+| Document                                       | Purpose                   |
+| ---------------------------------------------- | ------------------------- |
+| [Historical Papers](docs/historical-papers/)   | Domain research material  |
+| [Seeding Discovery](docs/seeding-discovery.md) | Manual dataset seed guide |
 
 For working in the codebase, see also [`CLAUDE.md`](CLAUDE.md) (guidance for Claude Code agents) and [`.github/copilot-instructions.md`](.github/copilot-instructions.md) (guidance for GitHub Copilot).
 
