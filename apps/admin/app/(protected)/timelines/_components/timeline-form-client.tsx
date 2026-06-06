@@ -372,6 +372,11 @@ export function TimelineFormClient(props: Props) {
     enabled: isEdit,
   });
 
+  // Cancel returns to the timeline being edited (its detail page); when
+  // creating, there is no detail page yet, so fall back to the list.
+  const cancelHref =
+    props.mode === "edit" ? `/timelines/${props.slug}` : "/timelines";
+
   const form = useForm<TimelineFormValues>({
     resolver: zodResolver(timelineFormSchema) as Resolver<TimelineFormValues>,
     defaultValues: BLANK_VALUES,
@@ -585,7 +590,7 @@ export function TimelineFormClient(props: Props) {
               type="button"
               variant="ghost"
               size="sm"
-              onClick={() => guard.requestNavigate("/timelines")}
+              onClick={() => guard.requestNavigate(cancelHref)}
             >
               Cancel
             </Button>
