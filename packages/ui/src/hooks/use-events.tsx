@@ -11,6 +11,7 @@ import {
 } from "@tanstack/react-query";
 import {
   getEvents,
+  getEventsPage,
   getEventById,
   getEventBySlug,
   createEvent,
@@ -46,6 +47,8 @@ export const eventKeys = {
   all: ["events"] as const,
   lists: () => [...eventKeys.all, "list"] as const,
   list: (filters: EventFilters) => [...eventKeys.lists(), filters] as const,
+  page: (filters: EventFilters) =>
+    [...eventKeys.lists(), "page", filters] as const,
   details: () => [...eventKeys.all, "detail"] as const,
   detail: (id: string) => [...eventKeys.details(), id] as const,
   bySlug: (userId: string, slug: string) =>
@@ -71,6 +74,27 @@ export function useEvents(
   return useQuery({
     queryKey: eventKeys.list(filters),
     queryFn: () => getEvents(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/**
+ * Fetch a paginated, filtered page of events together with the total filtered
+ * count and per-row category/participant/media data — the canonical hook for
+ * the events list page.
+ */
+export function useEventsPage(
+  client: ServiceClient,
+  filters: EventFilters = {},
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getEventsPage>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: eventKeys.page(filters),
+    queryFn: () => getEventsPage(client, filters),
     staleTime: 30_000,
     ...options,
   });

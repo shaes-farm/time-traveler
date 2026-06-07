@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../supabase/types";
 import {
   getEvents,
+  getEventsPage,
   getEventById,
   getEventBySlug,
   createEvent,
@@ -26,7 +27,11 @@ import {
 // Mock builder helpers
 // ---------------------------------------------------------------------------
 
-function makeBuilder(result: { data: unknown; error: unknown }) {
+function makeBuilder(result: {
+  data: unknown;
+  error: unknown;
+  count?: unknown;
+}) {
   const terminal = vi.fn().mockResolvedValue(result);
   const builder = {
     select: vi.fn().mockReturnThis(),
@@ -37,6 +42,9 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     in: vi.fn().mockReturnThis(),
     gte: vi.fn().mockReturnThis(),
     lte: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
@@ -48,7 +56,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
 }
 
 function makeClient(overrides: {
-  fromResult?: { data: unknown; error: unknown };
+  fromResult?: { data: unknown; error: unknown; count?: unknown };
   authUser?: { data: { user: unknown }; error: unknown };
 }) {
   const { fromResult = { data: null, error: null }, authUser } = overrides;
@@ -253,6 +261,177 @@ describe("getEvents", () => {
     });
     await expect(getEvents(client)).rejects.toThrow(
       "EventService.getEvents: DB error",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getEventsPage
+// ---------------------------------------------------------------------------
+
+describe("getEventsPage", () => {
+  function pageClient(count: number, rows: unknown[] = []) {
+    return makeClient({ fromResult: { data: rows, count, error: null } });
+  }
+  function firstBuilder(client: SupabaseClient<Database>) {
+    return (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+  }
+
+  it("returns rows and the total filtered count", async () => {
+    const row = {
+      ...sampleEvent,
+      event_categories: [
+        { categories: { id: "cat-1", title: "Physics", color: null } },
+      ],
+      event_characters: [{ count: 2 }],
+      event_media: [{ count: 0 }],
+    };
+    const client = pageClient(312, [row]);
+    const result = await getEventsPage(client);
+    expect(result.rows).toEqual([row]);
+    expect(result.total).toBe(312);
+  });
+
+  it("returns empty rows and zero total when data is null", async () => {
+    const client = makeClient({
+      fromResult: { data: null, count: null, error: null },
+    });
+    const result = await getEventsPage(client);
+    expect(result.rows).toEqual([]);
+    expect(result.total).toBe(0);
+  });
+
+  it("requests an exact count", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client);
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining("event_categories(categories(id, title, color))"),
+      { count: "exact" },
+    );
+  });
+
+  it("filters a single event type with eq", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { eventType: "discovery" });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith(
+      "event_type",
+      "discovery",
+    );
+  });
+
+  it("filters multiple event types with in", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { eventType: ["discovery", "conflict"] });
+    expect(firstBuilder(client).in).toHaveBeenCalledWith("event_type", [
+      "discovery",
+      "conflict",
+    ]);
+  });
+
+  it("applies an importance range with gte/lte", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { importanceMin: 7, importanceMax: 9 });
+    const builder = firstBuilder(client);
+    expect(builder.gte).toHaveBeenCalledWith("importance", 7);
+    expect(builder.lte).toHaveBeenCalledWith("importance", 9);
+  });
+
+  it("filters era against the temporal_data JSONB via or", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { era: ["CE", "BCE"] });
+    expect(firstBuilder(client).or).toHaveBeenCalledWith(
+      "temporal_data->>era.eq.CE,temporal_data->>era.eq.BCE",
+    );
+  });
+
+  it("applies a sort_order_years temporal window", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { sortStart: -66_000_000, sortEnd: 2000 });
+    const builder = firstBuilder(client);
+    expect(builder.gte).toHaveBeenCalledWith("sort_order_years", -66_000_000);
+    expect(builder.lte).toHaveBeenCalledWith("sort_order_years", 2000);
+  });
+
+  it("filters by published state", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { published: true });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith("published", true);
+  });
+
+  it("forces an inner join for has-participants", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { hasParticipants: true });
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining("event_characters!inner(count)"),
+      { count: "exact" },
+    );
+  });
+
+  it("forces an inner join for has-media", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { hasMedia: true });
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining("event_media!inner(count)"),
+      { count: "exact" },
+    );
+  });
+
+  it("filters expandable drill-down events with not-null", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { detailScope: "expandable" });
+    expect(firstBuilder(client).not).toHaveBeenCalledWith(
+      "detail_timeline_id",
+      "is",
+      null,
+    );
+  });
+
+  it("filters leaf events with is-null", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { detailScope: "leaf" });
+    expect(firstBuilder(client).is).toHaveBeenCalledWith(
+      "detail_timeline_id",
+      null,
+    );
+  });
+
+  it("defaults to sort_order_years ascending", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client);
+    expect(firstBuilder(client).order).toHaveBeenCalledWith(
+      "sort_order_years",
+      {
+        ascending: true,
+        nullsFirst: false,
+      },
+    );
+  });
+
+  it("honours an explicit sort column and direction", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, {
+      sortBy: "importance",
+      sortDirection: "desc",
+    });
+    expect(firstBuilder(client).order).toHaveBeenCalledWith("importance", {
+      ascending: false,
+      nullsFirst: false,
+    });
+  });
+
+  it("clamps pageSize>100 to 100", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { page: 1, pageSize: 999 });
+    expect(firstBuilder(client).range).toHaveBeenCalledWith(0, 99);
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, count: null, error: { message: "DB error" } },
+    });
+    await expect(getEventsPage(client)).rejects.toThrow(
+      "EventService.getEventsPage: DB error",
     );
   });
 });
