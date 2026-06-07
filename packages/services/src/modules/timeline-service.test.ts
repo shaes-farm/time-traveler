@@ -581,6 +581,58 @@ describe("createTimeline", () => {
     );
   });
 
+  it("retries on a 23505 unique violation and succeeds", async () => {
+    let callIndex = 0;
+    // fetchSlugs → insert collides (23505) → retried insert succeeds
+    const fromResults = [
+      { data: [], error: null },
+      { data: null, error: { code: "23505", message: "unique violation" } },
+      { data: sampleTimeline, error: null },
+    ];
+
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        const result = fromResults[callIndex++] ?? { data: null, error: null };
+        return makeQuery(result);
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    const result = await createTimeline(client, minimalCreateInput);
+    expect(result).toEqual(sampleTimeline);
+    expect(callIndex).toBe(3);
+  });
+
+  it("propagates a non-collision insert error", async () => {
+    let callIndex = 0;
+    const fromResults = [
+      { data: [], error: null },
+      { data: null, error: { message: "insert failed" } },
+    ];
+
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        const result = fromResults[callIndex++] ?? { data: null, error: null };
+        return makeQuery(result);
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await expect(createTimeline(client, minimalCreateInput)).rejects.toThrow(
+      "TimelineService.createTimeline: insert failed",
+    );
+  });
+
   it("throws on slug fetch error", async () => {
     const client = {
       from: vi

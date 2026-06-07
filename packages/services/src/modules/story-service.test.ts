@@ -266,6 +266,43 @@ describe("createStory", () => {
       createStory(client, { title: "Test", narrator_type: "second_person" }),
     ).rejects.toThrow();
   });
+
+  it("retries on a 23505 unique violation and succeeds", async () => {
+    let callCount = 0;
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) return makeBuilder({ data: [], error: null });
+        if (callCount === 2) {
+          return makeBuilder({
+            data: null,
+            error: { code: "23505", message: "unique violation" },
+          });
+        }
+        return makeBuilder({ data: sampleStory, error: null });
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    const result = await createStory(client, { title: "My Story" });
+    expect(result).toEqual(sampleStory);
+    expect(callCount).toBe(3);
+  });
+
+  it("propagates a non-collision insert error", async () => {
+    const client = makeCreateClient({
+      data: null,
+      error: { message: "insert failed" },
+    });
+    await expect(createStory(client, { title: "My Story" })).rejects.toThrow(
+      "StoryService.createStory: insert failed",
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
