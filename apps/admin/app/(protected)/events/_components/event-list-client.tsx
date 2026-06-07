@@ -57,6 +57,8 @@ const ERAS: { value: Era; label: string }[] = [
 ];
 const VALID_ERAS = new Set<string>(ERAS.map((e) => e.value));
 
+const VALID_PUBLICATIONS = new Set<string>(["published", "draft"]);
+
 const SORT_LABELS: Record<string, string> = {
   sort_order_years: "Date",
   title: "Title",
@@ -169,15 +171,21 @@ function readFiltersFromParams(params: URLSearchParams): ParsedFilters {
   const detailScope: EventDetailScope =
     rawScope === "expandable" || rawScope === "leaf" ? rawScope : "all";
 
+  // Sanitize multi-value params against their known option sets at parse time,
+  // so the parsed state (which drives the "filtered" header and the rail
+  // checkboxes) stays consistent with what the query actually applies — an
+  // unknown ?type=bogus must not register as an active filter.
   return {
-    types: csvToArray(params.get("type")),
-    eras: csvToArray(params.get("era")),
+    types: csvToArray(params.get("type")).filter((t) => VALID_TYPES.has(t)),
+    eras: csvToArray(params.get("era")).filter((e) => VALID_ERAS.has(e)),
     importance: [Math.min(imin, imax), Math.max(imin, imax)],
     timelineId: params.get("tl") ?? "",
     participants,
     media,
     detailScope,
-    publications: csvToArray(params.get("pub")),
+    publications: csvToArray(params.get("pub")).filter((p) =>
+      VALID_PUBLICATIONS.has(p),
+    ),
     search: params.get("q") ?? "",
     sortBy,
     sortDir: params.get("dir") === "desc" ? "desc" : "asc",
