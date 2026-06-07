@@ -41,8 +41,9 @@ const INITIAL: Collaborator[] = [
 ];
 
 // Demo resolver — pretends any typed username resolves to a fresh profile.
+// In stories, use the username as the id so the added row renders meaningfully.
 const demoResolve = async (username: string): Promise<ResolvedProfile> => ({
-  id: String(Date.now()),
+  id: username,
   username,
   displayName: username,
 });
