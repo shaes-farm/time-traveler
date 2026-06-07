@@ -300,6 +300,51 @@ describe("createPeriod", () => {
       }),
     ).rejects.toThrow("PeriodService.createPeriod: no authenticated user");
   });
+
+  it("retries on a 23505 unique violation and succeeds", async () => {
+    let callCount = 0;
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) return makeBuilder({ data: [], error: null });
+        if (callCount === 2) {
+          return makeBuilder({
+            data: null,
+            error: { code: "23505", message: "unique violation" },
+          });
+        }
+        return makeBuilder({ data: samplePeriod, error: null });
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    const result = await createPeriod(client, {
+      title: "Middle Ages",
+      significance: "high",
+      temporal_data: sampleTemporalData,
+    });
+    expect(result).toEqual(samplePeriod);
+    expect(callCount).toBe(3);
+  });
+
+  it("propagates a non-collision insert error", async () => {
+    const client = makeCreateClient({
+      data: null,
+      error: { message: "insert failed" },
+    });
+    await expect(
+      createPeriod(client, {
+        title: "Middle Ages",
+        significance: "high",
+        temporal_data: sampleTemporalData,
+      }),
+    ).rejects.toThrow("PeriodService.createPeriod: insert failed");
+  });
 });
 
 // ---------------------------------------------------------------------------

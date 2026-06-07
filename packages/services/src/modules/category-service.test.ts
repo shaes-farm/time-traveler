@@ -227,6 +227,57 @@ describe("createCategory", () => {
       "CategoryService.createCategory.getUser: auth error",
     );
   });
+
+  it("throws when there is no authenticated user", async () => {
+    const client = makeCreateClient({ data: null, error: null });
+    (client.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: { user: null },
+      error: null,
+    });
+    await expect(createCategory(client, { title: "Test" })).rejects.toThrow(
+      "CategoryService.createCategory: no authenticated user",
+    );
+  });
+
+  it("retries on a 23505 unique violation and succeeds", async () => {
+    let callCount = 0;
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        callCount++;
+        // Call 1: slug fetch
+        if (callCount === 1) return makeBuilder({ data: [], error: null });
+        // Call 2: first insert collides
+        if (callCount === 2) {
+          return makeBuilder({
+            data: null,
+            error: { code: "23505", message: "unique violation" },
+          });
+        }
+        // Call 3: retried insert succeeds
+        return makeBuilder({ data: sampleCategory, error: null });
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    const result = await createCategory(client, { title: "Ancient History" });
+    expect(result).toEqual(sampleCategory);
+    expect(callCount).toBe(3);
+  });
+
+  it("propagates a non-collision insert error", async () => {
+    const client = makeCreateClient({
+      data: null,
+      error: { message: "insert failed" },
+    });
+    await expect(
+      createCategory(client, { title: "Ancient History" }),
+    ).rejects.toThrow("CategoryService.createCategory: insert failed");
+  });
 });
 
 // ---------------------------------------------------------------------------

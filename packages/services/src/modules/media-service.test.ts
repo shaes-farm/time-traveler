@@ -307,6 +307,59 @@ describe("uploadMedia", () => {
       uploadMedia(client, { file: new Blob(["x"]), fileName: "file.jpg" }),
     ).rejects.toThrow("MediaService.uploadMedia.getUser: auth error");
   });
+
+  it("throws when there is no authenticated user", async () => {
+    const client = makeUploadClient({
+      insertResult: { data: null, error: null },
+    });
+    (client.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: { user: null },
+      error: null,
+    });
+    await expect(
+      uploadMedia(client, { file: new Blob(["x"]), fileName: "file.jpg" }),
+    ).rejects.toThrow("MediaService.uploadMedia: no authenticated user");
+  });
+
+  it("propagates a non-collision insert error", async () => {
+    const client = makeUploadClient({
+      insertResult: { data: null, error: { message: "insert failed" } },
+    });
+    await expect(
+      uploadMedia(client, { file: new Blob(["x"]), fileName: "file.jpg" }),
+    ).rejects.toThrow("MediaService.uploadMedia: insert failed");
+  });
+
+  it("retries on a 23505 unique violation and succeeds", async () => {
+    let callCount = 0;
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) return makeBuilder({ data: [], error: null });
+        if (callCount === 2) {
+          return makeBuilder({
+            data: null,
+            error: { code: "23505", message: "unique violation" },
+          });
+        }
+        return makeBuilder({ data: sampleMedia, error: null });
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+      storage: { from: vi.fn().mockReturnValue(makeStorageBucket({})) },
+    } as unknown as SupabaseClient<Database>;
+
+    const result = await uploadMedia(client, {
+      file: new Blob(["x"]),
+      fileName: "photo.jpg",
+    });
+    expect(result).toEqual(sampleMedia);
+    expect(callCount).toBe(3);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -353,6 +406,60 @@ describe("createExternalMedia", () => {
     await expect(
       createExternalMedia(client, { url: "https://example.com/img.jpg" }),
     ).rejects.toThrow("MediaService.createExternalMedia.getUser: auth error");
+  });
+
+  it("throws when there is no authenticated user", async () => {
+    const client = makeUploadClient({
+      insertResult: { data: null, error: null },
+    });
+    (client.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: { user: null },
+      error: null,
+    });
+    await expect(
+      createExternalMedia(client, { url: "https://example.com/img.jpg" }),
+    ).rejects.toThrow(
+      "MediaService.createExternalMedia: no authenticated user",
+    );
+  });
+
+  it("retries on a 23505 unique violation and succeeds", async () => {
+    let callCount = 0;
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) return makeBuilder({ data: [], error: null });
+        if (callCount === 2) {
+          return makeBuilder({
+            data: null,
+            error: { code: "23505", message: "unique violation" },
+          });
+        }
+        return makeBuilder({ data: externalMedia, error: null });
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+      storage: { from: vi.fn().mockReturnValue(makeStorageBucket({})) },
+    } as unknown as SupabaseClient<Database>;
+
+    const result = await createExternalMedia(client, {
+      url: "https://external.com/image.jpg",
+    });
+    expect(result).toEqual(externalMedia);
+    expect(callCount).toBe(3);
+  });
+
+  it("propagates a non-collision insert error", async () => {
+    const client = makeUploadClient({
+      insertResult: { data: null, error: { message: "insert failed" } },
+    });
+    await expect(
+      createExternalMedia(client, { url: "https://external.com/image.jpg" }),
+    ).rejects.toThrow("MediaService.createExternalMedia: insert failed");
   });
 });
 
