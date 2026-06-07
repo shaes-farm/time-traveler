@@ -410,7 +410,13 @@ function buildColumns(
     },
     {
       accessorKey: "importance",
-      header: "★",
+      // Star glyph for sighted users; sr-only text so the column is announced.
+      header: () => (
+        <>
+          <span aria-hidden>★</span>
+          <span className="sr-only">Importance</span>
+        </>
+      ),
       enableSorting: false,
       cell: ({ getValue }: { getValue: () => unknown }) => (
         <ImportanceCell value={getValue() as number | null} />
@@ -479,7 +485,13 @@ export function EventListClient() {
   const { data, isPending, isError, refetch } = useEventsPage(client, filters);
 
   // Timelines power both the "Timeline" filter options and the per-row
-  // timeline-name lookup. Fetched once at a large page size.
+  // timeline-name/slug lookup. Fetched once at a large page size.
+  //
+  // KNOWN LIMITATION (#46-adjacent follow-up): this caps at 100 timelines. A
+  // user with more gets an incomplete filter dropdown and unresolved names/slugs
+  // on some rows — the ⤵ drill-down degrades to a non-clickable indicator
+  // (handled in buildColumns), but the dropdown omission is silent. The real fix
+  // is an async/searchable timeline picker; tracked as a separate enhancement.
   const { data: timelineData } = useTimelinesPage(client, {
     pageSize: 100,
     sortBy: "title",
@@ -514,7 +526,10 @@ export function EventListClient() {
     parsed.participants !== "any" ||
     parsed.media !== "any" ||
     parsed.detailScope !== "all" ||
-    parsed.publications.length > 0 ||
+    // Both (or neither) published+draft selected narrows nothing — buildService-
+    // Filters only applies the predicate when exactly one is checked, so only
+    // that case counts as an active filter for the header.
+    parsed.publications.length === 1 ||
     parsed.search.length > 0;
 
   // ---------------------------------------------------------------------------

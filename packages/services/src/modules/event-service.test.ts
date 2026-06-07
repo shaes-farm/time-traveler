@@ -387,32 +387,34 @@ describe("getEventsPage", () => {
     expect(firstBuilder(client).eq).toHaveBeenCalledWith("published", true);
   });
 
-  it("keeps events with participants via not.is.null", async () => {
+  it("keeps events with participants via an !inner embed", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasParticipants: true });
-    expect(firstBuilder(client).not).toHaveBeenCalledWith(
-      "event_characters",
-      "is",
-      null,
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining("event_characters!inner(count)"),
+      { count: "exact" },
     );
   });
 
   it("keeps events with no participants via is.null", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasParticipants: false });
-    expect(firstBuilder(client).is).toHaveBeenCalledWith(
-      "event_characters",
-      null,
+    const builder = firstBuilder(client);
+    expect(builder.is).toHaveBeenCalledWith("event_characters", null);
+    // The false branch must use a plain embed so the null-filter can match
+    // parents with zero children — never the !inner form.
+    expect(builder.select).toHaveBeenCalledWith(
+      expect.stringContaining("event_characters(count)"),
+      { count: "exact" },
     );
   });
 
-  it("keeps events with media via not.is.null", async () => {
+  it("keeps events with media via an !inner embed", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasMedia: true });
-    expect(firstBuilder(client).not).toHaveBeenCalledWith(
-      "event_media",
-      "is",
-      null,
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining("event_media!inner(count)"),
+      { count: "exact" },
     );
   });
 

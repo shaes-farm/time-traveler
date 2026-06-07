@@ -238,13 +238,21 @@ export async function getEventsPage(
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  // Aggregate-count embeds drive the per-row participant/media counts. The
-  // has-participants / has-media filters are applied below as null-filters on
-  // the embedded resource (PostgREST "null filtering on embedded resources"),
-  // which supports both "has at least one" and "has none" — unlike an `!inner`
-  // hint, which can only express the former.
-  const selectClause =
-    "*, event_categories(categories(id, title, color)), event_characters(count), event_media(count)";
+  // Aggregate-count embeds drive the per-row participant/media counts.
+  //
+  // The "has at least one" direction uses the canonical `!inner` embed hint,
+  // which restricts the top-level set to parents with a matching child and
+  // keeps count: "exact" aligned to that filtered set. The "has none" direction
+  // has no `!inner` equivalent, so it relies on PostgREST null-filtering on the
+  // embedded resource (`resource=is.null`, applied below). Isolating the
+  // less-common idiom to the false branch keeps the well-trodden path bulletproof.
+  const charactersEmbed =
+    hasParticipants === true
+      ? "event_characters!inner(count)"
+      : "event_characters(count)";
+  const mediaEmbed =
+    hasMedia === true ? "event_media!inner(count)" : "event_media(count)";
+  const selectClause = `*, event_categories(categories(id, title, color)), ${charactersEmbed}, ${mediaEmbed}`;
 
   let query = client.from("events").select(selectClause, { count: "exact" });
 
@@ -295,16 +303,12 @@ export async function getEventsPage(
     query = query.eq("published", published);
   }
 
-  // Null filtering on the embedded resource: `not.is.null` keeps events with at
-  // least one related row, `is.null` keeps those with none.
-  if (hasParticipants === true) {
-    query = query.not("event_characters", "is", null);
-  } else if (hasParticipants === false) {
+  // "has at least one" is handled by the `!inner` embed above. "has none" has no
+  // inner-join form, so filter on the embedded resource being null here.
+  if (hasParticipants === false) {
     query = query.is("event_characters", null);
   }
-  if (hasMedia === true) {
-    query = query.not("event_media", "is", null);
-  } else if (hasMedia === false) {
+  if (hasMedia === false) {
     query = query.is("event_media", null);
   }
 
