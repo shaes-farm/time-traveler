@@ -37,6 +37,7 @@ import type {
 
 type ServiceClient = Parameters<typeof getTimelines>[0];
 type TimelineUpdateData = Parameters<typeof updateTimeline>[2];
+type CollaboratorRow = Awaited<ReturnType<typeof getCollaborators>>[number];
 
 // ---------------------------------------------------------------------------
 // Query keys
@@ -250,7 +251,11 @@ export function useAddCollaborator(client: ServiceClient) {
   });
 }
 
-/** Remove a collaborator from a timeline. */
+/**
+ * Remove a collaborator from a timeline. Optimistically drops the row from the
+ * cached collaborator list and rolls back if the mutation fails (wireframe 14:
+ * removal "takes effect immediately").
+ */
 export function useRemoveCollaborator(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -261,7 +266,24 @@ export function useRemoveCollaborator(client: ServiceClient) {
       timelineId: string;
       userId: string;
     }) => removeCollaborator(client, timelineId, userId),
-    onSuccess: (_data, { timelineId }) => {
+    onMutate: async ({ timelineId, userId }) => {
+      const key = timelineKeys.collaborators(timelineId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<CollaboratorRow[]>(key);
+      if (previous !== undefined) {
+        queryClient.setQueryData<CollaboratorRow[]>(
+          key,
+          previous.filter((c) => c.user_id !== userId),
+        );
+      }
+      return { previous, key };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+    },
+    onSettled: (_data, _err, { timelineId }) => {
       void queryClient.invalidateQueries({
         queryKey: timelineKeys.collaborators(timelineId),
       });
@@ -269,7 +291,11 @@ export function useRemoveCollaborator(client: ServiceClient) {
   });
 }
 
-/** Update a collaborator's role on a timeline. */
+/**
+ * Update a collaborator's role on a timeline. Optimistically rewrites the row's
+ * role in the cached list and rolls back on failure (wireframe 14 annotation #4:
+ * role changes apply immediately, optimistic with rollback).
+ */
 export function useUpdateCollaboratorRole(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -282,7 +308,24 @@ export function useUpdateCollaboratorRole(client: ServiceClient) {
       userId: string;
       role: CollaboratorRole;
     }) => updateCollaboratorRole(client, timelineId, userId, role),
-    onSuccess: (_data, { timelineId }) => {
+    onMutate: async ({ timelineId, userId, role }) => {
+      const key = timelineKeys.collaborators(timelineId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const previous = queryClient.getQueryData<CollaboratorRow[]>(key);
+      if (previous !== undefined) {
+        queryClient.setQueryData<CollaboratorRow[]>(
+          key,
+          previous.map((c) => (c.user_id === userId ? { ...c, role } : c)),
+        );
+      }
+      return { previous, key };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(context.key, context.previous);
+      }
+    },
+    onSettled: (_data, _err, { timelineId }) => {
       void queryClient.invalidateQueries({
         queryKey: timelineKeys.collaborators(timelineId),
       });

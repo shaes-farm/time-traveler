@@ -4,7 +4,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import {
   CollaboratorList,
   type Collaborator,
+  type CollaboratorOwner,
   type CollaboratorRole,
+  type ResolvedProfile,
 } from "./collaborator-list";
 
 const meta = {
@@ -15,6 +17,13 @@ const meta = {
 export default meta;
 
 type Story = StoryObj<typeof meta>;
+
+const OWNER: CollaboratorOwner = {
+  displayName: "Philipe Banglarian (you)",
+  username: "philipeb",
+};
+
+const OWNER_ID = "owner-1";
 
 const INITIAL: Collaborator[] = [
   {
@@ -31,6 +40,14 @@ const INITIAL: Collaborator[] = [
   },
 ];
 
+// Demo resolver — pretends any typed username resolves to a fresh profile.
+// In stories, use the username as the id so the added row renders meaningfully.
+const demoResolve = async (username: string): Promise<ResolvedProfile> => ({
+  id: username,
+  username,
+  displayName: username,
+});
+
 function Managed({ canManage = true }: { canManage?: boolean }) {
   const [collaborators, setCollaborators] =
     React.useState<Collaborator[]>(INITIAL);
@@ -39,15 +56,17 @@ function Managed({ canManage = true }: { canManage?: boolean }) {
     <div className="max-w-xl">
       <CollaboratorList
         collaborators={collaborators}
-        ownerName="Philipe Banglarian (you)"
+        owner={OWNER}
+        ownerUserId={OWNER_ID}
         canManage={canManage}
-        onAdd={(username, role) =>
+        resolveUsername={demoResolve}
+        onAdd={(userId, role) =>
           setCollaborators((prev) => [
             ...prev,
             {
-              id: String(Date.now()),
-              username,
-              displayName: username,
+              id: userId,
+              username: userId,
+              displayName: userId,
               role,
             },
           ])
@@ -66,15 +85,20 @@ function Managed({ canManage = true }: { canManage?: boolean }) {
 }
 
 export const Default: Story = {
-  args: { collaborators: INITIAL, ownerName: "You" },
+  args: { collaborators: INITIAL, owner: OWNER, ownerUserId: OWNER_ID },
   render: () => <Managed />,
 };
 
 export const ReadOnly: Story = {
-  args: { collaborators: INITIAL, ownerName: "You", canManage: false },
+  args: {
+    collaborators: INITIAL,
+    owner: OWNER,
+    ownerUserId: OWNER_ID,
+    canManage: false,
+  },
   render: () => <Managed canManage={false} />,
 };
 
 export const Empty: Story = {
-  args: { collaborators: [], ownerName: "You" },
+  args: { collaborators: [], owner: OWNER, ownerUserId: OWNER_ID },
 };

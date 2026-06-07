@@ -35,7 +35,11 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/dropdown-menu";
 import { CollaboratorList } from "@repo/ui/components/collaborator-list";
-import type { Collaborator } from "@repo/ui/components/collaborator-list";
+import type {
+  Collaborator,
+  CollaboratorOwner,
+  CollaboratorRole,
+} from "@repo/ui/components/collaborator-list";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +72,8 @@ import {
   useUpdateCollaboratorRole,
 } from "@repo/ui/hooks/use-timelines";
 import { useUpdateEvent } from "@repo/ui/hooks/use-events";
+import { useProfilesByIds } from "@repo/ui/hooks/use-profiles";
+import { getProfileByUsername } from "@repo/services/profile-service";
 import { getBrowserSupabaseClient } from "../../../../../lib/auth/browser-client";
 
 // ---------------------------------------------------------------------------
@@ -163,6 +169,24 @@ function deriveRole(timeline: TimelineRow, userId: string): ViewerRole {
   // owner-only controls (publish, delete, manage collaborators). See #235.
   if (collab?.role === "admin" || collab?.role === "editor") return "editor";
   return "viewer";
+}
+
+/** A profile row, minimally typed for name/avatar display. */
+interface ProfileLike {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+}
+
+/** Build a display name from a profile, falling back to username then a stub. */
+function displayNameFor(profile: ProfileLike): string {
+  const full = [profile.first_name, profile.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  return full || profile.username || "Unknown user";
 }
 
 function formatEventType(type: string | null): string {
@@ -907,14 +931,62 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
   const isOwner = !!timeline && timeline.user_id === userId;
   const canEdit = role === "owner" || role === "editor";
 
-  // Map collaborator rows to CollaboratorList shape
-  // Note: timeline_collaborators has no join to profiles yet — display user_id as username.
-  const collaborators: Collaborator[] = collaboratorRows.map((c) => ({
-    id: c.user_id,
-    username: c.user_id,
-    displayName: c.user_id,
-    role: c.role as "viewer" | "editor" | "admin",
-  }));
+  // Enrich collaborators + owner with profile data (timeline_collaborators has no
+  // FK to profiles, so we join client-side via a batch fetch by user_id).
+  const profileIds = React.useMemo(() => {
+    const ids = new Set<string>();
+    if (timeline?.user_id) ids.add(timeline.user_id);
+    for (const c of collaboratorRows) ids.add(c.user_id);
+    return [...ids];
+  }, [timeline, collaboratorRows]);
+
+  const { data: profileRows = [] } = useProfilesByIds(client, profileIds, {
+    enabled: profileIds.length > 0,
+  });
+
+  const profilesById = React.useMemo(() => {
+    const map = new Map<string, (typeof profileRows)[number]>();
+    for (const p of profileRows) map.set(p.id, p);
+    return map;
+  }, [profileRows]);
+
+  const collaborators: Collaborator[] = collaboratorRows.map((c) => {
+    const profile = profilesById.get(c.user_id);
+    return {
+      id: c.user_id,
+      username: profile?.username ?? c.user_id,
+      displayName: profile ? displayNameFor(profile) : c.user_id,
+      role: c.role as CollaboratorRole,
+      avatarUrl: profile?.avatar_url ?? undefined,
+      addedAt: c.created_at ?? undefined,
+    };
+  });
+
+  const ownerProfile = timeline
+    ? profilesById.get(timeline.user_id)
+    : undefined;
+  const owner: CollaboratorOwner = {
+    displayName: ownerProfile
+      ? displayNameFor(ownerProfile)
+      : (timeline?.user_id ?? "Owner"),
+    username: ownerProfile?.username ?? null,
+    avatarUrl: ownerProfile?.avatar_url ?? undefined,
+  };
+
+  // Resolve a typed @username to a profile for the add dialog.
+  const resolveUsername = React.useCallback(
+    async (username: string) => {
+      const profile = await getProfileByUsername(client, username);
+      if (!profile) return null;
+      return {
+        id: profile.id,
+        username: profile.username ?? username,
+        displayName: displayNameFor(profile),
+        avatarUrl: profile.avatar_url ?? undefined,
+      };
+    },
+    [client],
+  );
 
   // --- Dialog / disclosure state ---
   const [showLinkEvent, setShowLinkEvent] = React.useState(false);
@@ -1193,15 +1265,17 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
         <TabsContent value="collaborators" className="pt-4">
           <CollaboratorList
             collaborators={collaborators}
-            ownerName={timeline.user_id}
-            ownerUsername={timeline.user_id}
+            owner={owner}
+            ownerUserId={timeline.user_id}
+            // Owner-only: current RLS (write_collaborators) permits collaborator
+            // writes only for the owner or a global admin, so collaborator-admins
+            // cannot manage here. Granting that needs an RLS migration — see #237.
             canManage={isOwner}
-            onAdd={(username, role) => {
-              // BLOCKED: username→userId lookup pending profiles join (issue #50).
-              // Field currently accepts a raw user UUID until profile resolution is built.
+            resolveUsername={resolveUsername}
+            onAdd={(userId, role) => {
               addCollaborator.mutate({
                 timelineId: timeline.id,
-                userId: username,
+                userId,
                 role,
               });
             }}

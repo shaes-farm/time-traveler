@@ -10,5 +10,6 @@ export * from "./use-characters";
 export * from "./use-events";
 export * from "./use-media";
 export * from "./use-periods";
+export * from "./use-profiles";
 export * from "./use-stories";
 export * from "./use-timelines";

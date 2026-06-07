@@ -26,6 +26,7 @@ export default defineConfig({
         "src/modules/story-service.ts",
         "src/modules/category-service.ts",
         "src/modules/media-service.ts",
+        "src/modules/profile-service.ts",
         "src/utils/slug.ts",
       ],
       exclude: ["src/**/*.test.ts"],
