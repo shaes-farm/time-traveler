@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { eventSchema, eventTypeEnum } from "../schemas/event";
 import type { EventInput } from "../schemas/event";
+import { eraEnum } from "../schemas/temporal";
 import type { Era } from "../schemas/temporal";
 import { generateSlug, resolveCollision } from "../utils/slug";
 import { MAX_SLUG_LENGTH } from "../schemas/slug";
@@ -47,8 +48,7 @@ export type EventType = z.infer<typeof eventTypeEnum>;
 /**
  * Drill-down (fractal) scope for the events list. `expandable` matches events
  * that open into a sub-timeline (`detail_timeline_id IS NOT NULL`); `leaf`
- * matches those that don't. The list UI keeps this control hidden until #177
- * lands `detail_timeline_id` end-to-end, but the service supports it now.
+ * matches those that don't; `all` applies no filter.
  */
 export type EventDetailScope = "all" | "expandable" | "leaf";
 
@@ -165,10 +165,14 @@ export async function getEvents(
   let query = client.from("events").select("*");
 
   if (eventType !== undefined) {
-    // Legacy single-value path; multi-value filtering lives in getEventsPage.
-    const scalarType = Array.isArray(eventType) ? eventType[0] : eventType;
-    if (scalarType !== undefined) {
-      query = query.eq("event_type", scalarType);
+    if (Array.isArray(eventType)) {
+      if (eventType.length === 1) {
+        query = query.eq("event_type", eventType[0]!);
+      } else if (eventType.length > 1) {
+        query = query.in("event_type", eventType);
+      }
+    } else {
+      query = query.eq("event_type", eventType);
     }
   }
   if (importance !== undefined) {
@@ -235,16 +239,12 @@ export async function getEventsPage(
   const to = from + safePageSize - 1;
 
   // Aggregate-count embeds drive the per-row participant/media counts. The
-  // `!inner` hint additionally restricts the result to events that have at
-  // least one related row, which is exactly the has-participants/has-media
-  // semantics; count: "exact" then reflects the filtered total.
-  const charactersEmbed = hasParticipants
-    ? "event_characters!inner(count)"
-    : "event_characters(count)";
-  const mediaEmbed = hasMedia
-    ? "event_media!inner(count)"
-    : "event_media(count)";
-  const selectClause = `*, event_categories(categories(id, title, color)), ${charactersEmbed}, ${mediaEmbed}`;
+  // has-participants / has-media filters are applied below as null-filters on
+  // the embedded resource (PostgREST "null filtering on embedded resources"),
+  // which supports both "has at least one" and "has none" — unlike an `!inner`
+  // hint, which can only express the former.
+  const selectClause =
+    "*, event_categories(categories(id, title, color)), event_characters(count), event_media(count)";
 
   let query = client.from("events").select(selectClause, { count: "exact" });
 
@@ -269,10 +269,15 @@ export async function getEventsPage(
 
   // Era lives inside the temporal_data JSONB, and cannot be reconstructed from
   // sort_order_years because the BCE/KYA/MYA scaled ranges overlap. Filter the
-  // JSONB path directly via an OR of equality predicates over the fixed enum
-  // (no injection risk — values are constrained to Era).
+  // JSONB path directly via an OR of equality predicates. The `.or()` value is
+  // interpolated into a PostgREST filter string, so we whitelist against the
+  // canonical era enum first — `Era` is compile-time only and a runtime caller
+  // (e.g. raw URL params) could otherwise inject arbitrary filter syntax.
   if (era !== undefined) {
-    const eras = Array.isArray(era) ? era : [era];
+    const requested = Array.isArray(era) ? era : [era];
+    const eras = requested.filter((e): e is Era =>
+      (eraEnum.options as readonly string[]).includes(e),
+    );
     if (eras.length > 0) {
       query = query.or(
         eras.map((e) => `temporal_data->>era.eq.${e}`).join(","),
@@ -288,6 +293,19 @@ export async function getEventsPage(
   }
   if (published !== undefined) {
     query = query.eq("published", published);
+  }
+
+  // Null filtering on the embedded resource: `not.is.null` keeps events with at
+  // least one related row, `is.null` keeps those with none.
+  if (hasParticipants === true) {
+    query = query.not("event_characters", "is", null);
+  } else if (hasParticipants === false) {
+    query = query.is("event_characters", null);
+  }
+  if (hasMedia === true) {
+    query = query.not("event_media", "is", null);
+  } else if (hasMedia === false) {
+    query = query.is("event_media", null);
   }
 
   if (detailScope === "expandable") {

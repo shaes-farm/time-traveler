@@ -179,6 +179,17 @@ describe("getEvents", () => {
     expect(builder.eq).toHaveBeenCalledWith("event_type", "milestone");
   });
 
+  it("applies a multi-value eventType filter with in", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getEvents(client, { eventType: ["milestone", "discovery"] });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.in).toHaveBeenCalledWith("event_type", [
+      "milestone",
+      "discovery",
+    ]);
+  });
+
   it("applies importance filter", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await getEvents(client, { importance: 8 });
@@ -345,6 +356,23 @@ describe("getEventsPage", () => {
     );
   });
 
+  it("whitelists era values against the enum before interpolating", async () => {
+    const client = pageClient(0);
+    // The injection attempt and the unknown value are dropped; only CE survives.
+    await getEventsPage(client, {
+      era: ["CE", "DROP" as never, "x.eq.y),evil" as never],
+    });
+    expect(firstBuilder(client).or).toHaveBeenCalledWith(
+      "temporal_data->>era.eq.CE",
+    );
+  });
+
+  it("omits the era filter entirely when no value is valid", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { era: ["bogus" as never] });
+    expect(firstBuilder(client).or).not.toHaveBeenCalled();
+  });
+
   it("applies a sort_order_years temporal window", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { sortStart: -66_000_000, sortEnd: 2000 });
@@ -359,22 +387,39 @@ describe("getEventsPage", () => {
     expect(firstBuilder(client).eq).toHaveBeenCalledWith("published", true);
   });
 
-  it("forces an inner join for has-participants", async () => {
+  it("keeps events with participants via not.is.null", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasParticipants: true });
-    expect(firstBuilder(client).select).toHaveBeenCalledWith(
-      expect.stringContaining("event_characters!inner(count)"),
-      { count: "exact" },
+    expect(firstBuilder(client).not).toHaveBeenCalledWith(
+      "event_characters",
+      "is",
+      null,
     );
   });
 
-  it("forces an inner join for has-media", async () => {
+  it("keeps events with no participants via is.null", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { hasParticipants: false });
+    expect(firstBuilder(client).is).toHaveBeenCalledWith(
+      "event_characters",
+      null,
+    );
+  });
+
+  it("keeps events with media via not.is.null", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasMedia: true });
-    expect(firstBuilder(client).select).toHaveBeenCalledWith(
-      expect.stringContaining("event_media!inner(count)"),
-      { count: "exact" },
+    expect(firstBuilder(client).not).toHaveBeenCalledWith(
+      "event_media",
+      "is",
+      null,
     );
+  });
+
+  it("keeps events with no media via is.null", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { hasMedia: false });
+    expect(firstBuilder(client).is).toHaveBeenCalledWith("event_media", null);
   });
 
   it("filters expandable drill-down events with not-null", async () => {

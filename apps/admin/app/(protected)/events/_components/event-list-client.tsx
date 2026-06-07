@@ -111,6 +111,7 @@ interface ParsedFilters {
   importance: [number, number];
   timelineId: string;
   participants: RadioValue;
+  media: RadioValue;
   detailScope: EventDetailScope;
   publications: string[];
   search: string;
@@ -160,6 +161,10 @@ function readFiltersFromParams(params: URLSearchParams): ParsedFilters {
       ? rawParticipants
       : "any";
 
+  const rawMedia = params.get("media");
+  const media: RadioValue =
+    rawMedia === "yes" || rawMedia === "no" ? rawMedia : "any";
+
   const rawScope = params.get("scope");
   const detailScope: EventDetailScope =
     rawScope === "expandable" || rawScope === "leaf" ? rawScope : "all";
@@ -170,6 +175,7 @@ function readFiltersFromParams(params: URLSearchParams): ParsedFilters {
     importance: [Math.min(imin, imax), Math.max(imin, imax)],
     timelineId: params.get("tl") ?? "",
     participants,
+    media,
     detailScope,
     publications: csvToArray(params.get("pub")),
     search: params.get("q") ?? "",
@@ -211,9 +217,19 @@ function buildServiceFilters(parsed: ParsedFilters): EventFilters {
   if (parsed.participants === "yes") filters.hasParticipants = true;
   else if (parsed.participants === "no") filters.hasParticipants = false;
 
+  if (parsed.media === "yes") filters.hasMedia = true;
+  else if (parsed.media === "no") filters.hasMedia = false;
+
   if (parsed.detailScope !== "all") {
     filters.detailScope = parsed.detailScope;
   }
+
+  // The era multi-select is this list's temporal-range control (wireframe
+  // annotation #8): selecting eras scopes the visible span, and cross-era
+  // selections interleave via sort_order_years. The service additionally
+  // supports a precise sortStart/sortEnd window for programmatic callers, which
+  // this list intentionally does not surface — the era checkboxes are the
+  // author-facing affordance.
 
   // published filter: exactly one value selected → filter; otherwise omit
   if (parsed.publications.length === 1) {
@@ -488,6 +504,7 @@ export function EventListClient() {
     parsed.importance[1] < IMPORTANCE_MAX ||
     parsed.timelineId.length > 0 ||
     parsed.participants !== "any" ||
+    parsed.media !== "any" ||
     parsed.detailScope !== "all" ||
     parsed.publications.length > 0 ||
     parsed.search.length > 0;
@@ -523,6 +540,9 @@ export function EventListClient() {
   }
   function handleParticipantsChange(value: RadioValue) {
     updateParams({ chars: value === "any" ? null : value, page: null });
+  }
+  function handleMediaChange(value: RadioValue) {
+    updateParams({ media: value === "any" ? null : value, page: null });
   }
   function handleScopeChange(value: RadioValue) {
     const scope = radioToScope(value);
@@ -659,6 +679,13 @@ export function EventListClient() {
       label: "Has characters",
       value: parsed.participants,
       onChange: handleParticipantsChange,
+    },
+    {
+      type: "radio",
+      id: "media",
+      label: "Has media",
+      value: parsed.media,
+      onChange: handleMediaChange,
     },
     {
       type: "checkbox",
