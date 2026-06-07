@@ -396,15 +396,16 @@ describe("getEventsPage", () => {
     );
   });
 
-  it("keeps events with no participants via is.null", async () => {
+  it("keeps events with no participants via a plain embed + is.null", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasParticipants: false });
     const builder = firstBuilder(client);
     expect(builder.is).toHaveBeenCalledWith("event_characters", null);
-    // The false branch must use a plain embed so the null-filter can match
-    // parents with zero children — never the !inner form.
+    // The false branch must use a plain *column* embed, never the aggregate
+    // `(count)` embed: combined with is.null the aggregate returns an accurate
+    // count but empty data (verified against the live PostgREST stack).
     expect(builder.select).toHaveBeenCalledWith(
-      expect.stringContaining("event_characters(count)"),
+      expect.stringContaining("event_characters(event_id)"),
       { count: "exact" },
     );
   });
@@ -418,10 +419,15 @@ describe("getEventsPage", () => {
     );
   });
 
-  it("keeps events with no media via is.null", async () => {
+  it("keeps events with no media via a plain embed + is.null", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasMedia: false });
-    expect(firstBuilder(client).is).toHaveBeenCalledWith("event_media", null);
+    const builder = firstBuilder(client);
+    expect(builder.is).toHaveBeenCalledWith("event_media", null);
+    expect(builder.select).toHaveBeenCalledWith(
+      expect.stringContaining("event_media(event_id)"),
+      { count: "exact" },
+    );
   });
 
   it("filters expandable drill-down events with not-null", async () => {

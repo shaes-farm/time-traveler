@@ -238,20 +238,29 @@ export async function getEventsPage(
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  // Aggregate-count embeds drive the per-row participant/media counts.
-  //
-  // The "has at least one" direction uses the canonical `!inner` embed hint,
-  // which restricts the top-level set to parents with a matching child and
-  // keeps count: "exact" aligned to that filtered set. The "has none" direction
-  // has no `!inner` equivalent, so it relies on PostgREST null-filtering on the
-  // embedded resource (`resource=is.null`, applied below). Isolating the
-  // less-common idiom to the false branch keeps the well-trodden path bulletproof.
+  // Per-row participant/media counts come from aggregate `(count)` embeds, but
+  // the has-* filters need three distinct embed shapes (verified against the
+  // live PostgREST stack):
+  //   • has at least one → `!inner(count)`: inner-joins to parents with a child
+  //     and keeps count: "exact" aligned to the filtered set.
+  //   • has none → a plain *column* embed (`(event_id)`) plus `is.null` below.
+  //     The aggregate `(count)` embed combined with `is.null` is broken: it
+  //     returns an accurate count but EMPTY data rows. A plain column embed
+  //     filters correctly; the row's relation array is then `[]`, so the UI's
+  //     `?.[0]?.count ?? 0` still reads 0.
+  //   • no filter → `(count)` for display.
   const charactersEmbed =
     hasParticipants === true
       ? "event_characters!inner(count)"
-      : "event_characters(count)";
+      : hasParticipants === false
+        ? "event_characters(event_id)"
+        : "event_characters(count)";
   const mediaEmbed =
-    hasMedia === true ? "event_media!inner(count)" : "event_media(count)";
+    hasMedia === true
+      ? "event_media!inner(count)"
+      : hasMedia === false
+        ? "event_media(event_id)"
+        : "event_media(count)";
   const selectClause = `*, event_categories(categories(id, title, color)), ${charactersEmbed}, ${mediaEmbed}`;
 
   let query = client.from("events").select(selectClause, { count: "exact" });
