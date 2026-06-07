@@ -151,6 +151,35 @@ describe("CollaboratorList", () => {
     ).toBeDisabled();
   });
 
+  it("shows a terminal error hint when resolution rejects", async () => {
+    const resolveUsername = vi.fn().mockRejectedValue(new Error("network"));
+    const user = userEvent.setup();
+    renderList({ resolveUsername });
+
+    await user.click(screen.getByRole("button", { name: "Add collaborator" }));
+    await user.type(screen.getByLabelText("Username"), "irenejc");
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Couldn’t look up that username/),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Add collaborator",
+      }),
+    ).toBeDisabled();
+  });
+
+  it("hides the Add control when no resolveUsername is provided", () => {
+    // canManage defaults to true, but without a resolver the add dialog could
+    // never resolve a username, so the entry point is hidden.
+    renderList();
+    expect(
+      screen.queryByRole("button", { name: "Add collaborator" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("removes a collaborator after confirming the dialog", async () => {
     const onRemove = vi.fn();
     const user = userEvent.setup();

@@ -93,9 +93,12 @@ const ROLE_OPTIONS: {
   },
   {
     value: "admin",
+    // Today a collaborator-admin's effective ceiling equals editor: collaborator
+    // management is owner-only under current RLS (see #237). Describe only what
+    // the role grants now, not the future management capability.
     label: "Admin",
     description:
-      "Can edit and manage collaborators; cannot delete the timeline or change the owner.",
+      "Can read and edit events; cannot delete or publish. Managing collaborators is owner-only for now.",
   },
 ];
 
@@ -138,6 +141,10 @@ export function CollaboratorList({
       ? null
       : collaborators.find((c) => c.id === pendingRemoveId);
 
+  // Adding requires both management rights and a way to resolve usernames; without
+  // a resolver the add dialog could never reach a "found" state, so hide it.
+  const canAddCollaborators = canManage && resolveUsername !== undefined;
+
   return (
     <div className={cn("space-y-6", className)}>
       {/* Owner — locked top section */}
@@ -176,7 +183,7 @@ export function CollaboratorList({
           <h3 className="text-xs font-medium uppercase tracking-wide text-foreground-muted">
             Collaborators ({collaborators.length})
           </h3>
-          {canManage && (
+          {canAddCollaborators && (
             <Button
               type="button"
               variant="secondary"
@@ -251,7 +258,7 @@ export function CollaboratorList({
         )}
       </section>
 
-      {canManage && (
+      {canAddCollaborators && (
         <AddCollaboratorDialog
           open={adding}
           onClose={() => setAdding(false)}
@@ -315,14 +322,17 @@ type Resolution =
   | { status: "found"; profile: ResolvedProfile }
   | { status: "not-found" }
   | { status: "owner" }
-  | { status: "existing" };
+  | { status: "existing" }
+  | { status: "error" };
 
 interface AddCollaboratorDialogProps {
   open: boolean;
   onClose: () => void;
   ownerUserId: string;
   collaborators: Collaborator[];
-  resolveUsername?: (username: string) => Promise<ResolvedProfile | null>;
+  // Required here: the dialog is only rendered when a resolver is available, so
+  // it always has a way to reach a terminal resolution state.
+  resolveUsername: (username: string) => Promise<ResolvedProfile | null>;
   onAdd: (userId: string, role: CollaboratorRole) => void;
 }
 
@@ -371,7 +381,7 @@ function AddCollaboratorDialog({
 interface AddCollaboratorFormProps {
   ownerUserId: string;
   collaborators: Collaborator[];
-  resolveUsername?: (username: string) => Promise<ResolvedProfile | null>;
+  resolveUsername: (username: string) => Promise<ResolvedProfile | null>;
   onAdd: (userId: string, role: CollaboratorRole) => void;
   onCancel: () => void;
 }
@@ -401,23 +411,30 @@ function AddCollaboratorForm({
   // (never synchronously in the effect body), and an `active` flag drops
   // out-of-order responses.
   React.useEffect(() => {
-    if (trimmed.length === 0 || !resolveUsername) return;
+    if (trimmed.length === 0) return;
     let active = true;
     const timer = setTimeout(() => {
-      void resolveUsername(trimmed).then((profile) => {
-        if (!active) return;
-        let outcome: ResolveOutcome;
-        if (profile === null) {
-          outcome = { status: "not-found" };
-        } else if (profile.id === ownerUserId) {
-          outcome = { status: "owner" };
-        } else if (collaborators.some((c) => c.id === profile.id)) {
-          outcome = { status: "existing" };
-        } else {
-          outcome = { status: "found", profile };
-        }
-        setResolved({ username: trimmed, outcome });
-      });
+      void resolveUsername(trimmed)
+        .then((profile) => {
+          if (!active) return;
+          let outcome: ResolveOutcome;
+          if (profile === null) {
+            outcome = { status: "not-found" };
+          } else if (profile.id === ownerUserId) {
+            outcome = { status: "owner" };
+          } else if (collaborators.some((c) => c.id === profile.id)) {
+            outcome = { status: "existing" };
+          } else {
+            outcome = { status: "found", profile };
+          }
+          setResolved({ username: trimmed, outcome });
+        })
+        .catch(() => {
+          // Network/RLS error — land on a terminal error state so the hint and
+          // disabled Add button update instead of hanging on "Looking up…".
+          if (active)
+            setResolved({ username: trimmed, outcome: { status: "error" } });
+        });
     }, RESOLVE_DEBOUNCE_MS);
 
     return () => {
@@ -536,7 +553,15 @@ function ResolutionHint({ resolution }: { resolution: Resolution }) {
     case "existing":
       return (
         <p className="text-xs text-destructive">
-          Already a collaborator — change their role below instead.
+          Already a collaborator — close this dialog and change their role from
+          the list.
+        </p>
+      );
+    case "error":
+      return (
+        <p className="text-xs text-destructive">
+          Couldn&rsquo;t look up that username. Check your connection and try
+          again.
         </p>
       );
     case "idle":
