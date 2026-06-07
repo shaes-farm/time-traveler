@@ -23,7 +23,7 @@ export const profileKeys = {
   all: ["profiles"] as const,
   byUsername: (username: string) =>
     [...profileKeys.all, "username", username] as const,
-  byIds: (ids: string[]) => [...profileKeys.all, "ids", ids] as const,
+  byIds: (ids: string[]) => [...profileKeys.all, "ids", [...ids].sort()] as const,
 };
 
 // ---------------------------------------------------------------------------
