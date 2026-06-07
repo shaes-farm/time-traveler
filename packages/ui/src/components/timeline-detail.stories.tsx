@@ -374,7 +374,7 @@ function TimelineDetailPage() {
               }}
               ownerUserId="owner-1"
               resolveUsername={async (username) => ({
-                id: String(Date.now()),
+                id: username,
                 username,
                 displayName: username,
               })}
