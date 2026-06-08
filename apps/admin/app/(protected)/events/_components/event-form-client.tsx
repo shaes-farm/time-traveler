@@ -565,18 +565,23 @@ export function EventFormClient(props: Props) {
   // Snapshot of the persisted "also appears in" set, for the edit-save diff.
   const initialAppearsInRef = React.useRef<string[]>([]);
 
-  // Hydrate the form once both the event row and its junction links resolve
-  // (guard against re-hydration on background refetch wiping user edits).
+  // Hydrate the form once the event row is loaded and the junction-links query
+  // has *settled* — success or error. If the links query fails we still hydrate
+  // (with an empty "also appears in" set) so the rest of the form is usable;
+  // the failure is surfaced as a non-blocking warning on that field below.
+  // Guard against re-hydration on background refetch wiping user edits.
   const hydratedRef = React.useRef(false);
   const editRow = editQuery.data;
   const links = linksQuery.data;
+  const linksSettled = linksQuery.isSuccess || linksQuery.isError;
   React.useEffect(() => {
     if (!isEdit || hydratedRef.current) return;
-    if (editRow === undefined || links === undefined) return;
-    form.reset(mapRowToFormValues(editRow, links));
-    initialAppearsInRef.current = links;
+    if (editRow === undefined || !linksSettled) return;
+    const resolvedLinks = links ?? [];
+    form.reset(mapRowToFormValues(editRow, resolvedLinks));
+    initialAppearsInRef.current = resolvedLinks;
     hydratedRef.current = true;
-  }, [isEdit, editRow, links, form]);
+  }, [isEdit, editRow, linksSettled, links, form]);
 
   const isDirty = form.formState.isDirty;
   const guard = useUnsavedChangesGuard(isDirty);
@@ -1136,6 +1141,13 @@ export function EventFormClient(props: Props) {
                         Additional timelines this event surfaces in, without
                         changing its home.
                       </p>
+                      {isEdit && linksQuery.isError && (
+                        <p className="mt-1 text-xs text-destructive">
+                          Couldn’t load the current “also appears in” timelines
+                          — saving now may not preserve them. Reload before
+                          editing this field.
+                        </p>
+                      )}
                     </div>
                   )}
                 />

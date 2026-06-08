@@ -160,7 +160,10 @@ export function useTimelineCollaborators(
 export function useEventTimelineLinks(
   client: ServiceClient,
   eventId: string,
-  options?: Omit<UseQueryOptions<string[]>, "queryKey" | "queryFn">,
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getEventTimelineLinks>>>,
+    "queryKey" | "queryFn"
+  >,
 ) {
   return useQuery({
     queryKey: timelineKeys.eventLinks(eventId),
