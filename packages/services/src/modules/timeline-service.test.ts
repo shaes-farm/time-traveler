@@ -21,6 +21,7 @@ import {
   addEventToTimeline,
   removeEventFromTimeline,
   setTimelineEventSortOrder,
+  getEventTimelineLinks,
   addMediaToTimeline,
 } from "./timeline-service";
 
@@ -1050,6 +1051,38 @@ describe("removeEventFromTimeline", () => {
     await expect(
       removeEventFromTimeline(client, "timeline-1", "event-1"),
     ).rejects.toThrow("TimelineService.removeEventFromTimeline: unlink failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getEventTimelineLinks
+// ---------------------------------------------------------------------------
+
+describe("getEventTimelineLinks", () => {
+  it("returns the timeline ids an event appears in", async () => {
+    const client = makeClient({
+      fromResult: {
+        data: [{ timeline_id: "timeline-1" }, { timeline_id: "timeline-2" }],
+        error: null,
+      },
+    });
+    const result = await getEventTimelineLinks(client, "event-1");
+    expect(result).toEqual(["timeline-1", "timeline-2"]);
+  });
+
+  it("returns an empty array when the event has no junction links", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    const result = await getEventTimelineLinks(client, "event-1");
+    expect(result).toEqual([]);
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "links failed" } },
+    });
+    await expect(getEventTimelineLinks(client, "event-1")).rejects.toThrow(
+      "TimelineService.getEventTimelineLinks: links failed",
+    );
   });
 });
 

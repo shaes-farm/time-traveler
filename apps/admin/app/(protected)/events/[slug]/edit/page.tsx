@@ -1,20 +1,21 @@
-import { PlaceholderPage } from "../../../../../components/placeholder-page";
+import { redirect } from "next/navigation";
+import { getUser } from "../../../../../lib/auth";
+import { getServerSupabaseClient } from "../../../../auth/_lib/server-supabase";
+import { EventFormClient } from "../../_components/event-form-client";
 
-interface EventDetailPageProps {
+interface EditEventPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default async function EventDetailPage({
-  params,
-}: EventDetailPageProps) {
+export default async function EditEventPage({ params }: EditEventPageProps) {
   const { slug } = await params;
 
-  return (
-    <PlaceholderPage
-      title={`Edit event: ${slug}`}
-      description="Event editor surface scaffolded for dashboard deep-link flows."
-      trackedIn="a later batch (TBD)"
-      rows={3}
-    />
-  );
+  // Resolve the owner id server-side (session already validated by the
+  // protected layout) so the client hook can build its (userId, slug) query
+  // key on first render without an auth round-trip / loading flash.
+  const client = await getServerSupabaseClient();
+  const user = await getUser(client);
+  if (!user) redirect("/auth/login");
+
+  return <EventFormClient mode="edit" userId={user.id} slug={slug} />;
 }
