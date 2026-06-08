@@ -487,11 +487,11 @@ export function EventListClient() {
   // Timelines power both the "Timeline" filter options and the per-row
   // timeline-name/slug lookup. Fetched once at a large page size.
   //
-  // KNOWN LIMITATION (#46-adjacent follow-up): this caps at 100 timelines. A
-  // user with more gets an incomplete filter dropdown and unresolved names/slugs
-  // on some rows — the ⤵ drill-down degrades to a non-clickable indicator
-  // (handled in buildColumns), but the dropdown omission is silent. The real fix
-  // is an async/searchable timeline picker; tracked as a separate enhancement.
+  // KNOWN LIMITATION (#243): this caps at 100 timelines. A user with more gets
+  // an incomplete filter dropdown and unresolved names/slugs on some rows — the
+  // ⤵ drill-down degrades to a non-clickable indicator (handled in buildColumns),
+  // but the dropdown omission is silent. The real fix is an async/searchable
+  // timeline picker; tracked in #243.
   const { data: timelineData } = useTimelinesPage(client, {
     pageSize: 100,
     sortBy: "title",
