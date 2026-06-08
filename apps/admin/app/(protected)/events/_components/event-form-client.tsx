@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronsUpDown, ExternalLink, X } from "lucide-react";
+import { ArrowUpRight, Check, ChevronsUpDown, X } from "lucide-react";
 import { useForm, useWatch, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -209,6 +209,19 @@ export const BLANK_VALUES: EventFormValues = {
 export function toTemporalOrNull(json: unknown): TemporalData | null {
   const result = temporalDataSchema.safeParse(json);
   return result.success ? result.data : null;
+}
+
+/**
+ * Maps a number-input's value to a nullable number. Treats both an empty field
+ * and unparseable input (e.g. a lone "-" or "1.2.3", which yield NaN from
+ * `valueAsNumber`) as null, so the user never sees a raw "received nan" error.
+ */
+export function parseNullableNumber(
+  raw: string,
+  parsed: number,
+): number | null {
+  if (raw === "" || Number.isNaN(parsed)) return null;
+  return parsed;
 }
 
 /** Read a numeric coordinate out of the stored `spatial_data` JSONB. */
@@ -1049,9 +1062,10 @@ export function EventFormClient(props: Props) {
                             value={field.value ?? ""}
                             onChange={(e) =>
                               field.onChange(
-                                e.target.value === ""
-                                  ? null
-                                  : e.target.valueAsNumber,
+                                parseNullableNumber(
+                                  e.target.value,
+                                  e.target.valueAsNumber,
+                                ),
                               )
                             }
                             onBlur={field.onBlur}
@@ -1080,9 +1094,10 @@ export function EventFormClient(props: Props) {
                             value={field.value ?? ""}
                             onChange={(e) =>
                               field.onChange(
-                                e.target.value === ""
-                                  ? null
-                                  : e.target.valueAsNumber,
+                                parseNullableNumber(
+                                  e.target.value,
+                                  e.target.valueAsNumber,
+                                ),
                               )
                             }
                             onBlur={field.onBlur}
@@ -1182,7 +1197,7 @@ export function EventFormClient(props: Props) {
                           disabled={createTimeline.isPending}
                           onClick={handleCreateSubTimeline}
                         >
-                          <ExternalLink className="h-4 w-4" />
+                          <ArrowUpRight className="h-4 w-4" />
                         </Button>
                       </div>
                       <p className="mt-1 text-xs text-foreground-muted">
