@@ -11,7 +11,8 @@
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "verify:has-filters": "node ./scripts/verify-event-has-filters.mjs"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

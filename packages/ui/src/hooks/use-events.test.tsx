@@ -4,6 +4,7 @@ import { type ReactNode, createElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   useEvents,
+  useEventsPage,
   useEvent,
   useEventParticipants,
   useEventsInTemporalRange,
@@ -23,6 +24,7 @@ import {
 
 vi.mock("@repo/services/event-service", () => ({
   getEvents: vi.fn(),
+  getEventsPage: vi.fn(),
   getEventById: vi.fn(),
   getEventBySlug: vi.fn(),
   createEvent: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock("@repo/services/event-service", () => ({
 
 import {
   getEvents,
+  getEventsPage,
   getEventById,
   createEvent,
   updateEvent,
@@ -91,6 +94,27 @@ describe("useEvents", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getEvents).toHaveBeenCalledWith(mockClient, filters);
+  });
+});
+
+describe("useEventsPage", () => {
+  it("calls getEventsPage with client and filters and returns the page", async () => {
+    const page = { rows: mockEvents, total: 1 };
+    vi.mocked(getEventsPage).mockResolvedValue(page as never);
+    const filters = { eventType: "milestone" as never, page: 2 };
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useEventsPage(mockClient, filters), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getEventsPage).toHaveBeenCalledWith(mockClient, filters);
+    expect(result.current.data).toEqual(page);
+  });
+
+  it("uses a distinct query key from useEvents", () => {
+    const filters = { eventType: "milestone" as never };
+    expect(eventKeys.page(filters)).not.toEqual(eventKeys.list(filters));
   });
 });
 

@@ -2,6 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { eventSchema, eventTypeEnum } from "../schemas/event";
 import type { EventInput } from "../schemas/event";
+import { eraEnum } from "../schemas/temporal";
+import type { Era } from "../schemas/temporal";
 import { generateSlug, resolveCollision } from "../utils/slug";
 import { MAX_SLUG_LENGTH } from "../schemas/slug";
 import type { Database } from "../supabase/types";
@@ -40,15 +42,68 @@ export type CharacterSignificance =
   | "minor"
   | "mentioned";
 
-/** Optional filters accepted by getEvents */
+/** Canonical event type enum value. */
+export type EventType = z.infer<typeof eventTypeEnum>;
+
+/**
+ * Drill-down (fractal) scope for the events list. `expandable` matches events
+ * that open into a sub-timeline (`detail_timeline_id IS NOT NULL`); `leaf`
+ * matches those that don't; `all` applies no filter.
+ */
+export type EventDetailScope = "all" | "expandable" | "leaf";
+
+/** Optional filters accepted by getEvents / getEventsPage */
 export interface EventFilters {
-  eventType?: z.infer<typeof eventTypeEnum>;
+  /** Scalar or multi-value event_type filter; multiple values use SQL IN. */
+  eventType?: EventType | EventType[];
+  /** Exact importance match (legacy single-value path used by getEvents). */
   importance?: number;
+  /** Inclusive lower bound for the importance range filter. */
+  importanceMin?: number;
+  /** Inclusive upper bound for the importance range filter. */
+  importanceMax?: number;
+  /** Scalar or multi-value era filter, matched against the temporal_data JSONB. */
+  era?: Era | Era[];
   timelineId?: string;
   userId?: string;
   search?: string;
+  /** When true → only published rows; false → only draft rows; omit → no filter. */
+  published?: boolean;
+  /** When true → only events with at least one participant. */
+  hasParticipants?: boolean;
+  /** When true → only events with at least one media item. */
+  hasMedia?: boolean;
+  /** Drill-down scope. Defaults to "all" (no filter). */
+  detailScope?: EventDetailScope;
+  /** Inclusive lower bound of a sort_order_years temporal-range window. */
+  sortStart?: number;
+  /** Inclusive upper bound of a sort_order_years temporal-range window. */
+  sortEnd?: number;
+  /** Sort column. Defaults to "sort_order_years". */
+  sortBy?: "sort_order_years" | "title" | "importance" | "updated_at";
+  /** Sort direction. Defaults to "asc". */
+  sortDirection?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+}
+
+/**
+ * An event row decorated with the lightweight relation data the events list
+ * renders: category links (for badges) and participant/media counts. Counts
+ * come back from PostgREST aggregate embeds as a single-element array.
+ */
+export interface EventListRow extends EventRow {
+  event_categories: {
+    categories: { id: string; title: string; color: string | null } | null;
+  }[];
+  event_characters: { count: number }[];
+  event_media: { count: number }[];
+}
+
+/** Paginated result from getEventsPage — includes the total filtered count. */
+export interface EventsPage {
+  rows: EventListRow[];
+  total: number;
 }
 
 /** An event row with its related junction rows eagerly loaded */
@@ -110,7 +165,15 @@ export async function getEvents(
   let query = client.from("events").select("*");
 
   if (eventType !== undefined) {
-    query = query.eq("event_type", eventType);
+    if (Array.isArray(eventType)) {
+      if (eventType.length === 1) {
+        query = query.eq("event_type", eventType[0]!);
+      } else if (eventType.length > 1) {
+        query = query.in("event_type", eventType);
+      }
+    } else {
+      query = query.eq("event_type", eventType);
+    }
   }
   if (importance !== undefined) {
     query = query.eq("importance", importance);
@@ -131,6 +194,159 @@ export async function getEvents(
   const { data, error } = await query;
   assertNoError(error, "getEvents");
   return data ?? [];
+}
+
+/**
+ * Returns a page of events together with the total filtered count and the
+ * lightweight relation data the events list renders (category links plus
+ * participant/media counts), enabling accurate pagination and dense rows.
+ *
+ * Supports the full events-list filter set: multi-value event type, importance
+ * range, era (matched against the `temporal_data` JSONB), timeline, a
+ * `sort_order_years` temporal window, published state, has-participants /
+ * has-media, drill-down scope, full-text search, and configurable sort.
+ *
+ * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
+ */
+export async function getEventsPage(
+  client: SupabaseClient<Database>,
+  filters: EventFilters = {},
+): Promise<EventsPage> {
+  const {
+    eventType,
+    importanceMin,
+    importanceMax,
+    era,
+    timelineId,
+    userId,
+    search,
+    published,
+    hasParticipants,
+    hasMedia,
+    detailScope = "all",
+    sortStart,
+    sortEnd,
+    sortBy = "sort_order_years",
+    sortDirection = "asc",
+  } = filters;
+
+  const safePage = Math.max(1, Math.floor(filters.page ?? 1));
+  const safePageSize = Math.min(
+    100,
+    Math.max(1, Math.floor(filters.pageSize ?? 20)),
+  );
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  // Per-row participant/media counts come from aggregate `(count)` embeds, but
+  // the has-* filters need three distinct embed shapes (verified against the
+  // live PostgREST stack):
+  //   • has at least one → `!inner(count)`: inner-joins to parents with a child
+  //     and keeps count: "exact" aligned to the filtered set.
+  //   • has none → a plain *column* embed (`(event_id)`) plus `is.null` below.
+  //     The aggregate `(count)` embed combined with `is.null` is broken: it
+  //     returns an accurate count but EMPTY data rows. A plain column embed
+  //     filters correctly; the row's relation array is then `[]`, so the UI's
+  //     `?.[0]?.count ?? 0` still reads 0.
+  //   • no filter → `(count)` for display.
+  const charactersEmbed =
+    hasParticipants === true
+      ? "event_characters!inner(count)"
+      : hasParticipants === false
+        ? "event_characters(event_id)"
+        : "event_characters(count)";
+  const mediaEmbed =
+    hasMedia === true
+      ? "event_media!inner(count)"
+      : hasMedia === false
+        ? "event_media(event_id)"
+        : "event_media(count)";
+  const selectClause = `*, event_categories(categories(id, title, color)), ${charactersEmbed}, ${mediaEmbed}`;
+
+  let query = client.from("events").select(selectClause, { count: "exact" });
+
+  if (eventType !== undefined) {
+    if (Array.isArray(eventType)) {
+      if (eventType.length === 1) {
+        query = query.eq("event_type", eventType[0]!);
+      } else if (eventType.length > 1) {
+        query = query.in("event_type", eventType);
+      }
+    } else {
+      query = query.eq("event_type", eventType);
+    }
+  }
+
+  if (importanceMin !== undefined) {
+    query = query.gte("importance", importanceMin);
+  }
+  if (importanceMax !== undefined) {
+    query = query.lte("importance", importanceMax);
+  }
+
+  // Era lives inside the temporal_data JSONB, and cannot be reconstructed from
+  // sort_order_years because the BCE/KYA/MYA scaled ranges overlap. Filter the
+  // JSONB path directly via an OR of equality predicates. The `.or()` value is
+  // interpolated into a PostgREST filter string, so we whitelist against the
+  // canonical era enum first — `Era` is compile-time only and a runtime caller
+  // (e.g. raw URL params) could otherwise inject arbitrary filter syntax.
+  if (era !== undefined) {
+    const requested = Array.isArray(era) ? era : [era];
+    const eras = requested.filter((e): e is Era =>
+      (eraEnum.options as readonly string[]).includes(e),
+    );
+    if (eras.length > 0) {
+      query = query.or(
+        eras.map((e) => `temporal_data->>era.eq.${e}`).join(","),
+      );
+    }
+  }
+
+  if (timelineId !== undefined) {
+    query = query.eq("timeline_id", timelineId);
+  }
+  if (userId !== undefined) {
+    query = query.eq("user_id", userId);
+  }
+  if (published !== undefined) {
+    query = query.eq("published", published);
+  }
+
+  // "has at least one" is handled by the `!inner` embed above. "has none" has no
+  // inner-join form, so filter on the embedded resource being null here.
+  if (hasParticipants === false) {
+    query = query.is("event_characters", null);
+  }
+  if (hasMedia === false) {
+    query = query.is("event_media", null);
+  }
+
+  if (detailScope === "expandable") {
+    query = query.not("detail_timeline_id", "is", null);
+  } else if (detailScope === "leaf") {
+    query = query.is("detail_timeline_id", null);
+  }
+
+  if (sortStart !== undefined) {
+    query = query.gte("sort_order_years", sortStart);
+  }
+  if (sortEnd !== undefined) {
+    query = query.lte("sort_order_years", sortEnd);
+  }
+
+  if (search !== undefined && search.length > 0) {
+    query = query.textSearch("search_vector", search, { type: "websearch" });
+  }
+
+  const ascending = sortDirection === "asc";
+  query = query.order(sortBy, { ascending, nullsFirst: false }).range(from, to);
+
+  const { data, count, error } = await query;
+  assertNoError(error, "getEventsPage");
+  return {
+    rows: (data ?? []) as unknown as EventListRow[],
+    total: count ?? 0,
+  };
 }
 
 /**
