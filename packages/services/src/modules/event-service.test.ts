@@ -615,6 +615,19 @@ describe("createEvent", () => {
     expect(result).toEqual(sampleEvent);
   });
 
+  it("throws when detail_timeline_id equals timeline_id (fractal cycle)", async () => {
+    const client = makeCreateClient({ data: sampleEvent, error: null });
+    await expect(
+      createEvent(client, {
+        ...validInput,
+        timeline_id: "timeline-1",
+        detail_timeline_id: "timeline-1",
+      }),
+    ).rejects.toThrow(
+      "EventService.createEvent: detail_timeline_id cannot equal timeline_id (fractal cycle)",
+    );
+  });
+
   it("throws when no authenticated user", async () => {
     const client = makeClient({
       authUser: { data: { user: null }, error: null },
