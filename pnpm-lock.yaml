@@ -27,8 +27,8 @@ importers:
         specifier: ^3.8.3
         version: 3.8.3
       skills:
-        specifier: ^1.5.9
-        version: 1.5.9
+        specifier: ^1.5.10
+        version: 1.5.10
       supabase:
         specifier: ^2.105.0
         version: 2.105.0
@@ -3504,8 +3504,8 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
-  skills@1.5.9:
-    resolution: {integrity: sha512-BjxnhlIy5IrQ30q1nGgNDSf4gy84iNA2o4Ieq4im/HsRvOjGtqvDNpb/xx15FZryXMnAPeDUWqU1ndPRQ0IyOQ==}
+  skills@1.5.10:
+    resolution: {integrity: sha512-5d9lKHeF4qcF/7LRd8h1arnPGJtRu6GxVoWyt9hh0u1RUe+UrjzXIc6PITE+HMzgqR8sZ/vJtGDi8lrOZTGS7w==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -6911,7 +6911,7 @@ snapshots:
 
   siginfo@2.0.0: {}
 
-  skills@1.5.9:
+  skills@1.5.10:
     dependencies:
       yaml: 2.9.0
 
