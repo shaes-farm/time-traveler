@@ -92,4 +92,23 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
 
+  /* ------------------------------------------------------------------ */
+  /* Motion — durations + easing (ADR-0032 / motion-spec §1).           */
+  /* Mirrors `durations`/`easings` in tokens.ts. The reduced-motion      */
+  /* collapse (resolving every duration to 0ms) lives in motion.css and  */
+  /* is enforced once at this token layer, not per component.            */
+  /* `--ease-*` is a Tailwind v4 theme namespace, so these also generate */
+  /* `ease-standard|decelerate|accelerate` utilities.                    */
+  /* ------------------------------------------------------------------ */
+
+  --duration-instant: 0ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-deliberate: 480ms;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+
 }
