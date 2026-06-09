@@ -51,6 +51,7 @@ Toolchain: **Node ≥24** (pinned via `.nvmrc`), **pnpm 11.2.2**, **Turborepo 2.
 apps/
   admin/                       # Next.js admin app (port 3000)
   docs/                        # Next.js docs app (port 3001)
+  reader/                      # Next.js public reader app (port 3002, ADR-0030) — scaffold pending (#254)
 packages/
   ui/                          # @repo/ui — shared React components
   services/                    # @repo/services — Supabase clients, schemas, service modules
@@ -83,7 +84,7 @@ pnpm install
 ### Develop
 
 ```bash
-pnpm run dev           # start both apps in watch mode (admin :3000, docs :3001)
+pnpm run dev           # start apps in watch mode (admin :3000, docs :3001; reader :3002 once #254 lands)
 pnpm run db:start      # boot local Supabase stack (Postgres 17 + Auth + Storage)
 ```
 

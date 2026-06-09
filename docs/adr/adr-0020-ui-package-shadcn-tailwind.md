@@ -85,7 +85,9 @@ placement and tooling decisions:
 - **IMP-002**: Storybook config in `packages/ui/.storybook/`; `storybook-static/`
   git/eslint-ignored.
 - **IMP-003**: App shell + route groups in
-  `apps/admin/app/{(public),(protected),(admin),auth}/` consume `@repo/ui`.
+  `apps/admin/app/{(protected),(admin),auth}/` consume `@repo/ui`. The public reader
+  (`apps/reader/app/`, [ADR-0030](adr-0030-public-reader-app-placement.md)) also consumes
+  `@repo/ui` primitives — it shares design tokens but never the admin navigation shell.
 
 ## References
 

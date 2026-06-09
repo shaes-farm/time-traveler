@@ -1842,10 +1842,6 @@ time-traveler/                              # pnpm + Turborepo monorepo
 │   ├── admin/                              # Next.js 16 admin app (port 3000)
 │   │   └── src/
 │   │       ├── app/                        # Next.js App Router
-│   │       │   ├── (public)/               # Public routes (no auth required)
-│   │       │   │   ├── timelines/[slug]/
-│   │       │   │   ├── events/[slug]/
-│   │       │   │   └── characters/[slug]/
 │   │       │   ├── (protected)/            # Auth-required routes
 │   │       │   │   ├── dashboard/
 │   │       │   │   ├── timelines/create/
@@ -1879,7 +1875,17 @@ time-traveler/                              # pnpm + Turborepo monorepo
 │   │       │   ├── slug.ts                 # Slug generation
 │   │       │   └── visualization.ts        # Scale calculations
 │   │       └── proxy.ts                    # Auth route protection (Next 16 edge proxy; replaces middleware.ts)
-│   └── docs/                               # Next.js 16 docs app (port 3001)
+│   ├── docs/                               # Next.js 16 docs app (port 3001)
+│   └── reader/                             # Next.js 16 public reader app (port 3002) — anonymous, read-only (ADR-0030)
+│       └── app/                            # public routes; no auth, anon Supabase key only
+│           ├── [username]/timelines/[slug]/   # fractal timeline reader (#65–#69)
+│           ├── [username]/events/[slug]/
+│           ├── [username]/characters/[slug]/
+│           ├── [username]/periods/[slug]/
+│           ├── [username]/stories/[slug]/
+│           ├── explore/                    # timeline navigator
+│           ├── stories/                    # story browser
+│           └── compare/                    # comparative viewer (MVP-optional)
 ├── packages/
 │   ├── services/                           # @repo/services — Supabase clients, types, schemas, service modules
 │   │   └── src/
