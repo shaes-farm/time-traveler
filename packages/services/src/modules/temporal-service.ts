@@ -65,6 +65,39 @@ function defaultPrecisionFor(era: Era): Precision {
   return era === "CE" || era === "BCE" ? "exact" : "approximate";
 }
 
+/** Round to one decimal, dropping a trailing ".0", with thousands grouping. */
+function trimScaled(n: number): string {
+  return Number(n.toFixed(1)).toLocaleString("en-US");
+}
+
+/**
+ * Formats a real-year magnitude into an era-appropriate phrase:
+ * "1 year", "300 years", "4,000 years", "79 million years",
+ * "4.5 billion years". The bare-year branch pluralizes; million/billion always
+ * keep "years" since the scale word precedes it.
+ */
+function formatYearMagnitude(years: number): string {
+  if (years >= 1_000_000_000) {
+    return `${trimScaled(years / 1_000_000_000)} billion years`;
+  }
+  if (years >= 1_000_000) {
+    return `${trimScaled(years / 1_000_000)} million years`;
+  }
+  const rounded = Math.round(years);
+  return `${rounded.toLocaleString("en-US")} year${rounded === 1 ? "" : "s"}`;
+}
+
+/**
+ * Maps a TemporalData value onto the astronomical year line (1 BCE = year 0,
+ * 2 BCE = -1, …) so that spans crossing the BCE/CE boundary count real years
+ * with no year-zero gap. Prehistoric eras (KYA/MYA/BYA) are "years ago" counts
+ * with no calendar year zero, so they reuse the sortable scaling directly.
+ */
+function toAstronomicalYears(t: TemporalData): number {
+  if (t.era === "BCE") return 1 - t.year;
+  return TemporalService.toSortableYears(t);
+}
+
 export class TemporalService {
   /**
    * Converts a TemporalData value to the same BIGINT scale used by the
@@ -149,6 +182,31 @@ export class TemporalService {
     const center = TemporalService.toSortableYears(t);
     const uncertainty = t.uncertainty ?? 0;
     return { min: center - uncertainty, max: center + uncertainty };
+  }
+
+  /**
+   * Era-aware duration phrase for a range, e.g. "spans 300 years",
+   * "spans 4,000 years", "spans 79 million years", "spans 4.5 billion years".
+   *
+   * The span is the absolute difference of the endpoints on the astronomical
+   * year line (see `toAstronomicalYears`), which expresses real years across
+   * every era while correctly closing the BCE/CE boundary's year-zero gap
+   * (1 BCE → 1 CE is a 1-year span, not 2). Millions and billions are rounded
+   * to one significant decimal (trailing ".0" dropped); smaller spans render
+   * the exact year count with thousands grouping. See
+   * docs/design/admin/02-wireframes/08-event-detail.md annotation #5.
+   *
+   * `verb` defaults to "spans"; pass "lived" for a biographical lifespan.
+   */
+  static formatDuration(
+    start: TemporalData,
+    end: TemporalData,
+    verb: "spans" | "lived" = "spans",
+  ): string {
+    const years = Math.abs(
+      toAstronomicalYears(end) - toAstronomicalYears(start),
+    );
+    return `${verb} ${formatYearMagnitude(years)}`;
   }
 
   private static formatStandard(t: TemporalData): string {
