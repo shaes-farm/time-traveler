@@ -18,6 +18,7 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 
 - `apps/admin` — Next.js 16 admin app (port 3000). Package name is `admin`.
 - `apps/docs` — Next.js 16 docs app (port 3001). Package name is `docs`.
+- `apps/reader` — Next.js 16 public reader app (port 3002). Package name is `reader`. Anonymous, read-only, dedicated app per [ADR-0030](docs/adr/adr-0030-public-reader-app-placement.md) — **not yet scaffolded** (tracked in #254).
 - `packages/ui` — `@repo/ui` shared React components (shadcn/ui-based). Import components as `@repo/ui/components/button`, `@repo/ui/components/card`, etc.; TanStack Query hooks via `@repo/ui/hooks/*`; the Zustand store via `@repo/ui/stores` (subpath exports — see `packages/ui/package.json`).
 - `packages/services` — `@repo/services` Supabase clients, Zod schemas (`@repo/services/schemas/*`), and service modules (`@repo/services/<entity>-service`). Wildcard subpath exports (`./*` → `src/*.ts`).
 - `packages/eslint-config` — `@repo/eslint-config` (`base`, `next-js`, `react-internal`).

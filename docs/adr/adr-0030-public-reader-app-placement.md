@@ -97,12 +97,19 @@ Key implications of this split:
 
 ## Implementation Notes
 
-- **IMP-001**: Scaffold `apps/reader/` as a standard Next.js 16 app using the command below.
+- **IMP-001**: Scaffold `apps/reader/` as a standard Next.js 16 app.
   Extend `@repo/typescript-config/nextjs.json` and `@repo/eslint-config/next-js`.
 
-  ```bash
-  pnpm create next-app@latest apps/reader --typescript --tailwind --app --src-dir no --import-alias "@/*"
-  ```
+  > **Amended 2026-06-08 (see Amendments §A1, issue #254):** Do **not** scaffold with the
+  > `create-next-app` command originally shown here — it does not match repo conventions
+  > (Tailwind 4 via the `@tailwindcss/postcss` single plugin and `@import "@repo/ui/styles/globals.css"`,
+  > the shared `@repo/*` configs, `transpilePackages: ["@repo/ui"]`, a dedicated dev `--port`, and
+  > `app/providers.tsx`). Mirror the existing `apps/admin` scaffold by hand instead. The original
+  > command is retained below for historical reference only:
+  >
+  > ```bash
+  > pnpm create next-app@latest apps/reader --typescript --tailwind --app --src-dir no --import-alias "@/*"
+  > ```
 
 - **IMP-002**: Add `apps/reader` to `pnpm-workspace.yaml` `packages:` list and confirm
   Turborepo picks up `reader:build`, `reader:lint`, `reader:check-types` in `turbo.json`.
@@ -111,11 +118,37 @@ Key implications of this split:
   is simpler since there are no `(protected)` routes in the reader.
 - **IMP-004**: Remove the `(public)` placeholder from `apps/admin` when `apps/reader` is
   scaffolded, to eliminate the abandoned route group.
+
+  > **Amended 2026-06-08 (see Amendments §A2):** ✅ Done. The `(public)` placeholder has already
+  > been removed from `apps/admin/app/` (now only `auth/`, `(protected)/`, `(admin)/`). No further
+  > action required for the #254 scaffold.
+
 - **IMP-005**: Create a new Vercel project for `apps/reader` and link it to the monorepo root
   with `rootDirectory: apps/reader` in the Vercel project settings.
 - **IMP-006**: Reader env vars required: `NEXT_PUBLIC_SUPABASE_URL`,
   `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Do **not** add `SUPABASE_SERVICE_ROLE_KEY` to the reader
   project.
+
+## Amendments
+
+### 2026-06-08 — Scaffolding corrections (issues #254, #255)
+
+The decision (dedicated `apps/reader` app, anon-only env, independent deployment) stands
+unchanged. The following implementation-note corrections were made when the scaffold was
+ticketed as #254:
+
+- **A1 (IMP-001)**: The `create-next-app` command is **superseded**. It produces config that
+  diverges from repo conventions — Tailwind 4 ships as the `@tailwindcss/postcss` single plugin
+  with `@import "@repo/ui/styles/globals.css"` (not a generated `tailwind.config`), and the app
+  needs `transpilePackages: ["@repo/ui"]`, the shared `@repo/typescript-config`/`@repo/eslint-config`,
+  a dedicated dev `--port` (3002), and an `app/providers.tsx` wrapping `QueryClientProvider`.
+  Scaffold `apps/reader` by **mirroring `apps/admin`** instead. Tracked in #254.
+- **A2 (IMP-004)**: Marked ✅ done — the `(public)` placeholder route group has already been
+  removed from `apps/admin/app/`; no action remains for the scaffold.
+- **A3 (new dependency, IMP-001 readiness)**: `apps/reader` and the timeline-visualization
+  tickets (#65–#69) depend on motion tokens/classes (ADR-0032 / `06-mid-fidelity/motion-spec.md`)
+  that do **not** yet exist in `@repo/ui`. This is the R-X1 hard gate from the #173 readiness
+  verdict and is tracked as #255, which must land before/with #65.
 
 ## References
 

@@ -69,15 +69,15 @@ Decisions captured before execution begins:
 
 ## Where things live
 
-| Concern                                   | Location                                                                 | Notes                                                          |
-| ----------------------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------- |
-| Design primitives (shadcn + custom theme) | `packages/ui/src/components/`                                            | Exported via `@repo/ui/components/*`                           |
-| Design tokens                             | `packages/ui/src/styles/tokens.ts` + `packages/ui/src/styles/tokens.css` | TS + CSS hand-synced; small enough to live without codegen     |
-| Storybook                                 | `packages/ui/.storybook/`                                                | Runs via `pnpm run storybook` in `packages/ui`                 |
-| Stories                                   | colocated next to components (`*.stories.tsx`)                           | Same workspace, same lint/check-types rules                    |
-| Composite "page" mockups                  | Storybook composite stories under a `Pages > *` hierarchy                | Real route counterparts ship later in `apps/admin`             |
-| App shell + route groups                  | `apps/admin/app/{(public),(protected),(admin),auth}/`                    | Consume `@repo/ui` primitives                                  |
-| Auth utilities                            | `apps/admin/lib/auth/` + `apps/admin/proxy.ts`                           | `@supabase/ssr` clients, callback route, route-protection gate |
+| Concern                                   | Location                                                                 | Notes                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Design primitives (shadcn + custom theme) | `packages/ui/src/components/`                                            | Exported via `@repo/ui/components/*`                                                     |
+| Design tokens                             | `packages/ui/src/styles/tokens.ts` + `packages/ui/src/styles/tokens.css` | TS + CSS hand-synced; small enough to live without codegen                               |
+| Storybook                                 | `packages/ui/.storybook/`                                                | Runs via `pnpm run storybook` in `packages/ui`                                           |
+| Stories                                   | colocated next to components (`*.stories.tsx`)                           | Same workspace, same lint/check-types rules                                              |
+| Composite "page" mockups                  | Storybook composite stories under a `Pages > *` hierarchy                | Real route counterparts ship later in `apps/admin`                                       |
+| App shell + route groups                  | `apps/admin/app/{(protected),(admin),auth}/`                             | Consume `@repo/ui` primitives (public reader is a separate app, `apps/reader`, ADR-0030) |
+| Auth utilities                            | `apps/admin/lib/auth/` + `apps/admin/proxy.ts`                           | `@supabase/ssr` clients, callback route, route-protection gate                           |
 
 Mockup screens that don't yet have a production route live as Storybook composite stories. When a screen graduates to interactive/data-driven, the route moves to `apps/admin` and the composite story stays as a visual snapshot.
 
@@ -206,7 +206,7 @@ Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](ht
 - `apps/admin/.env.local` set up by the developer (gitignored); mirrors `.env.local.example` at the repo root. Next.js reads from the app's directory, not the repo root
 - Manual smoke-test plan in the PR description: register → confirm via Inbucket → sign in → sign out → magic link → password reset → admin gate
 
-**Design for extraction.** A future public reader app (D3-based, deferred) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `proxy.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
+**Design for extraction.** The public reader app (`apps/reader`, D3-based — [ADR-0030](../../adr/adr-0030-public-reader-app-placement.md)) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `proxy.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
 
 ### Batch D — Auth UI ✅ landed in [#157](https://github.com/shaes-farm/time-traveler/pull/157)
 

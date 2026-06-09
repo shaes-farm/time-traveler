@@ -6,7 +6,7 @@ Trust these instructions. Only search the codebase if information here is incomp
 
 **Time Traveler** is a temporal content management system for storing, visualizing, and interacting with historical events and narratives across the full span of time. Key features include fractal zoomable timelines, multi-dimensional character modeling (7 types: Human, Animal, Mythological, Fictional, Organization, Divine, Artifact), and a hybrid temporal system supporting dates from the Big Bang to the far future. The planned stack is **Next.js 16+ (App Router), React 19, TypeScript, Supabase (PostgreSQL + JSONB, Auth, Realtime, RLS), TanStack Query, Zustand, shadcn/ui, Tailwind CSS, D3.js**. Target hosting is **Vercel** (frontend) + **Supabase** (backend/database).
 
-**Current state:** `apps/admin` is under active feature development — auth, the app shell, dashboard, list pages (timelines, characters, events, periods, stories, categories, media), the timeline create/edit editor, and a public reader — backed by `@repo/services` (nine service modules + Zod schemas) and `@repo/ui` (TanStack Query hooks, a Zustand store, shadcn/ui primitives). `apps/docs` is still Turborepo boilerplate. The Supabase layer has 19 numbered migrations plus pgTAP database tests.
+**Current state:** `apps/admin` is under active feature development — auth, the app shell, dashboard, list pages (timelines, characters, events, periods, stories, categories, media), and the timeline create/edit editor — backed by `@repo/services` (nine service modules + Zod schemas) and `@repo/ui` (TanStack Query hooks, a Zustand store, shadcn/ui primitives). The public-facing reader is a **separate, dedicated `apps/reader` app** ([ADR-0030](../docs/adr/adr-0030-public-reader-app-placement.md)) — designed but not yet scaffolded (tracked in #254); it never shares the admin shell. `apps/docs` is still Turborepo boilerplate. The Supabase layer has 19 numbered migrations plus pgTAP database tests.
 
 ## Repository Layout
 
@@ -16,7 +16,8 @@ This is a **pnpm monorepo** orchestrated by **Turborepo**.
 /
 ├── apps/
 │   ├── admin/          # Next.js 16 administration app (port 3000) — package name: "admin"
-│   └── docs/           # Next.js 16 docs app (port 3001) — package name: "docs"
+│   ├── docs/           # Next.js 16 docs app (port 3001) — package name: "docs"
+│   └── reader/         # Next.js 16 public reader app (port 3002) — package name: "reader" (ADR-0030; not yet scaffolded, #254)
 ├── packages/
 │   ├── ui/             # @repo/ui — shared React components (shadcn/ui-based), TanStack Query hooks, Zustand store
 │   ├── services/       # @repo/services — shared Supabase clients, schemas, and service modules
