@@ -602,6 +602,26 @@ export async function removeEventFromTimeline(
   assertNoError(error, "removeEventFromTimeline");
 }
 
+/**
+ * Returns the ids of the timelines an event "also appears in" — i.e. its
+ * `timeline_events` junction memberships. This is the secondary, comparative
+ * membership only; it does NOT include the event's primary `events.timeline_id`
+ * home timeline. The event editor uses it to pre-populate the "also appears in"
+ * multi-select when editing an existing event.
+ */
+export async function getEventTimelineLinks(
+  client: SupabaseClient<Database>,
+  eventId: string,
+): Promise<string[]> {
+  const { data, error } = await client
+    .from("timeline_events")
+    .select("timeline_id")
+    .eq("event_id", eventId);
+
+  assertNoError(error, "getEventTimelineLinks");
+  return (data ?? []).map((row) => row.timeline_id);
+}
+
 // ---------------------------------------------------------------------------
 // Junction: timeline_media
 // ---------------------------------------------------------------------------

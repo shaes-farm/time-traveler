@@ -403,6 +403,20 @@ export async function createEvent(
   client: SupabaseClient<Database>,
   data: CreateEventInput,
 ): Promise<EventRow> {
+  // Forward-fractal guard, mirroring updateEvent: an event must not expand into
+  // its own primary timeline. On create there are no descendants yet, so the
+  // self-reference equality is the only reachable cycle (the transitive check in
+  // assertNoDetailTimelineCycle needs an existing row id and runs on update).
+  if (
+    data.detail_timeline_id != null &&
+    data.timeline_id != null &&
+    data.detail_timeline_id === data.timeline_id
+  ) {
+    throw new Error(
+      "EventService.createEvent: detail_timeline_id cannot equal timeline_id (fractal cycle)",
+    );
+  }
+
   // Identify the current user so we can scope slug collision checks
   const {
     data: { user },
