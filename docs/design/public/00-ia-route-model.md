@@ -68,7 +68,7 @@ graph TD
 
 ## 3. Route taxonomy
 
-The reader lives under the public route group `app/(public)/` (ADR-0003, system-design §11), which carries no auth requirement and is structurally separate from `(protected)` and `(admin)`. The public surface lives in the dedicated **`apps/reader`** Next.js application — see [ADR-0030](../../adr/adr-0030-public-reader-app-placement.md).
+The public reader lives in its own dedicated **`apps/reader`** Next.js application ([ADR-0030](../../adr/adr-0030-public-reader-app-placement.md), system-design §11) — anonymous, read-only, and structurally separate from the admin app's `(protected)` and `(admin)` route groups, with which it shares design tokens but never a navigation shell.
 
 ### 3.1 Primary routes
 

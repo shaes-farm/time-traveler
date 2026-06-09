@@ -37,6 +37,11 @@ segment access tiers, and Next 16's edge proxy (`apps/admin/proxy.ts`, the
 middleware successor) gates protected routes. See `docs/system-design.md` §2.2,
 §7.5, §11.
 
+> **Amended by [ADR-0030](adr-0030-public-reader-app-placement.md) (2026-05-31):** the
+> `(public)` tier described here was relocated out of `apps/admin` into a dedicated
+> `apps/reader` application. `apps/admin` now carries only `(protected)`, `(admin)`, and
+> `auth`. The access-tier model below stands; only the placement of the public surface changed.
+
 ## Consequences
 
 ### Positive
