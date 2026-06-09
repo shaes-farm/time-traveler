@@ -26,6 +26,7 @@ import {
   addEventToTimeline,
   removeEventFromTimeline,
   setTimelineEventSortOrder,
+  getEventTimelineLinks,
 } from "@repo/services/timeline-service";
 import type {
   TimelineFilters,
@@ -57,6 +58,9 @@ export const timelineKeys = {
   bySlug: (slug: string) => [...timelineKeys.all, "slug", slug] as const,
   collaborators: (id: string) =>
     [...timelineKeys.all, "collaborators", id] as const,
+  /** The "also appears in" timeline_events memberships for a given event. */
+  eventLinks: (eventId: string) =>
+    [...timelineKeys.all, "event-links", eventId] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -143,6 +147,27 @@ export function useTimelineCollaborators(
   return useQuery({
     queryKey: timelineKeys.collaborators(timelineId),
     queryFn: () => getCollaborators(client, timelineId),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/**
+ * Fetch the ids of the timelines an event "also appears in" (its
+ * `timeline_events` junction memberships), for pre-populating the event
+ * editor's "also appears in" multi-select.
+ */
+export function useEventTimelineLinks(
+  client: ServiceClient,
+  eventId: string,
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getEventTimelineLinks>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: timelineKeys.eventLinks(eventId),
+    queryFn: () => getEventTimelineLinks(client, eventId),
     staleTime: 30_000,
     ...options,
   });

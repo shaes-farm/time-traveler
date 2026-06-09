@@ -15,6 +15,7 @@ import {
   useAddCollaborator,
   useRemoveCollaborator,
   useUpdateCollaboratorRole,
+  useEventTimelineLinks,
   timelineKeys,
 } from "./use-timelines";
 
@@ -34,6 +35,8 @@ vi.mock("@repo/services/timeline-service", () => ({
   updateCollaboratorRole: vi.fn(),
   addEventToTimeline: vi.fn(),
   removeEventFromTimeline: vi.fn(),
+  setTimelineEventSortOrder: vi.fn(),
+  getEventTimelineLinks: vi.fn(),
   addMediaToTimeline: vi.fn(),
 }));
 
@@ -50,6 +53,7 @@ import {
   addCollaborator,
   removeCollaborator,
   updateCollaboratorRole,
+  getEventTimelineLinks,
 } from "@repo/services/timeline-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -119,6 +123,33 @@ describe("useTimelineCollaborators", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getCollaborators).toHaveBeenCalledWith(mockClient, "tl-1");
+  });
+});
+
+describe("useEventTimelineLinks", () => {
+  it("calls getEventTimelineLinks with client and eventId", async () => {
+    vi.mocked(getEventTimelineLinks).mockResolvedValue([
+      "tl-1",
+      "tl-2",
+    ] as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useEventTimelineLinks(mockClient, "event-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getEventTimelineLinks).toHaveBeenCalledWith(mockClient, "event-1");
+    expect(result.current.data).toEqual(["tl-1", "tl-2"]);
+  });
+
+  it("uses the eventLinks query key", () => {
+    expect(timelineKeys.eventLinks("event-1")).toEqual([
+      "timelines",
+      "event-links",
+      "event-1",
+    ]);
   });
 });
 
