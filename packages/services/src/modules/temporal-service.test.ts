@@ -377,3 +377,74 @@ describe("TemporalService.getUncertaintyRange", () => {
     expect(max).toBe(2025);
   });
 });
+
+// ─── formatDuration ───────────────────────────────────────────────────────────
+
+describe("TemporalService.formatDuration", () => {
+  it("CE range under a thousand years → exact year count", () => {
+    expect(TemporalService.formatDuration(ce(1600), ce(1900))).toBe(
+      "spans 300 years",
+    );
+  });
+
+  it("groups thousands (KYA range)", () => {
+    expect(
+      TemporalService.formatDuration(
+        prehistoric(12, "KYA"),
+        prehistoric(8, "KYA"),
+      ),
+    ).toBe("spans 4,000 years");
+  });
+
+  it("formats millions (MYA range)", () => {
+    expect(
+      TemporalService.formatDuration(
+        prehistoric(145, "MYA"),
+        prehistoric(66, "MYA"),
+      ),
+    ).toBe("spans 79 million years");
+  });
+
+  it("formats billions with a significant decimal (BYA range)", () => {
+    expect(
+      TemporalService.formatDuration(
+        prehistoric(13, "BYA"),
+        prehistoric(85, "MYA"),
+      ),
+    ).toBe("spans 12.9 billion years");
+  });
+
+  it("is order-independent (absolute span)", () => {
+    expect(TemporalService.formatDuration(ce(1900), ce(1600))).toBe(
+      "spans 300 years",
+    );
+  });
+
+  it("counts BCE→CE spans with astronomical numbering (no year zero)", () => {
+    // 1 BCE → astronomical year 0, 1 CE → astronomical year 1 ⇒ 1-year span.
+    // Also exercises the singular "year" form.
+    expect(TemporalService.formatDuration(bce(1), ce(1))).toBe("spans 1 year");
+    // 50 BCE → -49, 50 CE → 50 ⇒ 99 real years across the boundary.
+    expect(TemporalService.formatDuration(bce(50), ce(50))).toBe(
+      "spans 99 years",
+    );
+  });
+
+  it("pluralizes correctly for a single-year CE span", () => {
+    expect(TemporalService.formatDuration(ce(1900), ce(1901))).toBe(
+      "spans 1 year",
+    );
+  });
+
+  it("supports a biographical verb", () => {
+    expect(TemporalService.formatDuration(ce(1867), ce(1934), "lived")).toBe(
+      "lived 67 years",
+    );
+  });
+
+  it("renders a zero-length span", () => {
+    expect(TemporalService.formatDuration(ce(1900), ce(1900))).toBe(
+      "spans 0 years",
+    );
+  });
+});
