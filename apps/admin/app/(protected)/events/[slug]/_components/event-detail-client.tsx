@@ -16,7 +16,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import type { TemporalData } from "@repo/services/schemas/temporal";
 import { TemporalService } from "@repo/services/modules/temporal-service";
-import { getEventBySlug, getEvents } from "@repo/services/event-service";
+import { getEventBySlug } from "@repo/services/event-service";
 import {
   getTimelineById,
   getEventTimelineLinks,
@@ -47,6 +47,7 @@ import {
   TabsTrigger,
 } from "@repo/ui/components/tabs";
 import {
+  eventKeys,
   usePublishEvent,
   useUnpublishEvent,
   useDeleteEvent,
@@ -572,7 +573,9 @@ export function EventDetailClient({ slug }: { slug: string }) {
     isPending: eventPending,
     isError: eventError,
   } = useQuery({
-    queryKey: ["event-detail-auth", slug],
+    // Key under the events namespace so publish/unpublish (which invalidate
+    // eventKeys.all by prefix) also refresh this view's published state.
+    queryKey: [...eventKeys.all, "detail-auth", slug],
     queryFn: async () => {
       const {
         data: { user },
@@ -622,13 +625,15 @@ export function EventDetailClient({ slug }: { slug: string }) {
     queryFn: async (): Promise<ExpandsInto | null> => {
       const tl = await getTimelineById(client, event!.detail_timeline_id!);
       if (!tl) return null;
-      const subEvents = await getEvents(client, {
-        timelineId: tl.id,
-        pageSize: 100,
-      });
+      // Exact head count so the displayed total stays correct past 100 events.
+      const { count, error } = await client
+        .from("events")
+        .select("id", { count: "exact", head: true })
+        .eq("timeline_id", tl.id);
+      if (error) throw error;
       return {
         timeline: { id: tl.id, title: tl.title, slug: tl.slug },
-        eventCount: subEvents.length,
+        eventCount: count ?? 0,
       };
     },
     enabled: !!event?.detail_timeline_id,
@@ -642,39 +647,48 @@ export function EventDetailClient({ slug }: { slug: string }) {
       earlier: NeighborEvent | null;
       later: NeighborEvent | null;
     }> => {
-      const rows = await getEvents(client, {
-        timelineId: event!.timeline_id!,
-        pageSize: 100,
-      });
+      // Two targeted limit(1) queries: nearest earlier (≤ self, desc) and
+      // nearest later (> self, asc) within the home timeline. O(1) regardless
+      // of timeline size, where a single fetched page would undercount past 100.
       const self = event!.sort_order_years ?? 0;
-      let earlier: NeighborEvent | null = null;
-      let later: NeighborEvent | null = null;
-      let earlierGap = Infinity;
-      let laterGap = Infinity;
-      for (const r of rows) {
-        if (r.id === event!.id) continue;
-        const order = r.sort_order_years ?? 0;
-        const ref: NeighborEvent = {
-          id: r.id,
-          title: r.title,
-          slug: r.slug,
-          temporal_data: r.temporal_data as TemporalData,
-        };
-        if (order <= self) {
-          const gap = self - order;
-          if (gap < earlierGap) {
-            earlierGap = gap;
-            earlier = ref;
-          }
-        } else {
-          const gap = order - self;
-          if (gap < laterGap) {
-            laterGap = gap;
-            later = ref;
-          }
-        }
-      }
-      return { earlier, later };
+      const cols = "id, title, slug, temporal_data";
+      const base = () =>
+        client
+          .from("events")
+          .select(cols)
+          .eq("timeline_id", event!.timeline_id!)
+          .neq("id", event!.id);
+      const [earlierRes, laterRes] = await Promise.all([
+        base()
+          .lte("sort_order_years", self)
+          .order("sort_order_years", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        base()
+          .gt("sort_order_years", self)
+          .order("sort_order_years", { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+      ]);
+      if (earlierRes.error) throw earlierRes.error;
+      if (laterRes.error) throw laterRes.error;
+      const toRef = (
+        r: {
+          id: string;
+          title: string;
+          slug: string;
+          temporal_data: unknown;
+        } | null,
+      ): NeighborEvent | null =>
+        r
+          ? {
+              id: r.id,
+              title: r.title,
+              slug: r.slug,
+              temporal_data: r.temporal_data as TemporalData,
+            }
+          : null;
+      return { earlier: toRef(earlierRes.data), later: toRef(laterRes.data) };
     },
     enabled: !!event?.id && !!event?.timeline_id,
     staleTime: 30_000,
@@ -1027,6 +1041,8 @@ export function EventDetailClient({ slug }: { slug: string }) {
             type="button"
             className="flex w-full items-center gap-2 px-4 py-3 text-sm text-destructive hover:bg-destructive/5 transition-colors"
             onClick={() => setShowDangerZone((v) => !v)}
+            aria-expanded={showDangerZone}
+            aria-controls="event-danger-zone"
           >
             {showDangerZone ? (
               <ChevronUp className="h-4 w-4" />
@@ -1036,7 +1052,10 @@ export function EventDetailClient({ slug }: { slug: string }) {
             Danger zone
           </button>
           {showDangerZone && (
-            <div className="px-4 pb-4 pt-1 border-t border-destructive/20">
+            <div
+              id="event-danger-zone"
+              className="px-4 pb-4 pt-1 border-t border-destructive/20"
+            >
               <p className="text-xs text-muted-foreground mb-3">
                 Deleting an event is permanent and cannot be undone. All
                 participant, category, and media associations will be removed.

@@ -420,10 +420,19 @@ describe("TemporalService.formatDuration", () => {
     );
   });
 
-  it("counts BCE→CE spans across the era boundary", () => {
-    // BCE 50 → -50, CE 50 → +50 ⇒ 100-year span.
+  it("counts BCE→CE spans with astronomical numbering (no year zero)", () => {
+    // 1 BCE → astronomical year 0, 1 CE → astronomical year 1 ⇒ 1-year span.
+    // Also exercises the singular "year" form.
+    expect(TemporalService.formatDuration(bce(1), ce(1))).toBe("spans 1 year");
+    // 50 BCE → -49, 50 CE → 50 ⇒ 99 real years across the boundary.
     expect(TemporalService.formatDuration(bce(50), ce(50))).toBe(
-      "spans 100 years",
+      "spans 99 years",
+    );
+  });
+
+  it("pluralizes correctly for a single-year CE span", () => {
+    expect(TemporalService.formatDuration(ce(1900), ce(1901))).toBe(
+      "spans 1 year",
     );
   });
 
