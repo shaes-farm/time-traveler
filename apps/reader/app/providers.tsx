@@ -2,6 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+import { ReaderRealtimeProvider } from "./_components/realtime-provider";
 
 function makeQueryClient() {
   return new QueryClient({
@@ -22,6 +23,8 @@ export function Providers({ children }: ProvidersProps) {
   const [queryClient] = useState(makeQueryClient);
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <ReaderRealtimeProvider>{children}</ReaderRealtimeProvider>
+    </QueryClientProvider>
   );
 }
