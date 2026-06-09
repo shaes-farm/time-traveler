@@ -38,13 +38,16 @@
 /* enter-exit — overlays and panels.
  * Asymmetric: slow (320ms) decelerate in, fast (120ms) accelerate out, so
  * dismissal feels responsive. Driven by the Radix/shadcn `data-state`
- * convention (matches sheet/dialog), scale-from-95% + fade. */
+ * convention (matches sheet/dialog), scale-from-95% + fade. `both` holds the
+ * first/last keyframe outside the animation interval so the open state never
+ * flashes its pre-animation styles and the exit state stays faded-out while
+ * Radix Presence keeps the node mounted to finish the animation. */
 .enter-exit[data-state="open"] {
-  animation: enter-exit-in var(--duration-slow) var(--ease-decelerate);
+  animation: enter-exit-in var(--duration-slow) var(--ease-decelerate) both;
 }
 
 .enter-exit[data-state="closed"] {
-  animation: enter-exit-out var(--duration-fast) var(--ease-accelerate);
+  animation: enter-exit-out var(--duration-fast) var(--ease-accelerate) both;
 }
 
 @keyframes enter-exit-in {
@@ -84,6 +87,7 @@
  * before motion.css) so it wins when the query matches. */
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --duration-instant: 0ms;
     --duration-fast: 0ms;
     --duration-base: 0ms;
     --duration-slow: 0ms;

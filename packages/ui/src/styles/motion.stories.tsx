@@ -144,7 +144,7 @@ export const Classes: Story = {
     const [zoomed, setZoomed] = useState(false);
     const [shifted, setShifted] = useState(false);
     const [faded, setFaded] = useState(false);
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(true);
     const [present, setPresent] = useState(true);
 
     return (
@@ -206,18 +206,15 @@ export const Classes: Story = {
           <DemoButton onClick={() => setOpen((v) => !v)}>
             {open ? "Close" : "Open"}
           </DemoButton>
-          {open && (
-            <div
-              data-state="open"
-              className="enter-exit flex h-20 w-40 items-center justify-center rounded-md border border-border bg-surface-2 text-xs text-foreground"
-            >
-              enter-exit (open)
-            </div>
-          )}
-          <span className="text-[10px] text-foreground-subtle">
-            Enter fires on mount; the symmetric exit animation needs Radix
-            presence (sheet/dialog) to keep the node mounted while it plays.
-          </span>
+          {/* Node stays mounted; toggling data-state lets both halves of the
+              choreography (enter + exit) be observed. In real usage Radix
+              Presence supplies the same mounted-while-exiting behaviour. */}
+          <div
+            data-state={open ? "open" : "closed"}
+            className="enter-exit flex h-20 w-40 items-center justify-center rounded-md border border-border bg-surface-2 text-xs text-foreground"
+          >
+            enter-exit ({open ? "open" : "closed"})
+          </div>
         </ClassDemo>
 
         <ClassDemo
