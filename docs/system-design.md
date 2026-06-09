@@ -1840,40 +1840,40 @@ GitHub Actions:
 time-traveler/                              # pnpm + Turborepo monorepo
 ├── apps/
 │   ├── admin/                              # Next.js 16 admin app (port 3000)
-│   │   ├── app/                        # Next.js App Router
-│   │   │   ├── (protected)/            # Auth-required routes
+│   │   ├── app/                            # Next.js App Router
+│   │   │   ├── (protected)/                # Auth-required routes
 │   │   │   │   ├── dashboard/
 │   │   │   │   ├── timelines/create/
 │   │   │   │   ├── events/create/
 │   │   │   │   ├── characters/create/
-│   │   │   │   ├── library/            # Curated content library browser
-│   │   │   │   └── notifications/      # User notification center
-│   │   │   ├── (admin)/                # Admin-only routes (is_admin() check)
-│   │   │   │   ├── dashboard/          # Admin dashboard, usage metrics
-│   │   │   │   ├── library/            # Manage curated content library
-│   │   │   │   ├── moderation/         # Content reports and moderation
-│   │   │   │   └── users/              # User management, role assignment
+│   │   │   │   ├── library/                # Curated content library browser
+│   │   │   │   └── notifications/          # User notification center
+│   │   │   ├── (admin)/                    # Admin-only routes (is_admin() check)
+│   │   │   │   ├── dashboard/              # Admin dashboard, usage metrics
+│   │   │   │   ├── library/                # Manage curated content library
+│   │   │   │   ├── moderation/             # Content reports and moderation
+│   │   │   │   └── users/                  # User management, role assignment
 │   │   │   └── auth/
 │   │   ├── components/
-│   │   │   ├── timeline/               # Timeline, FractalView, Renderer
-│   │   │   ├── event/                  # EventCard, EventDetail, EventForm
-│   │   │   ├── character/              # Profile, Timeline, RelationshipNetwork
-│   │   │   ├── temporal/               # TemporalInput, PrehistoricTimeline
-│   │   │   ├── showcase/               # MediaGallery, Uploader
-│   │   │   └── admin/                  # Admin-specific components
-│   │   ├── hooks/                      # TanStack Query hooks
+│   │   │   ├── timeline/                   # Timeline, FractalView, Renderer
+│   │   │   ├── event/                      # EventCard, EventDetail, EventForm
+│   │   │   ├── character/                  # Profile, Timeline, RelationshipNetwork
+│   │   │   ├── temporal/                   # TemporalInput, PrehistoricTimeline
+│   │   │   ├── showcase/                   # MediaGallery, Uploader
+│   │   │   └── admin/                      # Admin-specific components
+│   │   ├── hooks/                          # TanStack Query hooks
 │   │   │   ├── useEvents.ts
 │   │   │   ├── useCharacters.ts
 │   │   │   ├── useTimelines.ts
-│   │   │   ├── useNotifications.ts     # Notification polling/realtime
-│   │   │   └── useRealtime.ts          # Realtime subscription hooks
-│   │   ├── stores/                     # Zustand stores
-│   │   │   ├── navigationStore.ts      # Zoom, view mode, timeline selection
-│   │   │   └── uiStore.ts              # Sidebar, modal state
-│   │   ├── lib/utils/                  # App-specific utilities
-│   │   │   ├── slug.ts                 # Slug generation
-│   │   │   └── visualization.ts        # Scale calculations
-│   │   └── proxy.ts                    # Auth route protection (Next 16 edge proxy; replaces middleware.ts)
+│   │   │   ├── useNotifications.ts         # Notification polling/realtime
+│   │   │   └── useRealtime.ts              # Realtime subscription hooks
+│   │   ├── stores/                         # Zustand stores
+│   │   │   ├── navigationStore.ts          # Zoom, view mode, timeline selection
+│   │   │   └── uiStore.ts                  # Sidebar, modal state
+│   │   ├── lib/utils/                      # App-specific utilities
+│   │   │   ├── slug.ts                     # Slug generation
+│   │   │   └── visualization.ts            # Scale calculations
+│   │   └── proxy.ts                        # Auth route protection (Next 16 edge proxy; replaces middleware.ts)
 │   ├── docs/                               # Next.js 16 docs app (port 3001)
 │   └── reader/                             # Next.js 16 public reader app (port 3002) — anonymous, read-only (ADR-0030)
 │       └── app/                            # public routes; no auth, anon Supabase key only
