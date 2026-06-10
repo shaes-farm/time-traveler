@@ -17,11 +17,11 @@ import {
   X,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "@repo/ui/components/sonner";
 import type { TemporalData } from "@repo/services/schemas/temporal";
 import {
   getTimelineBySlug,
   getTimelineEventsUnion,
-  TimelinePublishError,
   type TimelineEventWithMembership,
 } from "@repo/services/timeline-service";
 import { getCharacterById } from "@repo/services/character-service";
@@ -1181,18 +1181,17 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
               }
               onPublish={() =>
                 publish.mutate(timeline.id, {
-                  onError: (err) => {
-                    if (
-                      err instanceof TimelinePublishError &&
-                      err.code === "no_events"
-                    ) {
-                      // BLOCKED: no toast infrastructure yet — button is already disabled by publishDisabledReason
-                      console.error("Publish blocked: no linked events");
-                    }
-                  },
+                  onSuccess: () => toast.success("Timeline published."),
+                  // The no-linked-events precondition (#212) surfaces via the
+                  // global mutation-error toast (TimelinePublishError → guidance
+                  // copy); the publish button is also disabled in that state.
                 })
               }
-              onUnpublish={() => unpublish.mutate(timeline.id)}
+              onUnpublish={() =>
+                unpublish.mutate(timeline.id, {
+                  onSuccess: () => toast.success("Timeline unpublished."),
+                })
+              }
             />
             {canEdit && (
               <Link

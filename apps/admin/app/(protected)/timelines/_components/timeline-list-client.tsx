@@ -2,16 +2,28 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@repo/ui/components/sonner";
 import { Globe, Lock, Plus, Users } from "lucide-react";
 import type { TemporalData } from "@repo/services/schemas/temporal";
-import type { TimelineFilters } from "@repo/services/timeline-service";
+import {
+  publishTimeline,
+  unpublishTimeline,
+  type TimelineFilters,
+} from "@repo/services/timeline-service";
+import { BulkActionBar } from "@repo/ui/components/bulk-action-bar";
 import { Button } from "@repo/ui/components/button";
-import { DataTable, type DataTableProps } from "@repo/ui/components/data-table";
+import {
+  DataTable,
+  createSelectColumn,
+  type DataTableProps,
+  type RowSelectionState,
+} from "@repo/ui/components/data-table";
 import { FilterRail, type FilterGroup } from "@repo/ui/components/filter-rail";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { StatusBadge } from "@repo/ui/components/status-badge";
 import { TemporalDisplay } from "@repo/ui/components/temporal-display";
-import { useTimelinesPage } from "@repo/ui/hooks/use-timelines";
+import { timelineKeys, useTimelinesPage } from "@repo/ui/hooks/use-timelines";
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
 
 // ---------------------------------------------------------------------------
@@ -23,6 +35,7 @@ type Visibility = "private" | "public" | "shared";
 
 interface TimelineRow {
   id: string;
+  user_id: string;
   title: string;
   slug: string;
   timeline_type: TimelineType | null;
@@ -213,6 +226,7 @@ function buildColumns(
   onRowClick: (row: TimelineRow) => void,
 ): DataTableProps<TimelineRow, unknown>["columns"] {
   return [
+    createSelectColumn<TimelineRow>(),
     {
       accessorKey: "title",
       header: "Title",
@@ -375,9 +389,77 @@ export function TimelineListClient() {
     filters,
   );
 
-  const rows = (data?.rows ?? []) as unknown as TimelineRow[];
+  // Current user — bulk publish/unpublish is owner-only (the timelines RLS
+  // UPDATE policy is owner/admin, so non-owned rows are excluded here too).
+  const { data: userId = "" } = useQuery({
+    queryKey: ["auth", "user-id"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await client.auth.getUser();
+      return user?.id ?? "";
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const queryClient = useQueryClient();
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [bulkBusy, setBulkBusy] = React.useState(false);
+
+  const rows = React.useMemo(
+    () => (data?.rows ?? []) as unknown as TimelineRow[],
+    [data],
+  );
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Reset selection whenever the query (filters/sort/page) changes. Keyed on the
+  // stable URL string — `filters` is a fresh object each render, so comparing it
+  // by reference would loop. Done in render per the list's prevUrlSearch pattern.
+  const filterKey = searchParams.toString();
+  const [prevFilterKey, setPrevFilterKey] = React.useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setRowSelection({});
+  }
+
+  const selectedRows = React.useMemo(
+    () => rows.filter((r) => rowSelection[r.id]),
+    [rows, rowSelection],
+  );
+  const ownedSelected = React.useMemo(
+    () => selectedRows.filter((r) => r.user_id === userId),
+    [selectedRows, userId],
+  );
+  const skippedCount = selectedRows.length - ownedSelected.length;
+
+  async function runBulk(action: "publish" | "unpublish") {
+    const ids = ownedSelected.map((r) => r.id);
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    const fn = action === "publish" ? publishTimeline : unpublishTimeline;
+    const results = await Promise.allSettled(ids.map((id) => fn(client, id)));
+    setBulkBusy(false);
+    await queryClient.invalidateQueries({ queryKey: timelineKeys.all });
+    setRowSelection({});
+
+    const failed = results.filter((r) => r.status === "rejected").length;
+    const ok = ids.length - failed;
+    const verb = action === "publish" ? "Published" : "Unpublished";
+    const noun = (n: number) => `timeline${n !== 1 ? "s" : ""}`;
+    if (failed === 0) {
+      toast.success(`${verb} ${ok} ${noun(ok)}.`);
+    } else if (ok === 0) {
+      // Publish can fail the linked-events precondition (#212); surface it.
+      toast.error(
+        action === "publish"
+          ? `Couldn't publish ${failed} ${noun(failed)}. Each needs at least one linked event.`
+          : `Couldn't unpublish ${failed} ${noun(failed)}. Try again.`,
+      );
+    } else {
+      toast.warning(`${verb} ${ok} ${noun(ok)}; ${failed} failed.`);
+    }
+  }
   const hasFilters =
     types.length > 0 ||
     visibilities.length > 0 ||
@@ -641,11 +723,25 @@ export function TimelineListClient() {
           )}
 
           {!isError && !isPending && total > 0 && (
-            <DataTable
-              columns={columns}
-              data={rows}
-              onRowClick={handleRowClick}
-            />
+            <div className="space-y-3">
+              <BulkActionBar
+                count={ownedSelected.length}
+                skippedCount={skippedCount}
+                entityLabel="timeline"
+                busy={bulkBusy}
+                onPublish={() => void runBulk("publish")}
+                onUnpublish={() => void runBulk("unpublish")}
+                onClear={() => setRowSelection({})}
+              />
+              <DataTable
+                columns={columns}
+                data={rows}
+                onRowClick={handleRowClick}
+                getRowId={(row) => row.id}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+              />
+            </div>
           )}
         </div>
 
