@@ -5,7 +5,7 @@ import { StaleContentBanner } from "./stale-content-banner";
 
 describe("StaleContentBanner", () => {
   it("is a polite, atomic live region (never assertive)", () => {
-    render(<StaleContentBanner state="stale" />);
+    render(<StaleContentBanner state="stale" onRefresh={() => {}} />);
     const region = screen.getByRole("status");
     expect(region).toHaveAttribute("aria-live", "polite");
     expect(region).toHaveAttribute("aria-atomic", "true");
@@ -19,12 +19,18 @@ describe("StaleContentBanner", () => {
   });
 
   it("uses the opacity-only ambient-presence class", () => {
-    render(<StaleContentBanner state="stale" />);
+    render(<StaleContentBanner state="stale" onRefresh={() => {}} />);
     expect(screen.getByRole("status")).toHaveClass("ambient-presence");
   });
 
+  it("pins below the sticky nav when visible so it survives scroll", () => {
+    render(<StaleContentBanner state="stale" onRefresh={() => {}} />);
+    const region = screen.getByRole("status");
+    expect(region).toHaveClass("sticky", "top-14");
+  });
+
   it("shows default stale copy with a redundant text label (never color-only)", () => {
-    render(<StaleContentBanner state="stale" />);
+    render(<StaleContentBanner state="stale" onRefresh={() => {}} />);
     expect(screen.getByText(/live updates paused/i)).toBeInTheDocument();
   });
 
@@ -56,7 +62,13 @@ describe("StaleContentBanner", () => {
   });
 
   it("allows overriding the message copy", () => {
-    render(<StaleContentBanner state="stale" message="Custom stale copy" />);
+    render(
+      <StaleContentBanner
+        state="stale"
+        message="Custom stale copy"
+        onRefresh={() => {}}
+      />,
+    );
     expect(screen.getByText("Custom stale copy")).toBeInTheDocument();
   });
 });

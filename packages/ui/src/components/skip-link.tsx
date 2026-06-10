@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { cn } from "@repo/ui/lib/utils";
 
 /**
@@ -11,7 +12,7 @@ import { cn } from "@repo/ui/lib/utils";
 export interface SkipLinkProps {
   /** Fragment target of the `main` landmark. Defaults to `#main-content`. */
   targetId?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   className?: string;
 }
 

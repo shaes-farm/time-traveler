@@ -28,23 +28,30 @@ const DEFAULT_MESSAGE: Record<Exclude<StaleBannerState, "hidden">, string> = {
   reconnecting: "Reconnecting…",
 };
 
-export interface StaleContentBannerProps {
-  state?: StaleBannerState;
+interface StaleContentBannerBaseProps {
   /** Override the default per-state copy. */
   message?: string;
-  /** Manual re-fetch handler. The button is omitted while reconnecting. */
-  onRefresh?: () => void;
   refreshLabel?: string;
   className?: string;
 }
 
-export const StaleContentBanner = ({
-  state = "hidden",
-  message,
-  onRefresh,
-  refreshLabel = "Refresh",
-  className,
-}: StaleContentBannerProps) => {
+/**
+ * Props are a discriminated union on `state` so the Refresh affordance can never
+ * be forgotten: `state="stale"` REQUIRES `onRefresh` at the type level (the
+ * keyboard-reachable Refresh control is part of the a11y/UX contract — see
+ * accessibility-spec §4.3). `hidden`/`reconnecting` don't render the button, so
+ * `onRefresh` stays optional there (the button is omitted while reconnecting).
+ */
+export type StaleContentBannerProps = StaleContentBannerBaseProps &
+  (
+    | { state: "stale"; onRefresh: () => void }
+    | { state?: "hidden" | "reconnecting"; onRefresh?: () => void }
+  );
+
+export const StaleContentBanner = (props: StaleContentBannerProps) => {
+  const { message, refreshLabel = "Refresh", className } = props;
+  const state = props.state ?? "hidden";
+  const onRefresh = props.onRefresh;
   const visible = state !== "hidden";
   const text = message ?? (state === "hidden" ? "" : DEFAULT_MESSAGE[state]);
 
@@ -58,7 +65,9 @@ export const StaleContentBanner = ({
       className={cn(
         "ambient-presence",
         visible
-          ? "flex items-center justify-between gap-4 border-b border-border-muted bg-surface px-4 py-2 text-sm text-foreground-muted sm:px-6"
+          ? // Pins directly below the sticky nav (`h-14`, `top-0`, `z-40`) so a
+            // connection-loss notice stays visible while the page scrolls.
+            "sticky top-14 z-30 flex items-center justify-between gap-4 border-b border-border-muted bg-surface px-4 py-2 text-sm text-foreground-muted sm:px-6"
           : "sr-only",
         className,
       )}
