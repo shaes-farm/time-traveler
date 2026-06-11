@@ -3,6 +3,17 @@
 Builds on: [04 wireframe — App shell](../04-wireframes/00-app-shell.md) · [README visual-system reference](README.md#reader-visual-system-reference) · [motion-spec](motion-spec.md) · [accessibility-spec](accessibility-spec.md)
 Resolves for this screen: live-dot visual treatment + reduced-motion fallback (deferred to #172 by [04 app-shell](../04-wireframes/00-app-shell.md)).
 
+> **Implemented (#258).** This spec is realized by the reader shell shipped in #258.
+> Composites live in `@repo/ui` as `reader-*` components: `ReaderNav`
+> (`banner`/`navigation` + brand + live-dot slot + Sign-in deep-link),
+> `ReaderFooter` (`contentinfo`), `ReaderLiveDot` (`ambient-presence`),
+> `StaleContentBanner` (the reusable connection-loss primitive), and `SkipLink`.
+> They are composed by `apps/reader/app/_components/reader-shell.tsx`, which owns
+> pathname resolution and focus-on-navigation. Placement rationale is
+> [ADR-0033](../../../adr/adr-0033-reader-shell-composites-in-ui-package.md). The
+> sub-640px hamburger focus-trap (#171) and the live-dot/banner final visual
+> treatment (#172) remain open per the deferrals below.
+
 **Purpose.** The persistent reader chrome (nav, brand, single Sign-in deep-link, footer, skip-link) — structure fixed in the [04 wireframe](../04-wireframes/00-app-shell.md); this doc fixes its token application, states, motion, and a11y. Distinct from the admin shell ([ADR-0030](../../../adr/adr-0030-public-reader-app-placement.md)/[ADR-0031](../../../adr/adr-0031-public-reader-design-divergence.md)).
 
 ## Visual hierarchy + token callouts

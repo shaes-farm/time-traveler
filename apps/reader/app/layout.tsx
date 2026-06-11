@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { Providers } from "./providers";
+import { ReaderShell } from "./_components/reader-shell";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -36,7 +37,9 @@ export default function RootLayout({
       className={`${fraunces.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
     >
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <ReaderShell>{children}</ReaderShell>
+        </Providers>
       </body>
     </html>
   );

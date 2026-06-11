@@ -9,6 +9,7 @@
 
 @import "tailwindcss";
 @import "./tokens.css";
+@import "./motion.css";
 
 /* Scan packages/ui source files for Tailwind class names. The path is
  * relative to this file's location, walking up to the monorepo root and

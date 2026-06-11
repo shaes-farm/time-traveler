@@ -78,6 +78,30 @@ export const radii = {
   lg: "0.75rem",
 } as const;
 
+// Motion — duration scale (ADR-0032 / docs/design/public/06-mid-fidelity/
+// motion-spec.md §1.1). Semantic steps, not free values: the public reader's
+// five motion classes bind to these names instead of scattering millisecond
+// literals. `instant` is the reduced-motion target — under
+// `prefers-reduced-motion: reduce`, motion.css resolves every duration token
+// to 0ms in one place so no surface can ship un-reduced motion (ADR-0032
+// IMP-002, motion-spec §5).
+export const durations = {
+  instant: "0ms", // reduced-motion target; immediate state swap
+  fast: "120ms", // micro-feedback; the "out" half of enter-exit
+  base: "200ms", // cross-fade; facet/list/scale-toggle swaps; ambient-presence
+  slow: "320ms", // context-shift; overlay entrance (enter-exit "in")
+  deliberate: "480ms", // fractal-zoom camera flight — the only spatial transition
+} as const;
+
+// Motion — easing scale (ADR-0032 / motion-spec §1.2).
+export const easings = {
+  standard: "cubic-bezier(0.2, 0, 0, 1)", // default; fractal-zoom, context-shift, swaps
+  decelerate: "cubic-bezier(0, 0, 0, 1)", // entrances (enter half of enter-exit)
+  accelerate: "cubic-bezier(0.3, 0, 1, 1)", // exits (exit half of enter-exit)
+} as const;
+
 export type ColorToken = keyof typeof colors;
 export type FontToken = keyof typeof fonts;
 export type RadiusToken = keyof typeof radii;
+export type DurationToken = keyof typeof durations;
+export type EasingToken = keyof typeof easings;
