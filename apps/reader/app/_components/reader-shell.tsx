@@ -2,12 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ReaderNav } from "@repo/ui/components/reader-nav";
 import { ReaderFooter } from "@repo/ui/components/reader-footer";
 import { SkipLink } from "@repo/ui/components/skip-link";
 import { StaleContentBanner } from "@repo/ui/components/stale-content-banner";
 import { ReaderLink } from "../../components/reader-link";
 import { READER_NAV_ITEMS, FOOTER_LINKS, SIGN_IN_HREF } from "../../lib/nav";
+import { useReaderConnection } from "./realtime-provider";
 
 /**
  * ReaderShell — the persistent public-reader chrome that wraps every route.
@@ -25,6 +27,8 @@ export function ReaderShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const mainRef = useRef<HTMLElement>(null);
   const isFirstRenderRef = useRef(true);
+  const connection = useReaderConnection();
+  const queryClient = useQueryClient();
 
   // Move focus to the destination screen's <h1> (or the main landmark) on
   // navigation, so keyboard/SR users land on the new content. Skipped on the
@@ -56,8 +60,19 @@ export function ReaderShell({ children }: { children: ReactNode }) {
         signInHref={SIGN_IN_HREF}
         LinkComponent={ReaderLink}
       />
-      {/* Shared connection-loss primitive — hidden until a screen drives it. */}
-      <StaleContentBanner state="hidden" />
+      {/* Shared connection-loss banner, driven by the Realtime heartbeat. The
+          Refresh affordance re-validates every active query so the visible
+          window catches up on demand (the heartbeat also auto-resubscribes). */}
+      {connection === "stale" ? (
+        <StaleContentBanner
+          state="stale"
+          onRefresh={() => void queryClient.invalidateQueries()}
+        />
+      ) : (
+        <StaleContentBanner
+          state={connection === "reconnecting" ? "reconnecting" : "hidden"}
+        />
+      )}
       <main
         id="main-content"
         ref={mainRef}
