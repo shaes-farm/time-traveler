@@ -1419,9 +1419,14 @@ export type Database = {
         Returns: string;
       };
       is_admin: { Args: never; Returns: boolean };
+      is_story_readable: { Args: { s_id: string }; Returns: boolean };
       is_timeline_collab_editor: { Args: { t_id: string }; Returns: boolean };
       is_timeline_collaborator: { Args: { t_id: string }; Returns: boolean };
       is_timeline_owner: { Args: { t_id: string }; Returns: boolean };
+      story_has_collaborating_event: {
+        Args: { s_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       [_ in never]: never;
