@@ -134,11 +134,12 @@ describe("BulkActionBar", () => {
     rerender(
       <BulkActionBar count={3} busy onPublish={onPublish} onClear={vi.fn()} />,
     );
-    await user.click(
-      within(screen.getByRole("dialog")).getByRole("button", {
-        name: "Publish",
-      }),
+    const confirmButton = within(screen.getByRole("dialog")).getByRole(
+      "button",
+      { name: "Publish" },
     );
+    expect(confirmButton).toBeDisabled();
+    await user.click(confirmButton);
     expect(onPublish).not.toHaveBeenCalled();
   });
 });

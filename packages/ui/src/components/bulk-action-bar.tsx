@@ -145,6 +145,7 @@ export function BulkActionBar({
               type="button"
               size="sm"
               variant={pending === "unpublish" ? "destructive" : "primary"}
+              disabled={busy}
               onClick={confirm}
             >
               {pending === "unpublish" ? "Unpublish" : "Publish"}
