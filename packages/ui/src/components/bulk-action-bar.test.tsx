@@ -32,7 +32,12 @@ describe("BulkActionBar", () => {
   it("uses the singular noun for a single row", async () => {
     const user = userEvent.setup();
     render(
-      <BulkActionBar count={1} entityLabel="timeline" onClear={vi.fn()} />,
+      <BulkActionBar
+        count={1}
+        entityLabel="timeline"
+        onUnpublish={vi.fn()}
+        onClear={vi.fn()}
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Unpublish" }));
@@ -98,8 +103,42 @@ describe("BulkActionBar", () => {
   });
 
   it("disables the action buttons while busy", () => {
-    render(<BulkActionBar count={2} busy onClear={vi.fn()} />);
+    render(
+      <BulkActionBar
+        count={2}
+        busy
+        onPublish={vi.fn()}
+        onUnpublish={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
     expect(screen.getByRole("button", { name: "Publish" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Unpublish" })).toBeDisabled();
+  });
+
+  it("disables an action whose callback is not provided", () => {
+    render(<BulkActionBar count={2} onPublish={vi.fn()} onClear={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Publish" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Unpublish" })).toBeDisabled();
+  });
+
+  it("does not re-fire the callback when confirming while busy", async () => {
+    const onPublish = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <BulkActionBar count={3} onPublish={onPublish} onClear={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Publish" }));
+    // A transition kicks off (busy) before the user can confirm again.
+    rerender(
+      <BulkActionBar count={3} busy onPublish={onPublish} onClear={vi.fn()} />,
+    );
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Publish",
+      }),
+    );
+    expect(onPublish).not.toHaveBeenCalled();
   });
 });

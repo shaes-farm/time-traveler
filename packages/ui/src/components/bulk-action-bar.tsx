@@ -64,6 +64,9 @@ export function BulkActionBar({
   const noun = count === 1 ? entityLabel : plural;
 
   const confirm = () => {
+    // State updates are async, so a rapid double-click could re-enter before
+    // the dialog closes; bail if a transition is already in flight.
+    if (busy) return;
     if (pending === "publish") onPublish?.();
     else if (pending === "unpublish") onUnpublish?.();
     setPending(null);
@@ -91,7 +94,7 @@ export function BulkActionBar({
           type="button"
           size="sm"
           variant="primary"
-          disabled={busy}
+          disabled={busy || !onPublish}
           onClick={() => setPending("publish")}
         >
           Publish
@@ -100,7 +103,7 @@ export function BulkActionBar({
           type="button"
           size="sm"
           variant="secondary"
-          disabled={busy}
+          disabled={busy || !onUnpublish}
           onClick={() => setPending("unpublish")}
         >
           Unpublish

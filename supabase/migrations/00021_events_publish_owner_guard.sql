@@ -15,6 +15,10 @@
 -- `published` or `published_at` unless the actor is the owner or an admin.
 -- Editors keep full edit rights on every other column.
 --
+-- A trigger-level WHEN clause restricts firing to updates that actually touch
+-- the publication columns, so ordinary content edits (the common case for
+-- collaborator-editors) never pay the PL/pgSQL call.
+--
 -- Timelines already have this guard for free — `update_timelines` is owner/admin
 -- only — so this is events-only.
 --
@@ -30,9 +34,9 @@ SECURITY INVOKER
 SET search_path = ''
 AS $$
 BEGIN
-  IF (NEW.published    IS DISTINCT FROM OLD.published
-      OR NEW.published_at IS DISTINCT FROM OLD.published_at)
-     AND auth.uid() IS NOT NULL
+  -- The WHEN clause already guarantees a publication-column change reached us;
+  -- here we only decide whether the actor is allowed to make it.
+  IF auth.uid() IS NOT NULL
      AND auth.uid() <> OLD.user_id
      AND NOT public.is_admin() THEN
     RAISE EXCEPTION 'Only the owner can change an event''s publication state'
@@ -44,4 +48,7 @@ $$;
 
 CREATE TRIGGER guard_event_publish
   BEFORE UPDATE ON public.events
-  FOR EACH ROW EXECUTE FUNCTION public.guard_event_publish_owner_only();
+  FOR EACH ROW
+  WHEN (NEW.published    IS DISTINCT FROM OLD.published
+        OR NEW.published_at IS DISTINCT FROM OLD.published_at)
+  EXECUTE FUNCTION public.guard_event_publish_owner_only();
