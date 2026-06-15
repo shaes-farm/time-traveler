@@ -14,6 +14,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "@repo/ui/components/sonner";
 import type { TemporalData } from "@repo/services/schemas/temporal";
 import { TemporalService } from "@repo/services/modules/temporal-service";
 import { getEventBySlug } from "@repo/services/event-service";
@@ -881,8 +882,16 @@ export function EventDetailClient({ slug }: { slug: string }) {
               published={event.published ?? false}
               entityLabel="event"
               canPublish={isOwner}
-              onPublish={() => publish.mutate(event.id)}
-              onUnpublish={() => unpublish.mutate(event.id)}
+              onPublish={() =>
+                publish.mutate(event.id, {
+                  onSuccess: () => toast.success("Event published."),
+                })
+              }
+              onUnpublish={() =>
+                unpublish.mutate(event.id, {
+                  onSuccess: () => toast.success("Event unpublished."),
+                })
+              }
             />
             {canEdit && (
               <Link

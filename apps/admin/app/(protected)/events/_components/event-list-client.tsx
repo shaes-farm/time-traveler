@@ -2,16 +2,26 @@
 
 import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "@repo/ui/components/sonner";
 import { CornerDownRight, Plus } from "lucide-react";
 import type { Era, TemporalData } from "@repo/services/schemas/temporal";
-import type {
-  EventDetailScope,
-  EventFilters,
-  EventListRow,
-  EventType,
+import {
+  publishEvent,
+  unpublishEvent,
+  type EventDetailScope,
+  type EventFilters,
+  type EventListRow,
+  type EventType,
 } from "@repo/services/event-service";
+import { BulkActionBar } from "@repo/ui/components/bulk-action-bar";
 import { Button } from "@repo/ui/components/button";
-import { DataTable, type DataTableProps } from "@repo/ui/components/data-table";
+import {
+  DataTable,
+  createSelectColumn,
+  type DataTableProps,
+  type RowSelectionState,
+} from "@repo/ui/components/data-table";
 import {
   FilterRail,
   type FilterGroup,
@@ -20,7 +30,7 @@ import {
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { StatusBadge } from "@repo/ui/components/status-badge";
 import { TemporalDisplay } from "@repo/ui/components/temporal-display";
-import { useEventsPage } from "@repo/ui/hooks/use-events";
+import { eventKeys, useEventsPage } from "@repo/ui/hooks/use-events";
 import { useTimelinesPage } from "@repo/ui/hooks/use-timelines";
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
 
@@ -306,6 +316,7 @@ function buildColumns(
   onOpenSubTimeline: (slug: string) => void,
 ): DataTableProps<EventListRow, unknown>["columns"] {
   return [
+    createSelectColumn<EventListRow>(),
     {
       id: "drilldown",
       header: "",
@@ -484,6 +495,25 @@ export function EventListClient() {
 
   const { data, isPending, isError, refetch } = useEventsPage(client, filters);
 
+  // Current user — used to gate bulk publish/unpublish to owner-owned rows
+  // (publishing is owner-only; the DB trigger from #48 re-checks server-side).
+  const { data: userId = "" } = useQuery({
+    queryKey: ["auth", "user-id"],
+    queryFn: async () => {
+      const {
+        data: { user },
+      } = await client.auth.getUser();
+      return user?.id ?? "";
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  const queryClient = useQueryClient();
+
+  // Row selection for the bulk-action bar, keyed by event id (getRowId).
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [bulkBusy, setBulkBusy] = React.useState(false);
+
   // Timelines power both the "Timeline" filter options and the per-row
   // timeline-name/slug lookup. Fetched once at a large page size.
   //
@@ -514,9 +544,58 @@ export function EventListClient() {
     [timelines],
   );
 
-  const rows = (data?.rows ?? []) as EventListRow[];
+  const rows = React.useMemo(
+    () => (data?.rows ?? []) as EventListRow[],
+    [data],
+  );
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Selection lives on the current page only; reset it whenever the query
+  // (filters/sort/page) changes so stale ids never leak into a bulk action.
+  // Keyed on the stable URL string and done in render (not an effect), per the
+  // list's existing prevUrl pattern.
+  const filterKey = searchParams.toString();
+  const [prevFilterKey, setPrevFilterKey] = React.useState(filterKey);
+  if (filterKey !== prevFilterKey) {
+    setPrevFilterKey(filterKey);
+    setRowSelection({});
+  }
+
+  const selectedRows = React.useMemo(
+    () => rows.filter((r) => rowSelection[r.id]),
+    [rows, rowSelection],
+  );
+  // Publishing is owner-only — exclude shared/other-owned rows from the action
+  // and report them as skipped.
+  const ownedSelected = React.useMemo(
+    () => selectedRows.filter((r) => r.user_id === userId),
+    [selectedRows, userId],
+  );
+  const skippedCount = selectedRows.length - ownedSelected.length;
+
+  async function runBulk(action: "publish" | "unpublish") {
+    const ids = ownedSelected.map((r) => r.id);
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    const fn = action === "publish" ? publishEvent : unpublishEvent;
+    const results = await Promise.allSettled(ids.map((id) => fn(client, id)));
+    setBulkBusy(false);
+    await queryClient.invalidateQueries({ queryKey: eventKeys.all });
+    setRowSelection({});
+
+    const failed = results.filter((r) => r.status === "rejected").length;
+    const ok = ids.length - failed;
+    const verb = action === "publish" ? "Published" : "Unpublished";
+    const noun = (n: number) => `event${n !== 1 ? "s" : ""}`;
+    if (failed === 0) {
+      toast.success(`${verb} ${ok} ${noun(ok)}.`);
+    } else if (ok === 0) {
+      toast.error(`Couldn't ${action} ${failed} ${noun(failed)}. Try again.`);
+    } else {
+      toast.warning(`${verb} ${ok} ${noun(ok)}; ${failed} failed.`);
+    }
+  }
   const hasFilters =
     parsed.types.length > 0 ||
     parsed.eras.length > 0 ||
@@ -834,11 +913,25 @@ export function EventListClient() {
           )}
 
           {!isError && !isPending && total > 0 && (
-            <DataTable
-              columns={columns}
-              data={rows}
-              onRowClick={handleRowClick}
-            />
+            <div className="space-y-3">
+              <BulkActionBar
+                count={ownedSelected.length}
+                skippedCount={skippedCount}
+                entityLabel="event"
+                busy={bulkBusy}
+                onPublish={() => void runBulk("publish")}
+                onUnpublish={() => void runBulk("unpublish")}
+                onClear={() => setRowSelection({})}
+              />
+              <DataTable
+                columns={columns}
+                data={rows}
+                onRowClick={handleRowClick}
+                getRowId={(row) => row.id}
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+              />
+            </div>
           )}
         </div>
 

@@ -3,6 +3,8 @@
 import * as React from "react";
 import {
   type ColumnDef,
+  type OnChangeFn,
+  type RowSelectionState,
   type SortingState,
   flexRender,
   getCoreRowModel,
@@ -22,11 +24,27 @@ import {
 } from "@repo/ui/components/table";
 import { Checkbox } from "@repo/ui/components/checkbox";
 
+// Re-exported so consumers (e.g. apps that don't depend on @tanstack/react-table
+// directly) can type their controlled selection state.
+export type { RowSelectionState } from "@tanstack/react-table";
+
 export interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   onRowClick?: (row: TData) => void;
   className?: string;
+  /**
+   * Controlled row-selection state, keyed by `getRowId`. Pass together with
+   * `onRowSelectionChange` to lift selection to the parent (e.g. to drive a
+   * bulk-action bar). Omit both to keep the table's internal selection state.
+   */
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  /**
+   * Stable row identity used as the selection key — pass the entity id so the
+   * selection survives sorting/refetch. Defaults to the row index.
+   */
+  getRowId?: (row: TData, index: number) => string;
 }
 
 export function DataTable<TData, TValue>({
@@ -34,6 +52,9 @@ export function DataTable<TData, TValue>({
   data,
   onRowClick,
   className,
+  rowSelection,
+  onRowSelectionChange,
+  getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
@@ -44,7 +65,15 @@ export function DataTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
-    state: { sorting },
+    // Only override the defaults when controlled — passing `undefined` for
+    // `onRowSelectionChange` would clobber TanStack's internal state updater and
+    // break the uncontrolled checkboxes.
+    ...(getRowId ? { getRowId } : {}),
+    ...(onRowSelectionChange ? { onRowSelectionChange } : {}),
+    state: {
+      sorting,
+      ...(rowSelection !== undefined ? { rowSelection } : {}),
+    },
   });
 
   return (

@@ -102,6 +102,46 @@ describe("DataTable", () => {
     expect(selectAll).toHaveAttribute("aria-checked", "true");
   });
 
+  it("lifts selection to the parent when controlled via rowSelection + getRowId", async () => {
+    const user = userEvent.setup();
+    const onRowSelectionChange = vi.fn();
+
+    render(
+      <DataTable
+        columns={COLUMNS}
+        data={ROWS}
+        getRowId={(row) => row.id}
+        rowSelection={{}}
+        onRowSelectionChange={onRowSelectionChange}
+      />,
+    );
+
+    const [firstRowCheckbox] = screen.getAllByRole("checkbox", {
+      name: /select row/i,
+    });
+
+    await user.click(firstRowCheckbox!);
+    expect(onRowSelectionChange).toHaveBeenCalled();
+  });
+
+  it("reflects controlled rowSelection state on the row checkboxes", () => {
+    render(
+      <DataTable
+        columns={COLUMNS}
+        data={ROWS}
+        getRowId={(row) => row.id}
+        rowSelection={{ "1": true }}
+        onRowSelectionChange={vi.fn()}
+      />,
+    );
+
+    // ROWS[1] has id "1" and name "Ada".
+    const adaRow = screen.getByText("Ada").closest("tr");
+    expect(
+      within(adaRow!).getByRole("checkbox", { name: /select row/i }),
+    ).toBeChecked();
+  });
+
   it("does not trigger onRowClick when clicking a row selection checkbox", async () => {
     const user = userEvent.setup();
     const onRowClick = vi.fn();
