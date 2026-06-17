@@ -24,8 +24,8 @@
     "vitest": "^4.1.8"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.108.0",
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.2",
     "zod": "^4.4.3"
   }
 }
