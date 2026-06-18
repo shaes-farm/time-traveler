@@ -71,6 +71,7 @@ model); the next new ADR is the next free number (`0029` onward), per the
 | [0031](adr-0031-public-reader-design-divergence.md)        | Public reader design divergence (shared tokens, divergent motion + composition) | Accepted         | —                                          |
 | [0032](adr-0032-public-reader-motion-tokens.md)            | Public reader motion-token scale (durations, easing, reduced-motion contract)   | Accepted         | —                                          |
 | [0033](adr-0033-reader-shell-composites-in-ui-package.md)  | Reader shell composites live in `@repo/ui` (`reader-*`); apps/reader holds glue | Accepted         | —                                          |
+| [0034](adr-0034-api-role-table-grants.md)                  | Explicit table GRANTs for API roles (anon read, authenticated DML, svc all)     | Accepted         | —                                          |
 
 † ADR `0006` supersedes the original event-to-event `parent_event_id` nesting
 approach, which was never given its own ADR; it is documented inside `0006` as
