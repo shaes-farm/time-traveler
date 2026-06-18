@@ -16,6 +16,9 @@ import {
   useRemoveCollaborator,
   useUpdateCollaboratorRole,
   useEventTimelineLinks,
+  useAddMediaToTimeline,
+  useRemoveMediaFromTimeline,
+  useReorderTimelineMedia,
   timelineKeys,
 } from "./use-timelines";
 
@@ -38,6 +41,8 @@ vi.mock("@repo/services/timeline-service", () => ({
   setTimelineEventSortOrder: vi.fn(),
   getEventTimelineLinks: vi.fn(),
   addMediaToTimeline: vi.fn(),
+  removeMediaFromTimeline: vi.fn(),
+  reorderTimelineMedia: vi.fn(),
 }));
 
 import {
@@ -54,6 +59,9 @@ import {
   removeCollaborator,
   updateCollaboratorRole,
   getEventTimelineLinks,
+  addMediaToTimeline,
+  removeMediaFromTimeline,
+  reorderTimelineMedia,
 } from "@repo/services/timeline-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -456,5 +464,87 @@ describe("useRemoveCollaborator", () => {
       timelineKeys.collaborators("tl-1"),
     );
     expect(rows?.some((r) => r.user_id === "user-2")).toBe(true);
+  });
+});
+
+describe("useAddMediaToTimeline", () => {
+  it("calls addMediaToTimeline and invalidates timeline detail", async () => {
+    vi.mocked(addMediaToTimeline).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useAddMediaToTimeline(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      timelineId: "tl-1",
+      mediaId: "media-1",
+      sortOrder: 2,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(addMediaToTimeline).toHaveBeenCalledWith(
+      mockClient,
+      "tl-1",
+      "media-1",
+      2,
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
+    );
+  });
+});
+
+describe("useRemoveMediaFromTimeline", () => {
+  it("calls removeMediaFromTimeline and invalidates timeline detail", async () => {
+    vi.mocked(removeMediaFromTimeline).mockResolvedValue(undefined as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(
+      () => useRemoveMediaFromTimeline(mockClient),
+      {
+        wrapper,
+      },
+    );
+
+    result.current.mutate({ timelineId: "tl-1", mediaId: "media-1" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(removeMediaFromTimeline).toHaveBeenCalledWith(
+      mockClient,
+      "tl-1",
+      "media-1",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
+    );
+  });
+});
+
+describe("useReorderTimelineMedia", () => {
+  it("calls reorderTimelineMedia and invalidates timeline detail", async () => {
+    vi.mocked(reorderTimelineMedia).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useReorderTimelineMedia(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      timelineId: "tl-1",
+      mediaId: "media-1",
+      sortOrder: 3,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(reorderTimelineMedia).toHaveBeenCalledWith(
+      mockClient,
+      "tl-1",
+      "media-1",
+      3,
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
+    );
   });
 });

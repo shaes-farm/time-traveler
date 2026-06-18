@@ -13,7 +13,7 @@ import {
   MoreHorizontal,
   Plus,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@repo/ui/components/sonner";
 import type { TemporalData } from "@repo/services/schemas/temporal";
 import { TemporalService } from "@repo/services/modules/temporal-service";
@@ -52,8 +52,12 @@ import {
   usePublishEvent,
   useUnpublishEvent,
   useDeleteEvent,
+  useAddMediaToEvent,
+  useRemoveMediaFromEvent,
+  useReorderEventMedia,
 } from "@repo/ui/hooks/use-events";
 import { getBrowserSupabaseClient } from "../../../../../lib/auth/browser-client";
+import { MediaSection } from "../../../_components/media/media-section";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -98,6 +102,7 @@ interface MediaItem {
   media_type: string | null;
   url: string | null;
   storage_path: string | null;
+  source: string;
   sort_order: number;
 }
 
@@ -424,99 +429,6 @@ function CategoriesTab({
 }
 
 // ---------------------------------------------------------------------------
-// Media tab
-// ---------------------------------------------------------------------------
-
-function MediaTab({
-  mediaItems,
-  isLoading,
-  canEdit,
-}: {
-  mediaItems: MediaItem[];
-  isLoading: boolean;
-  canEdit: boolean;
-}) {
-  if (isLoading) {
-    return (
-      <div className="space-y-2 p-1">
-        {[1, 2].map((step) => (
-          <Skeleton key={step} className="h-12 w-full rounded-md" />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled
-            title="Media manager coming in issue #49"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Attach media
-          </Button>
-        </div>
-      )}
-
-      {mediaItems.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
-          <p className="text-sm">No media attached.</p>
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {mediaItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 px-4 py-3 border border-border rounded-md bg-background"
-            >
-              <Badge
-                variant="secondary"
-                className="text-xs capitalize shrink-0"
-              >
-                {item.media_type ?? "media"}
-              </Badge>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {item.caption ?? item.alt_text ?? item.id}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  sort_order: {item.sort_order}
-                </p>
-              </div>
-              {canEdit && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 shrink-0"
-                      aria-label="Media actions"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {/* Edit caption / Reorder / Detach land with the media
-                        manager (issue #49). Shown disabled until then. */}
-                    <DropdownMenuItem disabled>Edit caption</DropdownMenuItem>
-                    <DropdownMenuItem disabled>Reorder</DropdownMenuItem>
-                    <DropdownMenuItem disabled>Detach</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Delete confirmation dialog
 // ---------------------------------------------------------------------------
 
@@ -749,7 +661,7 @@ export function EventDetailClient({ slug }: { slug: string }) {
       const ids = junctions.map((m) => m.media_id);
       const { data, error } = await client
         .from("media")
-        .select("id, alt_text, caption, media_type, url, storage_path")
+        .select("id, alt_text, caption, media_type, url, storage_path, source")
         .in("id", ids);
       if (error) throw error;
       const byId = new Map((data ?? []).map((m) => [m.id, m]));
@@ -792,6 +704,50 @@ export function EventDetailClient({ slug }: { slug: string }) {
   const publish = usePublishEvent(client);
   const unpublish = useUnpublishEvent(client);
   const deleteEvent = useDeleteEvent(client);
+  const addMedia = useAddMediaToEvent(client);
+  const removeMedia = useRemoveMediaFromEvent(client);
+  const reorderMedia = useReorderEventMedia(client);
+
+  // --- Media association handlers ---
+  const queryClient = useQueryClient();
+  const eventId = event?.id;
+
+  const refreshMedia = React.useCallback(async () => {
+    // The event detail (and its embedded event_media junctions) drives the
+    // media list; refresh both it and the derived media query.
+    await queryClient.invalidateQueries({
+      queryKey: [...eventKeys.all, "detail-auth", slug],
+    });
+    await queryClient.invalidateQueries({ queryKey: ["event-media", eventId] });
+  }, [queryClient, slug, eventId]);
+
+  const handleAttachMedia = React.useCallback(
+    async (mediaId: string) => {
+      if (!eventId) return;
+      const nextSort = mediaItems.length;
+      await addMedia.mutateAsync({ eventId, mediaId, sortOrder: nextSort });
+      await refreshMedia();
+    },
+    [addMedia, eventId, mediaItems.length, refreshMedia],
+  );
+
+  const handleDetachMedia = React.useCallback(
+    async (mediaId: string) => {
+      if (!eventId) return;
+      await removeMedia.mutateAsync({ eventId, mediaId });
+      await refreshMedia();
+    },
+    [removeMedia, eventId, refreshMedia],
+  );
+
+  const handleReorderMedia = React.useCallback(
+    async (mediaId: string, sortOrder: number) => {
+      if (!eventId) return;
+      await reorderMedia.mutateAsync({ eventId, mediaId, sortOrder });
+      await refreshMedia();
+    },
+    [reorderMedia, eventId, refreshMedia],
+  );
 
   // --- Disclosure state ---
   const [showDelete, setShowDelete] = React.useState(false);
@@ -1035,10 +991,16 @@ export function EventDetailClient({ slug }: { slug: string }) {
         </TabsContent>
 
         <TabsContent value="media" className="pt-4">
-          <MediaTab
-            mediaItems={mediaItems}
+          <MediaSection
+            client={client}
+            items={mediaItems}
             isLoading={mediaPending}
             canEdit={canEdit}
+            ordering="sort"
+            onAttach={handleAttachMedia}
+            onDetach={handleDetachMedia}
+            onReorder={handleReorderMedia}
+            onChanged={refreshMedia}
           />
         </TabsContent>
       </Tabs>

@@ -18,6 +18,7 @@ import {
   removeCategoryFromEvent,
   addMediaToEvent,
   removeMediaFromEvent,
+  reorderEventMedia,
   addCharacterToEvent,
   removeCharacterFromEvent,
   getEventParticipants,
@@ -1214,6 +1215,33 @@ describe("removeMediaFromEvent", () => {
     await expect(
       removeMediaFromEvent(client, "event-1", "media-1"),
     ).rejects.toThrow("EventService.removeMediaFromEvent: delete failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reorderEventMedia
+// ---------------------------------------------------------------------------
+
+describe("reorderEventMedia", () => {
+  it("updates the junction sort_order and returns the row", async () => {
+    const row = { ...sampleMedia, sort_order: 2 };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+    const result = await reorderEventMedia(client, "event-1", "media-1", 2);
+    expect(result.sort_order).toBe(2);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith({ sort_order: 2 });
+    expect(builder.eq).toHaveBeenCalledWith("event_id", "event-1");
+    expect(builder.eq).toHaveBeenCalledWith("media_id", "media-1");
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "update failed" } },
+    });
+    await expect(
+      reorderEventMedia(client, "event-1", "media-1", 2),
+    ).rejects.toThrow("EventService.reorderEventMedia: update failed");
   });
 });
 

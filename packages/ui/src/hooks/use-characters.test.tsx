@@ -10,6 +10,9 @@ import {
   useDeleteCharacter,
   useCharacterTimeline,
   useCharacterNetwork,
+  useAddMediaToCharacter,
+  useRemoveMediaFromCharacter,
+  useSetPrimaryCharacterMedia,
   characterKeys,
 } from "./use-characters";
 
@@ -26,6 +29,9 @@ vi.mock("@repo/services/character-service", () => ({
   deleteCharacter: vi.fn(),
   getCharacterTimeline: vi.fn(),
   getCharacterNetwork: vi.fn(),
+  addMediaToCharacter: vi.fn(),
+  removeMediaFromCharacter: vi.fn(),
+  setPrimaryCharacterMedia: vi.fn(),
 }));
 
 import {
@@ -36,6 +42,9 @@ import {
   deleteCharacter,
   getCharacterTimeline,
   getCharacterNetwork,
+  addMediaToCharacter,
+  removeMediaFromCharacter,
+  setPrimaryCharacterMedia,
 } from "@repo/services/character-service";
 
 // ---------------------------------------------------------------------------
@@ -337,5 +346,81 @@ describe("characterKeys", () => {
       "abc",
       2,
     ]);
+  });
+});
+
+describe("useAddMediaToCharacter", () => {
+  it("calls addMediaToCharacter and invalidates character detail", async () => {
+    vi.mocked(addMediaToCharacter).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useAddMediaToCharacter(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      characterId: "char-1",
+      mediaId: "media-1",
+      isPrimary: true,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(addMediaToCharacter).toHaveBeenCalledWith(
+      mockClient,
+      "char-1",
+      "media-1",
+      true,
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: characterKeys.detail("char-1") }),
+    );
+  });
+});
+
+describe("useRemoveMediaFromCharacter", () => {
+  it("calls removeMediaFromCharacter and invalidates character detail", async () => {
+    vi.mocked(removeMediaFromCharacter).mockResolvedValue(undefined as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(
+      () => useRemoveMediaFromCharacter(mockClient),
+      { wrapper },
+    );
+
+    result.current.mutate({ characterId: "char-1", mediaId: "media-1" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(removeMediaFromCharacter).toHaveBeenCalledWith(
+      mockClient,
+      "char-1",
+      "media-1",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: characterKeys.detail("char-1") }),
+    );
+  });
+});
+
+describe("useSetPrimaryCharacterMedia", () => {
+  it("calls setPrimaryCharacterMedia and invalidates character detail", async () => {
+    vi.mocked(setPrimaryCharacterMedia).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(
+      () => useSetPrimaryCharacterMedia(mockClient),
+      { wrapper },
+    );
+
+    result.current.mutate({ characterId: "char-1", mediaId: "media-1" });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(setPrimaryCharacterMedia).toHaveBeenCalledWith(
+      mockClient,
+      "char-1",
+      "media-1",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: characterKeys.detail("char-1") }),
+    );
   });
 });

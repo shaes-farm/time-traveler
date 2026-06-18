@@ -413,3 +413,38 @@ export async function removeMediaFromCharacter(
 
   assertNoError(error, "removeMediaFromCharacter");
 }
+
+/**
+ * Sets a media item as the character's primary/profile image, atomically
+ * swapping it for any existing primary.
+ *
+ * The partial unique index `character_media_one_primary` (migration 00013)
+ * rejects a second `is_primary = true` row for the same character, so the
+ * existing primary must be cleared *before* the new one is set — otherwise the
+ * index transiently sees two primaries and the update fails.
+ */
+export async function setPrimaryCharacterMedia(
+  client: SupabaseClient<Database>,
+  characterId: string,
+  mediaId: string,
+): Promise<CharacterMediaRow> {
+  // Clear the current primary first (no-op if there isn't one).
+  const { error: clearError } = await client
+    .from("character_media")
+    .update({ is_primary: false })
+    .eq("character_id", characterId)
+    .eq("is_primary", true);
+
+  assertNoError(clearError, "setPrimaryCharacterMedia");
+
+  const { data, error } = await client
+    .from("character_media")
+    .update({ is_primary: true })
+    .eq("character_id", characterId)
+    .eq("media_id", mediaId)
+    .select()
+    .single();
+
+  assertNoError(error, "setPrimaryCharacterMedia");
+  return data;
+}

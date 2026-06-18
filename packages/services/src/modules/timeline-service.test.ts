@@ -23,6 +23,8 @@ import {
   setTimelineEventSortOrder,
   getEventTimelineLinks,
   addMediaToTimeline,
+  removeMediaFromTimeline,
+  reorderTimelineMedia,
 } from "./timeline-service";
 
 // ---------------------------------------------------------------------------
@@ -1161,6 +1163,68 @@ describe("addMediaToTimeline", () => {
     await expect(
       addMediaToTimeline(client, "timeline-1", "media-1"),
     ).rejects.toThrow("TimelineService.addMediaToTimeline: media link failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// removeMediaFromTimeline
+// ---------------------------------------------------------------------------
+
+describe("removeMediaFromTimeline", () => {
+  it("resolves without error on success", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    await expect(
+      removeMediaFromTimeline(client, "timeline-1", "media-1"),
+    ).resolves.toBeUndefined();
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("timeline_id", "timeline-1");
+    expect(builder.eq).toHaveBeenCalledWith("media_id", "media-1");
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "delete failed" } },
+    });
+    await expect(
+      removeMediaFromTimeline(client, "timeline-1", "media-1"),
+    ).rejects.toThrow("TimelineService.removeMediaFromTimeline: delete failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reorderTimelineMedia
+// ---------------------------------------------------------------------------
+
+describe("reorderTimelineMedia", () => {
+  it("updates the junction sort_order and returns the row", async () => {
+    const row = {
+      timeline_id: "timeline-1",
+      media_id: "media-1",
+      sort_order: 3,
+    };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+    const result = await reorderTimelineMedia(
+      client,
+      "timeline-1",
+      "media-1",
+      3,
+    );
+    expect(result.sort_order).toBe(3);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith({ sort_order: 3 });
+    expect(builder.eq).toHaveBeenCalledWith("timeline_id", "timeline-1");
+    expect(builder.eq).toHaveBeenCalledWith("media_id", "media-1");
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "update failed" } },
+    });
+    await expect(
+      reorderTimelineMedia(client, "timeline-1", "media-1", 3),
+    ).rejects.toThrow("TimelineService.reorderTimelineMedia: update failed");
   });
 });
 

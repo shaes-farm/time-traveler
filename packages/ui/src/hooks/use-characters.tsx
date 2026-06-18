@@ -22,6 +22,9 @@ import {
   deleteCharacter,
   getCharacterTimeline,
   getCharacterNetwork,
+  addMediaToCharacter,
+  removeMediaFromCharacter,
+  setPrimaryCharacterMedia,
 } from "@repo/services/character-service";
 import type {
   CharacterFilters,
@@ -195,6 +198,65 @@ export function useDeleteCharacter(client: ServiceClient) {
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: characterKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: characterKeys.lists() });
+    },
+  });
+}
+
+/** Attach a media item to a character, optionally marking it primary. */
+export function useAddMediaToCharacter(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      characterId,
+      mediaId,
+      isPrimary,
+    }: {
+      characterId: string;
+      mediaId: string;
+      isPrimary?: boolean;
+    }) => addMediaToCharacter(client, characterId, mediaId, isPrimary),
+    onSuccess: (_data, { characterId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: characterKeys.detail(characterId),
+      });
+    },
+  });
+}
+
+/** Detach a media item from a character (junction only; media survives). */
+export function useRemoveMediaFromCharacter(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      characterId,
+      mediaId,
+    }: {
+      characterId: string;
+      mediaId: string;
+    }) => removeMediaFromCharacter(client, characterId, mediaId),
+    onSuccess: (_data, { characterId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: characterKeys.detail(characterId),
+      });
+    },
+  });
+}
+
+/** Set a media item as the character's primary image (atomic swap). */
+export function useSetPrimaryCharacterMedia(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      characterId,
+      mediaId,
+    }: {
+      characterId: string;
+      mediaId: string;
+    }) => setPrimaryCharacterMedia(client, characterId, mediaId),
+    onSuccess: (_data, { characterId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: characterKeys.detail(characterId),
+      });
     },
   });
 }

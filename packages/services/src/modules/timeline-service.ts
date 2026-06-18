@@ -650,6 +650,46 @@ export async function addMediaToTimeline(
   return data;
 }
 
+/**
+ * Removes the link between a media item and a timeline. The `media` row itself
+ * is left untouched.
+ */
+export async function removeMediaFromTimeline(
+  client: SupabaseClient<Database>,
+  timelineId: string,
+  mediaId: string,
+): Promise<void> {
+  const { error } = await client
+    .from("timeline_media")
+    .delete()
+    .eq("timeline_id", timelineId)
+    .eq("media_id", mediaId);
+
+  assertNoError(error, "removeMediaFromTimeline");
+}
+
+/**
+ * Updates the `sort_order` of a media item within a timeline, determining its
+ * display order relative to the timeline's other media.
+ */
+export async function reorderTimelineMedia(
+  client: SupabaseClient<Database>,
+  timelineId: string,
+  mediaId: string,
+  sortOrder: number,
+): Promise<TimelineMediaRow> {
+  const { data, error } = await client
+    .from("timeline_media")
+    .update({ sort_order: sortOrder })
+    .eq("timeline_id", timelineId)
+    .eq("media_id", mediaId)
+    .select()
+    .single();
+
+  assertNoError(error, "reorderTimelineMedia");
+  return data;
+}
+
 // ---------------------------------------------------------------------------
 // Union query: home + linked events for the detail page Events tab
 // ---------------------------------------------------------------------------

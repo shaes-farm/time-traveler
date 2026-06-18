@@ -13,6 +13,7 @@ import {
   getCharacterEvents,
   addMediaToCharacter,
   removeMediaFromCharacter,
+  setPrimaryCharacterMedia,
 } from "./character-service";
 
 // ---------------------------------------------------------------------------
@@ -916,6 +917,41 @@ describe("removeMediaFromCharacter", () => {
       removeMediaFromCharacter(client, "char-1", "media-1"),
     ).rejects.toThrow(
       "CharacterService.removeMediaFromCharacter: delete failed",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setPrimaryCharacterMedia
+// ---------------------------------------------------------------------------
+
+describe("setPrimaryCharacterMedia", () => {
+  it("clears the existing primary, then sets the new one", async () => {
+    const row = {
+      character_id: "char-1",
+      media_id: "media-1",
+      is_primary: true,
+    };
+    const client = makeClient({ fromResult: { data: row, error: null } });
+    const result = await setPrimaryCharacterMedia(client, "char-1", "media-1");
+    expect(result).toEqual(row);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    // The clear step runs before the set step.
+    expect(builder.update).toHaveBeenNthCalledWith(1, { is_primary: false });
+    expect(builder.update).toHaveBeenNthCalledWith(2, { is_primary: true });
+    expect(builder.eq).toHaveBeenCalledWith("character_id", "char-1");
+    expect(builder.eq).toHaveBeenCalledWith("media_id", "media-1");
+  });
+
+  it("throws if clearing the existing primary fails", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "clear failed" } },
+    });
+    await expect(
+      setPrimaryCharacterMedia(client, "char-1", "media-1"),
+    ).rejects.toThrow(
+      "CharacterService.setPrimaryCharacterMedia: clear failed",
     );
   });
 });
