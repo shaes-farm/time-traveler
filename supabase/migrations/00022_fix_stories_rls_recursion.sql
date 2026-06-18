@@ -1,5 +1,5 @@
 -- ============================================================================
--- 00021_fix_stories_rls_recursion.sql  (#276)
+-- 00022_fix_stories_rls_recursion.sql  (#276)
 --
 -- Fixes `infinite recursion detected in policy for relation "stories"`, raised
 -- on ANY read of `stories` — for anon AND authenticated callers alike (so the
