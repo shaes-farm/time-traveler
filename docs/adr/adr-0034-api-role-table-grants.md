@@ -1,5 +1,5 @@
 ---
-title: "ADR-0034: Explicit table GRANTs for PostgREST API roles"
+title: "ADR-0034: Explicit Data API GRANTs for PostgREST roles"
 status: "Accepted"
 date: "2026-06-18"
 authors: "Backend / DB"
@@ -10,7 +10,7 @@ amends: ""
 amended_by: ""
 ---
 
-# ADR-0034: Explicit table GRANTs for PostgREST API roles
+# ADR-0034: Explicit Data API GRANTs for PostgREST roles
 
 ## Status
 
@@ -18,91 +18,112 @@ amended_by: ""
 
 ## Context
 
-Every migration to date defines RLS **policies** (e.g. `update_events … TO
-authenticated` in `00011_rls_performance_hardening.sql`) but none issues the
-underlying table **GRANTs**. In PostgreSQL, RLS is a row filter layered on top of
-SQL privileges: a role must first hold the base `SELECT`/`INSERT`/`UPDATE`/
-`DELETE` grant before any policy is consulted.
+Supabase's **June 2026 API-permissions change** makes tables in the `public`
+schema no longer auto-exposed to the Data API. Until June 2026, creating a table
+in `public` auto-granted `SELECT/INSERT/UPDATE/DELETE` to `anon`,
+`authenticated`, and `service_role`, so the table was reachable via PostgREST
+even with no RLS. Going forward a table is unreachable until a role is explicitly
+`GRANT`ed privileges on it (PostgREST returns `42501` otherwise). Rollout:
 
-On hosted Supabase this gap is invisible — the platform pre-grants
-`anon`/`authenticated`/`service_role` privileges on `public` via default
-privileges before project migrations run. The **local** stack does not: its
-default privileges grant only `TRUNCATE/REFERENCES/TRIGGER/MAINTAIN` (`Dxtm`) to
-those roles. So `supabase db reset` produced tables the API roles could not read
-or write:
+- 2026-04-28 — new projects can opt in
+- 2026-05-30 — default for all new projects
+- 2026-10-30 — applies to existing projects (only **new** tables; existing tables
+  keep their grants)
+
+Sources: <https://supabase.com/docs/guides/api/securing-your-api> and
+<https://github.com/orgs/supabase/discussions/45329>.
+
+Every prior migration in this repo defines RLS **policies** (e.g. `update_events
+… TO authenticated` in `00011`) but never issues the underlying table
+**GRANTs** — it relied on the old auto-exposure default. The local Supabase
+CLI/Postgres image (`supabase/postgres:17.6.1.134`, CLI `2.106.0`) already ships
+the fail-closed default, so a fresh `supabase db reset` produced tables the API
+roles could not touch:
 
 ```
 42501: permission denied for table events
 42501: permission denied for table stories
 ```
 
-This broke `pnpm db:test` (the `00007` RLS, `00021` publish-guard, and `00021`
-stories-recursion suites all aborted) and any local run of the apps against a
-freshly reset database. Relying on implicit platform default-privilege behavior
-also means local and remote could silently diverge.
+This broke `pnpm db:test` (the `00007` RLS and both `00021` suites aborted) and
+any local run of the apps against a freshly reset DB. GRANT controls **table**
+access; RLS controls **row** access — both are required.
 
 ## Decision
 
-Add `00023_api_role_table_grants.sql`: grant table-level privileges to the
-PostgREST API roles explicitly, and set `ALTER DEFAULT PRIVILEGES` so future
-tables inherit them. RLS remains the row-level gate.
+Add `00023_api_role_table_grants.sql`: a one-time catch-up that explicitly grants
+the existing tables (created in `00001`–`00022`), using least privilege:
 
-Privilege model:
+- **anon** → `SELECT` (the public reader is anonymous, read-only).
+- **authenticated** → `SELECT, INSERT, UPDATE, DELETE` (RLS decides which rows).
+- **service_role** → `SELECT, INSERT, UPDATE, DELETE` (server-only; bypasses RLS).
 
-- **anon** → `SELECT` only. The public reader (`apps/reader`) is anonymous and
-  read-only and has no write RLS policy; a write grant would be dead privilege.
-- **authenticated** → `SELECT, INSERT, UPDATE, DELETE`. The per-table RLS
-  policies (`00007`/`00011`) decide which rows.
-- **service_role** → `ALL`. Server-only key; bypasses RLS by design.
+The migration deliberately does **not** use `ALTER DEFAULT PRIVILEGES` to
+auto-grant future tables. Supabase calls that a temporary migration aid scheduled
+for removal on 2026-10-30 and recommends fail-closed exposure.
 
-This sets the convention for all future tables: grants are explicit and
-version-controlled, never assumed from the platform.
+**Convention going forward:** any migration that `CREATE`s a table must grant it
+explicitly in the same migration, bundled with its `ENABLE ROW LEVEL SECURITY`
+and policies:
+
+```sql
+GRANT SELECT ON public.<table> TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.<table> TO authenticated, service_role;
+```
 
 ## Consequences
 
 ### Positive
 
-- **POS-001**: `pnpm db:reset` + `pnpm db:test` work locally; the apps can talk
+- **POS-001**: `pnpm db:reset` + `pnpm db:test` pass locally; the apps can talk
   to a freshly reset DB.
-- **POS-002**: Local and remote privilege state are identical and reproducible
-  from migrations — no dependence on platform default-privilege drift.
-- **POS-003**: `ALTER DEFAULT PRIVILEGES` prevents the gap from silently
-  reappearing when new tables are added.
-- **POS-004**: Least-privilege posture for `anon` (read-only) is encoded in SQL,
-  not just in RLS policy targeting.
+- **POS-002**: Schema is self-sufficient and reproducible from migrations —
+  exposure no longer depends on platform default-privilege behavior, and local
+  matches the post-2026-10-30 cloud default.
+- **POS-003**: Fail-closed posture aligns with Supabase's security direction — a
+  new table is invisible to the API until intentionally granted.
+- **POS-004**: Least privilege for `anon` (read-only) is encoded in SQL.
 
 ### Negative
 
-- **NEG-001**: Privileges are now asserted in two places (the platform default
-  on hosted Supabase, and this migration). The grants are additive and
-  idempotent, so this is belt-and-suspenders rather than a conflict.
-- **NEG-002**: New tables that need a _narrower_ grant than the schema-wide
-  default must `REVOKE` explicitly.
+- **NEG-001**: Every future table migration must remember its GRANTs or the table
+  4xxs through the API. This is the intended (fail-closed) trade-off; mitigated by
+  the new-table snippet in `00023` and by pgTAP coverage.
+- **NEG-002**: The catch-up `GRANT … ON ALL TABLES IN SCHEMA public` is broad;
+  future tables are handled individually instead.
 
 ## Alternatives Considered
 
-### Rely on Supabase platform default privileges
+### Re-enable auto-exposure via `ALTER DEFAULT PRIVILEGES … GRANT`
 
-- **ALT-001**: **Description**: Do nothing in migrations; assume the platform
-  grants API-role privileges.
-- **ALT-002**: **Rejection Reason**: That is exactly what failed — local default
-  privileges differ from hosted, leaving migrations not self-sufficient and the
-  DB test suite red.
+- **ALT-001**: **Description**: Set default privileges so future tables inherit
+  the grants automatically (old DX).
+- **ALT-002**: **Rejection Reason**: Supabase explicitly flags this as a
+  temporary aid removed 2026-10-30 and warns it restores the "exposed unless you
+  remember to revoke" posture the change is eliminating.
 
-### Grant `ALL` to `anon` as well (mirror Supabase's broadest default)
+### Pin the Supabase CLI / Postgres image to the pre-change version
 
-- **ALT-003**: **Description**: `GRANT ALL … TO anon, authenticated,
-service_role` and let RLS gate everything.
-- **ALT-004**: **Rejection Reason**: `anon` has no write RLS policy, so write
-  grants are dead privilege and weaken least-privilege for no functional gain.
+- **ALT-003**: **Description**: Freeze tooling so the old auto-exposure default
+  persists locally.
+- **ALT-004**: **Rejection Reason**: Temporary and fragile — cloud flips on
+  2026-10-30 regardless, and CI/teammates on a newer image would still break.
+
+### Move API tables to a dedicated `api` schema
+
+- **ALT-005**: **Description**: Supabase's stronger recommendation — expose a
+  curated `api` schema and lock down `public`.
+- **ALT-006**: **Rejection Reason**: Large, cross-cutting refactor (PostgREST
+  `db-schemas`, all service queries, generated types). Out of scope here; left as
+  a possible future hardening step.
 
 ## Implementation Notes
 
-- **IMP-001**: `GRANT … ON ALL TABLES IN SCHEMA public` covers views created in
-  `00006`; `service_role` keeps `ALL`.
-- **IMP-002**: Grants are additive/idempotent — safe to apply on remote where
-  the platform may already have granted equivalent or broader privileges.
+- **IMP-001**: `GRANT … ON ALL TABLES IN SCHEMA public` covers the views created
+  in `00006` as well as the junction tables.
+- **IMP-002**: Grants are additive/idempotent — safe to apply on remote, where
+  existing tables already carry their grants (unaffected until 2026-10-30).
 - **IMP-003**: Covered by `supabase/tests/database/00023_api_role_table_grants_test.sql`
-  (anon read-only, authenticated DML, service_role full).
-- **IMP-004**: No generated-type impact — privileges do not change the schema,
-  so `db:gen:types` output is unaffected.
+  (anon read-only; authenticated/service_role DML).
+- **IMP-004**: No generated-type impact — privileges do not change the schema, so
+  `db:gen:types` output is unaffected.
