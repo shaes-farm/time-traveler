@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { UploadCloud, Link2 } from "lucide-react";
+import { FolderOpen, Link2, UploadCloud } from "lucide-react";
 import { toast } from "@repo/ui/components/sonner";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -185,13 +185,37 @@ export function AttachMediaDialog({
           <TabsContent value="upload" className="space-y-4 pt-2">
             <div className="space-y-1.5">
               <Label htmlFor="media-file">File</Label>
-              <Input
+              {/* Native input is visually hidden; the display field + button below trigger it */}
+              <input
                 ref={fileInputRef}
                 id="media-file"
                 type="file"
+                className="sr-only"
+                tabIndex={-1}
                 onChange={handleFileChange}
                 disabled={busy}
               />
+              <div className="flex gap-2">
+                <Input
+                  readOnly
+                  value={file?.name ?? ""}
+                  placeholder="No file chosen"
+                  className="flex-1 cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={busy}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={busy}
+                  aria-label="Choose file"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Images, video, audio, documents · max 5 MB
               </p>
