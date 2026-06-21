@@ -77,15 +77,17 @@ export interface MediaSectionProps {
 }
 
 function MediaThumb({ item }: { item: AttachedMedia }) {
+  const [imgError, setImgError] = React.useState(false);
   const base =
     "flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted text-muted-foreground";
-  if (item.media_type === "image" && item.url) {
+  if (item.media_type === "image" && item.url && !imgError) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={item.url}
         alt={item.alt_text ?? ""}
         className="h-12 w-12 shrink-0 rounded-md border border-border object-cover"
+        onError={() => setImgError(true)}
       />
     );
   }

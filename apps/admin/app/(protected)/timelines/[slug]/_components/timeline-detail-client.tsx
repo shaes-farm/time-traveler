@@ -124,15 +124,7 @@ interface MediaItem {
 // new reference every render, which makes the derived-state `!==` comparison
 // always true and triggers an infinite re-render loop.
 const EMPTY_EVENTS: TimelineEventWithMembership[] = [];
-const EMPTY_MEDIA_ROWS: Array<{
-  id: string;
-  alt_text: string | null;
-  caption: string | null;
-  media_type: string | null;
-  url: string | null;
-  storage_path: string | null;
-  source: string;
-}> = [];
+const EMPTY_MEDIA_ITEMS: MediaItem[] = [];
 
 // ---------------------------------------------------------------------------
 // Visibility display
@@ -776,33 +768,41 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     { enabled: !!timeline?.id },
   );
 
-  // --- Media details ---
-  const mediaJunctionRows = timeline?.timeline_media ?? [];
-  const mediaIds = mediaJunctionRows.map((m) => m.media_id);
-  const { data: rawMediaItems = EMPTY_MEDIA_ROWS, isPending: mediaPending } =
+  // --- Media ---
+  // Fetch junctions directly so this query is self-contained and can be
+  // invalidated without waiting for the timeline detail to refetch first.
+  const timelineId = timeline?.id;
+  const { data: mediaItems = EMPTY_MEDIA_ITEMS, isPending: mediaPending } =
     useQuery({
-      queryKey: ["timeline-media-details", timeline?.id],
-      queryFn: async () => {
-        if (mediaIds.length === 0) return [];
+      queryKey: ["timeline-media-details", timelineId],
+      queryFn: async (): Promise<MediaItem[]> => {
+        const { data: junctions, error: jError } = await client
+          .from("timeline_media")
+          .select("media_id, sort_order")
+          .eq("timeline_id", timelineId!)
+          .order("sort_order", { ascending: true, nullsFirst: false });
+        if (jError) throw jError;
+        if (!junctions?.length) return [];
+        const ids = junctions.map((j) => j.media_id);
         const { data, error } = await client
           .from("media")
           .select(
             "id, alt_text, caption, media_type, url, storage_path, source",
           )
-          .in("id", mediaIds);
+          .in("id", ids);
         if (error) throw error;
-        return data ?? [];
+        const byId = new Map((data ?? []).map((m) => [m.id, m]));
+        return junctions
+          .map((j) => {
+            const m = byId.get(j.media_id);
+            if (!m) return null;
+            return { ...m, sort_order: j.sort_order ?? 0 };
+          })
+          .filter((m): m is MediaItem => m !== null);
       },
-      enabled: !!timeline?.id,
+      enabled: !!timelineId,
       staleTime: 30_000,
     });
-
-  const mediaItems: MediaItem[] = rawMediaItems
-    .map((m) => {
-      const junction = mediaJunctionRows.find((j) => j.media_id === m.id);
-      return { ...m, sort_order: junction?.sort_order ?? 0 };
-    })
-    .sort((a, b) => a.sort_order - b.sort_order);
 
   // --- Derived state ---
   const role = timeline ? deriveRole(timeline, userId) : "viewer";
@@ -946,13 +946,8 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
   }
 
   async function refreshMedia() {
-    // The timeline detail (with its embedded timeline_media junctions) drives
-    // the media list; refresh it and the derived media-details query.
     await queryClient.invalidateQueries({
-      queryKey: timelineKeys.bySlug(slug),
-    });
-    await queryClient.invalidateQueries({
-      queryKey: ["timeline-media-details", timeline?.id],
+      queryKey: ["timeline-media-details", timelineId],
     });
   }
 

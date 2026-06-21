@@ -652,13 +652,23 @@ export function EventDetailClient({ slug }: { slug: string }) {
     staleTime: 30_000,
   });
 
+  // Declared early so the media query and refreshMedia share the same reference.
+  const eventId = event?.id;
+
   // --- Media ---
+  // Fetch junctions directly so this query is self-contained and can be
+  // invalidated without waiting for the event detail to refetch first.
   const { data: mediaItems = [], isPending: mediaPending } = useQuery({
-    queryKey: ["event-media", event?.id],
+    queryKey: ["event-media", eventId],
     queryFn: async (): Promise<MediaItem[]> => {
-      const junctions = event!.event_media;
-      if (junctions.length === 0) return [];
-      const ids = junctions.map((m) => m.media_id);
+      const { data: junctions, error: jError } = await client
+        .from("event_media")
+        .select("media_id, sort_order")
+        .eq("event_id", eventId!)
+        .order("sort_order", { ascending: true, nullsFirst: false });
+      if (jError) throw jError;
+      if (!junctions?.length) return [];
+      const ids = junctions.map((j) => j.media_id);
       const { data, error } = await client
         .from("media")
         .select("id, alt_text, caption, media_type, url, storage_path, source")
@@ -671,10 +681,9 @@ export function EventDetailClient({ slug }: { slug: string }) {
           if (!m) return null;
           return { ...m, sort_order: j.sort_order ?? 0 };
         })
-        .filter((m): m is MediaItem => m !== null)
-        .sort((a, b) => a.sort_order - b.sort_order);
+        .filter((m): m is MediaItem => m !== null);
     },
-    enabled: !!event?.id,
+    enabled: !!eventId,
     staleTime: 30_000,
   });
 
@@ -710,16 +719,10 @@ export function EventDetailClient({ slug }: { slug: string }) {
 
   // --- Media association handlers ---
   const queryClient = useQueryClient();
-  const eventId = event?.id;
 
   const refreshMedia = React.useCallback(async () => {
-    // The event detail (and its embedded event_media junctions) drives the
-    // media list; refresh both it and the derived media query.
-    await queryClient.invalidateQueries({
-      queryKey: [...eventKeys.all, "detail-auth", slug],
-    });
     await queryClient.invalidateQueries({ queryKey: ["event-media", eventId] });
-  }, [queryClient, slug, eventId]);
+  }, [queryClient, eventId]);
 
   const handleAttachMedia = React.useCallback(
     async (mediaId: string) => {

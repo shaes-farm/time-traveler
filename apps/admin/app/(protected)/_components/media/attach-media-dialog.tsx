@@ -79,6 +79,7 @@ export function AttachMediaDialog({
   const [uploadAlt, setUploadAlt] = React.useState("");
   const [uploadCaption, setUploadCaption] = React.useState("");
   const [sizeError, setSizeError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // External tab state
   const [url, setUrl] = React.useState("");
@@ -95,6 +96,7 @@ export function AttachMediaDialog({
     setUrl("");
     setExternalAlt("");
     setExternalCaption("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function handleOpenChange(next: boolean) {
@@ -108,6 +110,7 @@ export function AttachMediaDialog({
     if (selected && selected.size > MAX_UPLOAD_BYTES) {
       setSizeError("File exceeds the 5 MB limit. Choose a smaller file.");
       setFile(null);
+      e.target.value = "";
       return;
     }
     setSizeError(null);
@@ -183,6 +186,7 @@ export function AttachMediaDialog({
             <div className="space-y-1.5">
               <Label htmlFor="media-file">File</Label>
               <Input
+                ref={fileInputRef}
                 id="media-file"
                 type="file"
                 onChange={handleFileChange}
