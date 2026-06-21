@@ -772,37 +772,39 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
   // Fetch junctions directly so this query is self-contained and can be
   // invalidated without waiting for the timeline detail to refetch first.
   const timelineId = timeline?.id;
-  const { data: mediaItems = EMPTY_MEDIA_ITEMS, isPending: mediaPending } =
-    useQuery({
-      queryKey: ["timeline-media-details", timelineId],
-      queryFn: async (): Promise<MediaItem[]> => {
-        const { data: junctions, error: jError } = await client
-          .from("timeline_media")
-          .select("media_id, sort_order")
-          .eq("timeline_id", timelineId!)
-          .order("sort_order", { ascending: true, nullsFirst: false });
-        if (jError) throw jError;
-        if (!junctions?.length) return [];
-        const ids = junctions.map((j) => j.media_id);
-        const { data, error } = await client
-          .from("media")
-          .select(
-            "id, alt_text, caption, media_type, url, storage_path, source",
-          )
-          .in("id", ids);
-        if (error) throw error;
-        const byId = new Map((data ?? []).map((m) => [m.id, m]));
-        return junctions
-          .map((j) => {
-            const m = byId.get(j.media_id);
-            if (!m) return null;
-            return { ...m, sort_order: j.sort_order ?? 0 };
-          })
-          .filter((m): m is MediaItem => m !== null);
-      },
-      enabled: !!timelineId,
-      staleTime: 30_000,
-    });
+  const {
+    data: mediaItems = EMPTY_MEDIA_ITEMS,
+    isPending: mediaPending,
+    isError: mediaError,
+    refetch: refetchMedia,
+  } = useQuery({
+    queryKey: ["timeline-media-details", timelineId],
+    queryFn: async (): Promise<MediaItem[]> => {
+      const { data: junctions, error: jError } = await client
+        .from("timeline_media")
+        .select("media_id, sort_order")
+        .eq("timeline_id", timelineId!)
+        .order("sort_order", { ascending: true, nullsFirst: false });
+      if (jError) throw jError;
+      if (!junctions?.length) return [];
+      const ids = junctions.map((j) => j.media_id);
+      const { data, error } = await client
+        .from("media")
+        .select("id, alt_text, caption, media_type, url, storage_path, source")
+        .in("id", ids);
+      if (error) throw error;
+      const byId = new Map((data ?? []).map((m) => [m.id, m]));
+      return junctions
+        .map((j) => {
+          const m = byId.get(j.media_id);
+          if (!m) return null;
+          return { ...m, sort_order: j.sort_order ?? 0 };
+        })
+        .filter((m): m is MediaItem => m !== null);
+    },
+    enabled: !!timelineId,
+    staleTime: 30_000,
+  });
 
   // --- Derived state ---
   const role = timeline ? deriveRole(timeline, userId) : "viewer";
@@ -1193,6 +1195,8 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             client={client}
             items={mediaItems}
             isLoading={mediaPending}
+            isError={mediaError}
+            onRetry={() => void refetchMedia()}
             canEdit={canEdit}
             ordering="sort"
             onAttach={handleAttachMedia}

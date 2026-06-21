@@ -23,10 +23,21 @@ import {
 import {
   useUploadMedia,
   useCreateExternalMedia,
+  useDeleteMedia,
 } from "@repo/ui/hooks/use-media";
 
 /** 5 MB — matches the Storage bucket `file_size_limit` and RLS WITH CHECK (00009). */
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+/** Returns true only for http:// and https:// URLs to block javascript: and data: URIs. */
+function isValidHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 type ServiceClient = Parameters<typeof useUploadMedia>[0];
 type MediaType = "image" | "video" | "audio" | "document";
@@ -73,6 +84,7 @@ export function AttachMediaDialog({
 }: AttachMediaDialogProps) {
   const upload = useUploadMedia(client);
   const createExternal = useCreateExternalMedia(client);
+  const deleteMedia = useDeleteMedia(client);
 
   // Upload tab state
   const [file, setFile] = React.useState<File | null>(null);
@@ -83,10 +95,12 @@ export function AttachMediaDialog({
 
   // External tab state
   const [url, setUrl] = React.useState("");
+  const [urlError, setUrlError] = React.useState<string | null>(null);
   const [externalAlt, setExternalAlt] = React.useState("");
   const [externalCaption, setExternalCaption] = React.useState("");
 
-  const busy = upload.isPending || createExternal.isPending;
+  const busy =
+    upload.isPending || createExternal.isPending || deleteMedia.isPending;
 
   function reset() {
     setFile(null);
@@ -94,6 +108,7 @@ export function AttachMediaDialog({
     setUploadCaption("");
     setSizeError(null);
     setUrl("");
+    setUrlError(null);
     setExternalAlt("");
     setExternalCaption("");
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -119,8 +134,9 @@ export function AttachMediaDialog({
 
   async function handleUpload() {
     if (!file) return;
+    let row: { id: string } | null = null;
     try {
-      const row = await upload.mutateAsync({
+      row = await upload.mutateAsync({
         file,
         fileName: `${Date.now()}-${file.name}`,
         altText: uploadAlt.trim() || undefined,
@@ -133,17 +149,35 @@ export function AttachMediaDialog({
       toast.success("Media uploaded and attached");
       handleOpenChange(false);
     } catch (err) {
+      if (row) {
+        try {
+          await deleteMedia.mutateAsync(row.id);
+        } catch {
+          // best-effort cleanup; ignore secondary error
+        }
+      }
       toast.error(
         err instanceof Error ? err.message : "Failed to upload media",
       );
     }
   }
 
+  function handleUrlChange(value: string) {
+    setUrl(value);
+    const trimmed = value.trim();
+    if (trimmed && !isValidHttpUrl(trimmed)) {
+      setUrlError("URL must start with http:// or https://");
+    } else {
+      setUrlError(null);
+    }
+  }
+
   async function handleExternal() {
     const trimmed = url.trim();
-    if (!trimmed) return;
+    if (!trimmed || !isValidHttpUrl(trimmed)) return;
+    let row: { id: string } | null = null;
     try {
-      const row = await createExternal.mutateAsync({
+      row = await createExternal.mutateAsync({
         url: trimmed,
         altText: externalAlt.trim() || undefined,
         caption: externalCaption.trim() || undefined,
@@ -153,6 +187,13 @@ export function AttachMediaDialog({
       toast.success("External media attached");
       handleOpenChange(false);
     } catch (err) {
+      if (row) {
+        try {
+          await deleteMedia.mutateAsync(row.id);
+        } catch {
+          // best-effort cleanup; ignore secondary error
+        }
+      }
       toast.error(
         err instanceof Error ? err.message : "Failed to attach external media",
       );
@@ -272,13 +313,18 @@ export function AttachMediaDialog({
                 id="media-url"
                 type="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => handleUrlChange(e.target.value)}
                 placeholder="https://archive.org/details/…"
                 disabled={busy}
               />
               <p className="text-xs text-muted-foreground">
                 The file stays hosted off-platform; only a reference is stored.
               </p>
+              {urlError && (
+                <p className="text-xs text-destructive" role="alert">
+                  {urlError}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="external-alt">Alt text</Label>
@@ -312,7 +358,7 @@ export function AttachMediaDialog({
               <Button
                 size="sm"
                 onClick={() => void handleExternal()}
-                disabled={!url.trim() || busy}
+                disabled={!url.trim() || !!urlError || busy}
               >
                 {createExternal.isPending ? "Attaching…" : "Attach"}
               </Button>

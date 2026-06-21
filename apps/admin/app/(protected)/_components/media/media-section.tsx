@@ -179,11 +179,19 @@ export function MediaSection({
     const next = [...items];
     const [moved] = next.splice(index, 1);
     next.splice(target, 0, moved!);
-    for (let i = 0; i < next.length; i++) {
-      const item = next[i]!;
-      if (item.sort_order !== i) {
-        await onReorder(item.id, i);
-      }
+    try {
+      await Promise.all(
+        next
+          .map((item, i) => ({ item, i }))
+          .filter(({ item, i }) => item.sort_order !== i)
+          .map(({ item, i }) => onReorder(item.id, i)),
+      );
+      await onChanged?.();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to reorder media",
+      );
+      await onChanged?.();
     }
   }
 

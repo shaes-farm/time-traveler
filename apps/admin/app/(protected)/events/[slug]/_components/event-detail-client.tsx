@@ -658,7 +658,12 @@ export function EventDetailClient({ slug }: { slug: string }) {
   // --- Media ---
   // Fetch junctions directly so this query is self-contained and can be
   // invalidated without waiting for the event detail to refetch first.
-  const { data: mediaItems = [], isPending: mediaPending } = useQuery({
+  const {
+    data: mediaItems = [],
+    isPending: mediaPending,
+    isError: mediaError,
+    refetch: refetchMedia,
+  } = useQuery({
     queryKey: ["event-media", eventId],
     queryFn: async (): Promise<MediaItem[]> => {
       const { data: junctions, error: jError } = await client
@@ -998,6 +1003,8 @@ export function EventDetailClient({ slug }: { slug: string }) {
             client={client}
             items={mediaItems}
             isLoading={mediaPending}
+            isError={mediaError}
+            onRetry={() => void refetchMedia()}
             canEdit={canEdit}
             ordering="sort"
             onAttach={handleAttachMedia}

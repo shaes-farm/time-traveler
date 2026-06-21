@@ -415,8 +415,10 @@ export async function removeMediaFromCharacter(
 }
 
 /**
- * Sets a media item as the character's primary/profile image, atomically
- * swapping it for any existing primary.
+ * Sets a media item as the character's primary/profile image via a sequential
+ * two-step swap (clear existing primary, then set new primary). There is a
+ * brief window between steps where no item is primary; callers should not
+ * assume all-or-nothing semantics.
  *
  * The partial unique index `character_media_one_primary` (migration 00013)
  * rejects a second `is_primary = true` row for the same character, so the

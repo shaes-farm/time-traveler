@@ -242,7 +242,7 @@ export function useRemoveMediaFromCharacter(client: ServiceClient) {
   });
 }
 
-/** Set a media item as the character's primary image (atomic swap). */
+/** Set a media item as the character's primary image (sequential two-step swap; not transactional). */
 export function useSetPrimaryCharacterMedia(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({

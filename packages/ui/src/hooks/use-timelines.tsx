@@ -431,10 +431,8 @@ export function useAddMediaToTimeline(client: ServiceClient) {
       mediaId: string;
       sortOrder?: number;
     }) => addMediaToTimeline(client, timelineId, mediaId, sortOrder),
-    onSuccess: (_data, { timelineId }) => {
-      void queryClient.invalidateQueries({
-        queryKey: timelineKeys.detail(timelineId),
-      });
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }
@@ -450,10 +448,8 @@ export function useRemoveMediaFromTimeline(client: ServiceClient) {
       timelineId: string;
       mediaId: string;
     }) => removeMediaFromTimeline(client, timelineId, mediaId),
-    onSuccess: (_data, { timelineId }) => {
-      void queryClient.invalidateQueries({
-        queryKey: timelineKeys.detail(timelineId),
-      });
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }
@@ -471,10 +467,8 @@ export function useReorderTimelineMedia(client: ServiceClient) {
       mediaId: string;
       sortOrder: number;
     }) => reorderTimelineMedia(client, timelineId, mediaId, sortOrder),
-    onSuccess: (_data, { timelineId }) => {
-      void queryClient.invalidateQueries({
-        queryKey: timelineKeys.detail(timelineId),
-      });
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }

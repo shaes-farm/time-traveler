@@ -490,13 +490,13 @@ describe("useAddMediaToTimeline", () => {
       2,
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
+      expect.objectContaining({ queryKey: timelineKeys.all }),
     );
   });
 });
 
 describe("useRemoveMediaFromTimeline", () => {
-  it("calls removeMediaFromTimeline and invalidates timeline detail", async () => {
+  it("calls removeMediaFromTimeline and invalidates all timelines", async () => {
     vi.mocked(removeMediaFromTimeline).mockResolvedValue(undefined as never);
     const { wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -516,13 +516,13 @@ describe("useRemoveMediaFromTimeline", () => {
       "media-1",
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
+      expect.objectContaining({ queryKey: timelineKeys.all }),
     );
   });
 });
 
 describe("useReorderTimelineMedia", () => {
-  it("calls reorderTimelineMedia and invalidates timeline detail", async () => {
+  it("calls reorderTimelineMedia and invalidates all timelines", async () => {
     vi.mocked(reorderTimelineMedia).mockResolvedValue({} as never);
     const { wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -544,7 +544,7 @@ describe("useReorderTimelineMedia", () => {
       3,
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: timelineKeys.detail("tl-1") }),
+      expect.objectContaining({ queryKey: timelineKeys.all }),
     );
   });
 });
