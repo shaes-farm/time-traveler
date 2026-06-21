@@ -206,9 +206,9 @@ export function AttachMediaDialog({
                 />
                 <Button
                   type="button"
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
+                  variant="secondary"
+                  size="sm"
+                  className="h-9 w-9 shrink-0 p-0"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={busy}
                   aria-label="Choose file"
