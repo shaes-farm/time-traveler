@@ -45,7 +45,7 @@
     "supabase": "^2.106.0",
     "turbo": "^2.9.18",
     "typescript": "6.0.3",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.9"
   },
   "packageManager": "pnpm@11.2.2",
   "engines": {
