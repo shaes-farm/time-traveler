@@ -1,6 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+# @tanstack/react-query stores its QueryClient in a module-scoped React context,
+# so two copies in one bundle = two unrelated contexts ("No QueryClient set").
+# Pin a single workspace-wide version so admin's QueryClientProvider and the
+# hooks in @repo/ui always resolve to the same instance.
+overrides:
+  "@tanstack/react-query": "^5.101.0"
 # Minimum age (in minutes) a package must be before it can be installed.
 # Protects against supply-chain attacks while not blocking packages older than 10 minutes.
 minimumReleaseAge: 10
