@@ -2,7 +2,7 @@
 -- 00024_fix_storage_insert_policies.sql
 --
 -- Fix broken (metadata->>'size')::bigint <= 5242880 check in Storage INSERT
--- policies (issue #293).
+-- policies (issue #290).
 --
 -- Root cause: Supabase Storage API v1.60+ inserts the storage.objects row
 -- before populating the metadata column. The WITH CHECK fires on INSERT and
@@ -15,7 +15,7 @@
 -- broken. Removing it from INSERT policies restores authenticated uploads.
 --
 -- Workaround applied in code: none needed after this migration.
--- See issue #293 and ADR-0009 (storage) for context.
+-- See issue #290 and ADR-0009 (storage) for context.
 -- ============================================================================
 
 -- media bucket

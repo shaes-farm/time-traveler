@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(20);
+select plan(17);
 
 -- ============================================================================
 -- Buckets exist with correct public/private + 5MB size limit
@@ -67,28 +67,12 @@ select is(
   'storage.objects has RLS enabled (Supabase default)'
 );
 
--- Verify INSERT policies contain the 5MB size check (literal pattern match)
-select ok(
-  (select qual is null and with_check like '%5242880%'
-    from pg_policies
-    where schemaname='storage' and tablename='objects'
-      and policyname='media_insert'),
-  'media_insert policy enforces 5MB limit in WITH CHECK'
-);
-select ok(
-  (select with_check like '%5242880%'
-    from pg_policies
-    where schemaname='storage' and tablename='objects'
-      and policyname='avatars_insert'),
-  'avatars_insert policy enforces 5MB limit in WITH CHECK'
-);
-select ok(
-  (select with_check like '%5242880%'
-    from pg_policies
-    where schemaname='storage' and tablename='objects'
-      and policyname='exports_insert'),
-  'exports_insert policy enforces 5MB limit in WITH CHECK'
-);
+-- NOTE: The per-policy (metadata->>'size')::bigint <= 5242880 WITH CHECK that
+-- 00009 originally placed on the INSERT policies was removed by migration 00024
+-- (it broke ALL authenticated uploads under Storage API v1.60+ — see issue #290).
+-- The 5MB limit is now enforced solely by the bucket-level file_size_limit
+-- asserted above (HTTP 413 before the row is written). Regression coverage that
+-- the broken check stays gone lives in 00024_fix_storage_insert_policies_test.sql.
 
 -- Verify public-read policies have NULL `roles` filter or include public
 -- (i.e., not restricted to authenticated only)
@@ -149,13 +133,14 @@ select ok(
 );
 
 -- INSERT policies have NULL `qual` (only WITH CHECK applies to INSERT)
--- and the WITH CHECK references the bucket_id and metadata->>'size'
+-- and the WITH CHECK references the bucket_id (metadata size check removed in
+-- 00024 — see issue #290).
 select ok(
-  (select with_check like '%bucket_id%' and with_check like '%metadata%'
+  (select qual is null and with_check like '%bucket_id%'
     from pg_policies
     where schemaname='storage' and tablename='objects'
       and policyname='media_insert'),
-  'media_insert WITH CHECK references bucket_id + metadata'
+  'media_insert WITH CHECK references bucket_id'
 );
 
 select * from finish();
