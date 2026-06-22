@@ -36,7 +36,7 @@ Closes #<!-- issue number -->
 - [ ] `pnpm run format` — ran Prettier (required before `git add` to pass the pre-commit hook)
 - [ ] `pnpm run check-types` — TypeScript compiles with no errors
 - [ ] `pnpm run lint` — zero ESLint errors or warnings (`--max-warnings 0`)
-- [ ] `pnpm run test:coverage` — all tests pass with ≥ 80 % coverage
+- [ ] `pnpm run test:coverage` — all tests pass with ≥80% coverage
 - [ ] `pnpm run build` — Turborepo build succeeds
 
 If this PR includes **database changes**, also:
