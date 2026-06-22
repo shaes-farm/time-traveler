@@ -95,3 +95,20 @@ Adopt a **layered testing strategy**:
 - **REF-002**: `supabase/tests/database/`; `packages/{ui,services}/vitest.config.ts`;
   `scripts/fix-lcov-paths.mjs`; `coverage/`
 - **REF-003**: pgTAP, Vitest, Storybook docs
+
+## Amendment (2026-06-19) — `apps/admin` enters the Vitest workspace
+
+IMP-003 anticipated this: apps join the test workspace once they hold
+unit-testable logic. The #49 media feature added the first such code in an app —
+`apps/admin/.../_components/media/{attach-media-dialog,media-section}.tsx`
+(client-side size validation, sort_order renormalization, detach-vs-delete
+confirmation, primary-swap branching) — so `apps/admin` now has its own
+`vitest.config.ts` and `test` / `test:coverage` scripts, picked up by
+`turbo run test:coverage`.
+
+To keep faith with "no coverage theater on boilerplate," the app's coverage
+`include` is **scoped to the files that have tests** (same approach as
+`packages/ui`), not the whole app, while keeping the 80% threshold on that scope.
+Expand the `include` list as more app components gain tests. This is an extension
+of the existing strategy, not a new layer — there is still **no end-to-end/browser
+test layer**; standing one up would be a separate decision.

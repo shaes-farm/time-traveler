@@ -27,6 +27,7 @@ import {
   removeCategoryFromEvent,
   addMediaToEvent,
   removeMediaFromEvent,
+  reorderEventMedia,
 } from "@repo/services/event-service";
 import type {
   EventFilters,
@@ -326,12 +327,19 @@ export function useRemoveCategoryFromEvent(client: ServiceClient) {
   });
 }
 
-/** Add a media item to an event. */
+/** Add a media item to an event, optionally at a specific sort position. */
 export function useAddMediaToEvent(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ eventId, mediaId }: { eventId: string; mediaId: string }) =>
-      addMediaToEvent(client, eventId, mediaId),
+    mutationFn: ({
+      eventId,
+      mediaId,
+      sortOrder,
+    }: {
+      eventId: string;
+      mediaId: string;
+      sortOrder?: number;
+    }) => addMediaToEvent(client, eventId, mediaId, sortOrder),
     onSuccess: (_data, { eventId }) => {
       void queryClient.invalidateQueries({
         queryKey: eventKeys.detail(eventId),
@@ -346,6 +354,27 @@ export function useRemoveMediaFromEvent(client: ServiceClient) {
   return useMutation({
     mutationFn: ({ eventId, mediaId }: { eventId: string; mediaId: string }) =>
       removeMediaFromEvent(client, eventId, mediaId),
+    onSuccess: (_data, { eventId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: eventKeys.detail(eventId),
+      });
+    },
+  });
+}
+
+/** Update the sort_order of a media item within an event. */
+export function useReorderEventMedia(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      mediaId,
+      sortOrder,
+    }: {
+      eventId: string;
+      mediaId: string;
+      sortOrder: number;
+    }) => reorderEventMedia(client, eventId, mediaId, sortOrder),
     onSuccess: (_data, { eventId }) => {
       void queryClient.invalidateQueries({
         queryKey: eventKeys.detail(eventId),

@@ -19,6 +19,7 @@ import {
   useRemoveCategoryFromEvent,
   useAddMediaToEvent,
   useRemoveMediaFromEvent,
+  useReorderEventMedia,
   eventKeys,
 } from "./use-events";
 
@@ -40,6 +41,7 @@ vi.mock("@repo/services/event-service", () => ({
   removeCategoryFromEvent: vi.fn(),
   addMediaToEvent: vi.fn(),
   removeMediaFromEvent: vi.fn(),
+  reorderEventMedia: vi.fn(),
   setParentEvent: vi.fn(),
   getChildEvents: vi.fn(),
 }));
@@ -61,6 +63,7 @@ import {
   removeCategoryFromEvent,
   addMediaToEvent,
   removeMediaFromEvent,
+  reorderEventMedia,
 } from "@repo/services/event-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -399,9 +402,33 @@ describe("useAddMediaToEvent", () => {
       mockClient,
       "evt-1",
       "media-1",
+      undefined,
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),
+    );
+  });
+
+  it("forwards an explicit sortOrder", async () => {
+    vi.mocked(addMediaToEvent).mockResolvedValue({} as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useAddMediaToEvent(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      eventId: "evt-1",
+      mediaId: "media-1",
+      sortOrder: 3,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(addMediaToEvent).toHaveBeenCalledWith(
+      mockClient,
+      "evt-1",
+      "media-1",
+      3,
     );
   });
 });
@@ -423,6 +450,35 @@ describe("useRemoveMediaFromEvent", () => {
       mockClient,
       "evt-1",
       "media-1",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),
+    );
+  });
+});
+
+describe("useReorderEventMedia", () => {
+  it("calls reorderEventMedia and invalidates event detail", async () => {
+    vi.mocked(reorderEventMedia).mockResolvedValue({} as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useReorderEventMedia(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      eventId: "evt-1",
+      mediaId: "media-1",
+      sortOrder: 2,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(reorderEventMedia).toHaveBeenCalledWith(
+      mockClient,
+      "evt-1",
+      "media-1",
+      2,
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: eventKeys.detail("evt-1") }),

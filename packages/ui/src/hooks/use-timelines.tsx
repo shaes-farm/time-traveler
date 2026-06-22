@@ -27,6 +27,9 @@ import {
   removeEventFromTimeline,
   setTimelineEventSortOrder,
   getEventTimelineLinks,
+  addMediaToTimeline,
+  removeMediaFromTimeline,
+  reorderTimelineMedia,
 } from "@repo/services/timeline-service";
 import type {
   TimelineFilters,
@@ -411,6 +414,61 @@ export function useSetTimelineEventSortOrder(client: ServiceClient) {
       void queryClient.invalidateQueries({
         queryKey: timelineKeys.detail(timelineId),
       });
+    },
+  });
+}
+
+/** Add a media item to a timeline, optionally at a specific sort position. */
+export function useAddMediaToTimeline(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      mediaId,
+      sortOrder,
+    }: {
+      timelineId: string;
+      mediaId: string;
+      sortOrder?: number;
+    }) => addMediaToTimeline(client, timelineId, mediaId, sortOrder),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
+    },
+  });
+}
+
+/** Remove a media item from a timeline. */
+export function useRemoveMediaFromTimeline(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      mediaId,
+    }: {
+      timelineId: string;
+      mediaId: string;
+    }) => removeMediaFromTimeline(client, timelineId, mediaId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
+    },
+  });
+}
+
+/** Update the sort_order of a media item within a timeline. */
+export function useReorderTimelineMedia(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      timelineId,
+      mediaId,
+      sortOrder,
+    }: {
+      timelineId: string;
+      mediaId: string;
+      sortOrder: number;
+    }) => reorderTimelineMedia(client, timelineId, mediaId, sortOrder),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
 }

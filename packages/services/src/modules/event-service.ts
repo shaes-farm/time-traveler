@@ -920,6 +920,28 @@ export async function removeMediaFromEvent(
   assertNoError(error, "removeMediaFromEvent");
 }
 
+/**
+ * Updates the `sort_order` of a media item within an event, determining its
+ * display order relative to the event's other media.
+ */
+export async function reorderEventMedia(
+  client: SupabaseClient<Database>,
+  eventId: string,
+  mediaId: string,
+  sortOrder: number,
+): Promise<EventMediaRow> {
+  const { data, error } = await client
+    .from("event_media")
+    .update({ sort_order: sortOrder })
+    .eq("event_id", eventId)
+    .eq("media_id", mediaId)
+    .select()
+    .single();
+
+  assertNoError(error, "reorderEventMedia");
+  return data;
+}
+
 // ---------------------------------------------------------------------------
 // Junction: event_characters
 // ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@repo/ui/components/sonner";
 import type { TemporalData } from "@repo/services/schemas/temporal";
 import {
@@ -70,11 +70,15 @@ import {
   useAddCollaborator,
   useRemoveCollaborator,
   useUpdateCollaboratorRole,
+  useAddMediaToTimeline,
+  useRemoveMediaFromTimeline,
+  useReorderTimelineMedia,
 } from "@repo/ui/hooks/use-timelines";
 import { useUpdateEvent } from "@repo/ui/hooks/use-events";
 import { useProfilesByIds } from "@repo/ui/hooks/use-profiles";
 import { getProfileByUsername } from "@repo/services/profile-service";
 import { getBrowserSupabaseClient } from "../../../../../lib/auth/browser-client";
+import { MediaSection } from "../../../_components/media/media-section";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -112,6 +116,7 @@ interface MediaItem {
   media_type: string | null;
   url: string | null;
   storage_path: string | null;
+  source: string;
   sort_order: number;
 }
 
@@ -119,14 +124,7 @@ interface MediaItem {
 // new reference every render, which makes the derived-state `!==` comparison
 // always true and triggers an infinite re-render loop.
 const EMPTY_EVENTS: TimelineEventWithMembership[] = [];
-const EMPTY_MEDIA_ROWS: Array<{
-  id: string;
-  alt_text: string | null;
-  caption: string | null;
-  media_type: string | null;
-  url: string | null;
-  storage_path: string | null;
-}> = [];
+const EMPTY_MEDIA_ITEMS: MediaItem[] = [];
 
 // ---------------------------------------------------------------------------
 // Visibility display
@@ -453,128 +451,6 @@ function PeriodsTab({ canEdit }: { canEdit: boolean }) {
 }
 
 // ---------------------------------------------------------------------------
-// MediaTab — basic listing + detach
-// ---------------------------------------------------------------------------
-
-interface MediaTabProps {
-  mediaItems: MediaItem[];
-  isLoading: boolean;
-  canEdit: boolean;
-  /** Undefined until media detach is implemented (issue #49). Button is disabled when absent. */
-  onDetach?: () => void;
-  onMoveUp: (mediaId: string) => void;
-  onMoveDown: (mediaId: string) => void;
-}
-
-function MediaTab({
-  mediaItems,
-  isLoading,
-  canEdit,
-  onDetach,
-  onMoveUp,
-  onMoveDown,
-}: MediaTabProps) {
-  if (isLoading) {
-    return (
-      <div className="space-y-2 p-1">
-        {[1, 2].map((step) => (
-          <Skeleton key={step} className="h-12 w-full rounded-md" />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-3">
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled
-            title="Full media manager coming in a later release"
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Attach media
-          </Button>
-        </div>
-      )}
-
-      {mediaItems.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
-          <p className="text-sm">No media attached.</p>
-        </div>
-      ) : (
-        <div className="space-y-1.5">
-          {mediaItems.map((item, idx) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 px-4 py-3 border border-border rounded-md bg-background"
-            >
-              {canEdit && (
-                <div className="flex flex-col gap-0.5 shrink-0">
-                  <button
-                    type="button"
-                    disabled={idx === 0}
-                    onClick={() => onMoveUp(item.id)}
-                    className="p-0.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
-                    aria-label="Move up"
-                  >
-                    <ChevronUp className="h-3 w-3" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={idx === mediaItems.length - 1}
-                    onClick={() => onMoveDown(item.id)}
-                    className="p-0.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-30"
-                    aria-label="Move down"
-                  >
-                    <ChevronDown className="h-3 w-3" />
-                  </button>
-                </div>
-              )}
-
-              <Badge
-                variant="secondary"
-                className="text-xs capitalize shrink-0"
-              >
-                {item.media_type ?? "media"}
-              </Badge>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {item.alt_text ?? item.caption ?? item.id}
-                </p>
-                {item.caption && item.alt_text && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {item.caption}
-                  </p>
-                )}
-              </div>
-
-              {canEdit && (
-                <button
-                  type="button"
-                  onClick={onDetach}
-                  disabled={!onDetach}
-                  title={
-                    !onDetach ? "Media detach coming in issue #49" : undefined
-                  }
-                  className="p-1 rounded text-muted-foreground hover:text-destructive disabled:opacity-30 shrink-0"
-                  aria-label="Detach media"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Link Event Dialog
 // ---------------------------------------------------------------------------
 
@@ -892,37 +768,43 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     { enabled: !!timeline?.id },
   );
 
-  // --- Media details ---
-  const mediaJunctionRows = timeline?.timeline_media ?? [];
-  const mediaIds = mediaJunctionRows.map((m) => m.media_id);
-  const { data: rawMediaItems = EMPTY_MEDIA_ROWS, isPending: mediaPending } =
-    useQuery({
-      queryKey: ["timeline-media-details", timeline?.id],
-      queryFn: async () => {
-        if (mediaIds.length === 0) return [];
-        const { data, error } = await client
-          .from("media")
-          .select("id, alt_text, caption, media_type, url, storage_path")
-          .in("id", mediaIds);
-        if (error) throw error;
-        return data ?? [];
-      },
-      enabled: !!timeline?.id,
-      staleTime: 30_000,
-    });
-
-  const mediaItems: MediaItem[] = rawMediaItems.map((m) => {
-    const junction = mediaJunctionRows.find((j) => j.media_id === m.id);
-    return { ...m, sort_order: junction?.sort_order ?? 0 };
+  // --- Media ---
+  // Fetch junctions directly so this query is self-contained and can be
+  // invalidated without waiting for the timeline detail to refetch first.
+  const timelineId = timeline?.id;
+  const {
+    data: mediaItems = EMPTY_MEDIA_ITEMS,
+    isPending: mediaPending,
+    isError: mediaError,
+    refetch: refetchMedia,
+  } = useQuery({
+    queryKey: ["timeline-media-details", timelineId],
+    queryFn: async (): Promise<MediaItem[]> => {
+      const { data: junctions, error: jError } = await client
+        .from("timeline_media")
+        .select("media_id, sort_order")
+        .eq("timeline_id", timelineId!)
+        .order("sort_order", { ascending: true, nullsFirst: false });
+      if (jError) throw jError;
+      if (!junctions?.length) return [];
+      const ids = junctions.map((j) => j.media_id);
+      const { data, error } = await client
+        .from("media")
+        .select("id, alt_text, caption, media_type, url, storage_path, source")
+        .in("id", ids);
+      if (error) throw error;
+      const byId = new Map((data ?? []).map((m) => [m.id, m]));
+      return junctions
+        .map((j) => {
+          const m = byId.get(j.media_id);
+          if (!m) return null;
+          return { ...m, sort_order: j.sort_order ?? 0 };
+        })
+        .filter((m): m is MediaItem => m !== null);
+    },
+    enabled: !!timelineId,
+    staleTime: 30_000,
   });
-  // Keeps local reorder optimistic; reset on query-data change via the same
-  // conditional-set-during-render pattern as localEvents above (not useEffect).
-  const [prevRawMedia, setPrevRawMedia] = React.useState(rawMediaItems);
-  const [localMedia, setLocalMedia] = React.useState<MediaItem[]>(mediaItems);
-  if (rawMediaItems !== prevRawMedia) {
-    setPrevRawMedia(rawMediaItems);
-    setLocalMedia(mediaItems);
-  }
 
   // --- Derived state ---
   const role = timeline ? deriveRole(timeline, userId) : "viewer";
@@ -1010,6 +892,10 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
   const addCollaborator = useAddCollaborator(client);
   const removeCollaborator = useRemoveCollaborator(client);
   const updateRole = useUpdateCollaboratorRole(client);
+  const addMedia = useAddMediaToTimeline(client);
+  const removeMedia = useRemoveMediaFromTimeline(client);
+  const reorderMedia = useReorderTimelineMedia(client);
+  const queryClient = useQueryClient();
 
   // --- Handlers ---
   function handleReorder(reordered: TimelineEventWithMembership[]) {
@@ -1061,26 +947,36 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     );
   }
 
-  // Media detach is intentionally not wired yet: passing `onDetach` keeps the
-  // button enabled, so it stays undefined (MediaTab disables the control) until
-  // removeMediaFromTimeline lands with media management (issue #49).
-
-  function handleMediaMoveUp(mediaId: string) {
-    const idx = localMedia.findIndex((m) => m.id === mediaId);
-    if (idx <= 0) return;
-    const next = [...localMedia];
-    const [item] = next.splice(idx, 1);
-    next.splice(idx - 1, 0, item!);
-    setLocalMedia(next);
+  async function refreshMedia() {
+    await queryClient.invalidateQueries({
+      queryKey: ["timeline-media-details", timelineId],
+    });
   }
 
-  function handleMediaMoveDown(mediaId: string) {
-    const idx = localMedia.findIndex((m) => m.id === mediaId);
-    if (idx < 0 || idx >= localMedia.length - 1) return;
-    const next = [...localMedia];
-    const [item] = next.splice(idx, 1);
-    next.splice(idx + 1, 0, item!);
-    setLocalMedia(next);
+  async function handleAttachMedia(mediaId: string) {
+    if (!timeline) return;
+    await addMedia.mutateAsync({
+      timelineId: timeline.id,
+      mediaId,
+      sortOrder: mediaItems.length,
+    });
+    await refreshMedia();
+  }
+
+  async function handleDetachMedia(mediaId: string) {
+    if (!timeline) return;
+    await removeMedia.mutateAsync({ timelineId: timeline.id, mediaId });
+    await refreshMedia();
+  }
+
+  async function handleReorderMedia(mediaId: string, sortOrder: number) {
+    if (!timeline) return;
+    await reorderMedia.mutateAsync({
+      timelineId: timeline.id,
+      mediaId,
+      sortOrder,
+    });
+    await refreshMedia();
   }
 
   function handleDelete() {
@@ -1122,7 +1018,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
 
   const detailsEvent = detailsEvents[0] ?? null;
   const collabCount = collaboratorRows.length;
-  const mediaCount = localMedia.length;
+  const mediaCount = mediaItems.length;
 
   return (
     <div className="p-6 space-y-6 max-w-4xl">
@@ -1295,12 +1191,18 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
         </TabsContent>
 
         <TabsContent value="media" className="pt-4">
-          <MediaTab
-            mediaItems={localMedia}
+          <MediaSection
+            client={client}
+            items={mediaItems}
             isLoading={mediaPending}
+            isError={mediaError}
+            onRetry={() => void refetchMedia()}
             canEdit={canEdit}
-            onMoveUp={handleMediaMoveUp}
-            onMoveDown={handleMediaMoveDown}
+            ordering="sort"
+            onAttach={handleAttachMedia}
+            onDetach={handleDetachMedia}
+            onReorder={handleReorderMedia}
+            onChanged={refreshMedia}
           />
         </TabsContent>
       </Tabs>
