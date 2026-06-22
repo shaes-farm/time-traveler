@@ -41,7 +41,7 @@
     "husky": "^9.1.7",
     "lcov-result-merger": "^6.0.0",
     "prettier": "^3.8.4",
-    "skills": "^1.5.10",
+    "skills": "^1.5.12",
     "supabase": "^2.107.0",
     "turbo": "^2.9.18",
     "typescript": "6.0.3",
