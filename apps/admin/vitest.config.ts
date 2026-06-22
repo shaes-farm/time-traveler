@@ -17,6 +17,8 @@ export default defineConfig({
       include: [
         "app/**/_components/media/attach-media-dialog.tsx",
         "app/**/_components/media/media-section.tsx",
+        "app/**/event-form-mappers.ts",
+        "app/**/timeline-form-mappers.ts",
       ],
       exclude: ["app/**/*.test.{ts,tsx}"],
       thresholds: {
