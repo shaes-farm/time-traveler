@@ -15,7 +15,7 @@ import type {
   MediaLibraryFilters,
 } from "../schemas/media";
 import { generateSlug, resolveCollision } from "../utils/slug";
-import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import { MAX_SLUG_LENGTH, slugSchema } from "../schemas/slug";
 import type { Database } from "../supabase/types";
 
 type MediaRow = Database["public"]["Tables"]["media"]["Row"];
@@ -483,8 +483,18 @@ function encodeCursor(row: { created_at: string; slug: string }): string {
   return btoa(`${row.created_at}|${row.slug}`);
 }
 
-/** Decode a cursor produced by {@link encodeCursor}. Returns null for malformed
- * input so a bad cursor degrades to "first page" rather than throwing. */
+/** ISO-8601 timestamp charset (digits, `-`, `:`, `.`, `T`, `Z`, `+`, space) with
+ * none of the PostgREST filter metacharacters (`,`, `(`, `)`). Bounded length
+ * to reject oversized payloads. */
+const CURSOR_TIMESTAMP_RE = /^[0-9T:.+\- Z]{1,40}$/;
+
+/** Decode a cursor produced by {@link encodeCursor}. The decoded parts are
+ * interpolated into a PostgREST `.or(...)` filter, and the cursor is
+ * client-supplied, so both halves are whitelisted before use (SEC-002): the
+ * slug against the canonical slug schema, the timestamp against an ISO charset
+ * that excludes filter metacharacters. Returns null for any malformed or
+ * non-conforming input so a bad/tampered cursor degrades to "first page"
+ * rather than throwing or injecting filter syntax. */
 function decodeCursor(
   cursor: string,
 ): { createdAt: string; slug: string } | null {
@@ -492,7 +502,11 @@ function decodeCursor(
     const raw = atob(cursor);
     const sep = raw.indexOf("|");
     if (sep === -1) return null;
-    return { createdAt: raw.slice(0, sep), slug: raw.slice(sep + 1) };
+    const createdAt = raw.slice(0, sep);
+    const slug = raw.slice(sep + 1);
+    if (!CURSOR_TIMESTAMP_RE.test(createdAt)) return null;
+    if (!slugSchema.safeParse(slug).success) return null;
+    return { createdAt, slug };
   } catch {
     return null;
   }
@@ -528,18 +542,30 @@ interface NormalizedFacets {
 /** Validate filter values against the canonical enums before they reach a
  * PostgREST filter string (SEC-002), mirroring the events service's era guard. */
 function normalizeFacets(filters: MediaLibraryFilters): NormalizedFacets {
-  const mediaTypes = (filters.mediaTypes ?? []).filter(
-    (t): t is z.infer<typeof mediaTypeEnum> =>
-      mediaTypeEnum.safeParse(t).success,
-  );
-  const sources = (filters.sources ?? []).filter(
-    (s): s is z.infer<typeof mediaSourceEnum> =>
-      mediaSourceEnum.safeParse(s).success,
-  );
-  const attachedTo = (filters.attachedTo ?? []).filter(
-    (a): a is MediaAttachedToFacet =>
-      mediaAttachedToFacetEnum.safeParse(a).success,
-  );
+  const mediaTypes = [
+    ...new Set(
+      (filters.mediaTypes ?? []).filter(
+        (t): t is z.infer<typeof mediaTypeEnum> =>
+          mediaTypeEnum.safeParse(t).success,
+      ),
+    ),
+  ];
+  const sources = [
+    ...new Set(
+      (filters.sources ?? []).filter(
+        (s): s is z.infer<typeof mediaSourceEnum> =>
+          mediaSourceEnum.safeParse(s).success,
+      ),
+    ),
+  ];
+  const attachedTo = [
+    ...new Set(
+      (filters.attachedTo ?? []).filter(
+        (a): a is MediaAttachedToFacet =>
+          mediaAttachedToFacetEnum.safeParse(a).success,
+      ),
+    ),
+  ];
   return {
     search: escapePostgrestSearchTerm(filters.search ?? ""),
     mediaTypes,

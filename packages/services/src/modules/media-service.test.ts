@@ -1044,6 +1044,40 @@ describe("getMediaLibraryPage", () => {
     expect(keyset).toHaveLength(0);
   });
 
+  it("rejects a tampered cursor whose slug injects filter syntax", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    // valid timestamp, but the slug half carries an injected PostgREST clause
+    await getMediaLibraryPage(client, {
+      cursor: btoa("2026-01-02T00:00:00Z|b,user_id.neq.x"),
+    });
+    const keyset = builders.media![0]!.calls.or.filter((c) =>
+      c.startsWith("created_at.lt."),
+    );
+    expect(keyset).toHaveLength(0);
+  });
+
+  it("rejects a tampered cursor whose timestamp carries metacharacters", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      cursor: btoa("2026-01-02T00:00:00Z),or(id.eq.x|b"),
+    });
+    const keyset = builders.media![0]!.calls.or.filter((c) =>
+      c.startsWith("created_at.lt."),
+    );
+    expect(keyset).toHaveLength(0);
+  });
+
+  it("de-duplicates repeated facet values", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      mediaTypes: ["image", "image", "video"],
+    });
+    expect(builders.media![0]!.calls.in).toContainEqual([
+      "media_type",
+      ["image", "video"],
+    ]);
+  });
+
   it("orders by created_at desc then slug desc", async () => {
     const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
     await getMediaLibraryPage(client, {});
