@@ -10,6 +10,10 @@ import {
   useCreateExternalMedia,
   useUpdateMedia,
   useDeleteMedia,
+  useMediaLibrary,
+  useMediaFacetCounts,
+  useMediaAttachments,
+  useMediaAttachmentsBulk,
   mediaKeys,
 } from "./use-media";
 
@@ -21,6 +25,10 @@ vi.mock("@repo/services/media-service", () => ({
   updateMedia: vi.fn(),
   deleteMedia: vi.fn(),
   getSignedUrl: vi.fn(),
+  getMediaLibraryPage: vi.fn(),
+  getMediaFacetCounts: vi.fn(),
+  getMediaAttachments: vi.fn(),
+  getMediaAttachmentsBulk: vi.fn(),
 }));
 
 import {
@@ -31,6 +39,10 @@ import {
   updateMedia,
   deleteMedia,
   getSignedUrl,
+  getMediaLibraryPage,
+  getMediaFacetCounts,
+  getMediaAttachments,
+  getMediaAttachmentsBulk,
 } from "@repo/services/media-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -213,6 +225,92 @@ describe("useDeleteMedia", () => {
   });
 });
 
+describe("useMediaLibrary", () => {
+  it("calls getMediaLibraryPage with client and filters", async () => {
+    const page = { rows: [], nextCursor: null, hasMore: false };
+    vi.mocked(getMediaLibraryPage).mockResolvedValue(page as never);
+    const filters = { mediaTypes: ["image" as const] };
+
+    const { wrapper, queryClient } = createWrapper();
+    const { result } = renderHook(() => useMediaLibrary(mockClient, filters), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getMediaLibraryPage).toHaveBeenCalledWith(mockClient, filters);
+    expect(result.current.data).toEqual(page);
+    expect(queryClient.getQueryData(mediaKeys.library(filters))).toEqual(page);
+  });
+});
+
+describe("useMediaFacetCounts", () => {
+  it("calls getMediaFacetCounts with client and filters", async () => {
+    const counts = {
+      type: { image: 1, video: 0, audio: 0, document: 0 },
+      source: { upload: 1, external: 0 },
+      attachedTo: { events: 0, characters: 0, timelines: 0, orphaned: 1 },
+    };
+    vi.mocked(getMediaFacetCounts).mockResolvedValue(counts as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useMediaFacetCounts(mockClient, {}), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getMediaFacetCounts).toHaveBeenCalledWith(mockClient, {});
+    expect(result.current.data).toEqual(counts);
+  });
+});
+
+describe("useMediaAttachments", () => {
+  it("calls getMediaAttachments with client and id", async () => {
+    const attachments = [{ kind: "event", id: "e1", label: "Event" }];
+    vi.mocked(getMediaAttachments).mockResolvedValue(attachments as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useMediaAttachments(mockClient, "media-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getMediaAttachments).toHaveBeenCalledWith(mockClient, "media-1");
+    expect(result.current.data).toEqual(attachments);
+  });
+});
+
+describe("useMediaAttachmentsBulk", () => {
+  it("calls getMediaAttachmentsBulk for a non-empty id list", async () => {
+    vi.mocked(getMediaAttachmentsBulk).mockResolvedValue({
+      "media-1": [],
+    } as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useMediaAttachmentsBulk(mockClient, ["media-1"]),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getMediaAttachmentsBulk).toHaveBeenCalledWith(mockClient, [
+      "media-1",
+    ]);
+  });
+
+  it("is disabled (does not fetch) for an empty id list", () => {
+    vi.mocked(getMediaAttachmentsBulk).mockClear();
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useMediaAttachmentsBulk(mockClient, []),
+      { wrapper },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(getMediaAttachmentsBulk).not.toHaveBeenCalled();
+  });
+});
+
 describe("mediaKeys", () => {
   it("produces stable, unique keys", () => {
     expect(mediaKeys.all).toEqual(["media"]);
@@ -223,6 +321,23 @@ describe("mediaKeys", () => {
       "signedUrl",
       "media-1",
       3600,
+    ]);
+    expect(mediaKeys.library({ search: "q" })).toEqual([
+      "media",
+      "library",
+      { search: "q" },
+    ]);
+    expect(mediaKeys.facets({})).toEqual(["media", "facets", {}]);
+    expect(mediaKeys.attachments("media-1")).toEqual([
+      "media",
+      "attachments",
+      "media-1",
+    ]);
+    expect(mediaKeys.attachmentsBulk(["a", "b"])).toEqual([
+      "media",
+      "attachments",
+      "bulk",
+      ["a", "b"],
     ]);
   });
 });

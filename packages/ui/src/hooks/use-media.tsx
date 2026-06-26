@@ -17,12 +17,17 @@ import {
   updateMedia,
   deleteMedia,
   getSignedUrl,
+  getMediaLibraryPage,
+  getMediaFacetCounts,
+  getMediaAttachments,
+  getMediaAttachmentsBulk,
 } from "@repo/services/media-service";
 import type {
   MediaFilters,
   UploadMediaInput,
   CreateExternalMediaInput,
 } from "@repo/services/media-service";
+import type { MediaLibraryFilters } from "@repo/services/schemas/media";
 
 type ServiceClient = Parameters<typeof getMedia>[0];
 type MediaUpdateData = Parameters<typeof updateMedia>[2];
@@ -40,6 +45,15 @@ export const mediaKeys = {
   /** Cache key includes expiresInSeconds so different expiry windows never collide. */
   signedUrl: (id: string, expiresInSeconds: number) =>
     [...mediaKeys.all, "signedUrl", id, expiresInSeconds] as const,
+  // Cross-entity media library (screen 17 / #292)
+  library: (filters: MediaLibraryFilters) =>
+    [...mediaKeys.all, "library", filters] as const,
+  facets: (filters: MediaLibraryFilters) =>
+    [...mediaKeys.all, "facets", filters] as const,
+  attachments: (mediaId: string) =>
+    [...mediaKeys.all, "attachments", mediaId] as const,
+  attachmentsBulk: (mediaIds: string[]) =>
+    [...mediaKeys.all, "attachments", "bulk", mediaIds] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -95,6 +109,86 @@ export function useMediaSignedUrl(
     queryFn: () => getSignedUrl(client, mediaId, expiresInSeconds),
     // Signed URLs expire — stale after half the expiry window
     staleTime: (expiresInSeconds * 1000) / 2,
+    ...options,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cross-entity media library hooks (screen 17 / #292) — consume #291 query layer
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch one keyset page of the cross-entity media library. Facets combine AND
+ * across groups, OR within a group; pass `filters.cursor` from a previous
+ * page's `nextCursor` to advance. Returns `{ rows, nextCursor, hasMore }`.
+ */
+export function useMediaLibrary(
+  client: ServiceClient,
+  filters: MediaLibraryFilters = {},
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getMediaLibraryPage>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: mediaKeys.library(filters),
+    queryFn: () => getMediaLibraryPage(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/** Fetch per-option facet counts for the library filter rail. */
+export function useMediaFacetCounts(
+  client: ServiceClient,
+  filters: MediaLibraryFilters = {},
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getMediaFacetCounts>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: mediaKeys.facets(filters),
+    queryFn: () => getMediaFacetCounts(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/** Resolve a single media row's attachments across all three junctions. */
+export function useMediaAttachments(
+  client: ServiceClient,
+  mediaId: string,
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getMediaAttachments>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: mediaKeys.attachments(mediaId),
+    queryFn: () => getMediaAttachments(client, mediaId),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/**
+ * Bulk-resolve attachments for a page of media ids — one map keyed by media id,
+ * for the per-card `⛓ N` "Attached to" badges. Disabled when `mediaIds` is empty.
+ */
+export function useMediaAttachmentsBulk(
+  client: ServiceClient,
+  mediaIds: string[],
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getMediaAttachmentsBulk>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: mediaKeys.attachmentsBulk(mediaIds),
+    queryFn: () => getMediaAttachmentsBulk(client, mediaIds),
+    enabled: mediaIds.length > 0,
+    staleTime: 30_000,
     ...options,
   });
 }
