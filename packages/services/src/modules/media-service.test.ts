@@ -9,6 +9,11 @@ import {
   updateMedia,
   deleteMedia,
   getSignedUrl,
+  getMediaLibraryPage,
+  getMediaFacetCounts,
+  getMediaAttachments,
+  getMediaAttachmentsBulk,
+  getOrphanMediaIds,
 } from "./media-service";
 import { mediaInsertSchema } from "../schemas/media";
 
@@ -738,5 +743,558 @@ describe("mediaInsertSchema", () => {
         storage_path: "user-123/x.jpg",
       }).success,
     ).toBe(false);
+  });
+});
+
+// ===========================================================================
+// Cross-entity media library (#291): getMediaLibraryPage, getMediaFacetCounts,
+// attachment map, orphan detection.
+// ===========================================================================
+
+interface RecordedCalls {
+  select: unknown[][];
+  eq: unknown[][];
+  in: unknown[][];
+  or: string[];
+  is: unknown[][];
+  not: unknown[][];
+  order: unknown[][];
+  limit: number[];
+}
+
+interface RecordingBuilder {
+  calls: RecordedCalls;
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  or: ReturnType<typeof vi.fn>;
+  is: ReturnType<typeof vi.fn>;
+  not: ReturnType<typeof vi.fn>;
+  order: ReturnType<typeof vi.fn>;
+  limit: ReturnType<typeof vi.fn>;
+  then: (resolve: (v: unknown) => unknown) => Promise<unknown>;
+}
+
+/** A chainable PostgREST builder mock that records every filter call so tests
+ * can assert the exact query construction, and resolves to a fixed result. */
+function makeRecordingBuilder(result: {
+  data?: unknown;
+  count?: number | null;
+  error?: unknown;
+}): RecordingBuilder {
+  const calls: RecordedCalls = {
+    select: [],
+    eq: [],
+    in: [],
+    or: [],
+    is: [],
+    not: [],
+    order: [],
+    limit: [],
+  };
+  const resolved = {
+    data: result.data ?? null,
+    count: result.count ?? null,
+    error: result.error ?? null,
+  };
+  const builder: RecordingBuilder = {
+    calls,
+    select: vi.fn((...a: unknown[]) => {
+      calls.select.push(a);
+      return builder;
+    }),
+    eq: vi.fn((...a: unknown[]) => {
+      calls.eq.push(a);
+      return builder;
+    }),
+    in: vi.fn((...a: unknown[]) => {
+      calls.in.push(a);
+      return builder;
+    }),
+    or: vi.fn((f: string) => {
+      calls.or.push(f);
+      return builder;
+    }),
+    is: vi.fn((...a: unknown[]) => {
+      calls.is.push(a);
+      return builder;
+    }),
+    not: vi.fn((...a: unknown[]) => {
+      calls.not.push(a);
+      return builder;
+    }),
+    order: vi.fn((...a: unknown[]) => {
+      calls.order.push(a);
+      return builder;
+    }),
+    limit: vi.fn((n: number) => {
+      calls.limit.push(n);
+      return builder;
+    }),
+    then: (resolve: (v: unknown) => unknown) =>
+      Promise.resolve(resolved).then(resolve),
+  };
+  return builder;
+}
+
+/** Build a client whose `from(table)` returns the next queued builder for that
+ * table (falling back to an empty result), capturing builders for assertions. */
+function makeLibraryClient(
+  queues: Record<
+    string,
+    { data?: unknown; count?: number | null; error?: unknown }[]
+  >,
+) {
+  const builders: Record<string, RecordingBuilder[]> = {};
+  const from = vi.fn((table: string) => {
+    const queue = queues[table] ?? [];
+    const result = queue.shift() ?? { data: [], error: null };
+    const b = makeRecordingBuilder(result);
+    (builders[table] ??= []).push(b);
+    return b;
+  });
+  const client = { from } as unknown as SupabaseClient<Database>;
+  return { client, builders, from };
+}
+
+function mediaEmbedRow(opts: {
+  id: string;
+  slug: string;
+  created_at: string;
+  events?: number;
+  characters?: number;
+  timelines?: number;
+}) {
+  const arr = (n: number) =>
+    Array.from({ length: n }, () => ({ media_id: opts.id }));
+  return {
+    id: opts.id,
+    slug: opts.slug,
+    created_at: opts.created_at,
+    media_type: "image",
+    source: "upload",
+    event_media: arr(opts.events ?? 0),
+    character_media: arr(opts.characters ?? 0),
+    timeline_media: arr(opts.timelines ?? 0),
+  };
+}
+
+describe("getMediaLibraryPage", () => {
+  it("builds an escaped, case-insensitive search across alt_text/caption/slug", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, { search: "Curie" });
+    const b = builders.media![0]!;
+    expect(b.calls.or).toContain(
+      "alt_text.ilike.*Curie*,caption.ilike.*Curie*,slug.ilike.*Curie*",
+    );
+  });
+
+  it("strips PostgREST/ilike metacharacters from the search term", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, { search: "a,b(c)*d%" });
+    const b = builders.media![0]!;
+    expect(b.calls.or).toContain(
+      "alt_text.ilike.*a b c d*,caption.ilike.*a b c d*,slug.ilike.*a b c d*",
+    );
+  });
+
+  it("omits the search filter when the term is only metacharacters", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, { search: "(),*" });
+    const b = builders.media![0]!;
+    expect(b.calls.or).toHaveLength(0);
+  });
+
+  it("applies Type and Source facets with IN (OR within group)", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      mediaTypes: ["image", "video"],
+      sources: ["upload"],
+    });
+    const b = builders.media![0]!;
+    expect(b.calls.in).toContainEqual(["media_type", ["image", "video"]]);
+    expect(b.calls.in).toContainEqual(["source", ["upload"]]);
+  });
+
+  it("drops facet values that are not in the canonical enum", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      mediaTypes: ["image", "bogus" as never],
+    });
+    const b = builders.media![0]!;
+    expect(b.calls.in).toContainEqual(["media_type", ["image"]]);
+  });
+
+  it("filters a single Attached-to kind via not.is.null", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, { attachedTo: ["events"] });
+    expect(builders.media![0]!.calls.or).toContain("event_media.not.is.null");
+  });
+
+  it("ORs multiple Attached-to kinds within the group, incl. orphaned", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      attachedTo: ["events", "orphaned"],
+    });
+    expect(builders.media![0]!.calls.or).toContain(
+      "event_media.not.is.null,and(event_media.is.null,character_media.is.null,timeline_media.is.null)",
+    );
+  });
+
+  it("maps the character and timeline Attached-to kinds", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      attachedTo: ["characters", "timelines"],
+    });
+    expect(builders.media![0]!.calls.or).toContain(
+      "character_media.not.is.null,timeline_media.not.is.null",
+    );
+  });
+
+  it("scopes to userId when supplied", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, { userId: "user-9" });
+    expect(builders.media![0]!.calls.eq).toContainEqual(["user_id", "user-9"]);
+  });
+
+  it("derives per-card attachment counts from the embed array lengths", async () => {
+    const { client } = makeLibraryClient({
+      media: [
+        {
+          data: [
+            mediaEmbedRow({
+              id: "m1",
+              slug: "a",
+              created_at: "2026-01-02T00:00:00Z",
+              events: 2,
+              characters: 1,
+              timelines: 0,
+            }),
+          ],
+        },
+      ],
+    });
+    const page = await getMediaLibraryPage(client, {});
+    expect(page.rows[0]!.attachmentCounts).toEqual({
+      event: 2,
+      character: 1,
+      timeline: 0,
+      total: 3,
+    });
+    // raw embed arrays are stripped from the returned row
+    expect("event_media" in page.rows[0]!).toBe(false);
+  });
+
+  it("fetches pageSize+1, sets hasMore, and returns a decodable nextCursor", async () => {
+    const rows = [
+      mediaEmbedRow({
+        id: "m1",
+        slug: "a",
+        created_at: "2026-01-03T00:00:00Z",
+      }),
+      mediaEmbedRow({
+        id: "m2",
+        slug: "b",
+        created_at: "2026-01-02T00:00:00Z",
+      }),
+      mediaEmbedRow({
+        id: "m3",
+        slug: "c",
+        created_at: "2026-01-01T00:00:00Z",
+      }),
+    ];
+    const { client, builders } = makeLibraryClient({ media: [{ data: rows }] });
+    const page = await getMediaLibraryPage(client, { pageSize: 2 });
+    expect(builders.media![0]!.calls.limit).toEqual([3]);
+    expect(page.hasMore).toBe(true);
+    expect(page.rows).toHaveLength(2);
+    expect(page.nextCursor).toBe(btoa("2026-01-02T00:00:00Z|b"));
+  });
+
+  it("returns no cursor on the last page", async () => {
+    const rows = [
+      mediaEmbedRow({
+        id: "m1",
+        slug: "a",
+        created_at: "2026-01-02T00:00:00Z",
+      }),
+    ];
+    const { client } = makeLibraryClient({ media: [{ data: rows }] });
+    const page = await getMediaLibraryPage(client, { pageSize: 2 });
+    expect(page.hasMore).toBe(false);
+    expect(page.nextCursor).toBeNull();
+  });
+
+  it("applies a keyset predicate when a cursor is supplied", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      cursor: btoa("2026-01-02T00:00:00Z|b"),
+    });
+    expect(builders.media![0]!.calls.or).toContain(
+      "created_at.lt.2026-01-02T00:00:00Z,and(created_at.eq.2026-01-02T00:00:00Z,slug.lt.b)",
+    );
+  });
+
+  it("ignores a malformed cursor (degrades to first page)", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, { cursor: "!!!not-base64-with-no-pipe" });
+    const keyset = builders.media![0]!.calls.or.filter((c) =>
+      c.startsWith("created_at.lt."),
+    );
+    expect(keyset).toHaveLength(0);
+  });
+
+  it("rejects a tampered cursor whose slug injects filter syntax", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    // valid timestamp, but the slug half carries an injected PostgREST clause
+    await getMediaLibraryPage(client, {
+      cursor: btoa("2026-01-02T00:00:00Z|b,user_id.neq.x"),
+    });
+    const keyset = builders.media![0]!.calls.or.filter((c) =>
+      c.startsWith("created_at.lt."),
+    );
+    expect(keyset).toHaveLength(0);
+  });
+
+  it("rejects a tampered cursor whose timestamp carries metacharacters", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      cursor: btoa("2026-01-02T00:00:00Z),or(id.eq.x|b"),
+    });
+    const keyset = builders.media![0]!.calls.or.filter((c) =>
+      c.startsWith("created_at.lt."),
+    );
+    expect(keyset).toHaveLength(0);
+  });
+
+  it("de-duplicates repeated facet values", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {
+      mediaTypes: ["image", "image", "video"],
+    });
+    expect(builders.media![0]!.calls.in).toContainEqual([
+      "media_type",
+      ["image", "video"],
+    ]);
+  });
+
+  it("orders by created_at desc then slug desc", async () => {
+    const { client, builders } = makeLibraryClient({ media: [{ data: [] }] });
+    await getMediaLibraryPage(client, {});
+    expect(builders.media![0]!.calls.order).toEqual([
+      ["created_at", { ascending: false }],
+      ["slug", { ascending: false }],
+    ]);
+  });
+
+  it("throws a contextual error on failure", async () => {
+    const { client } = makeLibraryClient({
+      media: [{ error: { message: "boom" } }],
+    });
+    await expect(getMediaLibraryPage(client, {})).rejects.toThrow(
+      "MediaService.getMediaLibraryPage: boom",
+    );
+  });
+});
+
+describe("getMediaFacetCounts", () => {
+  // 10 head-count round-trips, in construction order:
+  // image, video, audio, document, upload, external, events, characters,
+  // timelines, orphaned.
+  const tenCounts = (
+    counts: [
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+    ],
+  ) => ({ media: counts.map((count) => ({ count })) });
+
+  it("maps per-option counts into the facet structure", async () => {
+    const { client } = makeLibraryClient(
+      tenCounts([181, 22, 9, 36, 212, 36, 100, 50, 30, 4]),
+    );
+    const result = await getMediaFacetCounts(client, {});
+    expect(result.type).toEqual({
+      image: 181,
+      video: 22,
+      audio: 9,
+      document: 36,
+    });
+    expect(result.source).toEqual({ upload: 212, external: 36 });
+    expect(result.attachedTo).toEqual({
+      events: 100,
+      characters: 50,
+      timelines: 30,
+      orphaned: 4,
+    });
+  });
+
+  it("excludes a group's own selection from its own counts but keeps it for others", async () => {
+    const { client, builders } = makeLibraryClient(
+      tenCounts([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+    );
+    await getMediaFacetCounts(client, { mediaTypes: ["image"] });
+    const media = builders.media!;
+    // first 4 builders are the Type counts → must NOT constrain by media_type
+    for (let i = 0; i < 4; i++) {
+      expect(media[i]!.calls.in).not.toContainEqual(["media_type", ["image"]]);
+    }
+    // the Source-count builders (indexes 4-5) DO inherit the media_type filter
+    expect(media[4]!.calls.in).toContainEqual(["media_type", ["image"]]);
+  });
+
+  it("counts orphaned media with all three junctions is.null", async () => {
+    const { client, builders } = makeLibraryClient(
+      tenCounts([0, 0, 0, 0, 0, 0, 0, 0, 0, 7]),
+    );
+    await getMediaFacetCounts(client, {});
+    const orphanBuilder = builders.media![9]!;
+    expect(orphanBuilder.calls.is).toContainEqual(["event_media", null]);
+    expect(orphanBuilder.calls.is).toContainEqual(["character_media", null]);
+    expect(orphanBuilder.calls.is).toContainEqual(["timeline_media", null]);
+  });
+
+  it("throws a contextual error on failure", async () => {
+    const { client } = makeLibraryClient({
+      media: [{ error: { message: "nope" } }],
+    });
+    await expect(getMediaFacetCounts(client, {})).rejects.toThrow(
+      /MediaService\.getMediaFacetCounts/,
+    );
+  });
+});
+
+describe("getMediaAttachmentsBulk / getMediaAttachments", () => {
+  function makeAttachmentClient(opts: {
+    events?: unknown[];
+    characters?: unknown[];
+    timelines?: unknown[];
+    error?: {
+      table: "event_media" | "character_media" | "timeline_media";
+      message: string;
+    };
+  }) {
+    const queues: Record<string, { data?: unknown; error?: unknown }[]> = {
+      event_media: [
+        opts.error?.table === "event_media"
+          ? { error: { message: opts.error.message } }
+          : { data: opts.events ?? [] },
+      ],
+      character_media: [
+        opts.error?.table === "character_media"
+          ? { error: { message: opts.error.message } }
+          : { data: opts.characters ?? [] },
+      ],
+      timeline_media: [
+        opts.error?.table === "timeline_media"
+          ? { error: { message: opts.error.message } }
+          : { data: opts.timelines ?? [] },
+      ],
+    };
+    return makeLibraryClient(queues);
+  }
+
+  it("resolves all three kinds with labels and character is_primary", async () => {
+    const { client } = makeAttachmentClient({
+      events: [{ media_id: "m1", events: { id: "e1", title: "Polonium" } }],
+      characters: [
+        {
+          media_id: "m1",
+          is_primary: true,
+          characters: { id: "c1", name: "Curie" },
+        },
+      ],
+      timelines: [
+        { media_id: "m1", timelines: { id: "t1", title: "Research" } },
+      ],
+    });
+    const result = await getMediaAttachmentsBulk(client, ["m1"]);
+    expect(result.m1).toEqual([
+      { kind: "event", id: "e1", label: "Polonium" },
+      { kind: "character", id: "c1", label: "Curie", is_primary: true },
+      { kind: "timeline", id: "t1", label: "Research" },
+    ]);
+  });
+
+  it("skips junction rows whose parent is hidden by RLS (null embed)", async () => {
+    const { client } = makeAttachmentClient({
+      events: [
+        { media_id: "m1", events: null },
+        { media_id: "m1", events: { id: "e2", title: "Visible" } },
+      ],
+    });
+    const result = await getMediaAttachmentsBulk(client, ["m1"]);
+    expect(result.m1).toEqual([{ kind: "event", id: "e2", label: "Visible" }]);
+  });
+
+  it("includes an empty array for every input id with no attachments", async () => {
+    const { client } = makeAttachmentClient({
+      events: [{ media_id: "m1", events: { id: "e1", title: "X" } }],
+    });
+    const result = await getMediaAttachmentsBulk(client, ["m1", "m2"]);
+    expect(result.m2).toEqual([]);
+    expect(Object.keys(result).sort()).toEqual(["m1", "m2"]);
+  });
+
+  it("returns {} for empty input without a round-trip", async () => {
+    const { client, from } = makeLibraryClient({});
+    const result = await getMediaAttachmentsBulk(client, []);
+    expect(result).toEqual({});
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("getMediaAttachments returns the single id's list", async () => {
+    const { client } = makeAttachmentClient({
+      characters: [
+        {
+          media_id: "m1",
+          is_primary: false,
+          characters: { id: "c1", name: "Curie" },
+        },
+      ],
+    });
+    const result = await getMediaAttachments(client, "m1");
+    expect(result).toEqual([
+      { kind: "character", id: "c1", label: "Curie", is_primary: false },
+    ]);
+  });
+
+  it("throws a contextual error when a junction query fails", async () => {
+    const { client } = makeAttachmentClient({
+      error: { table: "character_media", message: "rls" },
+    });
+    await expect(getMediaAttachmentsBulk(client, ["m1"])).rejects.toThrow(
+      "MediaService.getMediaAttachmentsBulk.characters: rls",
+    );
+  });
+});
+
+describe("getOrphanMediaIds", () => {
+  it("returns only ids with zero attachments", async () => {
+    const queues: Record<string, { data?: unknown; error?: unknown }[]> = {
+      event_media: [
+        { data: [{ media_id: "m1", events: { id: "e1", title: "X" } }] },
+      ],
+      character_media: [{ data: [] }],
+      timeline_media: [
+        { data: [{ media_id: "m3", timelines: { id: "t1", title: "Y" } }] },
+      ],
+    };
+    const { client } = makeLibraryClient(queues);
+    const orphans = await getOrphanMediaIds(client, ["m1", "m2", "m3"]);
+    expect(orphans).toEqual(["m2"]);
+  });
+
+  it("returns [] for empty input", async () => {
+    const { client, from } = makeLibraryClient({});
+    expect(await getOrphanMediaIds(client, [])).toEqual([]);
+    expect(from).not.toHaveBeenCalled();
   });
 });

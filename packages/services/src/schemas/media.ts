@@ -42,3 +42,69 @@ export const mediaInsertSchema = mediaSchema.refine(
 );
 
 export type MediaInput = z.infer<typeof mediaSchema>;
+
+// ---------------------------------------------------------------------------
+// Cross-entity media library (screen 17 / #291)
+// ---------------------------------------------------------------------------
+
+/** The three entity kinds a media row can be attached to, via the
+ * event_media / character_media / timeline_media junctions. */
+export const mediaAttachmentKindEnum = z.enum([
+  "event",
+  "character",
+  "timeline",
+]);
+
+/** The "Attached to" facet options. `events|characters|timelines` select media
+ * with at least one attachment of that kind; `orphaned` selects media with zero
+ * attachments across all three junctions (the `⛓ 0` cleanup bucket). */
+export const mediaAttachedToFacetEnum = z.enum([
+  "events",
+  "characters",
+  "timelines",
+  "orphaned",
+]);
+
+export type MediaAttachmentKind = z.infer<typeof mediaAttachmentKindEnum>;
+export type MediaAttachedToFacet = z.infer<typeof mediaAttachedToFacetEnum>;
+
+/**
+ * Filters for the cross-entity media library list. Facets combine AND across
+ * groups, OR within a group (arrays are OR-ed). `cursor` is an opaque keyset
+ * token over (created_at, slug); omit for the first page.
+ */
+export const mediaLibraryFiltersSchema = z.object({
+  /** Case-insensitive substring across alt_text, caption, and slug. */
+  search: z.string().optional(),
+  /** Type facet — OR within the group. */
+  mediaTypes: z.array(mediaTypeEnum).optional(),
+  /** Source facet — OR within the group. */
+  sources: z.array(mediaSourceEnum).optional(),
+  /** Attached-to facet — OR within the group. */
+  attachedTo: z.array(mediaAttachedToFacetEnum).optional(),
+  /** Scope to a single owner (RLS still applies on top). */
+  userId: z.string().uuid().optional(),
+  /** Opaque keyset cursor from a previous page's `nextCursor`. */
+  cursor: z.string().optional(),
+  /** Page size, clamped to [1, 100] by the service (default 24). */
+  pageSize: z.number().int().positive().optional(),
+});
+
+export type MediaLibraryFilters = z.infer<typeof mediaLibraryFiltersSchema>;
+
+/** A resolved attachment of a media row to one parent entity. `is_primary` is
+ * populated only for character attachments (read-only in this cross-entity
+ * view); it is undefined for events and timelines. */
+export type MediaAttachment = {
+  kind: MediaAttachmentKind;
+  id: string;
+  label: string;
+  is_primary?: boolean;
+};
+
+/** Per-option facet counts for the library filter rail. */
+export type MediaFacetCounts = {
+  type: Record<z.infer<typeof mediaTypeEnum>, number>;
+  source: Record<z.infer<typeof mediaSourceEnum>, number>;
+  attachedTo: Record<MediaAttachedToFacet, number>;
+};

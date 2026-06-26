@@ -1,14 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import {
+  mediaAttachedToFacetEnum,
   mediaInsertSchema,
   mediaSchema,
   mediaSourceEnum,
   mediaTypeEnum,
 } from "../schemas/media";
-import type { MediaInput } from "../schemas/media";
+import type {
+  MediaAttachedToFacet,
+  MediaAttachment,
+  MediaFacetCounts,
+  MediaInput,
+  MediaLibraryFilters,
+} from "../schemas/media";
 import { generateSlug, resolveCollision } from "../utils/slug";
-import { MAX_SLUG_LENGTH } from "../schemas/slug";
+import { MAX_SLUG_LENGTH, slugSchema } from "../schemas/slug";
 import type { Database } from "../supabase/types";
 
 type MediaRow = Database["public"]["Tables"]["media"]["Row"];
@@ -396,4 +403,546 @@ export async function getSignedUrl(
   assertNoError(error, "getSignedUrl.createSignedUrl");
 
   return (data as { signedUrl: string }).signedUrl;
+}
+
+// ===========================================================================
+// Cross-entity media library (screen 17 / #291)
+//
+// PostgREST construction notes (verified against the live local stack,
+// 2026-06-24 — see plan/feature-media-library-query-layer-1.md):
+//   • Per-card attachment counts and the "Attached to" filter must share ONE
+//     query, so we embed the junctions as plain LEFT joins selecting `media_id`
+//     and read the COUNT off the returned array's length. The aggregate
+//     `event_media(count)` embed CANNOT be used here: it makes the relationship
+//     always non-null, which silently breaks the `is.null` / `not.is.null`
+//     attachment filters (they return every row). The plain `!left(media_id)`
+//     embed keeps both the count (array length) and a real null/not-null state.
+//   • Attached-to filtering: a single kind → `<junction>=not.is.null`; an OR of
+//     kinds → `.or("event_media.not.is.null,timeline_media.not.is.null")`;
+//     orphaned → all three `is.null` (expressed as `and(...)` inside the OR so
+//     it composes with other kinds in the same facet group).
+//   • Facet counts use per-option head requests (`count: "exact", head: true`).
+// ===========================================================================
+
+const LIBRARY_DEFAULT_PAGE_SIZE = 24;
+const LIBRARY_MAX_PAGE_SIZE = 100;
+
+/** Junction → media-row count, plus a convenience total. `total === 0` ⇒ orphan. */
+export interface MediaAttachmentCounts {
+  event: number;
+  character: number;
+  timeline: number;
+  total: number;
+}
+
+/** A media row decorated with its cross-entity attachment counts for the grid. */
+export interface MediaLibraryRow extends MediaRow {
+  attachmentCounts: MediaAttachmentCounts;
+}
+
+/** A page of library results plus the opaque keyset cursor for the next page. */
+export interface MediaLibraryPage {
+  rows: MediaLibraryRow[];
+  /** Opaque cursor to pass back as `filters.cursor` for the next page, or null
+   * when this is the last page. */
+  nextCursor: string | null;
+  hasMore: boolean;
+}
+
+/** Shape of the plain `!left(media_id)` junction embeds used by the list query. */
+interface LibraryEmbedRow extends MediaRow {
+  event_media: { media_id: string }[];
+  character_media: { media_id: string }[];
+  timeline_media: { media_id: string }[];
+}
+
+/** Select clause embedding the three junctions as plain left joins so the count
+ * comes from the array length and the null/not-null filters still work. */
+const LIBRARY_SELECT =
+  "*, event_media(media_id), character_media(media_id), timeline_media(media_id)";
+
+/**
+ * Strip characters that would break PostgREST `.or()` filter parsing or change
+ * the meaning of the `ilike` pattern (we want a literal substring match):
+ * parens, commas, the PostgREST `*` wildcard, the SQL `%`/`_` wildcards, the
+ * cast `:` and backslash. Runs of whitespace collapse to one. Returns "" when
+ * nothing searchable remains (caller then skips the search filter). This is the
+ * free-text analogue of the enum-whitelisting the events service does for its
+ * era filter (event-service.ts).
+ */
+function escapePostgrestSearchTerm(term: string): string {
+  return term
+    .replace(/[,()*%\\:_]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Encode a keyset cursor over (created_at, slug). Both are ASCII, so base64 of
+ * `created_at|slug` is safe and URL-portable; slugs never contain `|`. */
+function encodeCursor(row: { created_at: string; slug: string }): string {
+  return btoa(`${row.created_at}|${row.slug}`);
+}
+
+/** ISO-8601 timestamp charset (digits, `-`, `:`, `.`, `T`, `Z`, `+`, space) with
+ * none of the PostgREST filter metacharacters (`,`, `(`, `)`). Bounded length
+ * to reject oversized payloads. */
+const CURSOR_TIMESTAMP_RE = /^[0-9T:.+\- Z]{1,40}$/;
+
+/** Decode a cursor produced by {@link encodeCursor}. The decoded parts are
+ * interpolated into a PostgREST `.or(...)` filter, and the cursor is
+ * client-supplied, so both halves are whitelisted before use (SEC-002): the
+ * slug against the canonical slug schema, the timestamp against an ISO charset
+ * that excludes filter metacharacters. Returns null for any malformed or
+ * non-conforming input so a bad/tampered cursor degrades to "first page"
+ * rather than throwing or injecting filter syntax. */
+function decodeCursor(
+  cursor: string,
+): { createdAt: string; slug: string } | null {
+  try {
+    const raw = atob(cursor);
+    const sep = raw.indexOf("|");
+    if (sep === -1) return null;
+    const createdAt = raw.slice(0, sep);
+    const slug = raw.slice(sep + 1);
+    if (!CURSOR_TIMESTAMP_RE.test(createdAt)) return null;
+    if (!slugSchema.safeParse(slug).success) return null;
+    return { createdAt, slug };
+  } catch {
+    return null;
+  }
+}
+
+/** Map an "Attached to" facet selection to the OR-clause body referencing the
+ * embedded junction resources. Returns null when nothing is selected. */
+function buildAttachedToOr(facets: MediaAttachedToFacet[]): string | null {
+  const clauses = facets.map((f) => {
+    switch (f) {
+      case "events":
+        return "event_media.not.is.null";
+      case "characters":
+        return "character_media.not.is.null";
+      case "timelines":
+        return "timeline_media.not.is.null";
+      case "orphaned":
+        return "and(event_media.is.null,character_media.is.null,timeline_media.is.null)";
+    }
+  });
+  return clauses.length > 0 ? clauses.join(",") : null;
+}
+
+/** Validated, de-duplicated facet selections shared by the list + count queries. */
+interface NormalizedFacets {
+  search: string;
+  mediaTypes: z.infer<typeof mediaTypeEnum>[];
+  sources: z.infer<typeof mediaSourceEnum>[];
+  attachedTo: MediaAttachedToFacet[];
+  userId?: string;
+}
+
+/** Validate filter values against the canonical enums before they reach a
+ * PostgREST filter string (SEC-002), mirroring the events service's era guard. */
+function normalizeFacets(filters: MediaLibraryFilters): NormalizedFacets {
+  const mediaTypes = [
+    ...new Set(
+      (filters.mediaTypes ?? []).filter(
+        (t): t is z.infer<typeof mediaTypeEnum> =>
+          mediaTypeEnum.safeParse(t).success,
+      ),
+    ),
+  ];
+  const sources = [
+    ...new Set(
+      (filters.sources ?? []).filter(
+        (s): s is z.infer<typeof mediaSourceEnum> =>
+          mediaSourceEnum.safeParse(s).success,
+      ),
+    ),
+  ];
+  const attachedTo = [
+    ...new Set(
+      (filters.attachedTo ?? []).filter(
+        (a): a is MediaAttachedToFacet =>
+          mediaAttachedToFacetEnum.safeParse(a).success,
+      ),
+    ),
+  ];
+  return {
+    search: escapePostgrestSearchTerm(filters.search ?? ""),
+    mediaTypes,
+    sources,
+    attachedTo,
+    userId: filters.userId,
+  };
+}
+
+/**
+ * A narrow view of the PostgREST filter-builder surface the library queries
+ * use. Typed structurally so both the list (`select`) and count (`head`)
+ * builders can flow through {@link applySharedFilters} without `any`.
+ */
+interface LibraryFilterBuilder<T> {
+  eq(column: string, value: string): T;
+  in(column: string, values: readonly string[]): T;
+  or(filters: string): T;
+}
+
+/**
+ * Apply the search, Type, Source, Attached-to, and owner filters that are
+ * common to the list query and every facet-count query. `skipAttachedTo` is set
+ * when counting the Attached-to facet itself (a group never constrains its own
+ * counts). Returns the same builder for chaining.
+ */
+function applySharedFilters<T extends LibraryFilterBuilder<T>>(
+  builder: T,
+  facets: NormalizedFacets,
+  opts: {
+    skipMediaTypes?: boolean;
+    skipSources?: boolean;
+    skipAttachedTo?: boolean;
+  } = {},
+): T {
+  let q = builder;
+  if (facets.search.length > 0) {
+    q = q.or(
+      `alt_text.ilike.*${facets.search}*,caption.ilike.*${facets.search}*,slug.ilike.*${facets.search}*`,
+    );
+  }
+  if (!opts.skipMediaTypes && facets.mediaTypes.length > 0) {
+    q = q.in("media_type", facets.mediaTypes);
+  }
+  if (!opts.skipSources && facets.sources.length > 0) {
+    q = q.in("source", facets.sources);
+  }
+  if (!opts.skipAttachedTo) {
+    const attachedOr = buildAttachedToOr(facets.attachedTo);
+    if (attachedOr !== null) {
+      q = q.or(attachedOr);
+    }
+  }
+  if (facets.userId !== undefined) {
+    q = q.eq("user_id", facets.userId);
+  }
+  return q;
+}
+
+/**
+ * Return a page of the cross-entity media library: every `media` row the caller
+ * can see (RLS applies via `client`), filtered by search + Type/Source/Attached-to
+ * facets, with per-card attachment counts and keyset pagination over
+ * (created_at desc, slug desc).
+ *
+ * Facets combine AND across groups and OR within a group. Pass the returned
+ * `nextCursor` back as `filters.cursor` to fetch the following page; a null
+ * `nextCursor` (and `hasMore === false`) marks the last page.
+ */
+export async function getMediaLibraryPage(
+  client: SupabaseClient<Database>,
+  filters: MediaLibraryFilters = {},
+): Promise<MediaLibraryPage> {
+  const facets = normalizeFacets(filters);
+  const pageSize = Math.min(
+    LIBRARY_MAX_PAGE_SIZE,
+    Math.max(1, Math.floor(filters.pageSize ?? LIBRARY_DEFAULT_PAGE_SIZE)),
+  );
+
+  let q = client.from("media").select(LIBRARY_SELECT);
+  q = applySharedFilters(
+    q as unknown as LibraryFilterBuilder<typeof q>,
+    facets,
+  ) as unknown as typeof q;
+
+  // Keyset predicate: rows strictly after the cursor in (created_at, slug) desc.
+  if (filters.cursor !== undefined) {
+    const decoded = decodeCursor(filters.cursor);
+    if (decoded !== null) {
+      q = q.or(
+        `created_at.lt.${decoded.createdAt},and(created_at.eq.${decoded.createdAt},slug.lt.${decoded.slug})`,
+      );
+    }
+  }
+
+  // Fetch one extra row to detect a following page without a separate count.
+  q = q
+    .order("created_at", { ascending: false })
+    .order("slug", { ascending: false })
+    .limit(pageSize + 1);
+
+  const { data, error } = await q;
+  assertNoError(error, "getMediaLibraryPage");
+
+  const embedRows = (data ?? []) as unknown as LibraryEmbedRow[];
+  const hasMore = embedRows.length > pageSize;
+  const pageRows = hasMore ? embedRows.slice(0, pageSize) : embedRows;
+
+  const rows: MediaLibraryRow[] = pageRows.map((row) => {
+    const { event_media, character_media, timeline_media, ...media } = row;
+    const event = event_media.length;
+    const character = character_media.length;
+    const timeline = timeline_media.length;
+    return {
+      ...(media as MediaRow),
+      attachmentCounts: {
+        event,
+        character,
+        timeline,
+        total: event + character + timeline,
+      },
+    };
+  });
+
+  // created_at is typed nullable (DB default now()) but is always present in
+  // practice; without it there is no keyset anchor, so fall back to no cursor.
+  const last = pageRows.at(-1);
+  const nextCursor =
+    hasMore && last !== undefined && last.created_at !== null
+      ? encodeCursor({ created_at: last.created_at, slug: last.slug })
+      : null;
+
+  return { rows, nextCursor, hasMore };
+}
+
+/** Builder surface for the per-option count predicates (`.eq`, `.is`, `.not`). */
+interface CountPredicateBuilder {
+  eq(column: string, value: string): CountPredicateBuilder;
+  is(column: string, value: null): CountPredicateBuilder;
+  not(column: string, op: string, value: null): CountPredicateBuilder;
+}
+
+/** One head-count round-trip: count rows matching the base filters plus `apply`. */
+async function countWith(
+  client: SupabaseClient<Database>,
+  facets: NormalizedFacets,
+  skip: {
+    skipMediaTypes?: boolean;
+    skipSources?: boolean;
+    skipAttachedTo?: boolean;
+  },
+  apply: (q: CountPredicateBuilder) => CountPredicateBuilder,
+  context: string,
+): Promise<number> {
+  const base = client
+    .from("media")
+    .select(LIBRARY_SELECT, { count: "exact", head: true });
+  const filtered = applySharedFilters(
+    base as unknown as LibraryFilterBuilder<typeof base>,
+    facets,
+    skip,
+  ) as unknown as typeof base;
+  apply(filtered as unknown as CountPredicateBuilder);
+  const { count, error } = await filtered;
+  assertNoError(error, context);
+  return count ?? 0;
+}
+
+/**
+ * Return per-option counts for the library filter rail. Each facet group is
+ * counted with its OWN selection removed (so toggling an option within a group
+ * does not zero out its siblings) but with the other groups + search + owner
+ * applied — the standard faceted-filter convention.
+ */
+export async function getMediaFacetCounts(
+  client: SupabaseClient<Database>,
+  filters: MediaLibraryFilters = {},
+): Promise<MediaFacetCounts> {
+  const facets = normalizeFacets(filters);
+
+  const typeOptions = mediaTypeEnum.options;
+  const sourceOptions = mediaSourceEnum.options;
+
+  const [typeCounts, sourceCounts, events, characters, timelines, orphaned] =
+    await Promise.all([
+      Promise.all(
+        typeOptions.map((t) =>
+          countWith(
+            client,
+            facets,
+            { skipMediaTypes: true },
+            (q) => q.eq("media_type", t),
+            "getMediaFacetCounts.type",
+          ),
+        ),
+      ),
+      Promise.all(
+        sourceOptions.map((s) =>
+          countWith(
+            client,
+            facets,
+            { skipSources: true },
+            (q) => q.eq("source", s),
+            "getMediaFacetCounts.source",
+          ),
+        ),
+      ),
+      countWith(
+        client,
+        facets,
+        { skipAttachedTo: true },
+        (q) => q.not("event_media", "is", null),
+        "getMediaFacetCounts.attachedTo.events",
+      ),
+      countWith(
+        client,
+        facets,
+        { skipAttachedTo: true },
+        (q) => q.not("character_media", "is", null),
+        "getMediaFacetCounts.attachedTo.characters",
+      ),
+      countWith(
+        client,
+        facets,
+        { skipAttachedTo: true },
+        (q) => q.not("timeline_media", "is", null),
+        "getMediaFacetCounts.attachedTo.timelines",
+      ),
+      countWith(
+        client,
+        facets,
+        { skipAttachedTo: true },
+        (q) =>
+          q
+            .is("event_media", null)
+            .is("character_media", null)
+            .is("timeline_media", null),
+        "getMediaFacetCounts.attachedTo.orphaned",
+      ),
+    ]);
+
+  return {
+    type: {
+      image: typeCounts[typeOptions.indexOf("image")] ?? 0,
+      video: typeCounts[typeOptions.indexOf("video")] ?? 0,
+      audio: typeCounts[typeOptions.indexOf("audio")] ?? 0,
+      document: typeCounts[typeOptions.indexOf("document")] ?? 0,
+    },
+    source: {
+      upload: sourceCounts[sourceOptions.indexOf("upload")] ?? 0,
+      external: sourceCounts[sourceOptions.indexOf("external")] ?? 0,
+    },
+    attachedTo: {
+      events,
+      characters,
+      timelines,
+      orphaned,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Attachment map + orphan detection (#291 — drives the detail drawer and the
+// blast-radius delete preview)
+// ---------------------------------------------------------------------------
+
+type EventLabelEmbed = {
+  media_id: string;
+  events: { id: string; title: string } | null;
+};
+type CharacterLabelEmbed = {
+  media_id: string;
+  is_primary: boolean | null;
+  characters: { id: string; name: string } | null;
+};
+type TimelineLabelEmbed = {
+  media_id: string;
+  timelines: { id: string; title: string } | null;
+};
+
+/**
+ * Resolve every entity a single media row is attached to, across the three
+ * junctions, as a flat list of `{ kind, id, label, is_primary? }`. `is_primary`
+ * is populated only for character attachments (read-only here). Junction rows
+ * whose parent is hidden by RLS (embedded entity is null) are skipped rather
+ * than surfaced with an empty label.
+ */
+export async function getMediaAttachments(
+  client: SupabaseClient<Database>,
+  mediaId: string,
+): Promise<MediaAttachment[]> {
+  const map = await getMediaAttachmentsBulk(client, [mediaId]);
+  return map[mediaId] ?? [];
+}
+
+/**
+ * Bulk variant of {@link getMediaAttachments} for a page of media ids: one
+ * round-trip per junction. Every input id appears as a key in the result (with
+ * an empty array when it has no attachments), so callers can read counts and
+ * orphan state directly. Returns `{}` for empty input without any round-trip.
+ */
+export async function getMediaAttachmentsBulk(
+  client: SupabaseClient<Database>,
+  mediaIds: string[],
+): Promise<Record<string, MediaAttachment[]>> {
+  const result: Record<string, MediaAttachment[]> = {};
+  for (const id of mediaIds) {
+    result[id] = [];
+  }
+  if (mediaIds.length === 0) {
+    return result;
+  }
+
+  const [ev, ch, tl] = await Promise.all([
+    client
+      .from("event_media")
+      .select("media_id, events(id, title)")
+      .in("media_id", mediaIds),
+    client
+      .from("character_media")
+      .select("media_id, is_primary, characters(id, name)")
+      .in("media_id", mediaIds),
+    client
+      .from("timeline_media")
+      .select("media_id, timelines(id, title)")
+      .in("media_id", mediaIds),
+  ]);
+
+  assertNoError(ev.error, "getMediaAttachmentsBulk.events");
+  assertNoError(ch.error, "getMediaAttachmentsBulk.characters");
+  assertNoError(tl.error, "getMediaAttachmentsBulk.timelines");
+
+  const push = (mediaId: string, attachment: MediaAttachment): void => {
+    (result[mediaId] ??= []).push(attachment);
+  };
+
+  for (const row of (ev.data ?? []) as unknown as EventLabelEmbed[]) {
+    if (row.events !== null) {
+      push(row.media_id, {
+        kind: "event",
+        id: row.events.id,
+        label: row.events.title,
+      });
+    }
+  }
+  for (const row of (ch.data ?? []) as unknown as CharacterLabelEmbed[]) {
+    if (row.characters !== null) {
+      push(row.media_id, {
+        kind: "character",
+        id: row.characters.id,
+        label: row.characters.name,
+        is_primary: row.is_primary ?? false,
+      });
+    }
+  }
+  for (const row of (tl.data ?? []) as unknown as TimelineLabelEmbed[]) {
+    if (row.timelines !== null) {
+      push(row.media_id, {
+        kind: "timeline",
+        id: row.timelines.id,
+        label: row.timelines.title,
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Return the subset of `mediaIds` that are orphaned (attached to nothing across
+ * all three junctions — the `⛓ 0` cleanup bucket). Derived from the bulk
+ * attachment map so it stays consistent with the detail drawer's reuse list.
+ */
+export async function getOrphanMediaIds(
+  client: SupabaseClient<Database>,
+  mediaIds: string[],
+): Promise<string[]> {
+  const map = await getMediaAttachmentsBulk(client, mediaIds);
+  return mediaIds.filter((id) => (map[id] ?? []).length === 0);
 }
