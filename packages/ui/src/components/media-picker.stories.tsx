@@ -204,6 +204,8 @@ function Harness({
           onNext: () => setPage((p) => p + 1),
         }}
         onOpen={(id) => window.alert(`Open detail drawer for ${id}`)}
+        onUpload={() => window.alert("Open the upload dialog")}
+        onAddExternal={() => window.alert("Open the external-URL dialog")}
         onConfirm={setConfirmed}
         onCancel={() => setConfirmed(null)}
       />

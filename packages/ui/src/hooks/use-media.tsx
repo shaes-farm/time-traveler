@@ -52,8 +52,10 @@ export const mediaKeys = {
     [...mediaKeys.all, "facets", filters] as const,
   attachments: (mediaId: string) =>
     [...mediaKeys.all, "attachments", mediaId] as const,
+  /** Sort the ids so permutations of the same set share one cache entry —
+   * bulk attachment results are order-independent. */
   attachmentsBulk: (mediaIds: string[]) =>
-    [...mediaKeys.all, "attachments", "bulk", mediaIds] as const,
+    [...mediaKeys.all, "attachments", "bulk", [...mediaIds].sort()] as const,
 };
 
 // ---------------------------------------------------------------------------

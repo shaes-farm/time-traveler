@@ -101,6 +101,21 @@ describe("MediaPicker", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("disables the upload entry points when no handler is provided", () => {
+    render(<Harness mode="browse" />);
+    expect(screen.getByRole("button", { name: "Upload" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "External URL" })).toBeDisabled();
+  });
+
+  it("keeps Attach disabled without an onConfirm handler even when selected", async () => {
+    const user = userEvent.setup();
+    render(<Harness mode="pick" />);
+    await user.click(screen.getByRole("checkbox", { name: "a" }));
+    expect(
+      screen.getByRole("button", { name: /attach 1 item/i }),
+    ).toBeDisabled();
+  });
+
   it("renders cards as checkboxes and an Attach action in pick mode", () => {
     render(<Harness mode="pick" />);
     expect(screen.getByRole("checkbox", { name: "a" })).toBeInTheDocument();

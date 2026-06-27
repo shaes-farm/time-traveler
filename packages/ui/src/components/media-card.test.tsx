@@ -83,6 +83,16 @@ describe("MediaCard", () => {
     expect(screen.getByText("Document")).toBeInTheDocument();
   });
 
+  it("describes the card via its metadata block for assistive tech", () => {
+    render(<MediaCard item={makeRow()} mode="browse" onOpen={() => {}} />);
+    const button = screen.getByRole("button", { name: "Marie Curie" });
+    const describedBy = button.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    const meta = document.getElementById(describedBy!);
+    expect(meta).toHaveTextContent("Image");
+    expect(meta).toHaveTextContent("3");
+  });
+
   it("opens the detail drawer in browse mode", async () => {
     const user = userEvent.setup();
     const onOpen = vi.fn();

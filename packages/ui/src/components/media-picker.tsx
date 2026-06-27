@@ -140,11 +140,21 @@ export function MediaPicker({
             Media library
           </h1>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={onUpload}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onUpload}
+              disabled={!onUpload}
+            >
               <Plus className="h-4 w-4" aria-hidden />
               Upload
             </Button>
-            <Button variant="secondary" size="sm" onClick={onAddExternal}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onAddExternal}
+              disabled={!onAddExternal}
+            >
               <Plus className="h-4 w-4" aria-hidden />
               External URL
             </Button>
@@ -229,13 +239,18 @@ export function MediaPicker({
             {selectedCount} selected
           </span>
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={onCancel}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onCancel}
+              disabled={!onCancel}
+            >
               Cancel
             </Button>
             <Button
               variant="primary"
               size="sm"
-              disabled={selectedCount === 0}
+              disabled={selectedCount === 0 || !onConfirm}
               onClick={() => onConfirm?.([...selectedIds])}
             >
               {`Attach ${selectedCount} ${
@@ -296,11 +311,21 @@ function EmptyState({
         library.
       </p>
       <div className="flex items-center gap-2">
-        <Button variant="primary" size="sm" onClick={onUpload}>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onUpload}
+          disabled={!onUpload}
+        >
           <Plus className="h-4 w-4" aria-hidden />
           Upload
         </Button>
-        <Button variant="secondary" size="sm" onClick={onAddExternal}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={onAddExternal}
+          disabled={!onAddExternal}
+        >
           <Plus className="h-4 w-4" aria-hidden />
           External URL
         </Button>

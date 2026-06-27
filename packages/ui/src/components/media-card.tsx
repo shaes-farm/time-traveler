@@ -76,11 +76,17 @@ export function MediaCard({
   const total = item.attachmentCounts.total;
   const isOrphan = total === 0;
   const isList = view === "list";
+  // Lets the card button keep `label` as its concise accessible name while still
+  // exposing type / attachment count / orphan status to assistive tech.
+  const metaId = React.useId();
 
   const preview = <MediaPreview item={item} typeKey={key} compact={isList} />;
 
   const meta = (
-    <div className={cn("min-w-0", isList ? "flex-1" : "px-2 pb-2 pt-1.5")}>
+    <div
+      id={metaId}
+      className={cn("min-w-0", isList ? "flex-1" : "px-2 pb-2 pt-1.5")}
+    >
       <p className="truncate text-sm text-foreground" title={label}>
         {label}
       </p>
@@ -121,6 +127,7 @@ export function MediaCard({
         role="checkbox"
         aria-checked={selected}
         aria-label={label}
+        aria-describedby={metaId}
         onClick={() => onSelect?.(item.id)}
         className={cn(
           rootClassName,
@@ -148,6 +155,7 @@ export function MediaCard({
     <button
       type="button"
       aria-label={label}
+      aria-describedby={metaId}
       onClick={() => onOpen?.(item.id)}
       className={rootClassName}
     >
