@@ -244,9 +244,11 @@ export function useUpdateMedia(client: ServiceClient) {
         queryClient.setQueryData(mediaKeys.detail(id), context.previous);
       }
     },
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: mediaKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
+    onSuccess: () => {
+      // A media edit (alt/caption/slug) propagates to every surface it appears
+      // on, so refresh all media-derived caches — the library grid + facet
+      // counts + attachment maps hang off mediaKeys.all, not mediaKeys.lists().
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.all });
     },
   });
 }

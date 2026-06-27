@@ -197,6 +197,39 @@ describe("MediaDetailDrawer", () => {
     expect(onDeleted).toHaveBeenCalledWith("m1");
   });
 
+  it("dismisses an open delete confirm when the row changes", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <MediaDetailDrawer
+          open
+          onOpenChange={vi.fn()}
+          client={CLIENT}
+          media={makeRow({ id: "m1" })}
+        />
+      </QueryClientProvider>,
+    );
+    await screen.findByText("Marie Curie");
+    await user.click(screen.getByRole("button", { name: /delete original/i }));
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+
+    // Switching the selected row must not leave the confirm open.
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <MediaDetailDrawer
+          open
+          onOpenChange={vi.fn()}
+          client={CLIENT}
+          media={makeRow({ id: "m2", slug: "other" })}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
   it("shows Open source only for external media", async () => {
     const { rerender } = renderDrawer(makeRow({ source: "upload" }));
     expect(

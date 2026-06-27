@@ -101,60 +101,44 @@ export function MediaDetailDrawer({
   media,
   onDeleted,
 }: MediaDetailDrawerProps) {
-  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
-
   return (
-    <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="right"
-          className="flex w-full flex-col gap-0 overflow-y-auto sm:max-w-md"
-        >
-          {media ? (
-            <MediaDetailBody
-              // Reset inner form state when switching rows.
-              key={media.id}
-              client={client}
-              media={media}
-              onRequestDelete={() => setConfirmingDelete(true)}
-            />
-          ) : null}
-        </SheetContent>
-      </Sheet>
-
-      {/* The delete confirm + its mutation live OUTSIDE the editing body so the
-          delete lifecycle (and its pending re-renders) is isolated from the
-          alt/caption/slug form. State is lifted here; the body just requests it. */}
-      {media ? (
-        <DeleteOriginalDialog
-          key={media.id}
-          open={confirmingDelete}
-          onOpenChange={setConfirmingDelete}
-          client={client}
-          media={media}
-          onDeleted={(id) => {
-            setConfirmingDelete(false);
-            onOpenChange(false);
-            onDeleted?.(id);
-          }}
-        />
-      ) : null}
-    </>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 overflow-y-auto sm:max-w-md"
+      >
+        {media ? (
+          // Keyed on the row id so switching items (or closing + reopening the
+          // drawer, which unmounts the content) resets the edit form AND any
+          // open delete confirm via a fresh mount — no manual reset needed.
+          <MediaDetailBody
+            key={media.id}
+            client={client}
+            media={media}
+            onClose={() => onOpenChange(false)}
+            onDeleted={onDeleted}
+          />
+        ) : null}
+      </SheetContent>
+    </Sheet>
   );
 }
 
 function MediaDetailBody({
   client,
   media,
-  onRequestDelete,
+  onClose,
+  onDeleted,
 }: {
   client: ServiceClient;
   media: MediaLibraryRow;
-  onRequestDelete: () => void;
+  onClose: () => void;
+  onDeleted?: (id: string) => void;
 }) {
   const attachmentsQuery = useMediaAttachments(client, media.id);
   const updateMutation = useUpdateMedia(client);
   const detachMutation = useDetachMedia(client);
+  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
 
   const [altText, setAltText] = React.useState(media.alt_text ?? "");
   const [caption, setCaption] = React.useState(media.caption ?? "");
@@ -335,37 +319,53 @@ function MediaDetailBody({
           <span />
         )}
 
-        <Button variant="destructive" size="sm" onClick={onRequestDelete}>
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => setConfirmingDelete(true)}
+        >
           <Trash2 className="h-4 w-4" aria-hidden />
           Delete original…
         </Button>
       </div>
+
+      <DeleteOriginalDialog
+        open={confirmingDelete}
+        onOpenChange={setConfirmingDelete}
+        client={client}
+        media={media}
+        attachmentCount={attachmentCount}
+        onDeleted={(id) => {
+          setConfirmingDelete(false);
+          onClose();
+          onDeleted?.(id);
+        }}
+      />
     </>
   );
 }
 
 /**
- * Blast-radius delete confirm. Rendered as a sibling of the Sheet (not inside
- * it) so the delete mutation's re-renders never collide with the Sheet's focus
- * scope. The copy is computed live from the current attachment count (shared
- * with the drawer body via the deduped `useMediaAttachments` query).
+ * Blast-radius delete confirm. The copy is computed live from the attachment
+ * count passed down from the body (which already resolved it for the list), so
+ * "removes it everywhere" always matches what the user sees above.
  */
 function DeleteOriginalDialog({
   open,
   onOpenChange,
   client,
   media,
+  attachmentCount,
   onDeleted,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   client: ServiceClient;
   media: MediaLibraryRow;
+  attachmentCount: number;
   onDeleted: (id: string) => void;
 }) {
-  const attachmentsQuery = useMediaAttachments(client, media.id);
   const deleteMutation = useDeleteMedia(client);
-  const attachmentCount = (attachmentsQuery.data ?? []).length;
 
   function handleDelete() {
     deleteMutation.mutate(media.id, {
