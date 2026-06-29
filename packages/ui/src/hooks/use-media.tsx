@@ -22,12 +22,18 @@ import {
   getMediaAttachments,
   getMediaAttachmentsBulk,
 } from "@repo/services/media-service";
+import { removeMediaFromCharacter } from "@repo/services/character-service";
+import { removeMediaFromEvent } from "@repo/services/event-service";
+import { removeMediaFromTimeline } from "@repo/services/timeline-service";
 import type {
   MediaFilters,
   UploadMediaInput,
   CreateExternalMediaInput,
 } from "@repo/services/media-service";
-import type { MediaLibraryFilters } from "@repo/services/schemas/media";
+import type {
+  MediaAttachmentKind,
+  MediaLibraryFilters,
+} from "@repo/services/schemas/media";
 
 type ServiceClient = Parameters<typeof getMedia>[0];
 type MediaUpdateData = Parameters<typeof updateMedia>[2];
@@ -238,9 +244,11 @@ export function useUpdateMedia(client: ServiceClient) {
         queryClient.setQueryData(mediaKeys.detail(id), context.previous);
       }
     },
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: mediaKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
+    onSuccess: () => {
+      // A media edit (alt/caption/slug) propagates to every surface it appears
+      // on, so refresh all media-derived caches — the library grid + facet
+      // counts + attachment maps hang off mediaKeys.all, not mediaKeys.lists().
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.all });
     },
   });
 }
@@ -252,7 +260,44 @@ export function useDeleteMedia(client: ServiceClient) {
     mutationFn: (id: string) => deleteMedia(client, id),
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: mediaKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
+      // Broad invalidation: the library + facet + attachment queries hang off
+      // mediaKeys.all but not mediaKeys.lists(), so the grid would otherwise
+      // keep showing a now-deleted row.
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.all });
+    },
+  });
+}
+
+/** Variables for {@link useDetachMedia}: which entity to remove the media from. */
+export interface DetachMediaVariables {
+  kind: MediaAttachmentKind;
+  mediaId: string;
+  /** UUID of the parent entity (character/event/timeline) to detach from. */
+  entityId: string;
+}
+
+/**
+ * Detach a media row from one entity by removing a single junction row — the
+ * per-row "Detach" in the media detail drawer. Dispatches to the correct
+ * `removeMediaFrom*` service by `kind`. Unlike the per-entity detach hooks
+ * (which only invalidate that entity's detail), this invalidates `mediaKeys.all`
+ * so the drawer's "Attached to" list and the grid's `⛓ N`/orphan badges refresh.
+ */
+export function useDetachMedia(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ kind, mediaId, entityId }: DetachMediaVariables) => {
+      switch (kind) {
+        case "character":
+          return removeMediaFromCharacter(client, entityId, mediaId);
+        case "event":
+          return removeMediaFromEvent(client, entityId, mediaId);
+        case "timeline":
+          return removeMediaFromTimeline(client, entityId, mediaId);
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.all });
     },
   });
 }

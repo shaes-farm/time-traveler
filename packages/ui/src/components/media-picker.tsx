@@ -35,6 +35,10 @@ export type {
   MediaFilterRailProps,
   MediaFacetSelection,
 } from "@repo/ui/components/media-filter-rail";
+export { MediaDetailDrawer } from "@repo/ui/components/media-detail-drawer";
+export type { MediaDetailDrawerProps } from "@repo/ui/components/media-detail-drawer";
+export { MediaPreview } from "@repo/ui/components/media-preview";
+export type { MediaPreviewProps } from "@repo/ui/components/media-preview";
 
 export interface MediaPickerProps {
   /** `browse` = full library (open drawer + upload entry points, no delete here);
