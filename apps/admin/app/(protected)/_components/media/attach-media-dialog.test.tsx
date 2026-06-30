@@ -215,6 +215,56 @@ describe("AttachMediaDialog — external URL tab", () => {
   });
 });
 
+describe("AttachMediaDialog — library variant", () => {
+  it("uses library copy, opens the requested tab, and toasts 'to library' on upload", async () => {
+    const onAttached = vi.fn();
+    render(
+      <AttachMediaDialog
+        open
+        onOpenChange={vi.fn()}
+        client={client}
+        onAttached={onAttached}
+        variant="library"
+        defaultTab="upload"
+      />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Add to library")).toBeInTheDocument();
+
+    const input = within(dialog).getByLabelText("File") as HTMLInputElement;
+    await userEvent.upload(input, fileOfSize("photo.png", "image/png", 1024));
+    // CTA drops "attach" in the library variant.
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: /^Upload$/ }),
+    );
+
+    await waitFor(() => expect(h.uploadMutate).toHaveBeenCalledOnce());
+    await waitFor(() =>
+      expect(h.toastSuccess).toHaveBeenCalledWith("Uploaded to library"),
+    );
+    expect(onAttached).toHaveBeenCalledWith("new-media-id");
+  });
+
+  it("opens on the external tab when defaultTab='external'", async () => {
+    render(
+      <AttachMediaDialog
+        open
+        onOpenChange={vi.fn()}
+        client={client}
+        onAttached={vi.fn()}
+        variant="library"
+        defaultTab="external"
+      />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    // The External URL field is visible without clicking a tab first.
+    expect(within(dialog).getByLabelText("URL")).toBeVisible();
+    expect(
+      within(dialog).getByRole("button", { name: /^Add$/ }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("AttachMediaDialog — error handling & cancel", () => {
   it("shows an error toast when the upload fails", async () => {
     h.uploadMutate.mockRejectedValueOnce(new Error("upload boom"));

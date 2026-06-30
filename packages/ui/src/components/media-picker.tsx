@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import type { MediaLibraryRow } from "@repo/services/media-service";
 import type { MediaFacetCounts } from "@repo/services/schemas/media";
 
@@ -69,6 +69,14 @@ export interface MediaPickerProps {
   onUpload?: () => void;
   onAddExternal?: () => void;
 
+  // Browse-mode bulk select (orphan cleanup, screen-17 edge case). The consumer
+  // gates this on the active filter (e.g. only when "Orphaned" is selected) and
+  // owns the selection so it can clear on filter/page changes.
+  bulkSelectable?: boolean;
+  bulkSelectedIds?: ReadonlySet<string>;
+  onBulkSelectedChange?: (ids: Set<string>) => void;
+  onDeleteSelected?: () => void;
+
   // Pick-mode contract — returns selected `media_id`s; the caller writes the
   // junction (association-agnostic, screen-17 annotation #9).
   onConfirm?: (mediaIds: string[]) => void;
@@ -76,6 +84,9 @@ export interface MediaPickerProps {
 }
 
 const SKELETON_KEYS = ["s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8"];
+
+/** Stable empty set so the controlled-selection fallback keeps one identity. */
+const EMPTY_SELECTION: ReadonlySet<string> = new Set();
 
 function hasActiveFilters(
   search: string,
@@ -116,21 +127,33 @@ export function MediaPicker({
   onAddExternal,
   onConfirm,
   onCancel,
+  bulkSelectable = false,
+  bulkSelectedIds,
+  onBulkSelectedChange,
+  onDeleteSelected,
 }: MediaPickerProps) {
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(
+  // Pick mode owns its selection internally; browse-mode bulk select is
+  // controlled by the consumer (so it can clear on filter/page changes).
+  const [pickSelectedIds, setPickSelectedIds] = React.useState<Set<string>>(
     () => new Set(),
   );
+  const bulkSelectActive = mode === "browse" && bulkSelectable;
+  const selectedIds = bulkSelectActive
+    ? (bulkSelectedIds ?? EMPTY_SELECTION)
+    : pickSelectedIds;
 
   function toggleSelected(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
+    const next = new Set(selectedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    if (bulkSelectActive) {
+      onBulkSelectedChange?.(next);
+    } else {
+      setPickSelectedIds(next);
+    }
   }
 
   const filtersActive = hasActiveFilters(search, facets);
@@ -232,10 +255,28 @@ export function MediaPicker({
               selectedIds={selectedIds}
               onSelect={toggleSelected}
               onOpen={onOpen}
+              selectable={bulkSelectActive}
             />
           )}
         </main>
       </div>
+
+      {bulkSelectActive && selectedCount > 0 && (
+        <footer className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+          <span className="text-sm text-foreground-muted" aria-live="polite">
+            {selectedCount} selected
+          </span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={onDeleteSelected}
+            disabled={!onDeleteSelected}
+          >
+            <Trash2 className="h-4 w-4" aria-hidden />
+            Delete selected
+          </Button>
+        </footer>
+      )}
 
       {mode === "pick" && (
         <footer className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">

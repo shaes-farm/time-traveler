@@ -20,12 +20,16 @@ export interface MediaCardProps {
   item: MediaLibraryRow;
   mode: MediaPickerMode;
   view?: MediaView;
-  /** Pick mode only — whether this card is in the selection. */
+  /** Pick mode, or browse mode with `selectable` — whether this card is in the
+   * selection. */
   selected?: boolean;
-  /** Pick mode — toggle selection. */
+  /** Pick mode, or browse mode with `selectable` — toggle selection. */
   onSelect?: (id: string) => void;
-  /** Browse mode — open the detail drawer (drawer itself is a later issue). */
+  /** Browse mode — open the detail drawer. */
   onOpen?: (id: string) => void;
+  /** Browse-mode bulk select (orphan cleanup): show a corner checkbox alongside
+   * the open action. Pick mode is always selectable and ignores this. */
+  selectable?: boolean;
 }
 
 /**
@@ -42,6 +46,7 @@ export function MediaCard({
   selected = false,
   onSelect,
   onOpen,
+  selectable = false,
 }: MediaCardProps) {
   const key = typeKey(item.media_type);
   const label = mediaLabel(item);
@@ -120,6 +125,48 @@ export function MediaCard({
         {preview}
         {meta}
       </button>
+    );
+  }
+
+  // Browse-mode bulk select (orphan cleanup): the card body still opens the
+  // drawer; a corner checkbox toggles selection without nesting interactives.
+  if (selectable) {
+    return (
+      <div
+        className={cn(
+          rootClassName,
+          selected && "border-primary ring-2 ring-primary",
+        )}
+      >
+        <button
+          type="button"
+          aria-label={label}
+          aria-describedby={metaId}
+          onClick={() => onOpen?.(item.id)}
+          className={cn(
+            "text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isList ? "flex w-full items-center gap-3" : "block w-full",
+          )}
+        >
+          {preview}
+          {meta}
+        </button>
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={`Select ${label}`}
+          onClick={() => onSelect?.(item.id)}
+          className={cn(
+            "absolute left-2 top-2 z-10 grid h-5 w-5 place-content-center rounded border",
+            selected
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-background/80",
+          )}
+        >
+          {selected && <Check className="h-3.5 w-3.5" aria-hidden />}
+        </button>
+      </div>
     );
   }
 

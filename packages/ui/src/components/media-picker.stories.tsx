@@ -155,15 +155,21 @@ const STORY_PAGE_SIZE = 3;
 function Harness({
   mode,
   rows = FIXTURE_ROWS,
+  initialFacets = EMPTY_FACETS,
+  bulkSelectable = false,
 }: {
   mode: "browse" | "pick";
   rows?: MediaLibraryRow[];
+  initialFacets?: MediaFacetSelection;
+  bulkSelectable?: boolean;
 }) {
   const [search, setSearch] = React.useState("");
-  const [facets, setFacets] = React.useState<MediaFacetSelection>(EMPTY_FACETS);
+  const [facets, setFacets] =
+    React.useState<MediaFacetSelection>(initialFacets);
   const [view, setView] = React.useState<MediaView>("grid");
   const [page, setPage] = React.useState(0);
   const [confirmed, setConfirmed] = React.useState<string[] | null>(null);
+  const [bulkIds, setBulkIds] = React.useState<Set<string>>(() => new Set());
 
   const all = filterRows(rows, search, facets);
   const start = page * STORY_PAGE_SIZE;
@@ -208,6 +214,13 @@ function Harness({
         onAddExternal={() => window.alert("Open the external-URL dialog")}
         onConfirm={setConfirmed}
         onCancel={() => setConfirmed(null)}
+        bulkSelectable={bulkSelectable}
+        bulkSelectedIds={bulkIds}
+        onBulkSelectedChange={setBulkIds}
+        onDeleteSelected={() => {
+          window.alert(`Delete ${bulkIds.size} orphan(s)`);
+          setBulkIds(new Set());
+        }}
       />
       {confirmed && (
         <p className="px-4 py-2 font-mono text-xs text-foreground-muted">
@@ -228,6 +241,18 @@ type Story = StoryObj;
 
 export const Browse: Story = {
   render: () => <Harness mode="browse" />,
+};
+
+/** Filtered to Orphaned, the browser offers multi-select "Delete selected" —
+ * the one bulk action this pass (screen-17 orphan-cleanup edge case). */
+export const OrphanCleanup: Story = {
+  render: () => (
+    <Harness
+      mode="browse"
+      bulkSelectable
+      initialFacets={{ mediaTypes: [], sources: [], attachedTo: ["orphaned"] }}
+    />
+  ),
 };
 
 export const PickDialog: Story = {

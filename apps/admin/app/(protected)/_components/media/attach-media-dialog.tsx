@@ -69,7 +69,45 @@ export interface AttachMediaDialogProps {
   client: ServiceClient;
   /** Called with the new media row's id once it has been created. */
   onAttached: (mediaId: string) => Promise<void> | void;
+  /**
+   * `attach` (default) — attaching to a host entity (writes a junction in
+   * `onAttached`); copy says "attach".
+   * `library` — the cross-entity Media Library upload-to-orphan path (screen-17
+   * annotation #11): the same Upload/External tabs, no attach-to-entity step.
+   * `onAttached` should invalidate caches but write no junction, so the new row
+   * lands in Orphaned. Copy drops "attach".
+   */
+  variant?: "attach" | "library";
+  /** Which tab opens first. Lets the library's separate Upload / External URL
+   * entry points land on the matching tab. */
+  defaultTab?: "upload" | "external";
 }
+
+/** Per-variant copy: the library path creates an orphan, so it never says
+ * "attached". */
+const VARIANT_COPY = {
+  attach: {
+    title: "Attach media",
+    description: "Upload a file or embed media from an external URL.",
+    uploadCta: "Upload & attach",
+    uploadBusy: "Uploading…",
+    uploadSuccess: "Media uploaded and attached",
+    externalCta: "Attach",
+    externalBusy: "Attaching…",
+    externalSuccess: "External media attached",
+  },
+  library: {
+    title: "Add to library",
+    description:
+      "Upload a file or register an external URL. It lands in your library, unattached, until you add it to an entity.",
+    uploadCta: "Upload",
+    uploadBusy: "Uploading…",
+    uploadSuccess: "Uploaded to library",
+    externalCta: "Add",
+    externalBusy: "Adding…",
+    externalSuccess: "External media added to library",
+  },
+} as const;
 
 /**
  * Attach-media dialog with two tabs: Upload (file → Supabase Storage) and
@@ -81,7 +119,10 @@ export function AttachMediaDialog({
   onOpenChange,
   client,
   onAttached,
+  variant = "attach",
+  defaultTab = "upload",
 }: AttachMediaDialogProps) {
+  const copy = VARIANT_COPY[variant];
   const upload = useUploadMedia(client);
   const createExternal = useCreateExternalMedia(client);
   const deleteMedia = useDeleteMedia(client);
@@ -146,7 +187,7 @@ export function AttachMediaDialog({
         fileSizeBytes: file.size,
       });
       await onAttached(row.id);
-      toast.success("Media uploaded and attached");
+      toast.success(copy.uploadSuccess);
       handleOpenChange(false);
     } catch (err) {
       if (row) {
@@ -184,7 +225,7 @@ export function AttachMediaDialog({
         mediaType: inferMediaType(trimmed),
       });
       await onAttached(row.id);
-      toast.success("External media attached");
+      toast.success(copy.externalSuccess);
       handleOpenChange(false);
     } catch (err) {
       if (row) {
@@ -204,13 +245,11 @@ export function AttachMediaDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Attach media</DialogTitle>
-          <DialogDescription>
-            Upload a file or embed media from an external URL.
-          </DialogDescription>
+          <DialogTitle>{copy.title}</DialogTitle>
+          <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="upload">
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="upload">
               <UploadCloud className="mr-1.5 h-4 w-4" />
@@ -300,7 +339,7 @@ export function AttachMediaDialog({
                 onClick={() => void handleUpload()}
                 disabled={!file || busy}
               >
-                {upload.isPending ? "Uploading…" : "Upload & attach"}
+                {upload.isPending ? copy.uploadBusy : copy.uploadCta}
               </Button>
             </div>
           </TabsContent>
@@ -360,7 +399,9 @@ export function AttachMediaDialog({
                 onClick={() => void handleExternal()}
                 disabled={!url.trim() || !!urlError || busy}
               >
-                {createExternal.isPending ? "Attaching…" : "Attach"}
+                {createExternal.isPending
+                  ? copy.externalBusy
+                  : copy.externalCta}
               </Button>
             </div>
           </TabsContent>

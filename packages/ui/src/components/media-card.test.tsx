@@ -126,4 +126,50 @@ describe("MediaCard", () => {
     );
     expect(screen.getByRole("checkbox", { name: "Marie Curie" })).toBeChecked();
   });
+
+  describe("browse-mode selectable (orphan bulk cleanup)", () => {
+    it("shows a select checkbox while keeping the body open action", async () => {
+      const user = userEvent.setup();
+      const onOpen = vi.fn();
+      const onSelect = vi.fn();
+      render(
+        <MediaCard
+          item={makeRow()}
+          mode="browse"
+          selectable
+          onOpen={onOpen}
+          onSelect={onSelect}
+        />,
+      );
+
+      // Body button still opens the drawer.
+      await user.click(screen.getByRole("button", { name: "Marie Curie" }));
+      expect(onOpen).toHaveBeenCalledWith("m1");
+
+      // The separate corner checkbox toggles selection.
+      const checkbox = screen.getByRole("checkbox", {
+        name: /select marie curie/i,
+      });
+      expect(checkbox).toHaveAttribute("aria-checked", "false");
+      await user.click(checkbox);
+      expect(onSelect).toHaveBeenCalledWith("m1");
+      expect(onOpen).toHaveBeenCalledTimes(1);
+    });
+
+    it("reflects the selected state on the corner checkbox", () => {
+      render(
+        <MediaCard
+          item={makeRow()}
+          mode="browse"
+          selectable
+          selected
+          view="list"
+          onSelect={vi.fn()}
+        />,
+      );
+      expect(
+        screen.getByRole("checkbox", { name: /select marie curie/i }),
+      ).toHaveAttribute("aria-checked", "true");
+    });
+  });
 });

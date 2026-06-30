@@ -16,6 +16,7 @@ export default defineConfig({
       // untested app boilerplate). Expand this list as app test coverage grows.
       include: [
         "app/**/_components/media/attach-media-dialog.tsx",
+        "app/**/_components/media/media-library.tsx",
         "app/**/_components/media/media-section.tsx",
         "app/**/event-form-mappers.ts",
         "app/**/timeline-form-mappers.ts",

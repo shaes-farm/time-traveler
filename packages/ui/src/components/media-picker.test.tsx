@@ -53,8 +53,14 @@ function Harness(props: {
   onClearFilters?: () => void;
   onRetry?: () => void;
   onUpload?: () => void;
+  onOpen?: (id: string) => void;
+  bulkSelectable?: boolean;
+  onDeleteSelected?: () => void;
 }) {
   const [view, setView] = React.useState<MediaView>("grid");
+  const [bulkSelectedIds, setBulkSelectedIds] = React.useState<Set<string>>(
+    () => new Set(),
+  );
   return (
     <MediaPicker
       mode={props.mode}
@@ -78,6 +84,11 @@ function Harness(props: {
       onRetry={props.onRetry}
       onConfirm={props.onConfirm}
       onUpload={props.onUpload}
+      onOpen={props.onOpen}
+      bulkSelectable={props.bulkSelectable}
+      bulkSelectedIds={bulkSelectedIds}
+      onBulkSelectedChange={setBulkSelectedIds}
+      onDeleteSelected={props.onDeleteSelected}
     />
   );
 }
@@ -185,5 +196,52 @@ describe("MediaPicker", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(/failed to load/i);
     await user.click(screen.getByRole("button", { name: /retry/i }));
     expect(onRetry).toHaveBeenCalled();
+  });
+
+  describe("browse-mode bulk select (orphan cleanup)", () => {
+    it("renders per-card checkboxes while still opening the drawer from the body", async () => {
+      const user = userEvent.setup();
+      const onOpen = vi.fn();
+      render(<Harness mode="browse" bulkSelectable onOpen={onOpen} />);
+      // Each card now has a "Select …" checkbox alongside the open button
+      // (scoped by name to exclude the filter-rail facet checkboxes).
+      expect(
+        screen.getAllByRole("checkbox", { name: /^select/i }),
+      ).toHaveLength(2);
+      await user.click(screen.getAllByRole("button", { name: "a" })[0]!);
+      expect(onOpen).toHaveBeenCalledWith("a");
+    });
+
+    it("reveals 'Delete selected' once a card is selected and fires the handler", async () => {
+      const user = userEvent.setup();
+      const onDeleteSelected = vi.fn();
+      render(
+        <Harness
+          mode="browse"
+          bulkSelectable
+          onDeleteSelected={onDeleteSelected}
+        />,
+      );
+      // No action bar until something is selected.
+      expect(
+        screen.queryByRole("button", { name: /delete selected/i }),
+      ).not.toBeInTheDocument();
+
+      await user.click(
+        screen.getAllByRole("checkbox", { name: /select/i })[0]!,
+      );
+      expect(screen.getByText("1 selected")).toBeInTheDocument();
+      await user.click(
+        screen.getByRole("button", { name: /delete selected/i }),
+      );
+      expect(onDeleteSelected).toHaveBeenCalled();
+    });
+
+    it("does not render card checkboxes in browse mode without bulkSelectable", () => {
+      render(<Harness mode="browse" />);
+      expect(
+        screen.queryByRole("checkbox", { name: /^select/i }),
+      ).not.toBeInTheDocument();
+    });
   });
 });

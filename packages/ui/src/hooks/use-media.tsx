@@ -268,6 +268,27 @@ export function useDeleteMedia(client: ServiceClient) {
   });
 }
 
+/**
+ * Delete several media rows in one action — the library's orphan bulk cleanup
+ * (screen-17 edge case). Each delete reuses {@link deleteMedia} (which also
+ * removes the Storage object for uploads); the cache is invalidated once after
+ * all deletes settle rather than per row. Intended for orphans (`⛓ 0`), so
+ * there is no per-item blast-radius confirm.
+ */
+export function useDeleteMediaBulk(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) =>
+      Promise.all(ids.map((id) => deleteMedia(client, id))),
+    onSuccess: (_data, ids) => {
+      for (const id of ids) {
+        queryClient.removeQueries({ queryKey: mediaKeys.detail(id) });
+      }
+      void queryClient.invalidateQueries({ queryKey: mediaKeys.all });
+    },
+  });
+}
+
 /** Variables for {@link useDetachMedia}: which entity to remove the media from. */
 export interface DetachMediaVariables {
   kind: MediaAttachmentKind;
