@@ -26,11 +26,13 @@ export interface MediaGridProps {
   view: MediaView;
   onViewChange: (view: MediaView) => void;
   pager: MediaPager;
-  /** Pick mode — the currently-selected media ids. */
+  /** Pick mode, or browse mode with `selectable` — the currently-selected ids. */
   selectedIds?: ReadonlySet<string>;
   onSelect?: (id: string) => void;
   /** Browse mode — open the detail drawer. */
   onOpen?: (id: string) => void;
+  /** Browse-mode bulk select (orphan cleanup) — render a per-card checkbox. */
+  selectable?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ export function MediaGrid({
   selectedIds,
   onSelect,
   onOpen,
+  selectable = false,
 }: MediaGridProps) {
   return (
     <div className="flex flex-col gap-3">
@@ -104,6 +107,7 @@ export function MediaGrid({
               selected={selectedIds?.has(item.id) ?? false}
               onSelect={onSelect}
               onOpen={onOpen}
+              selectable={selectable}
             />
           </li>
         ))}

@@ -10,6 +10,7 @@ import {
   useCreateExternalMedia,
   useUpdateMedia,
   useDeleteMedia,
+  useDeleteMediaBulk,
   useMediaLibrary,
   useMediaFacetCounts,
   useMediaAttachments,
@@ -222,6 +223,50 @@ describe("useDeleteMedia", () => {
     expect(removeSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: mediaKeys.detail("media-1") }),
     );
+  });
+});
+
+describe("useDeleteMediaBulk", () => {
+  it("deletes every id and invalidates the media cache once", async () => {
+    vi.mocked(deleteMedia).mockResolvedValue(undefined as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(mediaKeys.detail("a"), mockMediaRow);
+    queryClient.setQueryData(mediaKeys.detail("b"), mockMediaRow);
+    const removeSpy = vi.spyOn(queryClient, "removeQueries");
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useDeleteMediaBulk(mockClient), {
+      wrapper,
+    });
+    result.current.mutate(["a", "b"]);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteMedia).toHaveBeenCalledWith(mockClient, "a");
+    expect(deleteMedia).toHaveBeenCalledWith(mockClient, "b");
+    expect(removeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: mediaKeys.detail("a") }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: mediaKeys.all });
+  });
+
+  it("still refreshes the cache when one delete fails (onSettled, partial failure)", async () => {
+    // First id deleted, second rejects → the mutation reports failure but the
+    // grid must still reconcile so the already-deleted row doesn't linger.
+    vi.mocked(deleteMedia)
+      .mockResolvedValueOnce(undefined as never)
+      .mockRejectedValueOnce(new Error("RLS denied") as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(() => useDeleteMediaBulk(mockClient), {
+      wrapper,
+    });
+    result.current.mutate(["a", "b"]);
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: mediaKeys.all });
   });
 });
 
