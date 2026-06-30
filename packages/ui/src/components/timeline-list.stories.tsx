@@ -299,7 +299,6 @@ function TimelineListPage() {
 
   return (
     <div className="flex h-full">
-      <FilterRail groups={groups} onClearAll={clearAll} />
       <main className="flex flex-1 flex-col overflow-auto">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div>
@@ -317,6 +316,7 @@ function TimelineListPage() {
           <DataTable columns={COLUMNS} data={filtered} />
         </div>
       </main>
+      <FilterRail groups={groups} onClearAll={clearAll} />
     </div>
   );
 }
