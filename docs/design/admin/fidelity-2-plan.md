@@ -253,7 +253,7 @@ Originally Batch B. Two PRs.
 Originally Batch D.
 
 - `DataTable` wrapping shadcn `Table` + tanstack-table; row virtualization for events list
-- `FilterRail` — left-rail layout with grouped checkbox sets, range sliders, 3-state radios
+- `FilterRail` — right-rail layout (after the content it filters; see ADR-0035) with grouped checkbox sets, range sliders, 3-state radios
 - Row-layout patterns from wireframes: multi-line rows, era + uncertainty inline, importance as right-aligned tabular number
 - Composite stories: `Pages > Characters List`, `Pages > Events List` (mounted in the Shell)
 - Per the [wireframe decisions](02-wireframes/03-characters-list.md): hover-card thumbnails (no dedicated thumbnail column), labels-only filter chips this fidelity, no card view (per [#127](https://github.com/shaes-farm/time-traveler/issues/127))

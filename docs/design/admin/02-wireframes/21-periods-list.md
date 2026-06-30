@@ -24,35 +24,35 @@
 │  Periods                                                  [ + New period ]   │
 │  23 total · 18 shown                                                         │
 │                                                                              │
-│  ┌─────────────────┐  ┌────────────────────────────────────────────────────┐  │
-│  │ Filter          │  │ ⌕ Search by title…                                 │  │
-│  │                 │  │                                                    │  │
-│  │ Significance    │  │ ┌──┬──────────────────────┬────────────┬─────┐    │  │
-│  │ ☐ Critical    3 │  │ │  │ Title                │ Span       │ Sig │    │  │
-│  │ ☐ High        7 │  │ ├──┼──────────────────────┼────────────┼─────┤    │  │
-│  │ ☐ Medium     10 │  │ │⌒ │ Mesozoic Era         │ 252–66 MYA │ ███ │    │  │
-│  │ ☐ Low         3 │  │ │  │ reptiles · warm      │            │ crit│    │  │
-│  │                 │  │ ├──┼──────────────────────┼────────────┼─────┤    │  │
-│  │ Show            │  │ │↳ │ Triassic             │ 252–201 MYA│ ██  │    │  │
-│  │ ◉ All           │  │ │  │ in Mesozoic Era      │            │ high│    │  │
-│  │ ◯ Top-level     │  │ ├──┼──────────────────────┼────────────┼─────┤    │  │
-│  │ ◯ Nested        │  │ │↳ │ Jurassic             │ 201–145 MYA│ ██  │    │  │
-│  │                 │  │ │  │ in Mesozoic Era      │            │ high│    │  │
-│  │ Era             │  │ ├──┼──────────────────────┼────────────┼─────┤    │  │
-│  │ ☐ MYA   …       │  │ │⌒ │ Industrial Revolution│ 1760–1840  │ ███ │    │  │
-│  │ ☐ CE    …       │  │ │  │ steam · factories    │ CE         │ crit│    │  │
-│  │                 │  │ └──┴──────────────────────┴────────────┴─────┘    │  │
-│  │ Status          │  │                                                    │  │
-│  │ ☐ Published  20 │  │ ⟨ 1  2  ⟩                  Sort: Start date ▾      │  │
-│  │ ☐ Draft       3 │  │                                                    │  │
-│  │ Clear filters   │  │                                                    │  │
-│  └─────────────────┘  └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  ┌─────────────────┐ │
+│  │ ⌕ Search by title…                                 │  │ Filter          │ │
+│  │                                                    │  │                 │ │
+│  │ ┌──┬──────────────────────┬────────────┬─────┐     │  │ Significance    │ │
+│  │ │  │ Title                │ Span       │ Sig │     │  │ ☐ Critical    3 │ │
+│  │ ├──┼──────────────────────┼────────────┼─────┤     │  │ ☐ High        7 │ │
+│  │ │⌒ │ Mesozoic Era         │ 252–66 MYA │ ███ │     │  │ ☐ Medium     10 │ │
+│  │ │  │ reptiles · warm      │            │ crit│     │  │ ☐ Low         3 │ │
+│  │ ├──┼──────────────────────┼────────────┼─────┤     │  │                 │ │
+│  │ │↳ │ Triassic             │ 252–201 MYA│ ██  │     │  │ Show            │ │
+│  │ │  │ in Mesozoic Era      │            │ high│     │  │ ◉ All           │ │
+│  │ ├──┼──────────────────────┼────────────┼─────┤     │  │ ◯ Top-level     │ │
+│  │ │↳ │ Jurassic             │ 201–145 MYA│ ██  │     │  │ ◯ Nested        │ │
+│  │ │  │ in Mesozoic Era      │            │ high│     │  │                 │ │
+│  │ ├──┼──────────────────────┼────────────┼─────┤     │  │ Era             │ │
+│  │ │⌒ │ Industrial Revolution│ 1760–1840  │ ███ │     │  │ ☐ MYA   …       │ │
+│  │ │  │ steam · factories    │ CE         │ crit│     │  │ ☐ CE    …       │ │
+│  │ └──┴──────────────────────┴────────────┴─────┘     │  │                 │ │
+│  │                                                    │  │ Status          │ │
+│  │ ⟨ 1  2  ⟩                  Sort: Start date ▾      │  │ ☐ Published  20 │ │
+│  │                                                    │  │ ☐ Draft       3 │ │
+│  │                                                    │  │ Clear filters   │ │
+│  └────────────────────────────────────────────────────┘  └─────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Annotations
 
-1. **Same left-rail + row pattern** as the other lists. Periods read most like the events list — temporally dense, era-aware — so it borrows that layout.
+1. **Same right-rail + row pattern** as the other lists — filter rail on the right of the table. Periods read most like the events list — temporally dense, era-aware — so it borrows that layout. See ADR-0035.
 2. **Span renders via the finalized `TemporalDisplay`** ([03-aesthetic-notes.md](../03-aesthetic-notes.md) § _Era palette_): era code + hue, era-aware formatting (`252–66 MYA`, `1760–1840 CE`). End is expected for periods (they're closed spans) but the schema allows open (`end_temporal_data` optional) — render a single start with an "open" affordance if unset.
 3. **`significance` uses the finalized sequential ramp** ([03-aesthetic-notes.md](../03-aesthetic-notes.md) § _Significance scale_) — the single-hue amber importance ramp reused for `low/medium/high/critical`. Shown as a 4-step bar + label, right-aligned. This is the same visual language as event importance, deliberately.
 4. **Nesting indicator + Show filter** mirror the events list's fractal-scope control, but for the **kept** `parent_period_id` hierarchy: `⌒` top-level, `↳` nested (one level of indentation; `in [Parent]` on line 2). `Show: All / Top-level only / Nested only` keys on `parent_period_id IS NULL`. Unlike events (where event-to-event nesting was retired, [#180](https://github.com/shaes-farm/time-traveler/issues/180)), **periods keep `parent_period_id`** — a period genuinely _is_ a span that contains sub-spans (Mesozoic ⊃ Jurassic), which is the natural hierarchy, not a fractal-zoom mechanism.
