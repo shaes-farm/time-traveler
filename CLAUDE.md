@@ -90,7 +90,7 @@ Or run the full suite at once: `pnpm verify` (`format:check && lint && check-typ
 - **`immutable_array_to_string`** in `00001_initial_schema.sql` exists because `array_to_string` is marked STABLE and can't be used in `GENERATED ALWAYS AS`. Reuse it instead of inventing another wrapper.
 - **Env vars**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and server-only `SUPABASE_SERVICE_ROLE_KEY` — see `.env.local.example`. Never expose the service-role key in client bundles.
 
-## When you're blocked (from `.github/copilot-instructions.md`)
+## When you're blocked
 
 - Missing API/package/service → add `// BLOCKED: [reason]` and move on. Don't mock or stub.
 - Missing credentials → leave `// NEEDS: [credential description]`. Never hardcode or invent values.
