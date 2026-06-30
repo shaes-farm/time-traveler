@@ -199,8 +199,7 @@ function SubjectCharacterPicker({
 // ---------------------------------------------------------------------------
 
 type Props =
-  | { mode: "create" }
-  | { mode: "edit"; userId: string; slug: string };
+  { mode: "create" } | { mode: "edit"; userId: string; slug: string };
 
 export function TimelineFormClient(props: Props) {
   const router = useRouter();

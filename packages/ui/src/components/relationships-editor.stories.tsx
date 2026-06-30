@@ -90,11 +90,7 @@ const T = (
 // ─── Type → family group mapping ──────────────────────────────────────────────
 
 type FamilyKey =
-  | "family"
-  | "professional"
-  | "social"
-  | "antagonistic"
-  | "asymmetric";
+  "family" | "professional" | "social" | "antagonistic" | "asymmetric";
 
 const FAMILY_LABELS: Record<FamilyKey, string> = {
   family: "Family",

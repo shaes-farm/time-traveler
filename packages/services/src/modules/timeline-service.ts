@@ -25,10 +25,7 @@ export type CollaboratorRole = "viewer" | "editor" | "admin";
 export interface TimelineFilters {
   /** Scalar or multi-value visibility filter; multiple values use SQL IN. */
   visibility?:
-    | "private"
-    | "public"
-    | "shared"
-    | Array<"private" | "public" | "shared">;
+    "private" | "public" | "shared" | Array<"private" | "public" | "shared">;
   /** Scalar or multi-value timeline_type filter; multiple values use SQL IN. */
   timelineType?:
     | "general"

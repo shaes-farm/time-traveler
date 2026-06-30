@@ -33,7 +33,7 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 ## Toolchain
 
 - **Node ≥24** (`.nvmrc` pins v24)
-- **pnpm 11.2.2** (declared in `package.json` `packageManager`)
+- **pnpm 11.9.0** (declared in `package.json` `packageManager`)
 - **Turborepo 2.9.16**, **TypeScript 6.0.3**, **Next.js 16.2.x**, **React 19.2.x**
 - **Supabase CLI** ^2.101.0 — local stack runs Postgres 17
 
@@ -90,7 +90,7 @@ Or run the full suite at once: `pnpm verify` (`format:check && lint && check-typ
 - **`immutable_array_to_string`** in `00001_initial_schema.sql` exists because `array_to_string` is marked STABLE and can't be used in `GENERATED ALWAYS AS`. Reuse it instead of inventing another wrapper.
 - **Env vars**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and server-only `SUPABASE_SERVICE_ROLE_KEY` — see `.env.local.example`. Never expose the service-role key in client bundles.
 
-## When you're blocked (from `.github/copilot-instructions.md`)
+## When you're blocked
 
 - Missing API/package/service → add `// BLOCKED: [reason]` and move on. Don't mock or stub.
 - Missing credentials → leave `// NEEDS: [credential description]`. Never hardcode or invent values.
