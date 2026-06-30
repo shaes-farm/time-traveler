@@ -14,10 +14,7 @@ type StoryEventRow = Database["public"]["Tables"]["story_events"]["Row"];
 
 /** Valid values for the role_in_story column of story_characters. */
 export type StoryCharacterRole =
-  | "protagonist"
-  | "supporting"
-  | "mentioned"
-  | "narrator";
+  "protagonist" | "supporting" | "mentioned" | "narrator";
 
 export interface StoryFilters {
   userId?: string;

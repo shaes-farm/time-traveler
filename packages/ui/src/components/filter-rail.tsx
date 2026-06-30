@@ -49,9 +49,7 @@ export interface FilterRadioGroup {
 }
 
 export type FilterGroup =
-  | FilterCheckboxGroup
-  | FilterRangeGroup
-  | FilterRadioGroup;
+  FilterCheckboxGroup | FilterRangeGroup | FilterRadioGroup;
 
 // ---- FilterRail component --------------------------------------------------
 

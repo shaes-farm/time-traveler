@@ -33,7 +33,7 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 ## Toolchain
 
 - **Node ≥24** (`.nvmrc` pins v24)
-- **pnpm 11.2.2** (declared in `package.json` `packageManager`)
+- **pnpm 11.9.0** (declared in `package.json` `packageManager`)
 - **Turborepo 2.9.16**, **TypeScript 6.0.3**, **Next.js 16.2.x**, **React 19.2.x**
 - **Supabase CLI** ^2.101.0 — local stack runs Postgres 17
 

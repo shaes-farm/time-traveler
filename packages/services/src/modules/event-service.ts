@@ -37,10 +37,7 @@ export type CharacterRole =
 
 /** Significance level as defined by the DB CHECK constraint on event_characters.significance */
 export type CharacterSignificance =
-  | "primary"
-  | "secondary"
-  | "minor"
-  | "mentioned";
+  "primary" | "secondary" | "minor" | "mentioned";
 
 /** Canonical event type enum value. */
 export type EventType = z.infer<typeof eventTypeEnum>;
