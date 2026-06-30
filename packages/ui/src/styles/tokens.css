@@ -33,7 +33,7 @@
   --color-primary-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
 
   /* Destructive — fresh value introduced for delete/dangerous actions */
-  --color-destructive: oklch(0.637 0.237 25.331); /* red-500 */
+  --color-destructive: oklch(0.62 0.15 25); /* muted red — subdued from red-500 */
   --color-destructive-foreground: oklch(0.985 0 0); /* zinc-50 */
 
   /* Era accents — TemporalDisplay primitive (Batch E). Hue alone is not
