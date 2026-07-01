@@ -6614,7 +6614,8 @@ Buttons: [Cancel] [Delete Event]
 
 **Structure:**
 
-- Header with title, filters, search, create button
+- Header with title, search, create button
+- Right-hand filter rail with grouped controls, sitting **after** the content it filters (rather than between the nav and the table). This keeps the table adjacent to the primary nav and mirrors the editor's right-hand metadata column. See [`docs/design/admin/03-aesthetic-notes.md`](../design/admin/03-aesthetic-notes.md) and ADR-0035.
 - Table layout (see admin design wireframes for the canonical row patterns)
 - Pagination or infinite scroll footer
 

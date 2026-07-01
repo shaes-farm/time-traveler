@@ -118,7 +118,7 @@ This is an admin app, so motion serves **affordance** and **continuity**, not de
 
 - **Tables are the primary list pattern.** Cards are reserved for cases where a single visual element (face, image) dominates — character cards in pickers, media tiles.
 - **List rows show enough metadata to triage without clicking.** Examples in the wireframes: each row of the events table shows title, era + year, type, importance, participant count, published state.
-- **Filter rails over filter dropdowns.** When 4+ filter axes exist (events list has 6+), a left-rail filter pattern with grouped controls beats stuffing them into the toolbar.
+- **Filter rails over filter dropdowns.** When 4+ filter axes exist (events list has 6+), a side-rail filter pattern with grouped controls beats stuffing them into the toolbar. The rail sits on the **right**, after the content it filters — this keeps the content adjacent to the primary nav (rather than wedged between two rails) and mirrors the editor's right-hand metadata column, so "contextual controls live on the right" reads consistently across list and editor surfaces. See ADR-0035.
 - **Search is global and entity-scoped.** Topbar search is global (across all four searchable types). Each list view has its own scoped search.
 
 ## Components shopping list (preliminary)

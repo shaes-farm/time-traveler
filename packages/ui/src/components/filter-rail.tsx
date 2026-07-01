@@ -155,7 +155,7 @@ export function FilterRail({ groups, onClearAll, className }: FilterRailProps) {
   return (
     <aside
       className={cn(
-        "flex w-56 shrink-0 flex-col gap-0 border-r border-border",
+        "flex w-56 shrink-0 flex-col gap-0 border-l border-border",
         className,
       )}
     >

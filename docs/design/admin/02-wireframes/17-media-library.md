@@ -21,25 +21,25 @@ It has **two faces of the same data**:
 ```
   Media library                                              [ + Upload ]  [ + External URL ]
   ───────────────────────────────────────────────────────────────────────────────────────────
-  ┌── Filters ───────────┐   [ ⌕ Search alt text, caption, filename…            ]   ⌗ 248 items
-  │ Type                 │   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-  │  ☐ Image    (181)    │   │ [thumb]  │ │ [▶ thumb]│ │ [doc]    │ │ [thumb]  │
-  │  ☐ Video     (22)    │   │          │ │          │ │          │ │          │
-  │  ☐ Audio      (9)    │   │ Curie,   │ │ Newsreel │ │ Polonium │ │ Lab, '03 │
-  │  ☐ Document  (36)    │   │ 1898     │ │ 1911     │ │ paper    │ │          │
-  │                      │   │ img·3 ⛓  │ │ vid·1 ⛓  │ │ doc·0 ⚠  │ │ img·1 ⛓  │
-  │ Source               │   └──────────┘ └──────────┘ └──────────┘ └──────────┘
-  │  ☐ Uploaded (212)    │   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-  │  ☐ External  (36)    │   │   …      │ │   …      │ │   …      │ │   …      │
-  │                      │   └──────────┘ └──────────┘ └──────────┘ └──────────┘
-  │ Attached to          │
-  │  ☐ Events            │   « ‹  1 2 3 … 21  › »                    [ Grid ▦ | List ☰ ]
-  │  ☐ Characters        │
-  │  ☐ Timelines         │
-  │  ☐ Orphaned   (4) ⚠  │
-  │                      │
-  │ [ Clear filters ]    │
-  └──────────────────────┘
+  [ ⌕ Search alt text, caption, filename…       ]   ⌗ 248 items   ┌── Filters ───────────┐
+  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐             │ Type                 │
+  │ [thumb]  │ │ [▶ thumb]│ │ [doc]    │ │ [thumb]  │             │  ☐ Image    (181)    │
+  │          │ │          │ │          │ │          │             │  ☐ Video     (22)    │
+  │ Curie,   │ │ Newsreel │ │ Polonium │ │ Lab, '03 │             │  ☐ Audio      (9)    │
+  │ 1898     │ │ 1911     │ │ paper    │ │          │             │  ☐ Document  (36)    │
+  │ img·3 ⛓  │ │ vid·1 ⛓  │ │ doc·0 ⚠  │ │ img·1 ⛓  │             │                      │
+  └──────────┘ └──────────┘ └──────────┘ └──────────┘             │ Source               │
+  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐             │  ☐ Uploaded (212)    │
+  │   …      │ │   …      │ │   …      │ │   …      │             │  ☐ External  (36)    │
+  └──────────┘ └──────────┘ └──────────┘ └──────────┘             │                      │
+                                                                  │ Attached to          │
+  « ‹  1 2 3 … 21  › »              [ Grid ▦ | List ☰ ]           │  ☐ Events            │
+                                                                  │  ☐ Characters        │
+                                                                  │  ☐ Timelines         │
+                                                                  │  ☐ Orphaned   (4) ⚠  │
+                                                                  │                      │
+                                                                  │ [ Clear filters ]    │
+                                                                  └──────────────────────┘
 ```
 
 Selecting a card opens the **detail panel** (right drawer) without leaving the grid.
@@ -48,20 +48,20 @@ Selecting a card opens the **detail panel** (right drawer) without leaving the g
 
 ```
   ── Marie Curie in her laboratory, 1898 ──────────────────────────── [✕] ┐
-  │  ┌───────────────────────────┐                                       │
+  │  ┌───────────────────────────┐                                        │
   │  │        [ preview ]        │   uploaded · image · 1200×800          │
   │  │                           │   312 KB · image/jpeg                  │
-  │  └───────────────────────────┘   slug: marie-curie-lab-1898          │
+  │  └───────────────────────────┘   slug: marie-curie-lab-1898           │
   │                                                                       │
   │  Alt text   [ Marie Curie in her laboratory, 1898            ]        │
-  │  Caption    [ Source: Curie Museum archive                  ]        │
+  │  Caption    [ Source: Curie Museum archive                  ]         │
   │                                              [ Save changes ]         │
-  │  ─────────────────────────────────────────────────────────────────   │
+  │  ─────────────────────────────────────────────────────────────────    │
   │  Attached to (3)                                                      │
   │   • Character — Marie Curie            (primary)        [ Detach ]    │
-  │   • Event — Discovery of polonium                      [ Detach ]    │
-  │   • Timeline — Radioactivity research                 [ Detach ]    │
-  │  ─────────────────────────────────────────────────────────────────   │
+  │   • Event — Discovery of polonium                       [ Detach ]    │
+  │   • Timeline — Radioactivity research                   [ Detach ]    │
+  │  ─────────────────────────────────────────────────────────────────    │
   │  [ Open source ↗ ]                         [ Delete original… ] ⚠     │
   └───────────────────────────────────────────────────────────────────────┘
 ```
@@ -70,7 +70,7 @@ Selecting a card opens the **detail panel** (right drawer) without leaving the g
 
 ```
   ── Choose existing media ──────────────────────────────────────────────┐
-  │  [ ⌕ Search…              ]   Type ▾  Source ▾            ⌗ 248       │
+  │  [ ⌕ Search…              ]   Type ▾  Source ▾            ⌗ 248      │
   │  ──────────────────────────────────────────────────────────────────  │
   │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐               │
   │  │[✓]   │ │      │ │      │ │[✓]   │ │      │ │      │               │
@@ -80,8 +80,8 @@ Selecting a card opens the **detail panel** (right drawer) without leaving the g
   │  │ …    │ │ …    │ │ …    │ │ …    │ │ …    │ │ …    │               │
   │  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘               │
   │  ──────────────────────────────────────────────────────────────────  │
-  │  2 selected                          [ Cancel ]  [ Attach 2 items ]   │
-  └───────────────────────────────────────────────────────────────────────┘
+  │  2 selected                          [ Cancel ]  [ Attach 2 items ]  │
+  └──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Annotations
