@@ -37,6 +37,7 @@ function makeBuilder(result: {
   const builder = {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -50,6 +51,7 @@ function makeBuilder(result: {
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
+    maybeSingle: terminal,
     then: (resolve: (v: unknown) => unknown) =>
       Promise.resolve(result).then(resolve),
   };
@@ -1153,7 +1155,7 @@ describe("removeCategoryFromEvent", () => {
 // ---------------------------------------------------------------------------
 
 describe("addMediaToEvent", () => {
-  it("inserts with default sort_order=0", async () => {
+  it("upserts with default sort_order=0, ignoring duplicates on the composite PK", async () => {
     const client = makeClient({
       fromResult: { data: sampleMedia, error: null },
     });
@@ -1161,11 +1163,10 @@ describe("addMediaToEvent", () => {
     expect(result).toEqual(sampleMedia);
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.insert).toHaveBeenCalledWith({
-      event_id: "event-1",
-      media_id: "media-1",
-      sort_order: 0,
-    });
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { event_id: "event-1", media_id: "media-1", sort_order: 0 },
+      { onConflict: "event_id,media_id", ignoreDuplicates: true },
+    );
   });
 
   it("accepts a custom sort_order", async () => {
@@ -1175,11 +1176,16 @@ describe("addMediaToEvent", () => {
     await addMediaToEvent(client, "event-1", "media-1", 5);
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.insert).toHaveBeenCalledWith({
-      event_id: "event-1",
-      media_id: "media-1",
-      sort_order: 5,
-    });
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { event_id: "event-1", media_id: "media-1", sort_order: 5 },
+      { onConflict: "event_id,media_id", ignoreDuplicates: true },
+    );
+  });
+
+  it("returns null when the pair already exists (dedup no-op)", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    const result = await addMediaToEvent(client, "event-1", "media-1");
+    expect(result).toBeNull();
   });
 
   it("throws on Supabase error", async () => {

@@ -739,6 +739,23 @@ export function EventDetailClient({ slug }: { slug: string }) {
     [addMedia, eventId, mediaItems.length, refreshMedia],
   );
 
+  // Attach several existing library rows in one action, appending each after
+  // the current list. `addMediaToEvent` dedups on the composite PK, so an
+  // already-attached row is a silent no-op.
+  const handleAttachExistingMedia = React.useCallback(
+    async (mediaIds: string[]) => {
+      if (!eventId) return;
+      const base = mediaItems.length;
+      await Promise.all(
+        mediaIds.map((mediaId, i) =>
+          addMedia.mutateAsync({ eventId, mediaId, sortOrder: base + i }),
+        ),
+      );
+      await refreshMedia();
+    },
+    [addMedia, eventId, mediaItems.length, refreshMedia],
+  );
+
   const handleDetachMedia = React.useCallback(
     async (mediaId: string) => {
       if (!eventId) return;
@@ -1008,6 +1025,7 @@ export function EventDetailClient({ slug }: { slug: string }) {
             canEdit={canEdit}
             ordering="sort"
             onAttach={handleAttachMedia}
+            onAttachExisting={handleAttachExistingMedia}
             onDetach={handleDetachMedia}
             onReorder={handleReorderMedia}
             onChanged={refreshMedia}

@@ -14,6 +14,7 @@ import {
   getMediaAttachments,
   getMediaAttachmentsBulk,
   getOrphanMediaIds,
+  getExistingMediaIds,
 } from "./media-service";
 import { mediaInsertSchema } from "../schemas/media";
 
@@ -29,6 +30,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
@@ -1296,5 +1298,33 @@ describe("getOrphanMediaIds", () => {
     const { client, from } = makeLibraryClient({});
     expect(await getOrphanMediaIds(client, [])).toEqual([]);
     expect(from).not.toHaveBeenCalled();
+  });
+});
+
+describe("getExistingMediaIds", () => {
+  it("returns the subset of ids whose media row still exists", async () => {
+    const client = makeClient({
+      fromResult: { data: [{ id: "m1" }, { id: "m3" }], error: null },
+    });
+    const alive = await getExistingMediaIds(client, ["m1", "m2", "m3"]);
+    expect(alive).toEqual(new Set(["m1", "m3"]));
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.in).toHaveBeenCalledWith("id", ["m1", "m2", "m3"]);
+  });
+
+  it("returns an empty set for empty input without a round-trip", async () => {
+    const client = makeClient({});
+    expect(await getExistingMediaIds(client, [])).toEqual(new Set());
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "select failed" } },
+    });
+    await expect(getExistingMediaIds(client, ["m1"])).rejects.toThrow(
+      "select failed",
+    );
   });
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { FolderOpen, Link2, UploadCloud } from "lucide-react";
+import { FolderOpen, Images, Link2, UploadCloud } from "lucide-react";
+import { getExistingMediaIds } from "@repo/services/media-service";
 import { toast } from "@repo/ui/components/sonner";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -25,6 +26,7 @@ import {
   useCreateExternalMedia,
   useDeleteMedia,
 } from "@repo/ui/hooks/use-media";
+import { ExistingMediaPicker } from "./existing-media-picker";
 
 /** 5 MB — matches the Storage bucket `file_size_limit` and RLS WITH CHECK (00009). */
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -81,6 +83,14 @@ export interface AttachMediaDialogProps {
   /** Which tab opens first. Lets the library's separate Upload / External URL
    * entry points land on the matching tab. */
   defaultTab?: "upload" | "external";
+  /**
+   * Attach one or more *existing* library media rows to the host entity. When
+   * provided (and `variant="attach"`), the dialog shows a third **Existing** tab
+   * that embeds the media picker; the host writes the junctions with its own
+   * ordering/primary rules and composite-PK dedup (screen-17 annotation #9).
+   * Omit it for the `library` variant — upload-to-orphan has no attach step.
+   */
+  onAttachExisting?: (mediaIds: string[]) => Promise<void> | void;
 }
 
 /** Per-variant copy: the library path creates an orphan, so it never says
@@ -95,6 +105,7 @@ const VARIANT_COPY = {
     externalCta: "Attach",
     externalBusy: "Attaching…",
     externalSuccess: "External media attached",
+    existingSuccess: "Media attached",
   },
   library: {
     title: "Add to library",
@@ -106,6 +117,8 @@ const VARIANT_COPY = {
     externalCta: "Add",
     externalBusy: "Adding…",
     externalSuccess: "External media added to library",
+    // Library variant never shows the Existing tab; present for shape symmetry.
+    existingSuccess: "Media attached",
   },
 } as const;
 
@@ -121,11 +134,18 @@ export function AttachMediaDialog({
   onAttached,
   variant = "attach",
   defaultTab = "upload",
+  onAttachExisting,
 }: AttachMediaDialogProps) {
   const copy = VARIANT_COPY[variant];
   const upload = useUploadMedia(client);
   const createExternal = useCreateExternalMedia(client);
   const deleteMedia = useDeleteMedia(client);
+
+  // The Existing tab is offered only on the attach-to-entity path, and only
+  // when the host supplies a junction writer. The library variant (upload to
+  // orphan) has no attach step.
+  const showExistingTab = variant === "attach" && Boolean(onAttachExisting);
+  const [attachingExisting, setAttachingExisting] = React.useState(false);
 
   // Upload tab state
   const [file, setFile] = React.useState<File | null>(null);
@@ -141,7 +161,10 @@ export function AttachMediaDialog({
   const [externalCaption, setExternalCaption] = React.useState("");
 
   const busy =
-    upload.isPending || createExternal.isPending || deleteMedia.isPending;
+    upload.isPending ||
+    createExternal.isPending ||
+    deleteMedia.isPending ||
+    attachingExisting;
 
   function reset() {
     setFile(null);
@@ -241,16 +264,57 @@ export function AttachMediaDialog({
     }
   }
 
+  async function handleAttachExisting(mediaIds: string[]) {
+    if (!onAttachExisting || mediaIds.length === 0) return;
+    setAttachingExisting(true);
+    let succeeded = false;
+    try {
+      // Media can be deleted while the picker is open — revalidate the
+      // selection against the live table and drop any that vanished before
+      // writing junctions (they would otherwise fail the media_id FK).
+      const alive = await getExistingMediaIds(client, mediaIds);
+      const survivors = mediaIds.filter((id) => alive.has(id));
+      const dropped = mediaIds.length - survivors.length;
+      if (dropped > 0) {
+        toast.warning(
+          `${dropped} selected item${dropped === 1 ? " was" : "s were"} removed and could not be attached.`,
+        );
+      }
+      if (survivors.length === 0) return;
+      await onAttachExisting(survivors);
+      toast.success(copy.existingSuccess);
+      succeeded = true;
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to attach media",
+      );
+    } finally {
+      setAttachingExisting(false);
+    }
+    // Close directly rather than via handleOpenChange — the `busy` it guards on
+    // is still true in this render's closure.
+    if (succeeded) {
+      reset();
+      onOpenChange(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className={showExistingTab ? "max-w-3xl" : "max-w-lg"}>
         <DialogHeader>
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription>{copy.description}</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue={defaultTab}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList
+            className={
+              showExistingTab
+                ? "grid w-full grid-cols-3"
+                : "grid w-full grid-cols-2"
+            }
+          >
             <TabsTrigger value="upload">
               <UploadCloud className="mr-1.5 h-4 w-4" />
               Upload
@@ -259,6 +323,12 @@ export function AttachMediaDialog({
               <Link2 className="mr-1.5 h-4 w-4" />
               External URL
             </TabsTrigger>
+            {showExistingTab && (
+              <TabsTrigger value="existing">
+                <Images className="mr-1.5 h-4 w-4" />
+                Existing
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Upload tab */}
@@ -405,6 +475,18 @@ export function AttachMediaDialog({
               </Button>
             </div>
           </TabsContent>
+
+          {/* Existing tab — reuse a media row already in the library */}
+          {showExistingTab && (
+            <TabsContent value="existing" className="pt-2">
+              <ExistingMediaPicker
+                client={client}
+                busy={busy}
+                onConfirm={handleAttachExisting}
+                onCancel={() => handleOpenChange(false)}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </DialogContent>
     </Dialog>

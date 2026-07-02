@@ -963,6 +963,24 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     await refreshMedia();
   }
 
+  // Attach several existing library rows in one action, appending each after
+  // the current list. `addMediaToTimeline` dedups on the composite PK, so an
+  // already-attached row is a silent no-op.
+  async function handleAttachExistingMedia(mediaIds: string[]) {
+    if (!timeline) return;
+    const base = mediaItems.length;
+    await Promise.all(
+      mediaIds.map((mediaId, i) =>
+        addMedia.mutateAsync({
+          timelineId: timeline.id,
+          mediaId,
+          sortOrder: base + i,
+        }),
+      ),
+    );
+    await refreshMedia();
+  }
+
   async function handleDetachMedia(mediaId: string) {
     if (!timeline) return;
     await removeMedia.mutateAsync({ timelineId: timeline.id, mediaId });
@@ -1200,6 +1218,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             canEdit={canEdit}
             ordering="sort"
             onAttach={handleAttachMedia}
+            onAttachExisting={handleAttachExistingMedia}
             onDetach={handleDetachMedia}
             onReorder={handleReorderMedia}
             onChanged={refreshMedia}

@@ -66,6 +66,18 @@ export interface MediaSectionProps {
   ordering: "sort" | "primary";
   /** Persist a new junction row for the newly-created media id. */
   onAttach: (mediaId: string) => Promise<void> | void;
+  /**
+   * Attach one or more *existing* library media rows. When provided, the Attach
+   * dialog gains an **Existing** tab (choose-from-library). The host writes the
+   * junctions with its own ordering (`ordering="sort"`) / primary
+   * (`ordering="primary"`) rules; dedup makes a re-attach a no-op.
+   *
+   * BLOCKED (character host): no character detail/editor mounts this component
+   * yet (#56/#57 render a placeholder). Character attach-from-existing is wired
+   * through here + `addMediaToCharacter` and lights up when a character host
+   * mounts `MediaSection` with `ordering="primary"`.
+   */
+  onAttachExisting?: (mediaIds: string[]) => Promise<void> | void;
   /** Remove the junction row (media survives). */
   onDetach: (mediaId: string) => Promise<void> | void;
   /** Persist sort_order for an item (ordering="sort" only). */
@@ -113,6 +125,7 @@ export function MediaSection({
   canEdit,
   ordering,
   onAttach,
+  onAttachExisting,
   onDetach,
   onReorder,
   onSetPrimary,
@@ -334,6 +347,7 @@ export function MediaSection({
         onOpenChange={setAttachOpen}
         client={client}
         onAttached={onAttach}
+        onAttachExisting={onAttachExisting}
       />
 
       {/* Edit caption / alt dialog */}

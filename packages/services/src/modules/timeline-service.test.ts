@@ -55,6 +55,7 @@ function makeBuilder(result: {
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
+    maybeSingle: terminal,
     then: (resolve: (v: unknown) => unknown) =>
       Promise.resolve(result).then(resolve),
   };
@@ -1134,7 +1135,7 @@ describe("setTimelineEventSortOrder", () => {
 // ---------------------------------------------------------------------------
 
 describe("addMediaToTimeline", () => {
-  it("returns the new junction row with default sort_order=0", async () => {
+  it("upserts the new junction row with default sort_order=0, ignoring duplicates on the composite PK", async () => {
     const row = {
       timeline_id: "timeline-1",
       media_id: "media-1",
@@ -1143,6 +1144,12 @@ describe("addMediaToTimeline", () => {
     const client = makeClient({ fromResult: { data: row, error: null } });
     const result = await addMediaToTimeline(client, "timeline-1", "media-1");
     expect(result).toEqual(row);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { timeline_id: "timeline-1", media_id: "media-1", sort_order: 0 },
+      { onConflict: "timeline_id,media_id", ignoreDuplicates: true },
+    );
   });
 
   it("accepts an explicit sort_order", async () => {
@@ -1153,7 +1160,13 @@ describe("addMediaToTimeline", () => {
     };
     const client = makeClient({ fromResult: { data: row, error: null } });
     const result = await addMediaToTimeline(client, "timeline-1", "media-1", 5);
-    expect(result.sort_order).toBe(5);
+    expect(result?.sort_order).toBe(5);
+  });
+
+  it("returns null when the pair already exists (dedup no-op)", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    const result = await addMediaToTimeline(client, "timeline-1", "media-1");
+    expect(result).toBeNull();
   });
 
   it("throws on Supabase error", async () => {

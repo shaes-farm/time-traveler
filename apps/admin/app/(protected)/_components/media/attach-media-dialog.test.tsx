@@ -8,7 +8,12 @@ const h = vi.hoisted(() => ({
   externalMutate: vi.fn(),
   toastSuccess: vi.fn(),
   toastError: vi.fn(),
+  toastWarning: vi.fn(),
+  getExistingMediaIds: vi.fn(),
   pending: false,
+  /** Ids the stub picker hands back when "confirm-pick" is clicked. */
+  pickSelection: [] as string[],
+  pickerProps: null as { busy?: boolean } | null,
 }));
 
 vi.mock("@repo/ui/hooks/use-media", () => ({
@@ -23,7 +28,41 @@ vi.mock("@repo/ui/hooks/use-media", () => ({
 }));
 
 vi.mock("@repo/ui/components/sonner", () => ({
-  toast: { success: h.toastSuccess, error: h.toastError },
+  toast: {
+    success: h.toastSuccess,
+    error: h.toastError,
+    warning: h.toastWarning,
+  },
+}));
+
+vi.mock("@repo/services/media-service", () => ({
+  getExistingMediaIds: (...args: unknown[]) => h.getExistingMediaIds(...args),
+}));
+
+// Stub the connected picker: two buttons drive the dialog's confirm/cancel
+// with a controllable selection, so these tests stay focused on the dialog's
+// revalidation + junction-dispatch logic (the picker has its own tests).
+vi.mock("./existing-media-picker", () => ({
+  ExistingMediaPicker: (props: {
+    busy?: boolean;
+    onConfirm: (ids: string[]) => void | Promise<void>;
+    onCancel: () => void;
+  }) => {
+    h.pickerProps = props;
+    return (
+      <div data-testid="existing-picker">
+        <button
+          type="button"
+          onClick={() => void props.onConfirm(h.pickSelection)}
+        >
+          confirm-pick
+        </button>
+        <button type="button" onClick={() => props.onCancel()}>
+          cancel-pick
+        </button>
+      </div>
+    );
+  },
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,6 +80,10 @@ beforeEach(() => {
   h.externalMutate.mockReset().mockResolvedValue({ id: "new-external-id" });
   h.toastSuccess.mockReset();
   h.toastError.mockReset();
+  h.toastWarning.mockReset();
+  h.getExistingMediaIds.mockReset();
+  h.pickSelection = [];
+  h.pickerProps = null;
   h.pending = false;
 });
 
@@ -389,6 +432,163 @@ describe("AttachMediaDialog — error handling & cancel", () => {
       within(dialog)
         .getAllByRole("button", { name: /Cancel/ })
         .at(-1)!,
+    );
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("AttachMediaDialog — Existing tab", () => {
+  it("shows the Existing tab only when attach variant + onAttachExisting are provided", async () => {
+    const { rerender } = render(
+      <AttachMediaDialog
+        open
+        onOpenChange={vi.fn()}
+        client={client}
+        onAttached={vi.fn()}
+        onAttachExisting={vi.fn()}
+      />,
+    );
+    let dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("tab", { name: /Existing/ }),
+    ).toBeInTheDocument();
+
+    // Omitting onAttachExisting hides the tab.
+    rerender(
+      <AttachMediaDialog
+        open
+        onOpenChange={vi.fn()}
+        client={client}
+        onAttached={vi.fn()}
+      />,
+    );
+    dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).queryByRole("tab", { name: /Existing/ }),
+    ).not.toBeInTheDocument();
+
+    // The library variant never shows it, even with the callback present.
+    rerender(
+      <AttachMediaDialog
+        open
+        onOpenChange={vi.fn()}
+        client={client}
+        variant="library"
+        onAttached={vi.fn()}
+        onAttachExisting={vi.fn()}
+      />,
+    );
+    dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).queryByRole("tab", { name: /Existing/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("attaches the confirmed selection and closes on success", async () => {
+    const onAttachExisting = vi.fn().mockResolvedValue(undefined);
+    const onOpenChange = vi.fn();
+    h.pickSelection = ["m1", "m2"];
+    h.getExistingMediaIds.mockResolvedValue(new Set(["m1", "m2"]));
+
+    render(
+      <AttachMediaDialog
+        open
+        onOpenChange={onOpenChange}
+        client={client}
+        onAttached={vi.fn()}
+        onAttachExisting={onAttachExisting}
+      />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("tab", { name: /Existing/ }),
+    );
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "confirm-pick" }),
+    );
+
+    await waitFor(() =>
+      expect(onAttachExisting).toHaveBeenCalledWith(["m1", "m2"]),
+    );
+    expect(h.toastSuccess).toHaveBeenCalledWith("Media attached");
+    expect(h.toastWarning).not.toHaveBeenCalled();
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  it("drops ids that vanished, warns, and attaches only the survivors", async () => {
+    const onAttachExisting = vi.fn().mockResolvedValue(undefined);
+    h.pickSelection = ["m1", "gone", "m2"];
+    h.getExistingMediaIds.mockResolvedValue(new Set(["m1", "m2"]));
+
+    render(
+      <AttachMediaDialog
+        open
+        onOpenChange={vi.fn()}
+        client={client}
+        onAttached={vi.fn()}
+        onAttachExisting={onAttachExisting}
+      />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("tab", { name: /Existing/ }),
+    );
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "confirm-pick" }),
+    );
+
+    await waitFor(() =>
+      expect(onAttachExisting).toHaveBeenCalledWith(["m1", "m2"]),
+    );
+    expect(h.toastWarning).toHaveBeenCalledOnce();
+    expect(h.toastWarning.mock.calls[0]![0]).toMatch(/1 selected item was/i);
+  });
+
+  it("does not attach or close when every selected id has vanished", async () => {
+    const onAttachExisting = vi.fn();
+    const onOpenChange = vi.fn();
+    h.pickSelection = ["gone1", "gone2"];
+    h.getExistingMediaIds.mockResolvedValue(new Set<string>());
+
+    render(
+      <AttachMediaDialog
+        open
+        onOpenChange={onOpenChange}
+        client={client}
+        onAttached={vi.fn()}
+        onAttachExisting={onAttachExisting}
+      />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("tab", { name: /Existing/ }),
+    );
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "confirm-pick" }),
+    );
+
+    await waitFor(() => expect(h.toastWarning).toHaveBeenCalledOnce());
+    expect(onAttachExisting).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it("Cancel from the picker closes the dialog", async () => {
+    const onOpenChange = vi.fn();
+    render(
+      <AttachMediaDialog
+        open
+        onOpenChange={onOpenChange}
+        client={client}
+        onAttached={vi.fn()}
+        onAttachExisting={vi.fn()}
+      />,
+    );
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("tab", { name: /Existing/ }),
+    );
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: "cancel-pick" }),
     );
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
