@@ -482,4 +482,24 @@ describe("MediaSection — attach", () => {
       within(dialog).getByRole("tab", { name: /External URL/ }),
     ).toBeInTheDocument();
   });
+
+  it("forwards onAttachExisting so the dialog offers the Existing tab", async () => {
+    render(
+      <MediaSection {...baseProps({ items: [], onAttachExisting: vi.fn() })} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Attach media/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("tab", { name: /Existing/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("omits the Existing tab when onAttachExisting is not provided", async () => {
+    render(<MediaSection {...baseProps({ items: [] })} />);
+    await userEvent.click(screen.getByRole("button", { name: /Attach media/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).queryByRole("tab", { name: /Existing/ }),
+    ).not.toBeInTheDocument();
+  });
 });

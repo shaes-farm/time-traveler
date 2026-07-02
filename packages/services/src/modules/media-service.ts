@@ -946,3 +946,26 @@ export async function getOrphanMediaIds(
   const map = await getMediaAttachmentsBulk(client, mediaIds);
   return mediaIds.filter((id) => (map[id] ?? []).length === 0);
 }
+
+/**
+ * Return the subset of `mediaIds` whose `media` row still exists. Used by the
+ * attach flow to drop ids that were deleted while a picker was open before
+ * writing junctions (a stale selection would otherwise fail the media_id FK).
+ * Returns an empty set for empty input without any round-trip.
+ */
+export async function getExistingMediaIds(
+  client: SupabaseClient<Database>,
+  mediaIds: string[],
+): Promise<Set<string>> {
+  if (mediaIds.length === 0) {
+    return new Set();
+  }
+
+  const { data, error } = await client
+    .from("media")
+    .select("id")
+    .in("id", mediaIds);
+
+  assertNoError(error, "getExistingMediaIds");
+  return new Set((data ?? []).map((row) => row.id));
+}

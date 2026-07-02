@@ -889,12 +889,19 @@ export async function addMediaToEvent(
   eventId: string,
   mediaId: string,
   sortOrder = 0,
-): Promise<EventMediaRow> {
+): Promise<EventMediaRow | null> {
+  // Idempotent: re-attaching an already-linked (event_id, media_id) pair is a
+  // no-op via the composite PK. `ignoreDuplicates` leaves the existing row's
+  // sort_order untouched and returns no row, so this resolves to `null` rather
+  // than throwing 23505. Lets the same media be reused across entities.
   const { data, error } = await client
     .from("event_media")
-    .insert({ event_id: eventId, media_id: mediaId, sort_order: sortOrder })
+    .upsert(
+      { event_id: eventId, media_id: mediaId, sort_order: sortOrder },
+      { onConflict: "event_id,media_id", ignoreDuplicates: true },
+    )
     .select()
-    .single();
+    .maybeSingle();
 
   assertNoError(error, "addMediaToEvent");
   return data;

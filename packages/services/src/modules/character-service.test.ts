@@ -25,6 +25,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
   const builder = {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
@@ -32,6 +33,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
+    maybeSingle: terminal,
     then: (resolve: (v: unknown) => unknown) =>
       Promise.resolve(result).then(resolve),
   };
@@ -840,7 +842,7 @@ describe("getCharacterEvents", () => {
 // ---------------------------------------------------------------------------
 
 describe("addMediaToCharacter", () => {
-  it("inserts and returns the junction row", async () => {
+  it("upserts and returns the junction row", async () => {
     const client = makeClient({
       fromResult: { data: sampleMedia, error: null },
     });
@@ -848,7 +850,7 @@ describe("addMediaToCharacter", () => {
     expect(result).toEqual(sampleMedia);
   });
 
-  it("passes is_primary=true when specified", async () => {
+  it("passes is_primary=true when specified, ignoring duplicates on the composite PK", async () => {
     const primaryMedia = { ...sampleMedia, is_primary: true };
     const client = makeClient({
       fromResult: { data: primaryMedia, error: null },
@@ -857,11 +859,10 @@ describe("addMediaToCharacter", () => {
     expect(result).toEqual(primaryMedia);
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.insert).toHaveBeenCalledWith({
-      character_id: "char-1",
-      media_id: "media-1",
-      is_primary: true,
-    });
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { character_id: "char-1", media_id: "media-1", is_primary: true },
+      { onConflict: "character_id,media_id", ignoreDuplicates: true },
+    );
   });
 
   it("defaults is_primary to false", async () => {
@@ -871,11 +872,16 @@ describe("addMediaToCharacter", () => {
     await addMediaToCharacter(client, "char-1", "media-1");
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.insert).toHaveBeenCalledWith({
-      character_id: "char-1",
-      media_id: "media-1",
-      is_primary: false,
-    });
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { character_id: "char-1", media_id: "media-1", is_primary: false },
+      { onConflict: "character_id,media_id", ignoreDuplicates: true },
+    );
+  });
+
+  it("returns null when the pair already exists (dedup no-op)", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    const result = await addMediaToCharacter(client, "char-1", "media-1");
+    expect(result).toBeNull();
   });
 
   it("throws on Supabase error", async () => {

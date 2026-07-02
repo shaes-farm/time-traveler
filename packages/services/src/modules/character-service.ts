@@ -382,16 +382,23 @@ export async function addMediaToCharacter(
   characterId: string,
   mediaId: string,
   isPrimary = false,
-): Promise<CharacterMediaRow> {
+): Promise<CharacterMediaRow | null> {
+  // Idempotent: re-attaching an already-linked (character_id, media_id) pair is
+  // a no-op via the composite PK. `ignoreDuplicates` leaves the existing row's
+  // is_primary untouched and returns no row, so this resolves to `null` rather
+  // than throwing 23505. Lets the same media be reused across entities.
   const { data, error } = await client
     .from("character_media")
-    .insert({
-      character_id: characterId,
-      media_id: mediaId,
-      is_primary: isPrimary,
-    })
+    .upsert(
+      {
+        character_id: characterId,
+        media_id: mediaId,
+        is_primary: isPrimary,
+      },
+      { onConflict: "character_id,media_id", ignoreDuplicates: true },
+    )
     .select()
-    .single();
+    .maybeSingle();
 
   assertNoError(error, "addMediaToCharacter");
   return data;

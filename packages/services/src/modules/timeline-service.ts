@@ -632,16 +632,23 @@ export async function addMediaToTimeline(
   timelineId: string,
   mediaId: string,
   sortOrder = 0,
-): Promise<TimelineMediaRow> {
+): Promise<TimelineMediaRow | null> {
+  // Idempotent: re-attaching an already-linked (timeline_id, media_id) pair is a
+  // no-op via the composite PK. `ignoreDuplicates` leaves the existing row's
+  // sort_order untouched and returns no row, so this resolves to `null` rather
+  // than throwing 23505. Lets the same media be reused across entities.
   const { data, error } = await client
     .from("timeline_media")
-    .insert({
-      timeline_id: timelineId,
-      media_id: mediaId,
-      sort_order: sortOrder,
-    })
+    .upsert(
+      {
+        timeline_id: timelineId,
+        media_id: mediaId,
+        sort_order: sortOrder,
+      },
+      { onConflict: "timeline_id,media_id", ignoreDuplicates: true },
+    )
     .select()
-    .single();
+    .maybeSingle();
 
   assertNoError(error, "addMediaToTimeline");
   return data;
