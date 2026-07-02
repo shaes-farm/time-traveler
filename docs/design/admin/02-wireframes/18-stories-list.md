@@ -24,33 +24,33 @@
 │  Stories                                                  [ + New story ]    │
 │  9 total · 6 shown                                                           │
 │                                                                              │
-│  ┌─────────────────┐  ┌────────────────────────────────────────────────────┐  │
-│  │ Filter          │  │ ⌕ Search title, summary, detail…                   │  │
-│  │                 │  │                                                    │  │
-│  │ Narrator        │  │ ┌──────────────────────────┬───────────┬────┐     │  │
-│  │ ☐ First-person 3│  │ │ Title                    │ Narrator  │Pub │     │  │
-│  │ ☐ Third-person 4│  │ ├──────────────────────────┼───────────┼────┤     │  │
-│  │ ☐ Omniscient  2 │  │ │ The Curies' Quest        │ 3rd-person│ ✓  │     │  │
-│  │                 │  │ │ A radium love story      │           │    │     │  │
-│  │ Perspective     │  │ │ 👤 Marie Curie · 8 ev·3ch│           │    │     │  │
-│  │ ▾ Any character │  │ ├──────────────────────────┼───────────┼────┤     │  │
-│  │                 │  │ │ Fall of Rome             │ Omniscient│ ✓  │     │  │
-│  │ Status          │  │ │ 14 ev · 9 ch             │           │    │     │  │
-│  │ ☐ Published   6 │  │ │ tragedy · war            │           │    │     │  │
-│  │ ☐ Draft       3 │  │ ├──────────────────────────┼───────────┼────┤     │  │
-│  │                 │  │ │ My Grandfather's War     │ 1st-person│ ─  │     │  │
-│  │ Tags            │  │ │ 👤 Étienne (narrator)    │           │draft│    │  │
-│  │ [ war ×]        │  │ │ 5 ev · 2 ch              │           │    │     │  │
-│  │ [ + tag ]       │  │ └──────────────────────────┴───────────┴────┘     │  │
-│  │                 │  │                                                    │  │
-│  │ Clear filters   │  │ ⟨ 1  ⟩                          Sort: Updated ▾    │  │
-│  └─────────────────┘  └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  ┌─────────────────┐ │
+│  │ ⌕ Search title, summary, detail…                   │  │ Filter          │ │
+│  │                                                    │  │                 │ │
+│  │ ┌──────────────────────────┬───────────┬─────┐     │  │ Narrator        │ │
+│  │ │ Title                    │ Narrator  │Pub  │     │  │ ☐ First-person 3│ │
+│  │ ├──────────────────────────┼───────────┼─────┤     │  │ ☐ Third-person 4│ │
+│  │ │ The Curies' Quest        │ 3rd-person│ ✓   │     │  │ ☐ Omniscient  2 │ │
+│  │ │ A radium love story      │           │     │     │  │                 │ │
+│  │ │ 👤 Marie Curie · 8 ev·3ch│           │     │     │  │ Perspective     │ │
+│  │ ├──────────────────────────┼───────────┼─────┤     │  │ ▾ Any character │ │
+│  │ │ Fall of Rome             │ Omniscient│ ✓   │     │  │                 │ │
+│  │ │ 14 ev · 9 ch             │           │     │     │  │ Status          │ │
+│  │ │ tragedy · war            │           │     │     │  │ ☐ Published   6 │ │
+│  │ ├──────────────────────────┼───────────┼─────┤     │  │ ☐ Draft       3 │ │
+│  │ │ My Grandfather's War     │ 1st-person│ ─   │     │  │                 │ │
+│  │ │ 👤 Étienne (narrator)    │           │draft│     │  │ Tags            │ │
+│  │ │ 5 ev · 2 ch              │           │     │     │  │ [ war ×]        │ │
+│  │ └──────────────────────────┴───────────┴─────┘     │  │ [ + tag ]       │ │
+│  │                                                    │  │                 │ │
+│  │ ⟨ 1  ⟩                          Sort: Updated ▾    │  │ Clear filters   │ │
+│  └────────────────────────────────────────────────────┘  └─────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Annotations
 
-1. **Same left-rail + two-line-row list pattern** as characters/events/timelines ([03](03-characters-list.md), [07](07-events-list.md), [11](11-timeline-list.md)). Don't reinvent a fourth list idiom.
+1. **Same right-rail + two-line-row list pattern** as characters/events/timelines ([03](03-characters-list.md), [07](07-events-list.md), [11](11-timeline-list.md)) — filter rail on the right of the table. Don't reinvent a fourth list idiom. See ADR-0035.
 2. **`narrator_type` is a column + filter**, three values (`first_person|third_person|omniscient`). It's identity-level for a story (the narrative voice), so it sits beside the title like character_type does for characters.
 3. **Perspective character renders with the finalized type identity** — the `perspective_character_id` shows as `👤 Name` using the character-type icon + tint from [03-aesthetic-notes.md](../03-aesthetic-notes.md) § _Character type as identity_. For `first_person` stories it carries a `(narrator)` qualifier. Stories with no perspective character (common for omniscient) omit the chip.
 4. **Counts on line 2** — `N ev · M ch` (events via `story_events`, characters via `story_characters`). Deferred-tolerant like the timelines list: render without them if the count contract isn't wired.

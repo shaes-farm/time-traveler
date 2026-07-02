@@ -630,8 +630,6 @@ export function TimelineListClient() {
 
   return (
     <div className="flex h-full">
-      <FilterRail groups={filterGroups} onClearAll={handleClearAll} />
-
       <main className="flex flex-1 flex-col overflow-auto min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
@@ -805,6 +803,8 @@ export function TimelineListClient() {
           </div>
         )}
       </main>
+
+      <FilterRail groups={filterGroups} onClearAll={handleClearAll} />
     </div>
   );
 }

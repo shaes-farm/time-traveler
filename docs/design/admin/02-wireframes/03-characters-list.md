@@ -24,40 +24,40 @@
 │  Characters                                          [ + New character ]     │
 │  47 total · 12 shown                                                         │
 │                                                                              │
-│  ┌─────────────────┐  ┌────────────────────────────────────────────────────┐  │
-│  │ Filter          │  │ ⌕ Search by name or alias…                         │  │
-│  │                 │  │                                                    │  │
-│  │ Type            │  │ ┌──┬────────────────┬────────┬─────────────┬─────┐ │  │
-│  │ ☐ Human    23  │  │ │  │ Name           │ Type   │ Temporal    │ Pub │ │  │
-│  │ ☐ Animal    4  │  │ ├──┼────────────────┼────────┼─────────────┼─────┤ │  │
-│  │ ☐ Myth.     7  │  │ │● │ Marie Curie    │ Human  │ 1867–1934   │  ✓  │ │  │
-│  │ ☐ Fictional 3  │  │ │  │ ↳ M. Skłod… +1 │ ★★★★ │ CE          │     │ │  │
-│  │ ☐ Organiz.  5  │  │ │  │ 12 events · ⌶  │        │             │     │ │  │
-│  │ ☐ Divine    2  │  │ ├──┼────────────────┼────────┼─────────────┼─────┤ │  │
-│  │ ☐ Artifact  3  │  │ │● │ Pierre Curie   │ Human  │ 1859–1906   │  ✓  │ │  │
-│  │                 │  │ │  │ 8 events · ⌶  │ ★★★★   │ CE        │     │ │  │
-│  │ Significance    │  │ ├──┼────────────────┼────────┼─────────────┼─────┤ │  │
-│  │ ☐ Critical  4  │  │ │● │ Antoine Bec…   │ Human  │ 1852–1908   │  ─   │ │  │
-│  │ ☐ High     11  │  │ │  │ 3 events       │ ★★★    │ CE         │ draft│ │  │
-│  │ ☐ Medium   22  │  │ ├──┼────────────────┼─────────┼─────────────┼─────┤ │  │
-│  │ ☐ Low      10  │  │ │● │ Tyrannosaurus  │ Animal │ 68–66 MYA   │  ✓  │ │  │
-│  │                │  │ │  │ rex            │ ★★★★★  │ approximate │     │ │  │
-│  │ Status         │  │ │  │ 1 event        │         │             │     │ │  │
-│  │ ☐ Published 38 │  │ ├──┼────────────────┼────────┼─────────────┼─────┤ │  │
-│  │ ☐ Draft      9 │  │ │● │ Zeus           │ Divine │ —           │  ✓  │ │  │
-│  │                │  │ │  │ "Jupiter" +3   │ ★★★★  │             │     │ │  │
-│  │ Has media      │  │ │  │ 22 events · ⌶  │        │             │     │ │  │
-│  │ ☐ Yes      31  │  │ └──┴────────────────┴────────┴─────────────┴─────┘ │  │
-│  │ ☐ No       16  │  │                                                    │  │
-│  │                │  │ ⟨ 1  2  3  4  ⟩                       Sort: Name ▾  │  │
-│  │ Clear filters  │  │                                                    │  │
-│  └────────────────┘  └────────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────────┐  ┌────────────────┐ │
+│  │ ⌕ Search by name or alias…                          │  │ Filter         │ │
+│  │                                                     │  │                │ │
+│  │ ┌──┬────────────────┬────────┬─────────────┬──────┐ │  │ Type           │ │
+│  │ │  │ Name           │ Type   │ Temporal    │ Pub  │ │  │ ☐ Human    23  │ │
+│  │ ├──┼────────────────┼────────┼─────────────┼──────┤ │  │ ☐ Animal    4  │ │
+│  │ │● │ Marie Curie    │ Human  │ 1867–1934   │  ✓   │ │  │ ☐ Myth.     7  │ │
+│  │ │  │ ↳ M. Skłod… +1 │ ★★★★   │ CE          │      │ │  │ ☐ Fictional 3  │ │
+│  │ │  │ 12 events · ⌶  │        │             │      │ │  │ ☐ Organiz.  5  │ │
+│  │ ├──┼────────────────┼────────┼─────────────┼──────┤ │  │ ☐ Divine    2  │ │
+│  │ │● │ Pierre Curie   │ Human  │ 1859–1906   │  ✓   │ │  │ ☐ Artifact  3  │ │
+│  │ │  │ 8 events · ⌶   │ ★★★★    │ CE         │      │ │  │                │ │
+│  │ ├──┼────────────────┼────────┼─────────────┼──────┤ │  │ Significance   │ │
+│  │ │● │ Antoine Bec…   │ Human  │ 1852–1908   │  ─   │ │  │ ☐ Critical  4  │ │
+│  │ │  │ 3 events       │ ★★★    │ CE          │ draft│ │  │ ☐ High     11  │ │
+│  │ ├──┼────────────────┼────────┼─────────────┼──────┤ │  │ ☐ Medium   22  │ │
+│  │ │● │ Tyrannosaurus  │ Animal │ 68–66 MYA   │  ✓   │ │  │ ☐ Low      10  │ │
+│  │ │  │ rex            │ ★★★★★  │ approximate │      │ │  │                │ │
+│  │ │  │ 1 event        │        │             │      │ │  │ Status         │ │
+│  │ ├──┼────────────────┼────────┼─────────────┼──────┤ │  │ ☐ Published 38 │ │
+│  │ │● │ Zeus           │ Divine │ —           │  ✓   │ │  │ ☐ Draft      9 │ │
+│  │ │  │ "Jupiter" +3   │ ★★★★   │             │      │ │  │                │ │
+│  │ │  │ 22 events · ⌶  │        │             │      │ │  │ Has media      │ │
+│  │ └──┴────────────────┴────────┴─────────────┴──────┘ │  │ ☐ Yes      31  │ │
+│  │                                                     │  │ ☐ No       16  │ │
+│  │ ⟨ 1  2  3  4  ⟩                       Sort: Name ▾  │  │                │ │
+│  │                                                     │  │ Clear filters  │ │
+│  └─────────────────────────────────────────────────────┘  └────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Annotations
 
-1. **Left-rail filters with grouped counts.** Each filter group is a checkbox set with per-option counts. Multiple selections within a group are OR; across groups are AND. This is conventional and discoverable.
+1. **Right-rail filters with grouped counts.** The filter rail sits to the right of the table (after the content it filters), keeping the table adjacent to the primary nav and mirroring the editor's right-hand metadata column. Each filter group is a checkbox set with per-option counts. Multiple selections within a group are OR; across groups are AND. See ADR-0035.
 2. **Type badges should be visually distinct.** Color + label, not color alone. See [03-aesthetic-notes.md](../03-aesthetic-notes.md).
 3. **Row layout includes secondary info (aliases, event count) indented under the primary line.** This is the "two-line row" pattern from Linear/Notion lists. Saves columns without losing scanability.
 4. **Star icons (★) encode significance** — not a literal rating, just a sequential signal (low/medium/high/critical). The same `★★★★★` glyph means "critical" regardless of context.

@@ -25,51 +25,51 @@
 │  Events                                                  [ + New event ]     │
 │  312 total · 48 shown                                                        │
 │                                                                              │
-│  ┌────────────────┐  ┌────────────────────────────────────────────────────┐  │
-│  │ Filter         │  │ ⌕ Search title, summary, detail…                   │  │
-│  │                │  │                                                    │  │
-│  │ Era            │  │ ┌────┬────────────────────────┬────────┬───┬─────┐ │  │
-│  │ ☐ BYA       1  │  │ │    │ Title                  │ Date   │ ★ │ Pub │ │  │
-│  │ ☐ MYA       4  │  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │
-│  │ ☐ KYA       8  │  │ │ ⌒  │ Big Bang               │ 14 BYA │ 10│  ✓  │ │  │
-│  │ ☐ BCE      31  │  │ │    │ root · cosmological · 0│        │   │     │ │  │
-│  │ ☐ CE      268  │  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │
-│  │                │  │ │ ⌒  │ K-Pg extinction        │ 66 MYA │  9│  ✓  │ │  │
-│  │ Type           │  │ │    │ root · destruction · 2 │ ±1M    │   │     │ │  │
-│  │ ☐ Milestone 84 │  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │
-│  │ ☐ Discovery 41 │  │ │ ↳  │ Discovery of polonium  │ 1898   │  8│  ✓  │ │  │
-│  │ ☐ Period   29  │  │ │    │ Radium research · disc.│        │   │     │ │  │
-│  │ ☐ Incident 22  │  │ │    │ · 2 chars · physics    │        │   │     │ │  │
-│  │ ☐ Creation 18  │  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │
-│  │ ☐ Destruct.  9 │  │ │ ↳  │ Discovery of radium    │ 1898   │  8│  ─  │ │  │
-│  │ ☐ Transform. 5 │  │ │    │ Radium research · disc.│        │   │draft│ │  │
-│  │ ☐ Migration  4 │  │ │    │ · 2 chars · physics    │        │   │     │ │  │
-│  │ ☐ Conflict  62 │  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │
-│  │ ☐ Ceremony  11 │  │ │ ⌒  │ Curies share Nobel     │ 1903   │  9│  ✓  │ │  │
-│  │ ☐ Migration 27 │  │ │    │ Physics · ceremony · 3 │        │   │     │ │  │
-│  │                │  │ │    │ chars · nobel, physics │        │   │     │ │  │
-│  │ Importance     │  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │
-│  │ [ 1 ●────● 10 ]│  │ │ ⌒  │ Pierre Curie killed    │ 1906   │ 10│  ✓  │ │  │
-│  │                │  │ │    │ Curie biography · inc. │        │   │     │ │  │
-│  │ Timeline       │  │ │    │ · 1 char               │        │   │     │ │  │
-│  │ ▾ Any timeline │  │ └────┴────────────────────────┴────────┴───┴─────┘ │  │
-│  │                │  │                                                    │  │
-│  │ Has chars      │  │ ⟨ 1  2  3  …  7  ⟩            Sort: Date ascending▾│  │
-│  │ ☐ Yes     247  │  │                                                    │  │
-│  │ ☐ No       65  │  │                                                    │  │
-│  │                │  │                                                    │  │
-│  │ Status         │  │                                                    │  │
-│  │ ☐ Published251 │  │                                                    │  │
-│  │ ☐ Draft    61  │  │                                                    │  │
-│  │                │  │                                                    │  │
-│  │ Clear filters  │  │                                                    │  │
-│  └────────────────┘  └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  ┌────────────────┐  │
+│  │ ⌕ Search title, summary, detail…                   │  │ Filter         │  │
+│  │                                                    │  │                │  │
+│  │ ┌────┬────────────────────────┬────────┬───┬─────┐ │  │ Era            │  │
+│  │ │    │ Title                  │ Date   │ ★ │ Pub │ │  │ ☐ BYA       1  │  │
+│  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │ ☐ MYA       4  │  │
+│  │ │ ⌒  │ Big Bang               │ 14 BYA │ 10│  ✓  │ │  │ ☐ KYA       8  │  │
+│  │ │    │ root · cosmological · 0│        │   │     │ │  │ ☐ BCE      31  │  │
+│  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │ ☐ CE      268  │  │
+│  │ │ ⌒  │ K-Pg extinction        │ 66 MYA │  9│  ✓  │ │  │                │  │
+│  │ │    │ root · destruction · 2 │ ±1M    │   │     │ │  │ Type           │  │
+│  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │ ☐ Milestone 84 │  │
+│  │ │ ↳  │ Discovery of polonium  │ 1898   │  8│  ✓  │ │  │ ☐ Discovery 41 │  │
+│  │ │    │ Radium research · disc.│        │   │     │ │  │ ☐ Period   29  │  │
+│  │ │    │ · 2 chars · physics    │        │   │     │ │  │ ☐ Incident 22  │  │
+│  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │ ☐ Creation 18  │  │
+│  │ │ ↳  │ Discovery of radium    │ 1898   │  8│  ─  │ │  │ ☐ Destruct.  9 │  │
+│  │ │    │ Radium research · disc.│        │   │draft│ │  │ ☐ Transform. 5 │  │
+│  │ │    │ · 2 chars · physics    │        │   │     │ │  │ ☐ Migration  4 │  │
+│  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │ ☐ Conflict  62 │  │
+│  │ │ ⌒  │ Curies share Nobel     │ 1903   │  9│  ✓  │ │  │ ☐ Ceremony  11 │  │
+│  │ │    │ Physics · ceremony · 3 │        │   │     │ │  │ ☐ Migration 27 │  │
+│  │ │    │ chars · nobel, physics │        │   │     │ │  │                │  │
+│  │ ├────┼────────────────────────┼────────┼───┼─────┤ │  │ Importance     │  │
+│  │ │ ⌒  │ Pierre Curie killed    │ 1906   │ 10│  ✓  │ │  │ [ 1 ●────● 10 ]│  │
+│  │ │    │ Curie biography · inc. │        │   │     │ │  │                │  │
+│  │ │    │ · 1 char               │        │   │     │ │  │ Timeline       │  │
+│  │ └────┴────────────────────────┴────────┴───┴─────┘ │  │ ▾ Any timeline │  │
+│  │                                                    │  │                │  │
+│  │ ⟨ 1  2  3  …  7  ⟩            Sort: Date ascending▾│  │ Has chars      │  │
+│  │                                                    │  │ ☐ Yes     247  │  │
+│  │                                                    │  │ ☐ No       65  │  │
+│  │                                                    │  │                │  │
+│  │                                                    │  │ Status         │  │
+│  │                                                    │  │ ☐ Published251 │  │
+│  │                                                    │  │ ☐ Draft    61  │  │
+│  │                                                    │  │                │  │
+│  │                                                    │  │ Clear filters  │  │
+│  └────────────────────────────────────────────────────┘  └────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Annotations
 
-1. **Era filter is the most-used filter for this entity.** Pinned to the top of the filter rail.
+1. **Era filter is the most-used filter for this entity.** Pinned to the top of the filter rail. The rail sits to the **right** of the table (after the content it filters) — see the characters list ([03](03-characters-list.md)) and ADR-0035.
 2. **Importance filter is a range slider** (1–10), not a multi-select. The schema constrains importance to 1–10; users care about "show me importance 7+", not individual values.
 3. **Drill-down indicator in the first column.** `⤵` marks an event that **expands into a sub-timeline** (`detail_timeline_id` is set); blank otherwise. This is the only fractal signal a flat cross-timeline list can carry under the forward model ([#180](https://github.com/shaes-farm/time-traveler/issues/180)) — there is no root/child event nesting anymore. Clicking `⤵` opens that sub-timeline. _(The ASCII mock above still shows the legacy `⌒`/`↳` root/child glyphs; read the column as the `⤵` drill-down marker. Implemented in #45 now that [#177](https://github.com/shaes-farm/time-traveler/issues/177) has landed `detail_timeline_id`; the click target resolves only when the sub-timeline's slug is in the loaded set, otherwise the `⤵` shows as a static indicator.)_
 4. **Date column shows uncertainty inline.** "66 MYA ±1M" makes the precision visible without a dedicated column.

@@ -293,7 +293,6 @@ function EventsListPage() {
 
   return (
     <div className="flex h-full">
-      <FilterRail groups={groups} onClearAll={clearAll} />
       <main className="flex flex-1 flex-col overflow-auto">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h1 className="font-display text-xl text-foreground">Events</h1>
@@ -306,6 +305,7 @@ function EventsListPage() {
           <DataTable columns={COLUMNS} data={filtered} />
         </div>
       </main>
+      <FilterRail groups={groups} onClearAll={clearAll} />
     </div>
   );
 }
@@ -411,14 +411,6 @@ export const ImportanceFiltered: Story = {
           breadcrumbs={[{ label: "Events" }]}
         >
           <div className="flex h-full">
-            <FilterRail
-              groups={groups}
-              onClearAll={() => {
-                setTypeFilter([]);
-                setEraFilter([]);
-                setImportanceRange([1, 10]);
-              }}
-            />
             <main className="flex flex-1 flex-col overflow-auto">
               <div className="flex items-center justify-between border-b border-border px-6 py-4">
                 <h1 className="font-display text-xl text-foreground">Events</h1>
@@ -431,6 +423,14 @@ export const ImportanceFiltered: Story = {
                 <DataTable columns={COLUMNS} data={filtered} />
               </div>
             </main>
+            <FilterRail
+              groups={groups}
+              onClearAll={() => {
+                setTypeFilter([]);
+                setEraFilter([]);
+                setImportanceRange([1, 10]);
+              }}
+            />
           </div>
         </Shell>
       );

@@ -26,37 +26,37 @@
 │  Timelines                                             [ + New timeline ]    │
 │  14 total · 9 shown                                                          │
 │                                                                              │
-│  ┌─────────────────┐  ┌────────────────────────────────────────────────────┐  │
-│  │ Filter          │  │ ⌕ Search title, summary, detail…                   │  │
-│  │                 │  │                                                    │  │
-│  │ Type            │  │ ┌──┬──────────────────────┬──────────┬──────┬────┐ │  │
-│  │ ☐ General    8 │  │ │  │ Title                │ Type     │ Vis. │Pub │ │  │
-│  │ ☐ Biographical 4│  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │
-│  │ ☐ Comparative 2 │  │ │  │ Curie scientific…    │ Biograph.│ 🌐pub│ ✓  │ │  │
-│  │                 │  │ │  │ 1867–1934 CE · 24 ev…│          │      │    │ │  │
-│  │ Visibility      │  │ │  │ · 2 collaborators    │          │      │    │ │  │
-│  │ ☐ Private    9 │  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │
-│  │ ☐ Public     3 │  │ │  │ Cosmic history       │ General  │ 🌐pub│ ✓  │ │  │
-│  │ ☐ Shared     2 │  │ │  │ 14 BYA–now · 312 ev… │          │      │    │ │  │
-│  │                 │  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │
-│  │ Status          │  │ │  │ Origin of life       │ General  │ 🔒prv│ ─  │ │  │
-│  │ ☐ Published 11 │  │ │  │ 3.8–3.5 BYA · 9 ev…  │          │      │draft│ │  │
-│  │ ☐ Draft      3 │  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │
-│  │                │  │ │  │ Mesozoic era         │ General  │ 🔒prv│ ─  │ │  │
-│  │ Clear filters  │  │ │  │ 252–66 MYA · 41 ev…  │          │      │draft│ │  │
-│  └────────────────┘  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │
-│                      │ │  │ Greek mythology      │ General  │ 👥shr│ ✓  │ │  │
-│                      │ │  │ cosmos–1200 BCE      │          │      │    │ │  │
-│                      │ └──┴──────────────────────┴──────────┴──────┴────┘ │  │
-│                      │                                                    │  │
-│                      │ ⟨ 1  2  ⟩                       Sort: Updated ▾    │  │
-│                      └────────────────────────────────────────────────────┘  │
+│  ┌────────────────────────────────────────────────────┐  ┌─────────────────┐ │
+│  │ ⌕ Search title, summary, detail…                   │  │ Filter          │ │
+│  │                                                    │  │                 │ │
+│  │ ┌──┬──────────────────────┬──────────┬──────┬────┐ │  │ Type            │ │
+│  │ │  │ Title                │ Type     │ Vis. │Pub │ │  │ ☐ General     8 │ │
+│  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │ ☐ Biographical 4│ │
+│  │ │  │ Curie scientific…    │ Biograph.│ 🌐pub│ ✓  │ │  │ ☐ Comparative 2 │ │
+│  │ │  │ 1867–1934 CE · 24 ev…│          │      │    │ │  │                 │ │
+│  │ │  │ · 2 collaborators    │          │      │    │ │  │ Visibility      │ │
+│  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │ ☐ Private     9 │ │
+│  │ │  │ Cosmic history       │ General  │ 🌐pub│ ✓  │ │  │ ☐ Public      3 │ │
+│  │ │  │ 14 BYA–now · 312 ev… │          │      │    │ │  │ ☐ Shared      2 │ │
+│  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │                 │ │
+│  │ │  │ Origin of life       │ General  │ 🔒prv│ ─  │ │  │ Status          │ │
+│  │ │  │ 3.8–3.5 BYA · 9 ev…  │          │      │draft│ │  │ ☐ Published 11 │ │
+│  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  │ ☐ Draft       3 │ │
+│  │ │  │ Mesozoic era         │ General  │ 🔒prv│ ─  │ │  │                 │ │
+│  │ │  │ 252–66 MYA · 41 ev…  │          │      │draft│ │  │ Clear filters  │ │
+│  │ ├──┼──────────────────────┼──────────┼──────┼────┤ │  └─────────────────┘ │
+│  │ │  │ Greek mythology      │ General  │ 👥shr│ ✓  │ │                      │
+│  │ │  │ cosmos–1200 BCE      │          │      │    │ │                      │
+│  │ └──┴──────────────────────┴──────────┴──────┴────┘ │                      │
+│  │                                                    │                      │
+│  │ ⟨ 1  2  ⟩                       Sort: Updated ▾    │                      │
+│  └────────────────────────────────────────────────────┘                      │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Annotations
 
-1. **Same left-rail filter pattern** as the characters and events lists ([03](03-characters-list.md), [07](07-events-list.md)) — grouped checkbox sets with per-option counts; OR within a group, AND across groups. Discoverability over novelty: a third list screen is not the place to invent a new filter idiom.
+1. **Same right-rail filter pattern** as the characters and events lists ([03](03-characters-list.md), [07](07-events-list.md)) — grouped checkbox sets on the right of the table with per-option counts; OR within a group, AND across groups. Discoverability over novelty: a third list screen is not the place to invent a new filter idiom. See ADR-0035.
 2. **`timeline_type` badge** — `general` / `biographical` / `comparative`. Color + label, not color alone (per [03-aesthetic-notes.md](../03-aesthetic-notes.md)). Biographical timelines carry a subject character (see annotation #6).
 3. **`visibility` and published are two independent axes — and the list shows both** (issue #42, #48). `visibility` (`private`/`public`/`shared`) controls _who can reach_ the timeline via RLS; `published` controls _whether it is live_. A timeline can be `public` + draft, or `private` + published. The Visibility column uses an icon+label (`🔒 private`, `🌐 public`, `👥 shared`); the Pub column uses the shared publish badge from [16-publish-workflow.md](16-publish-workflow.md). Do **not** collapse these into one column — conflating them is the single most common timeline-model mistake and the schema deliberately separates them.
 4. **Two-line row** (the established list pattern). Line 1: title. Line 2: temporal span + event count + collaborator count. Temporal span renders era explicitly for non-CE (`252–66 MYA`, `14 BYA–now`); CE spans render bare years.

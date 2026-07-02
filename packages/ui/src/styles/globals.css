@@ -17,6 +17,20 @@
 @source "../**/*.{ts,tsx}";
 
 @layer base {
+  /* Default border color. Tailwind v4 resolves the bare `border` utility to
+   * `currentColor` (v3 defaulted to gray-200), which in this dark theme is the
+   * near-white foreground — producing harsh white borders on any element that
+   * doesn't set an explicit border color. Reset the default to our subdued
+   * `--color-border` token (zinc-800). Explicit utilities like `border-input`
+   * and `border-destructive/30` live in the utilities layer and still win. */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-border);
+  }
+
   :root {
     color-scheme: dark;
   }

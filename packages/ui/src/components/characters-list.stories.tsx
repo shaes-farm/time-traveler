@@ -261,7 +261,6 @@ function CharactersListPage() {
 
   return (
     <div className="flex h-full">
-      <FilterRail groups={groups} onClearAll={clearAll} />
       <main className="flex flex-1 flex-col overflow-auto">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h1 className="font-display text-xl text-foreground">Characters</h1>
@@ -274,6 +273,7 @@ function CharactersListPage() {
           <DataTable columns={COLUMNS} data={filtered} />
         </div>
       </main>
+      <FilterRail groups={groups} onClearAll={clearAll} />
     </div>
   );
 }
@@ -374,14 +374,6 @@ export const TypeFiltered: Story = {
           breadcrumbs={[{ label: "Characters" }]}
         >
           <div className="flex h-full">
-            <FilterRail
-              groups={groups}
-              onClearAll={() => {
-                setTypeFilter([]);
-                setEraFilter([]);
-                setPublishedFilter("any");
-              }}
-            />
             <main className="flex flex-1 flex-col overflow-auto">
               <div className="flex items-center justify-between border-b border-border px-6 py-4">
                 <h1 className="font-display text-xl text-foreground">
@@ -396,6 +388,14 @@ export const TypeFiltered: Story = {
                 <DataTable columns={COLUMNS} data={filtered} />
               </div>
             </main>
+            <FilterRail
+              groups={groups}
+              onClearAll={() => {
+                setTypeFilter([]);
+                setEraFilter([]);
+                setPublishedFilter("any");
+              }}
+            />
           </div>
         </Shell>
       );

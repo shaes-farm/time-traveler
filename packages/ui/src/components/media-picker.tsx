@@ -190,13 +190,6 @@ export function MediaPicker({
       )}
 
       <div className="flex min-h-0 flex-1">
-        <MediaFilterRail
-          counts={facetCounts}
-          selected={facets}
-          onChange={onFacetsChange}
-          onClearAll={onClearFilters}
-        />
-
         <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-auto p-4">
           <div className="relative">
             <Search
@@ -259,6 +252,13 @@ export function MediaPicker({
             />
           )}
         </main>
+
+        <MediaFilterRail
+          counts={facetCounts}
+          selected={facets}
+          onChange={onFacetsChange}
+          onClearAll={onClearFilters}
+        />
       </div>
 
       {bulkSelectActive && selectedCount > 0 && (
