@@ -7,6 +7,7 @@ import {
   useCharacter,
   useCreateCharacter,
   useUpdateCharacter,
+  useAutosaveCharacter,
   useDeleteCharacter,
   useCharacterTimeline,
   useCharacterNetwork,
@@ -14,6 +15,7 @@ import {
   useRemoveMediaFromCharacter,
   useSetPrimaryCharacterMedia,
   characterKeys,
+  characterMutationKeys,
 } from "./use-characters";
 
 // ---------------------------------------------------------------------------
@@ -77,6 +79,14 @@ const mockCharacter = {
 };
 
 const mockCharacters = [mockCharacter];
+
+const mockCharacterWithMedia = {
+  ...mockCharacter,
+  character_media: [
+    { character_id: "char-1", media_id: "media-1", is_primary: true },
+    { character_id: "char-1", media_id: "media-2", is_primary: false },
+  ],
+};
 
 // ---------------------------------------------------------------------------
 // useCharacters
@@ -421,6 +431,119 @@ describe("useSetPrimaryCharacterMedia", () => {
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: characterKeys.detail("char-1") }),
+    );
+  });
+
+  it("optimistically flips is_primary across character_media before the server responds", async () => {
+    vi.mocked(setPrimaryCharacterMedia).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(
+      characterKeys.detail("char-1"),
+      mockCharacterWithMedia,
+    );
+
+    const { result } = renderHook(
+      () => useSetPrimaryCharacterMedia(mockClient),
+      { wrapper },
+    );
+
+    result.current.mutate({ characterId: "char-1", mediaId: "media-2" });
+
+    await waitFor(() => {
+      const cached = queryClient.getQueryData<typeof mockCharacterWithMedia>(
+        characterKeys.detail("char-1"),
+      );
+      expect(cached?.character_media).toEqual([
+        { character_id: "char-1", media_id: "media-1", is_primary: false },
+        { character_id: "char-1", media_id: "media-2", is_primary: true },
+      ]);
+    });
+  });
+
+  it("rolls back the optimistic primary swap on error", async () => {
+    vi.mocked(setPrimaryCharacterMedia).mockRejectedValue(
+      new Error("DB error"),
+    );
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(
+      characterKeys.detail("char-1"),
+      mockCharacterWithMedia,
+    );
+
+    const { result } = renderHook(
+      () => useSetPrimaryCharacterMedia(mockClient),
+      { wrapper },
+    );
+
+    result.current.mutate({ characterId: "char-1", mediaId: "media-2" });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(queryClient.getQueryData(characterKeys.detail("char-1"))).toEqual(
+      mockCharacterWithMedia,
+    );
+  });
+
+  it("does not throw when there is no prior cache data on error", async () => {
+    vi.mocked(setPrimaryCharacterMedia).mockRejectedValue(
+      new Error("DB error"),
+    );
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useSetPrimaryCharacterMedia(mockClient),
+      { wrapper },
+    );
+
+    result.current.mutate({ characterId: "char-1", mediaId: "media-2" });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+  });
+});
+
+describe("characterMutationKeys", () => {
+  it("produces distinct keys for update and autosave", () => {
+    expect(characterMutationKeys.update).toEqual(["characters", "update"]);
+    expect(characterMutationKeys.autosave).toEqual(["characters", "autosave"]);
+  });
+});
+
+describe("useAutosaveCharacter", () => {
+  it("calls updateCharacter and invalidates only the detail query", async () => {
+    vi.mocked(updateCharacter).mockResolvedValue(mockCharacter as never);
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useAutosaveCharacter(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({ id: "char-1", data: { biography: "Draft..." } });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(updateCharacter).toHaveBeenCalledWith(mockClient, "char-1", {
+      biography: "Draft...",
+    });
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: characterKeys.detail("char-1") }),
+    );
+    expect(invalidateSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: characterKeys.lists() }),
+    );
+  });
+
+  it("rolls back the optimistic snapshot on error", async () => {
+    vi.mocked(updateCharacter).mockRejectedValue(new Error("DB error"));
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(characterKeys.detail("char-1"), mockCharacter);
+
+    const { result } = renderHook(() => useAutosaveCharacter(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({ id: "char-1", data: { biography: "bad" } });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(queryClient.getQueryData(characterKeys.detail("char-1"))).toEqual(
+      mockCharacter,
     );
   });
 });
