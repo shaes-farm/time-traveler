@@ -75,13 +75,12 @@ function assertNoError(
  */
 function assertAnimalHasSpecies(
   characterType: string | undefined,
-  species: string | null | undefined,
+  species: unknown,
   context: string,
 ): void {
-  if (
-    characterType === "animal" &&
-    (species == null || species.trim().length === 0)
-  ) {
+  if (characterType !== "animal") return;
+
+  if (typeof species !== "string" || species.trim().length === 0) {
     throw new Error(
       `CharacterService.${context}: species is required and must be non-empty when character_type is "animal"`,
     );
