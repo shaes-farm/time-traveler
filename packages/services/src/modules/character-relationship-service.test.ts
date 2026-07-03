@@ -12,6 +12,13 @@ import {
   getMutualRelationships,
   computeReciprocalRow,
 } from "./character-relationship-service";
+import {
+  relationshipTypeEnum,
+  familyRoleEnum,
+  professionalRoleEnum,
+  collaborationRoleEnum,
+  validateTypeRoleCombination,
+} from "../schemas/character-relationship";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers
@@ -365,6 +372,27 @@ describe("updateRelationship", () => {
     await updateRelationship(client, "rel-1", { character_id: UUID_A });
     expect(true).toBe(true);
   });
+
+  it("throws a descriptive error on duplicate relationship (23505) during update", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleRelationship, error: null },
+    });
+    const builder = client.from("character_relationships") as unknown as {
+      single: ReturnType<typeof vi.fn>;
+    };
+    builder.single
+      .mockResolvedValueOnce({ data: sampleRelationship, error: null }) // fetchCurrent
+      .mockResolvedValueOnce({
+        data: null,
+        error: { code: "23505", message: "unique violation" },
+      }); // primary update
+
+    await expect(
+      updateRelationship(client, "rel-1", { description: "updated" }),
+    ).rejects.toThrow(
+      "a friendship relationship between these characters already exists",
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -662,6 +690,56 @@ describe("computeReciprocalRow", () => {
       relationship_role: "spouse",
     });
     expect(recip).not.toHaveProperty("description");
+  });
+
+  // Symmetric traversal for reciprocal types (documented above
+  // getCharacterNetwork) is a consequence of dual-row storage, verified by
+  // the two tests below, plus the DB's forward-only CTE (verified by pgTAP
+  // 00008_database_functions_test.sql) — not re-tested here via mocked RPC
+  // responses.
+
+  it("produces a reciprocal row for every reciprocal-producing type and null for every asymmetric type", () => {
+    const asymmetric = new Set([
+      "mentor_student",
+      "owner_pet",
+      "trainer_trainee",
+      "creator_creation",
+      "worship",
+    ]);
+    for (const type of relationshipTypeEnum.options) {
+      const recip = computeReciprocalRow({
+        ...base,
+        relationship_type: type,
+        relationship_role: null,
+      });
+      if (asymmetric.has(type)) {
+        expect(recip).toBeNull();
+      } else {
+        expect(recip).not.toBeNull();
+      }
+    }
+  });
+
+  it("has a valid reciprocal role for every role in the resolved sub-role taxonomy (family/professional/collaboration)", () => {
+    const cases = [
+      ["family", familyRoleEnum.options],
+      ["professional", professionalRoleEnum.options],
+      ["collaboration", collaborationRoleEnum.options],
+    ] as const;
+    for (const [type, roles] of cases) {
+      for (const role of roles) {
+        const recip = computeReciprocalRow({
+          ...base,
+          relationship_type: type,
+          relationship_role: role,
+        });
+        expect(recip).not.toBeNull();
+        expect(recip?.relationship_role).not.toBeNull();
+        expect(
+          validateTypeRoleCombination(type, recip?.relationship_role ?? null),
+        ).toBeNull();
+      }
+    }
   });
 });
 
