@@ -29,6 +29,8 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     update: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    in: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
@@ -139,12 +141,96 @@ describe("getCharacters", () => {
     expect(builder.eq).toHaveBeenCalledWith("character_type", "fictional");
   });
 
+  it("applies characterType filter as SQL IN for multiple values", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { characterType: ["human", "animal"] });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.in).toHaveBeenCalledWith("character_type", [
+      "human",
+      "animal",
+    ]);
+  });
+
+  it("applies characterType filter as eq for a single-element array", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { characterType: ["human"] });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("character_type", "human");
+  });
+
+  it("applies significance filter", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { significance: "high" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("significance", "high");
+  });
+
+  it("applies significance filter as SQL IN for multiple values", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { significance: ["high", "critical"] });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.in).toHaveBeenCalledWith("significance", [
+      "high",
+      "critical",
+    ]);
+  });
+
   it("applies userId filter", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await getCharacters(client, { userId: "user-abc" });
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
     expect(builder.eq).toHaveBeenCalledWith("user_id", "user-abc");
+  });
+
+  it("applies published=true filter", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { published: true });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("published", true);
+  });
+
+  it("applies published=false filter", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { published: false });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("published", false);
+  });
+
+  it("selects an inner has-media embed when hasMedia=true", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { hasMedia: true });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.select).toHaveBeenCalledWith(
+      "*, character_media!inner(count)",
+    );
+    expect(builder.is).not.toHaveBeenCalled();
+  });
+
+  it("selects a plain has-media embed and filters is-null when hasMedia=false", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { hasMedia: false });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.select).toHaveBeenCalledWith(
+      "*, character_media(character_id)",
+    );
+    expect(builder.is).toHaveBeenCalledWith("character_media", null);
+  });
+
+  it("selects a bare * when hasMedia is omitted", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.select).toHaveBeenCalledWith("*");
   });
 
   it("applies search filter via full-text search", async () => {
@@ -191,12 +277,50 @@ describe("getCharacters", () => {
     expect(builder.range).toHaveBeenCalledWith(0, 99);
   });
 
-  it("orders results by name ascending", async () => {
+  it("orders results by name ascending by default", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await getCharacters(client);
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
     expect(builder.order).toHaveBeenCalledWith("name", { ascending: true });
+  });
+
+  it("orders by the requested sortBy/sortDirection", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, {
+      sortBy: "updated_at",
+      sortDirection: "desc",
+    });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("updated_at", {
+      ascending: false,
+    });
+  });
+
+  it("adds a secondary order by id for deterministic pagination", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { sortBy: "name" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("id", { ascending: true });
+  });
+
+  it("strips the character_media embed from returned rows when hasMedia is set", async () => {
+    const client = makeClient({
+      fromResult: {
+        data: [
+          {
+            ...sampleCharacter,
+            character_media: [{ character_id: "char-1" }],
+          },
+        ],
+        error: null,
+      },
+    });
+    const result = await getCharacters(client, { hasMedia: true });
+    expect(result).toEqual([sampleCharacter]);
+    expect(result[0]).not.toHaveProperty("character_media");
   });
 
   it("throws on Supabase error", async () => {

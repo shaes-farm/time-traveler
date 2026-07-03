@@ -1453,8 +1453,9 @@ describe("event_characters read consistency", () => {
     expect(eventBuilder.select).toHaveBeenCalledWith("*");
     expect(eventBuilder.eq).toHaveBeenCalledWith("event_id", "event-1");
 
-    const characterBuilder = (characterSideClient.from as ReturnType<typeof vi.fn>)
-      .mock.results[0]?.value as ReturnType<typeof makeBuilder>;
+    const characterBuilder = (
+      characterSideClient.from as ReturnType<typeof vi.fn>
+    ).mock.results[0]?.value as ReturnType<typeof makeBuilder>;
     expect(characterBuilder.select).toHaveBeenCalledWith("*");
     expect(characterBuilder.eq).toHaveBeenCalledWith("character_id", "char-1");
   });

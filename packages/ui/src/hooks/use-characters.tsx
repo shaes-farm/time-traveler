@@ -60,6 +60,30 @@ export const characterKeys = {
 };
 
 // ---------------------------------------------------------------------------
+// Mutation keys
+// ---------------------------------------------------------------------------
+
+/**
+ * Mutation keys distinguishing the deliberate "Save" action from the
+ * character editor's (#56) 30s dirty-interval auto-save. Distinct keys let
+ * the editor track each mutation's pending state independently via
+ * `useIsMutating({ mutationKey: characterMutationKeys.autosave })` — without
+ * this split, an in-flight auto-save and a user-initiated Save would share
+ * one pending flag, so an auto-save completing in the background would reset
+ * the Save button's own pending/success state.
+ *
+ * DECISION: deferred per #54 — a Zustand slice for editor dirty/autosave-timer
+ * state was considered here but is out of scope this milestone; `ui-store`
+ * continues to own only global panel/drawer state. The editor should track
+ * its own dirty flag and timer locally and read mutation status via these
+ * keys with `useIsMutating`/`useMutationState`.
+ */
+export const characterMutationKeys = {
+  update: [...characterKeys.all, "update"] as const,
+  autosave: [...characterKeys.all, "autosave"] as const,
+};
+
+// ---------------------------------------------------------------------------
 // Query hooks
 // ---------------------------------------------------------------------------
 
@@ -169,6 +193,7 @@ export function useCreateCharacter(client: ServiceClient) {
 export function useUpdateCharacter(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: characterMutationKeys.update,
     mutationFn: ({ id, data }: { id: string; data: CharacterUpdateData }) =>
       updateCharacter(client, id, data),
     onMutate: async ({ id }) => {
@@ -186,6 +211,45 @@ export function useUpdateCharacter(client: ServiceClient) {
         queryKey: characterKeys.detail(id),
       });
       void queryClient.invalidateQueries({ queryKey: characterKeys.lists() });
+    },
+  });
+}
+
+/**
+ * Auto-save variant of `useUpdateCharacter` for the editor's periodic
+ * dirty-save (#56). Same request and snapshot/rollback shape, but keyed
+ * separately (`characterMutationKeys.autosave`) so it never shares pending
+ * state with the deliberate Save mutation. Invalidates the detail query
+ * immediately; the lists query is invalidated with `refetchType: "none"` —
+ * marked stale for the next mount rather than refetched right away, so a
+ * background 30s tick doesn't cause a list refetch, but a user returning to
+ * the list shortly after an auto-save doesn't see stale `useCharacters` data
+ * either (it has its own 30s `staleTime`).
+ */
+export function useAutosaveCharacter(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationKey: characterMutationKeys.autosave,
+    mutationFn: ({ id, data }: { id: string; data: CharacterUpdateData }) =>
+      updateCharacter(client, id, data),
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: characterKeys.detail(id) });
+      const previous = queryClient.getQueryData(characterKeys.detail(id));
+      return { previous, id };
+    },
+    onError: (_err, { id }, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(characterKeys.detail(id), context.previous);
+      }
+    },
+    onSuccess: (_data, { id }) => {
+      void queryClient.invalidateQueries({
+        queryKey: characterKeys.detail(id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: characterKeys.lists(),
+        refetchType: "none",
+      });
     },
   });
 }
@@ -242,7 +306,13 @@ export function useRemoveMediaFromCharacter(client: ServiceClient) {
   });
 }
 
-/** Set a media item as the character's primary image (sequential two-step swap; not transactional). */
+/**
+ * Set a media item as the character's primary image. Optimistically flips
+ * `is_primary` across the cached character's `character_media` array before
+ * the server responds (the server call itself remains a sequential two-step
+ * swap, not transactional — see `setPrimaryCharacterMedia` in
+ * character-service.ts), rolling back to the snapshot on error.
+ */
 export function useSetPrimaryCharacterMedia(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -253,6 +323,43 @@ export function useSetPrimaryCharacterMedia(client: ServiceClient) {
       characterId: string;
       mediaId: string;
     }) => setPrimaryCharacterMedia(client, characterId, mediaId),
+    onMutate: async ({ characterId, mediaId }) => {
+      await queryClient.cancelQueries({
+        queryKey: characterKeys.detail(characterId),
+      });
+      const previous = queryClient.getQueryData<CharacterWithRelations>(
+        characterKeys.detail(characterId),
+      );
+      // Only flip locally when the target media is actually present in the
+      // cached list — otherwise (stale cache, or a media item added moments
+      // earlier that hasn't been refetched yet) mapping every row to false
+      // would optimistically clear the primary image entirely rather than
+      // leaving the existing primary alone until the server responds.
+      const targetIsCached = previous?.character_media.some(
+        (media) => media.media_id === mediaId,
+      );
+      if (previous !== undefined && targetIsCached === true) {
+        queryClient.setQueryData<CharacterWithRelations>(
+          characterKeys.detail(characterId),
+          {
+            ...previous,
+            character_media: previous.character_media.map((media) => ({
+              ...media,
+              is_primary: media.media_id === mediaId,
+            })),
+          },
+        );
+      }
+      return { previous, characterId };
+    },
+    onError: (_err, { characterId }, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(
+          characterKeys.detail(characterId),
+          context.previous,
+        );
+      }
+    },
     onSuccess: (_data, { characterId }) => {
       void queryClient.invalidateQueries({
         queryKey: characterKeys.detail(characterId),

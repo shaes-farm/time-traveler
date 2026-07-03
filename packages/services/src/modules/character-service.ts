@@ -4,6 +4,7 @@ import {
   characterSchema,
   characterTypeEnum,
   characterTypeProfileSchema,
+  significanceEnum,
 } from "../schemas/character";
 import type {
   CharacterInput,
@@ -36,9 +37,27 @@ type CharacterNetworkRow =
 
 /** Optional filters accepted by getCharacters */
 export interface CharacterFilters {
-  characterType?: z.infer<typeof characterTypeEnum>;
+  /** Scalar or multi-value character_type filter; multiple values use SQL IN. */
+  characterType?:
+    z.infer<typeof characterTypeEnum> | z.infer<typeof characterTypeEnum>[];
+  /** Scalar or multi-value significance filter; multiple values use SQL IN. */
+  significance?:
+    z.infer<typeof significanceEnum> | z.infer<typeof significanceEnum>[];
   userId?: string;
   search?: string;
+  /** When true → only published rows; false → only draft rows; omit → no filter. */
+  published?: boolean;
+  /** When true → only characters with at least one media item; false → none; omit → no filter. */
+  hasMedia?: boolean;
+  /**
+   * Sort column. Defaults to "name". Excludes birth/death date — the
+   * characters table has no sort_order generated column (unlike
+   * events/timelines, whose sort_order columns derive from the era
+   * conversion formula in docs/system-design.md §4); see #326.
+   */
+  sortBy?: "name" | "created_at" | "updated_at";
+  /** Sort direction. Defaults to "asc". */
+  sortDirection?: "asc" | "desc";
   page?: number;
   pageSize?: number;
 }
@@ -93,7 +112,10 @@ function assertAnimalHasSpecies(
 
 /**
  * Returns a page of characters, optionally filtered by character type,
- * owner, or full-text search using the `search_vector` GIN index.
+ * significance, owner, published state, has-media, or full-text search using
+ * the `search_vector` GIN index. Supports sorting by name/created_at/updated_at
+ * (see `CharacterFilters.sortBy` for why birth/death date sorting isn't
+ * supported yet).
  *
  * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
  */
@@ -101,7 +123,16 @@ export async function getCharacters(
   client: SupabaseClient<Database>,
   filters: CharacterFilters = {},
 ): Promise<CharacterRow[]> {
-  const { characterType, userId, search } = filters;
+  const {
+    characterType,
+    significance,
+    userId,
+    search,
+    published,
+    hasMedia,
+    sortBy = "name",
+    sortDirection = "asc",
+  } = filters;
   const safePage = Math.max(1, Math.floor(filters.page ?? 1));
   const safePageSize = Math.min(
     100,
@@ -110,24 +141,81 @@ export async function getCharacters(
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  let query = client.from("characters").select("*");
+  // Same three-way embed trick as EventService.getEventsPage: "has at least
+  // one" uses an !inner embed; "has none" needs a plain column embed (an
+  // aggregate (count) embed combined with is.null returns the right count but
+  // empty rows). No embed is added when hasMedia is omitted, matching
+  // getCharacters' historical select("*") shape when the filter is unused.
+  const mediaEmbed =
+    hasMedia === true
+      ? "character_media!inner(count)"
+      : hasMedia === false
+        ? "character_media(character_id)"
+        : undefined;
+  const selectClause = mediaEmbed !== undefined ? `*, ${mediaEmbed}` : "*";
+
+  let query = client.from("characters").select(selectClause);
 
   if (characterType !== undefined) {
-    query = query.eq("character_type", characterType);
+    if (Array.isArray(characterType)) {
+      if (characterType.length === 1) {
+        query = query.eq("character_type", characterType[0]!);
+      } else if (characterType.length > 1) {
+        query = query.in("character_type", characterType);
+      }
+    } else {
+      query = query.eq("character_type", characterType);
+    }
+  }
+  if (significance !== undefined) {
+    if (Array.isArray(significance)) {
+      if (significance.length === 1) {
+        query = query.eq("significance", significance[0]!);
+      } else if (significance.length > 1) {
+        query = query.in("significance", significance);
+      }
+    } else {
+      query = query.eq("significance", significance);
+    }
   }
   if (userId !== undefined) {
     query = query.eq("user_id", userId);
+  }
+  if (published !== undefined) {
+    query = query.eq("published", published);
+  }
+  if (hasMedia === false) {
+    query = query.is("character_media", null);
   }
   if (search !== undefined && search.length > 0) {
     // Use PostgREST full-text search to leverage the GIN index on search_vector
     query = query.textSearch("search_vector", search, { type: "websearch" });
   }
 
-  query = query.range(from, to).order("name", { ascending: true });
+  const ascending = sortDirection === "asc";
+  // "id" is a secondary tie-breaker so paging stays deterministic when the
+  // primary sort column has duplicate values (e.g. two characters created in
+  // the same request, or sharing a name) — without it, offset pagination can
+  // skip or repeat rows across pages when ties are ordered inconsistently.
+  query = query
+    .order(sortBy, { ascending })
+    .order("id", { ascending: true })
+    .range(from, to);
 
   const { data, error } = await query;
   assertNoError(error, "getCharacters");
-  return data ?? [];
+
+  // The hasMedia embed above exists only to drive the query; strip it back
+  // off so the runtime shape always matches the declared CharacterRow[]
+  // return type instead of leaking the embed to callers.
+  const rows = (data ?? []) as unknown as (CharacterRow & {
+    character_media?: unknown;
+  })[];
+  return rows.map((row) => {
+    const rest = { ...row };
+    delete rest.character_media;
+    return rest;
+  });
 }
 
 /**
