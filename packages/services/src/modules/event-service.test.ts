@@ -1447,5 +1447,15 @@ describe("event_characters read consistency", () => {
     expect(Object.keys(fromEventSide[0] ?? {}).sort()).toEqual(
       Object.keys(fromCharacterSide[0] ?? {}).sort(),
     );
+
+    const eventBuilder = (eventSideClient.from as ReturnType<typeof vi.fn>).mock
+      .results[0]?.value as ReturnType<typeof makeBuilder>;
+    expect(eventBuilder.select).toHaveBeenCalledWith("*");
+    expect(eventBuilder.eq).toHaveBeenCalledWith("event_id", "event-1");
+
+    const characterBuilder = (characterSideClient.from as ReturnType<typeof vi.fn>)
+      .mock.results[0]?.value as ReturnType<typeof makeBuilder>;
+    expect(characterBuilder.select).toHaveBeenCalledWith("*");
+    expect(characterBuilder.eq).toHaveBeenCalledWith("character_id", "char-1");
   });
 });
