@@ -344,6 +344,9 @@ export async function createRelationship(
 
 /**
  * Apply a partial update to a relationship's type, description, or temporal scope.
+ * A type/role change that collides with an existing row surfaces as a
+ * descriptive error via the 4-column unique index (00014), not a raw
+ * Postgres exception.
  *
  * @param client - Supabase client instance
  * @param id - Relationship UUID
@@ -405,12 +408,21 @@ export async function updateRelationship(
   }
 
   // Update primary.
+  const effectiveTypeForError =
+    validated.relationship_type ?? current?.relationship_type;
   const { data: updated, error } = await client
     .from("character_relationships")
     .update(validated as unknown as RelationshipUpdate)
     .eq("id", id)
     .select()
     .single();
+  if (error !== null && error.code === "23505") {
+    const typeLabel =
+      effectiveTypeForError !== undefined ? `${effectiveTypeForError} ` : "";
+    throw new Error(
+      `CharacterRelationshipService.updateRelationship: a ${typeLabel}relationship between these characters already exists`,
+    );
+  }
   assertNoError(error, "updateRelationship");
 
   // Handle the reciprocal based on the type-transition between current and
@@ -706,12 +718,23 @@ const MAX_NETWORK_DEPTH = 5;
  * clamped to [1, MAX_NETWORK_DEPTH]. The DB function defaults to 2 when
  * depth is omitted.
  *
- * DECISION NEEDED: The `character_network` RPC only seeds traversal from the
- * `character_id` column (i.e., relationships where the starting character is
- * the source). Relationships where the starting character appears only in
- * `related_character_id` are NOT traversed. If a fully bidirectional network
- * is required, the DB function must be updated to union both directions, or
- * this service must pre-fetch reversed edges and merge results.
+ * Traversal direction: the `character_network` RPC (migration 00008) is
+ * forward-only — it seeds from rows where `character_id` matches the
+ * starting character and follows `related_character_id` at each hop; it does
+ * not union the reverse direction. This is intentional, not a gap:
+ *
+ * - For the 6 reciprocal-producing relationship_types (family, professional,
+ *   friendship, rivalry, enemy, collaboration), this service attempts to
+ *   materialize BOTH directions as separate rows (see `computeReciprocalRow`
+ *   and `ROLE_INVERSE` above). When the reciprocal row exists, forward-only
+ *   traversal finds an edge whichever character it starts from — the network is
+ *   symmetric because of dual-row storage, not because the CTE unions directions.
+ * - For the 5 asymmetric types (`ASYMMETRIC_TYPES`: mentor_student,
+ *   owner_pet, trainer_trainee, creator_creation, worship), only one row is
+ *   ever stored by design — the reverse assertion, if desired, must be
+ *   authored explicitly from the other character's editor. Forward-only
+ *   traversal correctly reflects that: starting the walk from the "object"
+ *   side of an asymmetric edge will not surface it, matching the data model.
  *
  * @param client - Supabase client instance
  * @param characterId - Starting character UUID
