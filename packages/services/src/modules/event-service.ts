@@ -949,9 +949,9 @@ export async function reorderEventMedia(
  * junction table. `role` defaults to `'participant'` and `significance`
  * defaults to `'secondary'` per the DB CHECK constraints.
  *
- * RLS: SELECT on event_characters is open to any user as long as the parent
- * event exists. INSERT/UPDATE/DELETE require
- * `events.user_id = auth.uid() OR is_admin()` — ownership is derived
+ * RLS: SELECT on event_characters is allowed when the parent event is visible
+ * under events RLS (published, owner, admin, or timeline collaborator).
+ * INSERT/UPDATE/DELETE require `events.user_id = auth.uid() OR is_admin()` — ownership is derived
  * transitively through the EVENT side only; the character's own owner is not
  * separately checked, so a caller who owns the event may attach any
  * character as a participant. This is the intended model
