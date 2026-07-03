@@ -448,6 +448,7 @@ CREATE TABLE characters (
     CHECK (significance IN ('low', 'medium', 'high', 'critical')),
   birth_temporal JSONB,
   death_temporal JSONB,
+  sort_order_years BIGINT GENERATED ALWAYS AS ( /* era conversion */ ) STORED,  -- #326 (migration 00025): keyed off birth_temporal, falling back to death_temporal, else NULL
   profile_data JSONB DEFAULT '{}',
   metadata JSONB DEFAULT '{}',
   search_vector TSVECTOR GENERATED ALWAYS AS (
@@ -1406,6 +1407,7 @@ CREATE INDEX idx_stories_search ON stories USING GIN (search_vector);
 -- Character lookups
 CREATE INDEX idx_characters_type ON characters (character_type);
 CREATE INDEX idx_characters_aliases ON characters USING GIN (aliases);
+CREATE INDEX idx_characters_sort ON characters (sort_order_years);  -- added in migration 00025 (#326)
 
 -- Junction table performance (reverse-FK lookups; the composite PK's leading
 -- column already supports lookups by the first-named column for free)

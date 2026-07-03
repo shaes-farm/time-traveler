@@ -258,6 +258,7 @@ export type Database = {
           search_vector: unknown;
           significance: string | null;
           slug: string;
+          sort_order_years: number | null;
           species: string | null;
           updated_at: string | null;
           user_id: string;
@@ -282,6 +283,7 @@ export type Database = {
           search_vector?: unknown;
           significance?: string | null;
           slug: string;
+          sort_order_years?: number | null;
           species?: string | null;
           updated_at?: string | null;
           user_id: string;
@@ -306,6 +308,7 @@ export type Database = {
           search_vector?: unknown;
           significance?: string | null;
           slug?: string;
+          sort_order_years?: number | null;
           species?: string | null;
           updated_at?: string | null;
           user_id?: string;
