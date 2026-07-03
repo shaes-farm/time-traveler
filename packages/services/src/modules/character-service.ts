@@ -414,6 +414,10 @@ export async function getCharacterNetwork(
  * Returns all `event_characters` junction rows for a character. This surfaces
  * which events the character participated in along with the role and
  * significance assigned to each participation.
+ *
+ * Shape mirrors EventService.getEventParticipants (both select("*") from the
+ * same junction table, filtered on the opposite FK) — see
+ * event-service.test.ts for a cross-check that the two stay in sync.
  */
 export async function getCharacterEvents(
   client: SupabaseClient<Database>,
