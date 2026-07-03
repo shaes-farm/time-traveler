@@ -14,6 +14,27 @@ export const characterTypeEnum = z.enum([
 
 export const significanceEnum = z.enum(["low", "medium", "high", "critical"]);
 
+/**
+ * Top-level shape of a character row.
+ *
+ * Column vs profile_data split (see migration 00001 and the per-type profile
+ * schemas below):
+ * - `species`, `breed`, `domain` are top-level `VARCHAR(500)` COLUMNS on the
+ *   character row, NOT `profile_data` keys. `species`/`breed` apply to
+ *   `animal`; `domain` is shared by `mythological`/`divine`.
+ * - `birth_temporal`/`death_temporal` are top-level JSONB columns and must
+ *   never be duplicated inside `profile_data`.
+ * - All other type-specific extras (`conservation_status`, `pantheon`,
+ *   `worship_period`, `powers`, `mythology`, `source_work`, `author`, `genre`,
+ *   `org_type`, `headquarters`, `artifact_type`, `material`,
+ *   `current_location`, `nationality`, `occupation`) live in `profile_data`
+ *   and are validated by `characterTypeProfileSchema`.
+ *
+ * Note: `species` is `.optional()` here because this schema is shared with
+ * `.partial()` updates. The "species required when character_type = 'animal'"
+ * invariant is enforced in the service layer (character-service.ts), which can
+ * resolve the effective type/species across a partial patch and the stored row.
+ */
 export const characterSchema = z.object({
   slug: slugSchema,
   name: z.string().min(1).max(2000),
@@ -22,12 +43,16 @@ export const characterSchema = z.object({
   aliases: z.array(z.string()).optional(),
   cultural_context: z.array(z.string()).optional(),
   physical_description: z.string().optional(),
+  // Top-level columns (not profile_data). species/breed → animal; see service
+  // for the animal-species-required guard.
   species: z.string().max(500).optional(),
   breed: z.string().max(500).optional(),
+  // Top-level column shared by mythological/divine.
   domain: z.string().max(500).optional(),
   significance: significanceEnum.default("medium"),
   birth_temporal: temporalDataSchema.optional(),
   death_temporal: temporalDataSchema.optional(),
+  // Per-type extras; validated by characterTypeProfileSchema, never top-level.
   profile_data: z.record(z.string(), z.unknown()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });

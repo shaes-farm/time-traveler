@@ -416,6 +416,134 @@ describe("createCharacter", () => {
     expect(result).toEqual(sampleCharacter);
   });
 
+  it("throws when an animal character omits species", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleCharacter, error: null },
+    });
+    await expect(
+      createCharacter(client, { name: "Lassie", character_type: "animal" }),
+    ).rejects.toThrow(
+      'CharacterService.createCharacter: species is required and must be non-empty when character_type is "animal"',
+    );
+  });
+
+  it("throws when an animal character has a blank (whitespace) species", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleCharacter, error: null },
+    });
+    await expect(
+      createCharacter(client, {
+        name: "Lassie",
+        character_type: "animal",
+        species: "   ",
+      }),
+    ).rejects.toThrow(
+      'CharacterService.createCharacter: species is required and must be non-empty when character_type is "animal"',
+    );
+  });
+
+  it("creates a divine character with blank temporals omitted", async () => {
+    const client = makeCreateClient({ data: sampleCharacter, error: null });
+    const result = await createCharacter(client, {
+      name: "Zeus",
+      character_type: "divine",
+      domain: "Sky and thunder",
+    });
+    expect(result).toEqual(sampleCharacter);
+  });
+
+  it("creates an artifact character with explicitly undefined temporals", async () => {
+    const client = makeCreateClient({ data: sampleCharacter, error: null });
+    const result = await createCharacter(client, {
+      name: "Excalibur",
+      character_type: "artifact",
+      birth_temporal: undefined,
+      death_temporal: undefined,
+    });
+    expect(result).toEqual(sampleCharacter);
+  });
+
+  it("resolves slug collisions deterministically (-2)", async () => {
+    let callCount = 0;
+    let insertBuilder: ReturnType<typeof makeBuilder> | undefined;
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: (v: unknown) => unknown) =>
+              Promise.resolve({
+                data: [{ slug: "sherlock-holmes" }],
+                error: null,
+              }).then(resolve),
+          };
+        }
+        insertBuilder = makeBuilder({ data: sampleCharacter, error: null });
+        return insertBuilder;
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+      rpc: vi.fn(),
+    } as unknown as SupabaseClient<Database>;
+
+    await createCharacter(client, {
+      name: "Sherlock Holmes",
+      character_type: "fictional",
+    });
+    const inserted = insertBuilder?.insert.mock.calls[0]?.[0] as {
+      slug: string;
+    };
+    expect(inserted.slug).toBe("sherlock-holmes-2");
+  });
+
+  it("resolves slug collisions deterministically (-3)", async () => {
+    let callCount = 0;
+    let insertBuilder: ReturnType<typeof makeBuilder> | undefined;
+    const client = {
+      from: vi.fn().mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            then: (resolve: (v: unknown) => unknown) =>
+              Promise.resolve({
+                data: [
+                  { slug: "sherlock-holmes" },
+                  { slug: "sherlock-holmes-2" },
+                ],
+                error: null,
+              }).then(resolve),
+          };
+        }
+        insertBuilder = makeBuilder({ data: sampleCharacter, error: null });
+        return insertBuilder;
+      }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+      rpc: vi.fn(),
+    } as unknown as SupabaseClient<Database>;
+
+    await createCharacter(client, {
+      name: "Sherlock Holmes",
+      character_type: "fictional",
+    });
+    const inserted = insertBuilder?.insert.mock.calls[0]?.[0] as {
+      slug: string;
+    };
+    expect(inserted.slug).toBe("sherlock-holmes-3");
+  });
+
   it("throws when no authenticated user", async () => {
     const client = makeClient({
       authUser: { data: { user: null }, error: null },
@@ -444,6 +572,8 @@ describe("createCharacter", () => {
       createCharacter(client, {
         name: "Lassie",
         character_type: "animal",
+        // species present so the animal guard passes and profile validation runs
+        species: "Canis lupus familiaris",
         profile_data: {
           character_type: "animal",
           conservation_status: "not-a-real-status",
@@ -579,6 +709,26 @@ describe("createCharacter", () => {
 // updateCharacter
 // ---------------------------------------------------------------------------
 
+// Call-count-aware client for updateCharacter tests that trigger the
+// fetch-then-validate path: from() call 1 resolves the narrow SELECT of the
+// stored row, call 2 resolves the UPDATE. Mirrors makeCreateClient.
+function makeUpdateClient(
+  fetchResult: { data: unknown; error: unknown },
+  updateResult: { data: unknown; error: unknown },
+) {
+  let callCount = 0;
+  const from = vi.fn().mockImplementation(() => {
+    callCount++;
+    return makeBuilder(callCount === 1 ? fetchResult : updateResult);
+  });
+  const client = {
+    from,
+    rpc: vi.fn(),
+    auth: { getUser: vi.fn() },
+  } as unknown as SupabaseClient<Database>;
+  return { client, from };
+}
+
 describe("updateCharacter", () => {
   it("returns updated character row", async () => {
     const updated = { ...sampleCharacter, name: "Dr. John Watson" };
@@ -597,6 +747,8 @@ describe("updateCharacter", () => {
     await expect(
       updateCharacter(client, "char-1", {
         character_type: "animal",
+        // species supplied so the animal guard passes and validation is reached
+        species: "Canis lupus familiaris",
         profile_data: {
           character_type: "animal",
           conservation_status: "extinct-soon",
@@ -605,15 +757,66 @@ describe("updateCharacter", () => {
     ).rejects.toThrow();
   });
 
-  it("skips profile validation when character_type is absent", async () => {
-    const updated = { ...sampleCharacter, biography: "Updated bio" };
-    const client = makeClient({ fromResult: { data: updated, error: null } });
-    // profile_data present but no character_type — no type-profile validation
+  it("does not fetch the stored row when the patch cannot violate any check", async () => {
+    // Non-animal type + valid profile_data + no species → no fetch needed.
+    const client = makeClient({
+      fromResult: { data: sampleCharacter, error: null },
+    });
+    await updateCharacter(client, "char-1", {
+      character_type: "fictional",
+      profile_data: {
+        character_type: "fictional",
+        source_work: "A Study in Scarlet",
+      },
+    });
+    // Only the UPDATE query runs — no separate fetch round-trip.
+    expect(client.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("validates profile_data against the fetched character_type when type is absent", async () => {
+    // Stored type is fictional; patch omits character_type. The unknown key
+    // must be rejected against the fetched (fictional) profile schema.
+    const { client, from } = makeUpdateClient(
+      { data: { character_type: "fictional", species: null }, error: null },
+      { data: sampleCharacter, error: null },
+    );
+    await expect(
+      updateCharacter(client, "char-1", {
+        biography: "Updated bio",
+        profile_data: { anything: "goes" },
+      }),
+    ).rejects.toThrow();
+    // The narrow fetch selected exactly the two columns it needs.
+    const fetchBuilder = from.mock.results[0]?.value as ReturnType<
+      typeof makeBuilder
+    >;
+    expect(fetchBuilder.select).toHaveBeenCalledWith("character_type, species");
+  });
+
+  it("accepts valid profile_data resolved against the fetched character_type", async () => {
+    const updated = { ...sampleCharacter, profile_data: { author: "Doyle" } };
+    const { client, from } = makeUpdateClient(
+      { data: { character_type: "fictional", species: null }, error: null },
+      { data: updated, error: null },
+    );
     const result = await updateCharacter(client, "char-1", {
-      biography: "Updated bio",
-      profile_data: { anything: "goes" },
+      profile_data: { character_type: "fictional", author: "Doyle" },
     });
     expect(result).toEqual(updated);
+    // One fetch + one update.
+    expect(from).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws when the stored-row fetch errors", async () => {
+    const { client } = makeUpdateClient(
+      { data: null, error: { message: "row missing" } },
+      { data: sampleCharacter, error: null },
+    );
+    await expect(
+      updateCharacter(client, "char-1", { profile_data: { foo: "bar" } }),
+    ).rejects.toThrow(
+      "CharacterService.updateCharacter(fetchCurrent): row missing",
+    );
   });
 
   it("throws on Supabase error", async () => {
@@ -623,6 +826,98 @@ describe("updateCharacter", () => {
     await expect(
       updateCharacter(client, "char-1", { name: "x" }),
     ).rejects.toThrow("CharacterService.updateCharacter: update failed");
+  });
+
+  // --- animal species guard --------------------------------------------------
+
+  it("switching to animal with a non-empty species patch succeeds without a fetch", async () => {
+    const updated = { ...sampleCharacter, character_type: "animal" };
+    const client = makeClient({ fromResult: { data: updated, error: null } });
+    const result = await updateCharacter(client, "char-1", {
+      character_type: "animal",
+      species: "Canis lupus familiaris",
+    });
+    expect(result).toEqual(updated);
+    // Species is in the patch, so the stored row is never read.
+    expect(client.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("switching to animal without species patch passes when the stored species is present", async () => {
+    const updated = { ...sampleCharacter, character_type: "animal" };
+    const { client } = makeUpdateClient(
+      {
+        data: { character_type: "human", species: "Canis lupus" },
+        error: null,
+      },
+      { data: updated, error: null },
+    );
+    const result = await updateCharacter(client, "char-1", {
+      character_type: "animal",
+    });
+    expect(result).toEqual(updated);
+  });
+
+  it("switching to animal without species patch throws when the stored species is null", async () => {
+    const { client } = makeUpdateClient(
+      { data: { character_type: "human", species: null }, error: null },
+      { data: sampleCharacter, error: null },
+    );
+    await expect(
+      updateCharacter(client, "char-1", { character_type: "animal" }),
+    ).rejects.toThrow(
+      'CharacterService.updateCharacter: species is required and must be non-empty when character_type is "animal"',
+    );
+  });
+
+  it("switching to animal with a blank species patch throws before any query", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleCharacter, error: null },
+    });
+    await expect(
+      updateCharacter(client, "char-1", {
+        character_type: "animal",
+        species: "",
+      }),
+    ).rejects.toThrow(
+      'CharacterService.updateCharacter: species is required and must be non-empty when character_type is "animal"',
+    );
+    // The guard fires before any DB access.
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("blanking species on a stored animal throws (type resolved from fetch)", async () => {
+    const { client } = makeUpdateClient(
+      {
+        data: { character_type: "animal", species: "Canis lupus" },
+        error: null,
+      },
+      { data: sampleCharacter, error: null },
+    );
+    await expect(
+      updateCharacter(client, "char-1", { species: "   " }),
+    ).rejects.toThrow(
+      'CharacterService.updateCharacter: species is required and must be non-empty when character_type is "animal"',
+    );
+  });
+
+  it("blanking species on a stored non-animal is allowed", async () => {
+    const updated = { ...sampleCharacter, species: "" };
+    const { client } = makeUpdateClient(
+      { data: { character_type: "human", species: null }, error: null },
+      { data: updated, error: null },
+    );
+    const result = await updateCharacter(client, "char-1", { species: "" });
+    expect(result).toEqual(updated);
+  });
+
+  it("setting a non-empty species without a type patch needs no fetch", async () => {
+    const updated = { ...sampleCharacter, species: "Panthera leo" };
+    const client = makeClient({ fromResult: { data: updated, error: null } });
+    const result = await updateCharacter(client, "char-1", {
+      species: "Panthera leo",
+    });
+    expect(result).toEqual(updated);
+    expect(client.from).toHaveBeenCalledTimes(1);
   });
 });
 

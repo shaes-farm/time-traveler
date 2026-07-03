@@ -68,6 +68,26 @@ function assertNoError(
   }
 }
 
+/**
+ * Enforces the invariant that an `animal` character must have a non-empty
+ * top-level `species`. Shared by createCharacter (payload values) and
+ * updateCharacter (effective values resolved from the patch + stored row).
+ */
+function assertAnimalHasSpecies(
+  characterType: string | undefined,
+  species: string | null | undefined,
+  context: string,
+): void {
+  if (
+    characterType === "animal" &&
+    (species == null || species.trim().length === 0)
+  ) {
+    throw new Error(
+      `CharacterService.${context}: species is required and must be non-empty when character_type is "animal"`,
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // CRUD
 // ---------------------------------------------------------------------------
@@ -162,6 +182,8 @@ export async function getCharacterBySlug(
  *
  * Validates the payload with both `characterSchema` (top-level fields) and the
  * per-type `characterTypeProfileSchema` (profile_data fields) before inserting.
+ * Enforces the animal-species invariant: an `animal` character must supply a
+ * non-empty top-level `species`.
  */
 export async function createCharacter(
   client: SupabaseClient<Database>,
@@ -176,6 +198,9 @@ export async function createCharacter(
   if (user === null) {
     throw new Error("CharacterService.createCharacter: no authenticated user");
   }
+
+  // Animal characters require a non-empty top-level species column.
+  assertAnimalHasSpecies(data.character_type, data.species, "createCharacter");
 
   // Validate type-specific profile_data fields if provided.
   // Spread profile_data first, then override character_type with the
@@ -247,29 +272,65 @@ export async function createCharacter(
 
 /**
  * Applies a partial update to a character. Only supplied fields are mutated.
- * Validates the partial payload with Zod before patching. When profile_data is
- * supplied alongside character_type, the type-specific profile schema is also
- * validated.
+ * Validates the partial payload with Zod before patching.
+ *
+ * Type-specific `profile_data` is always validated: against the patched
+ * `character_type` when present, otherwise against the stored type resolved by
+ * a single narrow `select("character_type, species")` round-trip. Callers never
+ * need to re-send `character_type` just to patch `profile_data`.
+ *
+ * The animal-species invariant is enforced on the *effective* values: effective
+ * type is the patched type (else stored), effective species is the patched
+ * species when that key is present (else stored). The fetch is skipped whenever
+ * the patch cannot violate either check (e.g. no profile_data, and species is
+ * either untouched or set to a non-empty value, and type is not being set to
+ * animal without species).
  */
 export async function updateCharacter(
   client: SupabaseClient<Database>,
   id: string,
   data: Partial<CharacterInput>,
 ): Promise<CharacterRow> {
-  // Validate type-specific profile_data when character_type is included in the
-  // patch. Spread profile_data first, then set character_type authoritatively so
-  // the caller cannot override the type via profile_data keys.
-  //
-  // DECISION NEEDED: when only profile_data is updated (character_type omitted),
-  // validation is skipped because we don't know the persisted type without an
-  // extra DB round-trip. Until a fetch-then-validate strategy is adopted, callers
-  // MUST include character_type whenever they patch profile_data.
-  if (data.profile_data !== undefined && data.character_type !== undefined) {
+  // Determine whether we need the stored row to resolve the effective
+  // character_type and/or species. A single fetch covers both needs.
+  const speciesPatched = data.species !== undefined;
+  const speciesBlank =
+    data.species !== undefined && data.species.trim().length === 0;
+  const needsFetch =
+    // profile_data present without a type in the patch → need stored type
+    (data.profile_data !== undefined && data.character_type === undefined) ||
+    // asserting/switching to animal without species in the patch → need stored species
+    (data.character_type === "animal" && !speciesPatched) ||
+    // blanking species without a type in the patch → need stored type
+    (data.character_type === undefined && speciesBlank);
+
+  let stored: { character_type: string; species: string | null } | null = null;
+  if (needsFetch) {
+    const { data: current, error: fetchError } = await client
+      .from("characters")
+      .select("character_type, species")
+      .eq("id", id)
+      .single();
+    assertNoError(fetchError, "updateCharacter(fetchCurrent)");
+    stored = current;
+  }
+
+  const effectiveType = data.character_type ?? stored?.character_type;
+
+  // Validate type-specific profile_data. Spread profile_data first, then set
+  // character_type authoritatively so the caller cannot override the type via
+  // profile_data keys.
+  if (data.profile_data !== undefined) {
     characterTypeProfileSchema.parse({
       ...data.profile_data,
-      character_type: data.character_type,
+      character_type: effectiveType,
     });
   }
+
+  // Animal characters require a non-empty species. Resolve species from the
+  // patch when present, otherwise from the stored row.
+  const effectiveSpecies = speciesPatched ? data.species : stored?.species;
+  assertAnimalHasSpecies(effectiveType, effectiveSpecies, "updateCharacter");
 
   const validated = characterSchema.partial().parse(data);
 
