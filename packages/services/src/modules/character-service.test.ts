@@ -282,7 +282,10 @@ describe("getCharacters", () => {
     await getCharacters(client);
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.order).toHaveBeenCalledWith("name", { ascending: true });
+    expect(builder.order).toHaveBeenCalledWith("name", {
+      ascending: true,
+      nullsFirst: false,
+    });
   });
 
   it("orders by the requested sortBy/sortDirection", async () => {
@@ -295,6 +298,21 @@ describe("getCharacters", () => {
       ?.value as ReturnType<typeof makeBuilder>;
     expect(builder.order).toHaveBeenCalledWith("updated_at", {
       ascending: false,
+      nullsFirst: false,
+    });
+  });
+
+  it("orders by sort_order_years with NULLs last regardless of direction", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, {
+      sortBy: "sort_order_years",
+      sortDirection: "asc",
+    });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("sort_order_years", {
+      ascending: true,
+      nullsFirst: false,
     });
   });
 

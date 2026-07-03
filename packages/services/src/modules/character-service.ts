@@ -50,12 +50,13 @@ export interface CharacterFilters {
   /** When true → only characters with at least one media item; false → none; omit → no filter. */
   hasMedia?: boolean;
   /**
-   * Sort column. Defaults to "name". Excludes birth/death date — the
-   * characters table has no sort_order generated column (unlike
-   * events/timelines, whose sort_order columns derive from the era
-   * conversion formula in docs/system-design.md §4); see #326.
+   * Sort column. Defaults to "name". "sort_order_years" sorts by birth date
+   * (falling back to death date when birth_temporal is absent; NULL — e.g.
+   * mythological/divine characters with neither — sorts last regardless of
+   * sortDirection). See the characters.sort_order_years generated column,
+   * migration 00025 (#326).
    */
-  sortBy?: "name" | "created_at" | "updated_at";
+  sortBy?: "name" | "created_at" | "updated_at" | "sort_order_years";
   /** Sort direction. Defaults to "asc". */
   sortDirection?: "asc" | "desc";
   page?: number;
@@ -113,9 +114,9 @@ function assertAnimalHasSpecies(
 /**
  * Returns a page of characters, optionally filtered by character type,
  * significance, owner, published state, has-media, or full-text search using
- * the `search_vector` GIN index. Supports sorting by name/created_at/updated_at
- * (see `CharacterFilters.sortBy` for why birth/death date sorting isn't
- * supported yet).
+ * the `search_vector` GIN index. Supports sorting by
+ * name/created_at/updated_at/sort_order_years (see `CharacterFilters.sortBy`
+ * for sort_order_years' birth/death-date fallback and NULL handling).
  *
  * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
  */
@@ -197,8 +198,10 @@ export async function getCharacters(
   // primary sort column has duplicate values (e.g. two characters created in
   // the same request, or sharing a name) — without it, offset pagination can
   // skip or repeat rows across pages when ties are ordered inconsistently.
+  // nullsFirst: false keeps undated characters (sort_order_years IS NULL)
+  // sorted last regardless of direction, matching EventFilters.sortBy.
   query = query
-    .order(sortBy, { ascending })
+    .order(sortBy, { ascending, nullsFirst: false })
     .order("id", { ascending: true })
     .range(from, to);
 
