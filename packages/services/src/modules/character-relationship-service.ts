@@ -409,7 +409,7 @@ export async function updateRelationship(
 
   // Update primary.
   const effectiveTypeForError =
-    validated.relationship_type ?? current?.relationship_type ?? "relationship";
+    validated.relationship_type ?? current?.relationship_type;
   const { data: updated, error } = await client
     .from("character_relationships")
     .update(validated as unknown as RelationshipUpdate)
@@ -417,8 +417,10 @@ export async function updateRelationship(
     .select()
     .single();
   if (error !== null && error.code === "23505") {
+    const typeLabel =
+      effectiveTypeForError !== undefined ? `${effectiveTypeForError} ` : "";
     throw new Error(
-      `CharacterRelationshipService.updateRelationship: a ${effectiveTypeForError} relationship between these characters already exists`,
+      `CharacterRelationshipService.updateRelationship: a ${typeLabel}relationship between these characters already exists`,
     );
   }
   assertNoError(error, "updateRelationship");
