@@ -497,6 +497,33 @@ describe("useSetPrimaryCharacterMedia", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
+
+  it("skips the optimistic flip when the target media is not in the cached list", async () => {
+    vi.mocked(setPrimaryCharacterMedia).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(
+      characterKeys.detail("char-1"),
+      mockCharacterWithMedia,
+    );
+
+    const { result } = renderHook(
+      () => useSetPrimaryCharacterMedia(mockClient),
+      { wrapper },
+    );
+
+    result.current.mutate({
+      characterId: "char-1",
+      mediaId: "media-not-cached",
+    });
+
+    // Cache is left untouched (rather than every row being flipped to false)
+    // until the real invalidation/refetch lands.
+    expect(queryClient.getQueryData(characterKeys.detail("char-1"))).toEqual(
+      mockCharacterWithMedia,
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
 });
 
 describe("characterMutationKeys", () => {
@@ -507,7 +534,7 @@ describe("characterMutationKeys", () => {
 });
 
 describe("useAutosaveCharacter", () => {
-  it("calls updateCharacter and invalidates only the detail query", async () => {
+  it("calls updateCharacter, invalidates detail immediately, and marks lists stale without refetching", async () => {
     vi.mocked(updateCharacter).mockResolvedValue(mockCharacter as never);
     const { wrapper, queryClient } = createWrapper();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
@@ -525,8 +552,11 @@ describe("useAutosaveCharacter", () => {
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: characterKeys.detail("char-1") }),
     );
-    expect(invalidateSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: characterKeys.lists() }),
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: characterKeys.lists(),
+        refetchType: "none",
+      }),
     );
   });
 

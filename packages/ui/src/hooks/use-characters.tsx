@@ -219,10 +219,12 @@ export function useUpdateCharacter(client: ServiceClient) {
  * Auto-save variant of `useUpdateCharacter` for the editor's periodic
  * dirty-save (#56). Same request and snapshot/rollback shape, but keyed
  * separately (`characterMutationKeys.autosave`) so it never shares pending
- * state with the deliberate Save mutation, and invalidates only the detail
- * query — not the lists — since auto-save never toggles `published` (the
- * editor's Save button is still required to transition Draft → Published)
- * and re-fetching the whole list on every 30s tick would be wasteful.
+ * state with the deliberate Save mutation. Invalidates the detail query
+ * immediately; the lists query is invalidated with `refetchType: "none"` —
+ * marked stale for the next mount rather than refetched right away, so a
+ * background 30s tick doesn't cause a list refetch, but a user returning to
+ * the list shortly after an auto-save doesn't see stale `useCharacters` data
+ * either (it has its own 30s `staleTime`).
  */
 export function useAutosaveCharacter(client: ServiceClient) {
   const queryClient = useQueryClient();
@@ -243,6 +245,10 @@ export function useAutosaveCharacter(client: ServiceClient) {
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({
         queryKey: characterKeys.detail(id),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: characterKeys.lists(),
+        refetchType: "none",
       });
     },
   });
@@ -324,7 +330,15 @@ export function useSetPrimaryCharacterMedia(client: ServiceClient) {
       const previous = queryClient.getQueryData<CharacterWithRelations>(
         characterKeys.detail(characterId),
       );
-      if (previous !== undefined) {
+      // Only flip locally when the target media is actually present in the
+      // cached list — otherwise (stale cache, or a media item added moments
+      // earlier that hasn't been refetched yet) mapping every row to false
+      // would optimistically clear the primary image entirely rather than
+      // leaving the existing primary alone until the server responds.
+      const targetIsCached = previous?.character_media.some(
+        (media) => media.media_id === mediaId,
+      );
+      if (previous !== undefined && targetIsCached === true) {
         queryClient.setQueryData<CharacterWithRelations>(
           characterKeys.detail(characterId),
           {

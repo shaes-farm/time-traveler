@@ -193,11 +193,29 @@ export async function getCharacters(
   }
 
   const ascending = sortDirection === "asc";
-  query = query.order(sortBy, { ascending }).range(from, to);
+  // "id" is a secondary tie-breaker so paging stays deterministic when the
+  // primary sort column has duplicate values (e.g. two characters created in
+  // the same request, or sharing a name) — without it, offset pagination can
+  // skip or repeat rows across pages when ties are ordered inconsistently.
+  query = query
+    .order(sortBy, { ascending })
+    .order("id", { ascending: true })
+    .range(from, to);
 
   const { data, error } = await query;
   assertNoError(error, "getCharacters");
-  return (data ?? []) as unknown as CharacterRow[];
+
+  // The hasMedia embed above exists only to drive the query; strip it back
+  // off so the runtime shape always matches the declared CharacterRow[]
+  // return type instead of leaking the embed to callers.
+  const rows = (data ?? []) as unknown as (CharacterRow & {
+    character_media?: unknown;
+  })[];
+  return rows.map((row) => {
+    const rest = { ...row };
+    delete rest.character_media;
+    return rest;
+  });
 }
 
 /**

@@ -298,6 +298,31 @@ describe("getCharacters", () => {
     });
   });
 
+  it("adds a secondary order by id for deterministic pagination", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCharacters(client, { sortBy: "name" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("id", { ascending: true });
+  });
+
+  it("strips the character_media embed from returned rows when hasMedia is set", async () => {
+    const client = makeClient({
+      fromResult: {
+        data: [
+          {
+            ...sampleCharacter,
+            character_media: [{ character_id: "char-1" }],
+          },
+        ],
+        error: null,
+      },
+    });
+    const result = await getCharacters(client, { hasMedia: true });
+    expect(result).toEqual([sampleCharacter]);
+    expect(result[0]).not.toHaveProperty("character_media");
+  });
+
   it("throws on Supabase error", async () => {
     const client = makeClient({
       fromResult: { data: null, error: { message: "query failed" } },
