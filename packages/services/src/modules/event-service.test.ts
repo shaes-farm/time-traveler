@@ -23,6 +23,7 @@ import {
   removeCharacterFromEvent,
   getEventParticipants,
 } from "./event-service";
+import { getCharacterEvents } from "./character-service";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers
@@ -1306,6 +1307,53 @@ describe("addCharacterToEvent", () => {
       addCharacterToEvent(client, "event-1", "char-1"),
     ).rejects.toThrow("EventService.addCharacterToEvent: insert failed");
   });
+
+  it("throws a clean error for an invalid role without querying the DB", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleCharacter, error: null },
+    });
+    await expect(
+      addCharacterToEvent(
+        client,
+        "event-1",
+        "char-1",
+        // @ts-expect-error intentionally invalid role
+        "hero",
+      ),
+    ).rejects.toThrow(/not a valid character role/);
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("throws a clean error for an invalid significance without querying the DB", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleCharacter, error: null },
+    });
+    await expect(
+      addCharacterToEvent(
+        client,
+        "event-1",
+        "char-1",
+        "protagonist",
+        // @ts-expect-error intentionally invalid significance
+        "legendary",
+      ),
+    ).rejects.toThrow(/not a valid significance level/);
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("throws a descriptive error on duplicate participation (23505)", async () => {
+    const client = makeClient({
+      fromResult: {
+        data: null,
+        error: { code: "23505", message: "duplicate key" },
+      },
+    });
+    await expect(
+      addCharacterToEvent(client, "event-1", "char-1"),
+    ).rejects.toThrow(
+      "EventService.addCharacterToEvent: character is already a participant in this event",
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -1362,5 +1410,52 @@ describe("getEventParticipants", () => {
     await expect(getEventParticipants(client, "event-1")).rejects.toThrow(
       "EventService.getEventParticipants: DB error",
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// event_characters read consistency (#53)
+// ---------------------------------------------------------------------------
+
+describe("event_characters read consistency", () => {
+  it("getEventParticipants and getCharacterEvents surface identical row shape for the same junction row", async () => {
+    const row = {
+      event_id: "event-1",
+      character_id: "char-1",
+      role: "protagonist",
+      significance: "primary",
+      description: "led the expedition",
+    };
+
+    const eventSideClient = makeClient({
+      fromResult: { data: [row], error: null },
+    });
+    const characterSideClient = makeClient({
+      fromResult: { data: [row], error: null },
+    });
+
+    const fromEventSide = await getEventParticipants(
+      eventSideClient,
+      "event-1",
+    );
+    const fromCharacterSide = await getCharacterEvents(
+      characterSideClient,
+      "char-1",
+    );
+
+    expect(fromEventSide[0]).toEqual(fromCharacterSide[0]);
+    expect(Object.keys(fromEventSide[0] ?? {}).sort()).toEqual(
+      Object.keys(fromCharacterSide[0] ?? {}).sort(),
+    );
+
+    const eventBuilder = (eventSideClient.from as ReturnType<typeof vi.fn>).mock
+      .results[0]?.value as ReturnType<typeof makeBuilder>;
+    expect(eventBuilder.select).toHaveBeenCalledWith("*");
+    expect(eventBuilder.eq).toHaveBeenCalledWith("event_id", "event-1");
+
+    const characterBuilder = (characterSideClient.from as ReturnType<typeof vi.fn>)
+      .mock.results[0]?.value as ReturnType<typeof makeBuilder>;
+    expect(characterBuilder.select).toHaveBeenCalledWith("*");
+    expect(characterBuilder.eq).toHaveBeenCalledWith("character_id", "char-1");
   });
 });

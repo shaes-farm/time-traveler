@@ -19,6 +19,7 @@ export default defineConfig({
         "src/schemas/media.ts",
         "src/schemas/story.ts",
         "src/schemas/character-relationship.ts",
+        "src/schemas/event-character.ts",
         "src/schemas/slug.ts",
         "src/modules/temporal-service.ts",
         "src/modules/timeline-service.ts",

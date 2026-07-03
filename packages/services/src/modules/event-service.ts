@@ -2,6 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { eventSchema, eventTypeEnum } from "../schemas/event";
 import type { EventInput } from "../schemas/event";
+import {
+  characterRoleEnum,
+  eventCharacterSignificanceEnum,
+} from "../schemas/event-character";
 import { eraEnum } from "../schemas/temporal";
 import type { Era } from "../schemas/temporal";
 import { generateSlug, resolveCollision } from "../utils/slug";
@@ -22,22 +26,12 @@ type EventCharacterRow =
   Database["public"]["Tables"]["event_characters"]["Row"];
 
 /** A role in an event as defined by the DB CHECK constraint on event_characters.role */
-export type CharacterRole =
-  | "protagonist"
-  | "antagonist"
-  | "witness"
-  | "participant"
-  | "victim"
-  | "beneficiary"
-  | "performer"
-  | "competitor"
-  | "owner"
-  | "creator"
-  | "observer";
+export type CharacterRole = z.infer<typeof characterRoleEnum>;
 
 /** Significance level as defined by the DB CHECK constraint on event_characters.significance */
-export type CharacterSignificance =
-  "primary" | "secondary" | "minor" | "mentioned";
+export type CharacterSignificance = z.infer<
+  typeof eventCharacterSignificanceEnum
+>;
 
 /** Canonical event type enum value. */
 export type EventType = z.infer<typeof eventTypeEnum>;
@@ -954,6 +948,14 @@ export async function reorderEventMedia(
  * Records a character's participation in an event via the `event_characters`
  * junction table. `role` defaults to `'participant'` and `significance`
  * defaults to `'secondary'` per the DB CHECK constraints.
+ *
+ * RLS: SELECT on event_characters is allowed when the parent event is visible
+ * under events RLS (published, owner, admin, or timeline collaborator).
+ * INSERT/UPDATE/DELETE require `events.user_id = auth.uid() OR is_admin()` — ownership is derived
+ * transitively through the EVENT side only; the character's own owner is not
+ * separately checked, so a caller who owns the event may attach any
+ * character as a participant. This is the intended model
+ * (00007_rls_policies.sql / 00011_rls_performance_hardening.sql).
  */
 export async function addCharacterToEvent(
   client: SupabaseClient<Database>,
@@ -962,6 +964,20 @@ export async function addCharacterToEvent(
   role: CharacterRole = "participant",
   significance: CharacterSignificance = "secondary",
 ): Promise<EventCharacterRow> {
+  const roleResult = characterRoleEnum.safeParse(role);
+  if (!roleResult.success) {
+    throw new Error(
+      `EventService.addCharacterToEvent: "${role}" is not a valid character role`,
+    );
+  }
+  const significanceResult =
+    eventCharacterSignificanceEnum.safeParse(significance);
+  if (!significanceResult.success) {
+    throw new Error(
+      `EventService.addCharacterToEvent: "${significance}" is not a valid significance level`,
+    );
+  }
+
   const { data, error } = await client
     .from("event_characters")
     .insert({
@@ -973,12 +989,19 @@ export async function addCharacterToEvent(
     .select()
     .single();
 
+  if (error !== null && error.code === "23505") {
+    throw new Error(
+      "EventService.addCharacterToEvent: character is already a participant in this event",
+    );
+  }
   assertNoError(error, "addCharacterToEvent");
   return data;
 }
 
 /**
  * Removes the participation record for a character in an event.
+ *
+ * RLS: same event-derived ownership model as addCharacterToEvent above.
  */
 export async function removeCharacterFromEvent(
   client: SupabaseClient<Database>,
@@ -1002,6 +1025,10 @@ export async function removeCharacterFromEvent(
  * type, etc.) is NOT joined. Callers that need full character details must
  * fetch characters separately by `character_id`, or query the
  * `event_participants_view` database view directly.
+ *
+ * Shape mirrors CharacterService.getCharacterEvents (both select("*") from
+ * the same junction table, filtered on the opposite FK) — see
+ * event-service.test.ts for a cross-check that the two stay in sync.
  */
 export async function getEventParticipants(
   client: SupabaseClient<Database>,
