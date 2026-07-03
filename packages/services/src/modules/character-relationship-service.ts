@@ -724,11 +724,11 @@ const MAX_NETWORK_DEPTH = 5;
  * not union the reverse direction. This is intentional, not a gap:
  *
  * - For the 6 reciprocal-producing relationship_types (family, professional,
- *   friendship, rivalry, enemy, collaboration), this service always
- *   materializes BOTH directions as separate rows (see `computeReciprocalRow`
- *   and `ROLE_INVERSE` above), so forward-only traversal finds an edge
- *   whichever character it starts from — the network is symmetric because of
- *   dual-row storage, not because the CTE unions directions.
+ *   friendship, rivalry, enemy, collaboration), this service attempts to
+ *   materialize BOTH directions as separate rows (see `computeReciprocalRow`
+ *   and `ROLE_INVERSE` above). When the reciprocal row exists, forward-only
+ *   traversal finds an edge whichever character it starts from — the network is
+ *   symmetric because of dual-row storage, not because the CTE unions directions.
  * - For the 5 asymmetric types (`ASYMMETRIC_TYPES`: mentor_student,
  *   owner_pet, trainer_trainee, creator_creation, worship), only one row is
  *   ever stored by design — the reverse assertion, if desired, must be
