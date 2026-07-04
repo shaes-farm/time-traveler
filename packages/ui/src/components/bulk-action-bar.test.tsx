@@ -142,4 +142,75 @@ describe("BulkActionBar", () => {
     await user.click(confirmButton);
     expect(onPublish).not.toHaveBeenCalled();
   });
+
+  it("does not render a Delete button when onDelete is not passed (no regression for publish/unpublish-only consumers)", () => {
+    render(
+      <BulkActionBar
+        count={2}
+        onPublish={vi.fn()}
+        onUnpublish={vi.fn()}
+        onClear={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Delete" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders an enabled Delete button when onDelete is passed", () => {
+    render(<BulkActionBar count={2} onDelete={vi.fn()} onClear={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Delete" })).toBeEnabled();
+  });
+
+  it("shows destructive confirm copy and fires onDelete from the delete confirm", async () => {
+    const onDelete = vi.fn();
+    const user = userEvent.setup();
+    render(
+      <BulkActionBar
+        count={3}
+        entityLabel="character"
+        onDelete={onDelete}
+        onClear={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog");
+    expect(
+      within(dialog).getByText("Delete 3 characters?"),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("This cannot be undone."),
+    ).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+    expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("disables the Delete button while busy", () => {
+    render(
+      <BulkActionBar count={2} busy onDelete={vi.fn()} onClear={vi.fn()} />,
+    );
+    expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+  });
+
+  it("does not re-fire onDelete when confirming while busy", async () => {
+    const onDelete = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <BulkActionBar count={3} onDelete={onDelete} onClear={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    rerender(
+      <BulkActionBar count={3} busy onDelete={onDelete} onClear={vi.fn()} />,
+    );
+    const confirmButton = within(screen.getByRole("dialog")).getByRole(
+      "button",
+      { name: "Delete" },
+    );
+    expect(confirmButton).toBeDisabled();
+    await user.click(confirmButton);
+    expect(onDelete).not.toHaveBeenCalled();
+  });
 });
