@@ -15,13 +15,17 @@ import {
 } from "@tanstack/react-query";
 import {
   getCharacters,
+  getCharactersPage,
   getCharacterById,
   getCharacterBySlug,
   createCharacter,
   updateCharacter,
   deleteCharacter,
+  publishCharacter,
+  unpublishCharacter,
   getCharacterTimeline,
   getCharacterNetwork,
+  getCharacterFacetCounts,
   addMediaToCharacter,
   removeMediaFromCharacter,
   setPrimaryCharacterMedia,
@@ -50,6 +54,10 @@ export const characterKeys = {
   lists: () => [...characterKeys.all, "list"] as const,
   list: (filters: CharacterFilters) =>
     [...characterKeys.lists(), filters] as const,
+  page: (filters: CharacterFilters) =>
+    [...characterKeys.all, "page", filters] as const,
+  facetCounts: (filters: CharacterFilters) =>
+    [...characterKeys.all, "facetCounts", filters] as const,
   details: () => [...characterKeys.all, "detail"] as const,
   detail: (id: string) => [...characterKeys.details(), id] as const,
   bySlug: (userId: string, slug: string) =>
@@ -99,6 +107,44 @@ export function useCharacters(
   return useQuery({
     queryKey: characterKeys.list(filters),
     queryFn: () => getCharacters(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/**
+ * Fetch a page of characters together with the total filtered count, the
+ * primary media, and the event-participation count the characters list
+ * renders on each row.
+ */
+export function useCharactersPage(
+  client: ServiceClient,
+  filters: CharacterFilters = {},
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getCharactersPage>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: characterKeys.page(filters),
+    queryFn: () => getCharactersPage(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/** Fetch per-option facet counts for the characters list filter rail. */
+export function useCharacterFacetCounts(
+  client: ServiceClient,
+  filters: CharacterFilters = {},
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getCharacterFacetCounts>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: characterKeys.facetCounts(filters),
+    queryFn: () => getCharacterFacetCounts(client, filters),
     staleTime: 30_000,
     ...options,
   });
@@ -262,6 +308,32 @@ export function useDeleteCharacter(client: ServiceClient) {
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: characterKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: characterKeys.lists() });
+    },
+  });
+}
+
+/** Publish a character (set published=true and record published_at). */
+export function usePublishCharacter(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => publishCharacter(client, id),
+    onSuccess: () => {
+      // Invalidate by prefix so bySlug and other derived queries stay
+      // consistent with RLS visibility changes — mirrors usePublishEvent.
+      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
+    },
+  });
+}
+
+/** Unpublish a character (set published=false and clear published_at). */
+export function useUnpublishCharacter(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unpublishCharacter(client, id),
+    onSuccess: () => {
+      // Invalidate by prefix so bySlug and other derived queries stay
+      // consistent with RLS visibility changes — mirrors useUnpublishEvent.
+      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
     },
   });
 }

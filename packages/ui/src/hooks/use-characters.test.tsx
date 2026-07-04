@@ -4,13 +4,17 @@ import { type ReactNode, createElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   useCharacters,
+  useCharactersPage,
   useCharacter,
   useCreateCharacter,
   useUpdateCharacter,
   useAutosaveCharacter,
   useDeleteCharacter,
+  usePublishCharacter,
+  useUnpublishCharacter,
   useCharacterTimeline,
   useCharacterNetwork,
+  useCharacterFacetCounts,
   useAddMediaToCharacter,
   useRemoveMediaFromCharacter,
   useSetPrimaryCharacterMedia,
@@ -24,13 +28,17 @@ import {
 
 vi.mock("@repo/services/character-service", () => ({
   getCharacters: vi.fn(),
+  getCharactersPage: vi.fn(),
   getCharacterById: vi.fn(),
   getCharacterBySlug: vi.fn(),
   createCharacter: vi.fn(),
   updateCharacter: vi.fn(),
   deleteCharacter: vi.fn(),
+  publishCharacter: vi.fn(),
+  unpublishCharacter: vi.fn(),
   getCharacterTimeline: vi.fn(),
   getCharacterNetwork: vi.fn(),
+  getCharacterFacetCounts: vi.fn(),
   addMediaToCharacter: vi.fn(),
   removeMediaFromCharacter: vi.fn(),
   setPrimaryCharacterMedia: vi.fn(),
@@ -38,12 +46,16 @@ vi.mock("@repo/services/character-service", () => ({
 
 import {
   getCharacters,
+  getCharactersPage,
   getCharacterById,
   createCharacter,
   updateCharacter,
   deleteCharacter,
+  publishCharacter,
+  unpublishCharacter,
   getCharacterTimeline,
   getCharacterNetwork,
+  getCharacterFacetCounts,
   addMediaToCharacter,
   removeMediaFromCharacter,
   setPrimaryCharacterMedia,
@@ -123,6 +135,34 @@ describe("useCharacters", () => {
 
     expect(queryClient.getQueryData(characterKeys.list(filters))).toEqual(
       mockCharacters,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useCharactersPage
+// ---------------------------------------------------------------------------
+
+describe("useCharactersPage", () => {
+  it("calls getCharactersPage with client and filters and returns the page", async () => {
+    const page = { rows: mockCharacters, total: 1 };
+    vi.mocked(getCharactersPage).mockResolvedValue(page as never);
+    const filters = { characterType: "human" as const, page: 2 };
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useCharactersPage(mockClient, filters),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getCharactersPage).toHaveBeenCalledWith(mockClient, filters);
+    expect(result.current.data).toEqual(page);
+  });
+
+  it("uses a distinct query key from useCharacters", () => {
+    const filters = { characterType: "human" as const };
+    expect(characterKeys.page(filters)).not.toEqual(
+      characterKeys.list(filters),
     );
   });
 });
@@ -328,6 +368,91 @@ describe("useDeleteCharacter", () => {
 });
 
 // ---------------------------------------------------------------------------
+// usePublishCharacter / useUnpublishCharacter
+// ---------------------------------------------------------------------------
+
+describe("usePublishCharacter", () => {
+  it("calls publishCharacter and invalidates all character caches", async () => {
+    vi.mocked(publishCharacter).mockResolvedValue(mockCharacter as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => usePublishCharacter(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("char-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(publishCharacter).toHaveBeenCalledWith(mockClient, "char-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: characterKeys.all }),
+    );
+  });
+});
+
+describe("useUnpublishCharacter", () => {
+  it("calls unpublishCharacter and invalidates all character caches", async () => {
+    vi.mocked(unpublishCharacter).mockResolvedValue(mockCharacter as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUnpublishCharacter(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("char-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(unpublishCharacter).toHaveBeenCalledWith(mockClient, "char-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: characterKeys.all }),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// useCharacterFacetCounts
+// ---------------------------------------------------------------------------
+
+describe("useCharacterFacetCounts", () => {
+  it("calls getCharacterFacetCounts with client and filters", async () => {
+    const counts = {
+      characterType: {
+        human: 1,
+        animal: 0,
+        mythological: 0,
+        fictional: 0,
+        organization: 0,
+        divine: 0,
+        artifact: 0,
+      },
+      significance: { low: 0, medium: 1, high: 0, critical: 0 },
+      published: { published: 1, draft: 0 },
+      hasMedia: { yes: 1, no: 0 },
+    };
+    vi.mocked(getCharacterFacetCounts).mockResolvedValue(counts as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useCharacterFacetCounts(mockClient, {}),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getCharacterFacetCounts).toHaveBeenCalledWith(mockClient, {});
+    expect(result.current.data).toEqual(counts);
+  });
+
+  it("uses a distinct query key from useCharactersPage", () => {
+    const filters = { characterType: "human" as const };
+    expect(characterKeys.facetCounts(filters)).not.toEqual(
+      characterKeys.page(filters),
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // characterKeys factory
 // ---------------------------------------------------------------------------
 
@@ -338,6 +463,16 @@ describe("characterKeys", () => {
     expect(characterKeys.list({ page: 1 })).toEqual([
       "characters",
       "list",
+      { page: 1 },
+    ]);
+    expect(characterKeys.page({ page: 1 })).toEqual([
+      "characters",
+      "page",
+      { page: 1 },
+    ]);
+    expect(characterKeys.facetCounts({ page: 1 })).toEqual([
+      "characters",
+      "facetCounts",
       { page: 1 },
     ]);
     expect(characterKeys.detail("abc")).toEqual([

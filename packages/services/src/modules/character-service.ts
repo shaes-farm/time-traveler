@@ -31,6 +31,9 @@ type CharacterTimelineViewRow =
 type CharacterNetworkRow =
   Database["public"]["Functions"]["character_network"]["Returns"][number];
 
+export type CharacterType = z.infer<typeof characterTypeEnum>;
+export type Significance = z.infer<typeof significanceEnum>;
+
 // ---------------------------------------------------------------------------
 // Exported interfaces
 // ---------------------------------------------------------------------------
@@ -67,6 +70,33 @@ export interface CharacterFilters {
 export interface CharacterWithRelations extends CharacterRow {
   character_media: CharacterMediaRow[];
   character_relationships: CharacterRelationshipRow[];
+}
+
+/**
+ * A character row as returned by getCharactersPage — carries the primary
+ * media (for the list's name-cell hover thumbnail) and the count of events
+ * the character participated in (for the list's two-line row).
+ */
+export interface CharacterListRow extends CharacterRow {
+  character_media: {
+    is_primary: boolean | null;
+    media: { url: string; alt_text: string | null } | null;
+  }[];
+  event_characters: { count: number }[];
+}
+
+/** Paginated result from getCharactersPage — includes the total filtered count. */
+export interface CharactersPage {
+  rows: CharacterListRow[];
+  total: number;
+}
+
+/** Per-option counts for the characters list filter rail (see getCharacterFacetCounts). */
+export interface CharacterFacetCounts {
+  characterType: Record<CharacterType, number>;
+  significance: Record<Significance, number>;
+  published: { published: number; draft: number };
+  hasMedia: { yes: number; no: number };
 }
 
 export type { CreateCharacterInput };
@@ -219,6 +249,112 @@ export async function getCharacters(
     delete rest.character_media;
     return rest;
   });
+}
+
+/**
+ * Returns a page of characters together with the total filtered count, the
+ * primary media (for the name-cell hover thumbnail), and the event-
+ * participation count the characters list renders on each row.
+ *
+ * Supports the same filter set as getCharacters (type, significance, owner,
+ * published, has-media, search) plus sorting by
+ * name/created_at/updated_at/sort_order_years.
+ *
+ * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
+ */
+export async function getCharactersPage(
+  client: SupabaseClient<Database>,
+  filters: CharacterFilters = {},
+): Promise<CharactersPage> {
+  const {
+    characterType,
+    significance,
+    userId,
+    search,
+    published,
+    hasMedia,
+    sortBy = "name",
+    sortDirection = "asc",
+  } = filters;
+  const safePage = Math.max(1, Math.floor(filters.page ?? 1));
+  const safePageSize = Math.min(
+    100,
+    Math.max(1, Math.floor(filters.pageSize ?? 20)),
+  );
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  // Same three-way embed trick as getCharacters (see its comment for why
+  // "has none" needs a plain-column embed rather than an aggregate one), but
+  // carrying the primary media's URL instead of just a count — a thumbnail is
+  // only ever relevant on rows that already have media, so this single embed
+  // shape serves both the hasMedia filter and the list's display need.
+  const mediaEmbed =
+    hasMedia === true
+      ? "character_media!inner(is_primary, media(url, alt_text))"
+      : hasMedia === false
+        ? "character_media(character_id)"
+        : "character_media(is_primary, media(url, alt_text))";
+  const selectClause = `*, ${mediaEmbed}, event_characters(count)`;
+
+  let query = client
+    .from("characters")
+    .select(selectClause, { count: "exact" });
+
+  if (characterType !== undefined) {
+    if (Array.isArray(characterType)) {
+      if (characterType.length === 1) {
+        query = query.eq("character_type", characterType[0]!);
+      } else if (characterType.length > 1) {
+        query = query.in("character_type", characterType);
+      }
+    } else {
+      query = query.eq("character_type", characterType);
+    }
+  }
+  if (significance !== undefined) {
+    if (Array.isArray(significance)) {
+      if (significance.length === 1) {
+        query = query.eq("significance", significance[0]!);
+      } else if (significance.length > 1) {
+        query = query.in("significance", significance);
+      }
+    } else {
+      query = query.eq("significance", significance);
+    }
+  }
+  if (userId !== undefined) {
+    query = query.eq("user_id", userId);
+  }
+  if (published === true) {
+    query = query.eq("published", true);
+  } else if (published === false) {
+    // "draft" must also match NULL rows: `published` is nullable (no NOT NULL
+    // on the column), and the list badge renders NULL as "Draft", so the
+    // filter has to too — otherwise a NULL row shows "Draft" yet vanishes
+    // under the Draft filter. `not.is.true` = published IS NOT TRUE. See #331.
+    query = query.not("published", "is", true);
+  }
+  if (hasMedia === false) {
+    query = query.is("character_media", null);
+  }
+  if (search !== undefined && search.length > 0) {
+    query = query.textSearch("search_vector", search, { type: "websearch" });
+  }
+
+  const ascending = sortDirection === "asc";
+  query = query
+    .order(sortBy, { ascending, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(from, to);
+
+  const { data, count, error } = await query;
+  assertNoError(error, "getCharactersPage");
+
+  return {
+    rows: (data ?? []) as unknown as CharacterListRow[],
+    total: count ?? 0,
+  };
 }
 
 /**
@@ -449,6 +585,42 @@ export async function deleteCharacter(
   assertNoError(error, "deleteCharacter");
 }
 
+/**
+ * Marks a character as published and records `published_at`.
+ */
+export async function publishCharacter(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<CharacterRow> {
+  const { data, error } = await client
+    .from("characters")
+    .update({ published: true, published_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  assertNoError(error, "publishCharacter");
+  return data as CharacterRow;
+}
+
+/**
+ * Reverts a character to unpublished state and clears `published_at`.
+ */
+export async function unpublishCharacter(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<CharacterRow> {
+  const { data, error } = await client
+    .from("characters")
+    .update({ published: false, published_at: null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  assertNoError(error, "unpublishCharacter");
+  return data as CharacterRow;
+}
+
 // ---------------------------------------------------------------------------
 // View queries
 // ---------------------------------------------------------------------------
@@ -521,6 +693,227 @@ export async function getCharacterEvents(
 
   assertNoError(error, "getCharacterEvents");
   return data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// Facet counts
+// ---------------------------------------------------------------------------
+
+/** Builder surface needed by applyCharacterListFilters. */
+interface CharacterFilterBuilder<T> {
+  eq(column: string, value: string | boolean): T;
+  in(column: string, values: readonly string[]): T;
+  is(column: string, value: null): T;
+  not(column: string, op: string, value: boolean | null): T;
+  textSearch(column: string, query: string, opts: { type: "websearch" }): T;
+}
+
+/**
+ * Applies the character_type, significance, owner, published, has-media, and
+ * search filters shared by every getCharacterFacetCounts per-option count
+ * query. Skip flags omit a group's own predicate so counting that group's
+ * options isn't constrained by the group's own current selection — the
+ * standard faceted-filter convention (mirrors MediaService.applySharedFilters).
+ *
+ * has-media is expressed here via `.not/.is` against the plain-column
+ * `character_media` embed rather than the `!inner` trick getCharactersPage
+ * uses — these are head:true count-only queries with no data rows to protect,
+ * so the simpler predicate (also used by MediaService's attachedTo counts) is
+ * sufficient.
+ */
+function applyCharacterListFilters<T extends CharacterFilterBuilder<T>>(
+  builder: T,
+  filters: CharacterFilters,
+  opts: {
+    skipCharacterType?: boolean;
+    skipSignificance?: boolean;
+    skipPublished?: boolean;
+    skipHasMedia?: boolean;
+  } = {},
+): T {
+  let q = builder;
+  const { characterType, significance, userId, search, published, hasMedia } =
+    filters;
+
+  if (!opts.skipCharacterType && characterType !== undefined) {
+    if (Array.isArray(characterType)) {
+      if (characterType.length === 1) {
+        q = q.eq("character_type", characterType[0]!);
+      } else if (characterType.length > 1) {
+        q = q.in("character_type", characterType);
+      }
+    } else {
+      q = q.eq("character_type", characterType);
+    }
+  }
+  if (!opts.skipSignificance && significance !== undefined) {
+    if (Array.isArray(significance)) {
+      if (significance.length === 1) {
+        q = q.eq("significance", significance[0]!);
+      } else if (significance.length > 1) {
+        q = q.in("significance", significance);
+      }
+    } else {
+      q = q.eq("significance", significance);
+    }
+  }
+  if (userId !== undefined) {
+    q = q.eq("user_id", userId);
+  }
+  if (!opts.skipPublished && published !== undefined) {
+    // "draft" (published === false) must also match NULL rows — see the
+    // matching comment in getCharactersPage and #331.
+    q = published ? q.eq("published", true) : q.not("published", "is", true);
+  }
+  if (!opts.skipHasMedia && hasMedia !== undefined) {
+    q = hasMedia
+      ? q.not("character_media", "is", null)
+      : q.is("character_media", null);
+  }
+  if (search !== undefined && search.length > 0) {
+    q = q.textSearch("search_vector", search, { type: "websearch" });
+  }
+  return q;
+}
+
+/** Builder surface for the per-option count predicates (`.eq`, `.is`, `.not`). */
+interface CharacterCountPredicateBuilder {
+  eq(column: string, value: string | boolean): CharacterCountPredicateBuilder;
+  is(column: string, value: null): CharacterCountPredicateBuilder;
+  not(
+    column: string,
+    op: string,
+    value: boolean | null,
+  ): CharacterCountPredicateBuilder;
+}
+
+/** One head-count round-trip: count characters matching the base filters plus `apply`. */
+async function countCharactersWith(
+  client: SupabaseClient<Database>,
+  filters: CharacterFilters,
+  skip: {
+    skipCharacterType?: boolean;
+    skipSignificance?: boolean;
+    skipPublished?: boolean;
+    skipHasMedia?: boolean;
+  },
+  apply: (q: CharacterCountPredicateBuilder) => CharacterCountPredicateBuilder,
+  context: string,
+): Promise<number> {
+  const base = client
+    .from("characters")
+    .select("*, character_media(character_id)", {
+      count: "exact",
+      head: true,
+    });
+  const filtered = applyCharacterListFilters(
+    base as unknown as CharacterFilterBuilder<typeof base>,
+    filters,
+    skip,
+  ) as unknown as typeof base;
+  apply(filtered as unknown as CharacterCountPredicateBuilder);
+  const { count, error } = await filtered;
+  assertNoError(error, context);
+  return count ?? 0;
+}
+
+/**
+ * Returns per-option counts for the characters list filter rail. Each of the
+ * four groups (type, significance, published, has-media) is counted with its
+ * OWN selection removed (so toggling an option within a group does not zero
+ * out its siblings) but with the other groups + search + owner applied — OR
+ * within a group, AND across groups, matching the wireframe. Mirrors
+ * MediaService.getMediaFacetCounts.
+ */
+export async function getCharacterFacetCounts(
+  client: SupabaseClient<Database>,
+  filters: CharacterFilters = {},
+): Promise<CharacterFacetCounts> {
+  const typeOptions = characterTypeEnum.options;
+  const significanceOptions = significanceEnum.options;
+
+  const [
+    typeCounts,
+    significanceCounts,
+    publishedCount,
+    draftCount,
+    hasMediaYes,
+    hasMediaNo,
+  ] = await Promise.all([
+    Promise.all(
+      typeOptions.map((t) =>
+        countCharactersWith(
+          client,
+          filters,
+          { skipCharacterType: true },
+          (q) => q.eq("character_type", t),
+          "getCharacterFacetCounts.characterType",
+        ),
+      ),
+    ),
+    Promise.all(
+      significanceOptions.map((s) =>
+        countCharactersWith(
+          client,
+          filters,
+          { skipSignificance: true },
+          (q) => q.eq("significance", s),
+          "getCharacterFacetCounts.significance",
+        ),
+      ),
+    ),
+    countCharactersWith(
+      client,
+      filters,
+      { skipPublished: true },
+      (q) => q.eq("published", true),
+      "getCharacterFacetCounts.published.published",
+    ),
+    countCharactersWith(
+      client,
+      filters,
+      { skipPublished: true },
+      // Draft = published IS NOT TRUE (false OR null), matching the list badge
+      // and the getCharactersPage draft filter. See #331.
+      (q) => q.not("published", "is", true),
+      "getCharacterFacetCounts.published.draft",
+    ),
+    countCharactersWith(
+      client,
+      filters,
+      { skipHasMedia: true },
+      (q) => q.not("character_media", "is", null),
+      "getCharacterFacetCounts.hasMedia.yes",
+    ),
+    countCharactersWith(
+      client,
+      filters,
+      { skipHasMedia: true },
+      (q) => q.is("character_media", null),
+      "getCharacterFacetCounts.hasMedia.no",
+    ),
+  ]);
+
+  return {
+    characterType: {
+      human: typeCounts[typeOptions.indexOf("human")] ?? 0,
+      animal: typeCounts[typeOptions.indexOf("animal")] ?? 0,
+      mythological: typeCounts[typeOptions.indexOf("mythological")] ?? 0,
+      fictional: typeCounts[typeOptions.indexOf("fictional")] ?? 0,
+      organization: typeCounts[typeOptions.indexOf("organization")] ?? 0,
+      divine: typeCounts[typeOptions.indexOf("divine")] ?? 0,
+      artifact: typeCounts[typeOptions.indexOf("artifact")] ?? 0,
+    },
+    significance: {
+      low: significanceCounts[significanceOptions.indexOf("low")] ?? 0,
+      medium: significanceCounts[significanceOptions.indexOf("medium")] ?? 0,
+      high: significanceCounts[significanceOptions.indexOf("high")] ?? 0,
+      critical:
+        significanceCounts[significanceOptions.indexOf("critical")] ?? 0,
+    },
+    published: { published: publishedCount, draft: draftCount },
+    hasMedia: { yes: hasMediaYes, no: hasMediaNo },
+  };
 }
 
 // ---------------------------------------------------------------------------

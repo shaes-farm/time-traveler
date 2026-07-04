@@ -3,14 +3,18 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../supabase/types";
 import {
   getCharacters,
+  getCharactersPage,
   getCharacterById,
   getCharacterBySlug,
   createCharacter,
   updateCharacter,
   deleteCharacter,
+  publishCharacter,
+  unpublishCharacter,
   getCharacterTimeline,
   getCharacterNetwork,
   getCharacterEvents,
+  getCharacterFacetCounts,
   addMediaToCharacter,
   removeMediaFromCharacter,
   setPrimaryCharacterMedia,
@@ -20,7 +24,11 @@ import {
 // Mock builder helpers (mirrors event-service.test.ts pattern)
 // ---------------------------------------------------------------------------
 
-function makeBuilder(result: { data: unknown; error: unknown }) {
+function makeBuilder(result: {
+  data: unknown;
+  error: unknown;
+  count?: unknown;
+}) {
   const terminal = vi.fn().mockResolvedValue(result);
   const builder = {
     select: vi.fn().mockReturnThis(),
@@ -31,6 +39,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     eq: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
     is: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
@@ -43,7 +52,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
 }
 
 function makeClient(overrides: {
-  fromResult?: { data: unknown; error: unknown };
+  fromResult?: { data: unknown; error: unknown; count?: unknown };
   rpcResult?: { data: unknown; error: unknown };
   authUser?: { data: { user: unknown }; error: unknown };
 }) {
@@ -347,6 +356,206 @@ describe("getCharacters", () => {
     });
     await expect(getCharacters(client)).rejects.toThrow(
       "CharacterService.getCharacters: query failed",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCharactersPage
+// ---------------------------------------------------------------------------
+
+describe("getCharactersPage", () => {
+  function pageClient(count: number, rows: unknown[] = []) {
+    return makeClient({ fromResult: { data: rows, count, error: null } });
+  }
+  function firstBuilder(client: SupabaseClient<Database>) {
+    return (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+  }
+
+  it("returns rows and the total filtered count", async () => {
+    const row = {
+      ...sampleCharacter,
+      character_media: [
+        { is_primary: true, media: { url: "https://x/y.jpg", alt_text: null } },
+      ],
+      event_characters: [{ count: 3 }],
+    };
+    const client = pageClient(42, [row]);
+    const result = await getCharactersPage(client);
+    expect(result.rows).toEqual([row]);
+    expect(result.total).toBe(42);
+  });
+
+  it("returns empty rows and zero total when data is null", async () => {
+    const client = makeClient({
+      fromResult: { data: null, count: null, error: null },
+    });
+    const result = await getCharactersPage(client);
+    expect(result.rows).toEqual([]);
+    expect(result.total).toBe(0);
+  });
+
+  it("requests an exact count", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client);
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining("event_characters(count)"),
+      { count: "exact" },
+    );
+  });
+
+  it("filters a single character type with eq", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { characterType: "human" });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith(
+      "character_type",
+      "human",
+    );
+  });
+
+  it("filters multiple character types with in", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { characterType: ["human", "animal"] });
+    expect(firstBuilder(client).in).toHaveBeenCalledWith("character_type", [
+      "human",
+      "animal",
+    ]);
+  });
+
+  it("filters a single-element character type array as eq", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { characterType: ["human"] });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith(
+      "character_type",
+      "human",
+    );
+  });
+
+  it("filters significance", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { significance: "critical" });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith(
+      "significance",
+      "critical",
+    );
+  });
+
+  it("filters a single-element significance array as eq", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { significance: ["critical"] });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith(
+      "significance",
+      "critical",
+    );
+  });
+
+  it("filters multiple significance values with in", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { significance: ["high", "critical"] });
+    expect(firstBuilder(client).in).toHaveBeenCalledWith("significance", [
+      "high",
+      "critical",
+    ]);
+  });
+
+  it("filters by owner", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { userId: "user-abc" });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith("user_id", "user-abc");
+  });
+
+  it("filters by published state", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { published: true });
+    expect(firstBuilder(client).eq).toHaveBeenCalledWith("published", true);
+  });
+
+  it("filters drafts as published IS NOT TRUE so NULL rows are included (#331)", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { published: false });
+    const builder = firstBuilder(client);
+    expect(builder.not).toHaveBeenCalledWith("published", "is", true);
+    // Must NOT use eq(published,false), which would exclude NULL rows.
+    expect(builder.eq).not.toHaveBeenCalledWith("published", false);
+  });
+
+  it("keeps characters with media via an !inner embed carrying the primary media", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { hasMedia: true });
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "character_media!inner(is_primary, media(url, alt_text))",
+      ),
+      { count: "exact" },
+    );
+  });
+
+  it("keeps characters with no media via a plain embed + is.null", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { hasMedia: false });
+    const builder = firstBuilder(client);
+    expect(builder.is).toHaveBeenCalledWith("character_media", null);
+    expect(builder.select).toHaveBeenCalledWith(
+      expect.stringContaining("character_media(character_id)"),
+      { count: "exact" },
+    );
+  });
+
+  it("embeds the primary media without !inner when hasMedia is omitted", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client);
+    expect(firstBuilder(client).select).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "character_media(is_primary, media(url, alt_text))",
+      ),
+      { count: "exact" },
+    );
+  });
+
+  it("applies search filter via full-text search", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { search: "detective" });
+    expect(firstBuilder(client).textSearch).toHaveBeenCalledWith(
+      "search_vector",
+      "detective",
+      { type: "websearch" },
+    );
+  });
+
+  it("defaults to name ascending", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client);
+    expect(firstBuilder(client).order).toHaveBeenCalledWith("name", {
+      ascending: true,
+      nullsFirst: false,
+    });
+  });
+
+  it("honours an explicit sort column and direction", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, {
+      sortBy: "sort_order_years",
+      sortDirection: "desc",
+    });
+    expect(firstBuilder(client).order).toHaveBeenCalledWith(
+      "sort_order_years",
+      { ascending: false, nullsFirst: false },
+    );
+  });
+
+  it("clamps pageSize>100 to 100", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { page: 1, pageSize: 999 });
+    expect(firstBuilder(client).range).toHaveBeenCalledWith(0, 99);
+  });
+
+  it("throws on Supabase error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, count: null, error: { message: "DB error" } },
+    });
+    await expect(getCharactersPage(client)).rejects.toThrow(
+      "CharacterService.getCharactersPage: DB error",
     );
   });
 });
@@ -1084,6 +1293,80 @@ describe("deleteCharacter", () => {
 });
 
 // ---------------------------------------------------------------------------
+// publishCharacter / unpublishCharacter
+// ---------------------------------------------------------------------------
+
+describe("publishCharacter", () => {
+  it("sets published=true and published_at timestamp", async () => {
+    const publishedRow = {
+      ...sampleCharacter,
+      published: true,
+      published_at: "2026-01-02T12:34:56Z",
+    };
+    const client = makeClient({
+      fromResult: { data: publishedRow, error: null },
+    });
+
+    const result = await publishCharacter(client, "char-1");
+
+    expect(result).toEqual(publishedRow);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        published: true,
+        published_at: expect.any(String),
+      }),
+    );
+    expect(builder.eq).toHaveBeenCalledWith("id", "char-1");
+  });
+
+  it("throws on publish error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "publish failed" } },
+    });
+
+    await expect(publishCharacter(client, "char-1")).rejects.toThrow(
+      "CharacterService.publishCharacter: publish failed",
+    );
+  });
+});
+
+describe("unpublishCharacter", () => {
+  it("sets published=false and clears published_at", async () => {
+    const unpublishedRow = {
+      ...sampleCharacter,
+      published: false,
+      published_at: null,
+    };
+    const client = makeClient({
+      fromResult: { data: unpublishedRow, error: null },
+    });
+
+    const result = await unpublishCharacter(client, "char-1");
+
+    expect(result).toEqual(unpublishedRow);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith({
+      published: false,
+      published_at: null,
+    });
+    expect(builder.eq).toHaveBeenCalledWith("id", "char-1");
+  });
+
+  it("throws on unpublish error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "unpublish failed" } },
+    });
+
+    await expect(unpublishCharacter(client, "char-1")).rejects.toThrow(
+      "CharacterService.unpublishCharacter: unpublish failed",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // getCharacterTimeline
 // ---------------------------------------------------------------------------
 
@@ -1395,6 +1678,282 @@ describe("setPrimaryCharacterMedia", () => {
       setPrimaryCharacterMedia(client, "char-1", "media-1"),
     ).rejects.toThrow(
       "CharacterService.setPrimaryCharacterMedia: clear failed",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCharacterFacetCounts
+// ---------------------------------------------------------------------------
+
+interface RecordedCalls {
+  select: unknown[][];
+  eq: unknown[][];
+  in: unknown[][];
+  is: unknown[][];
+  not: unknown[][];
+  textSearch: unknown[][];
+}
+
+interface RecordingBuilder {
+  calls: RecordedCalls;
+  select: ReturnType<typeof vi.fn>;
+  eq: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  is: ReturnType<typeof vi.fn>;
+  not: ReturnType<typeof vi.fn>;
+  textSearch: ReturnType<typeof vi.fn>;
+  then: (resolve: (v: unknown) => unknown) => Promise<unknown>;
+}
+
+/** A chainable PostgREST builder mock that records every filter call so tests
+ * can assert the exact query construction, and resolves to a fixed result
+ * (mirrors MediaService.test.ts's makeRecordingBuilder). */
+function makeRecordingBuilder(result: {
+  data?: unknown;
+  count?: number | null;
+  error?: unknown;
+}): RecordingBuilder {
+  const calls: RecordedCalls = {
+    select: [],
+    eq: [],
+    in: [],
+    is: [],
+    not: [],
+    textSearch: [],
+  };
+  const resolved = {
+    data: result.data ?? null,
+    count: result.count ?? null,
+    error: result.error ?? null,
+  };
+  const builder: RecordingBuilder = {
+    calls,
+    select: vi.fn((...a: unknown[]) => {
+      calls.select.push(a);
+      return builder;
+    }),
+    eq: vi.fn((...a: unknown[]) => {
+      calls.eq.push(a);
+      return builder;
+    }),
+    in: vi.fn((...a: unknown[]) => {
+      calls.in.push(a);
+      return builder;
+    }),
+    is: vi.fn((...a: unknown[]) => {
+      calls.is.push(a);
+      return builder;
+    }),
+    not: vi.fn((...a: unknown[]) => {
+      calls.not.push(a);
+      return builder;
+    }),
+    textSearch: vi.fn((...a: unknown[]) => {
+      calls.textSearch.push(a);
+      return builder;
+    }),
+    then: (resolve: (v: unknown) => unknown) =>
+      Promise.resolve(resolved).then(resolve),
+  };
+  return builder;
+}
+
+/** Client whose `from()` returns the next queued result, in call order —
+ * needed because getCharacterFacetCounts fires 15 sequential head-count
+ * queries and each assertion needs to target a specific one by index. */
+function makeQueueClient(
+  queue: { data?: unknown; count?: number | null; error?: unknown }[],
+) {
+  const builders: RecordingBuilder[] = [];
+  const from = vi.fn(() => {
+    const result = queue.shift() ?? { data: [], count: 0, error: null };
+    const b = makeRecordingBuilder(result);
+    builders.push(b);
+    return b;
+  });
+  const client = { from } as unknown as SupabaseClient<Database>;
+  return { client, builders };
+}
+
+describe("getCharacterFacetCounts", () => {
+  // 15 head-count round-trips, in construction order: 7 character_type
+  // (human, animal, mythological, fictional, organization, divine, artifact),
+  // 4 significance (low, medium, high, critical), published, draft,
+  // hasMedia yes, hasMedia no.
+  const fifteenCounts = (counts: number[]) =>
+    counts.map((count) => ({ count }));
+
+  it("maps per-option counts into the facet structure", async () => {
+    const { client } = makeQueueClient(
+      fifteenCounts([10, 4, 7, 3, 5, 2, 3, 1, 2, 3, 4, 20, 4, 31, 16]),
+    );
+    const result = await getCharacterFacetCounts(client, {});
+    expect(result.characterType).toEqual({
+      human: 10,
+      animal: 4,
+      mythological: 7,
+      fictional: 3,
+      organization: 5,
+      divine: 2,
+      artifact: 3,
+    });
+    expect(result.significance).toEqual({
+      low: 1,
+      medium: 2,
+      high: 3,
+      critical: 4,
+    });
+    expect(result.published).toEqual({ published: 20, draft: 4 });
+    expect(result.hasMedia).toEqual({ yes: 31, no: 16 });
+  });
+
+  it("excludes a group's own selection from its own counts but keeps it for others", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, { characterType: "human" });
+    // The "human" type-count builder's own per-option predicate happens to
+    // match the current selection value — skipCharacterType must prevent
+    // applyCharacterListFilters from applying it a second time on top.
+    const humanBuilder = builders[0]!; // characterTypeEnum.options[0] === "human"
+    const matchingCalls = humanBuilder.calls.eq.filter(
+      (call) => call[0] === "character_type" && call[1] === "human",
+    );
+    expect(matchingCalls).toHaveLength(1);
+    // the significance-count builders (indexes 7-10) DO inherit the type filter
+    expect(builders[7]!.calls.eq).toContainEqual(["character_type", "human"]);
+  });
+
+  it("counts hasMedia yes/no via not/is on the character_media embed", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, {});
+    const yesBuilder = builders[13]!;
+    const noBuilder = builders[14]!;
+    expect(yesBuilder.calls.not).toContainEqual([
+      "character_media",
+      "is",
+      null,
+    ]);
+    expect(noBuilder.calls.is).toContainEqual(["character_media", null]);
+  });
+
+  it("applies userId, published, hasMedia, and search to a non-owning group's counts", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, {
+      userId: "user-9",
+      published: true,
+      hasMedia: true,
+      search: "curie",
+    });
+    // The type-count builders own neither published nor hasMedia, so both
+    // apply on top of userId + search.
+    const typeBuilder = builders[0]!;
+    expect(typeBuilder.calls.eq).toContainEqual(["user_id", "user-9"]);
+    expect(typeBuilder.calls.eq).toContainEqual(["published", true]);
+    expect(typeBuilder.calls.not).toContainEqual([
+      "character_media",
+      "is",
+      null,
+    ]);
+    expect(typeBuilder.calls.textSearch).toContainEqual([
+      "search_vector",
+      "curie",
+      { type: "websearch" },
+    ]);
+  });
+
+  it("inherits a published=false selection as published IS NOT TRUE on non-owning groups (#331)", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, { published: false });
+    // A type-count builder (doesn't own the published group) inherits the
+    // draft selection via the not-is-true predicate, not eq(published,false).
+    const typeBuilder = builders[0]!;
+    expect(typeBuilder.calls.not).toContainEqual(["published", "is", true]);
+    expect(typeBuilder.calls.eq).not.toContainEqual(["published", false]);
+  });
+
+  it("excludes published from its own two counts but keeps hasMedia", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, { published: true, hasMedia: true });
+    const publishedBuilder = builders[11]!;
+    const draftBuilder = builders[12]!;
+    // Neither published-count builder should double-apply the current
+    // published selection — only its own per-option predicate.
+    expect(
+      publishedBuilder.calls.eq.filter((c) => c[0] === "published"),
+    ).toEqual([["published", true]]);
+    // Draft counts NULL rows too: its predicate is `published IS NOT TRUE`
+    // (not `eq(published, false)`, which would exclude NULL). See #331.
+    expect(draftBuilder.calls.eq.filter((c) => c[0] === "published")).toEqual(
+      [],
+    );
+    expect(draftBuilder.calls.not).toContainEqual(["published", "is", true]);
+    // Both still inherit the unrelated hasMedia selection.
+    expect(publishedBuilder.calls.not).toContainEqual([
+      "character_media",
+      "is",
+      null,
+    ]);
+    expect(draftBuilder.calls.not).toContainEqual([
+      "character_media",
+      "is",
+      null,
+    ]);
+  });
+
+  it("applies characterType/significance filters as eq for single-element arrays", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, {
+      characterType: ["animal"],
+      significance: ["high"],
+    });
+    // significance-count builders (7-10) inherit the characterType selection.
+    expect(builders[7]!.calls.eq).toContainEqual(["character_type", "animal"]);
+    // type-count builders (0-6) inherit the significance selection.
+    expect(builders[0]!.calls.eq).toContainEqual(["significance", "high"]);
+  });
+
+  it("applies significance filter as eq for a scalar value", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, { significance: "high" });
+    expect(builders[0]!.calls.eq).toContainEqual(["significance", "high"]);
+  });
+
+  it("applies characterType/significance filters as in for multi-element arrays", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, {
+      characterType: ["animal", "human"],
+      significance: ["high", "critical"],
+    });
+    expect(builders[7]!.calls.in).toContainEqual([
+      "character_type",
+      ["animal", "human"],
+    ]);
+    expect(builders[0]!.calls.in).toContainEqual([
+      "significance",
+      ["high", "critical"],
+    ]);
+  });
+
+  it("throws a contextual error on failure", async () => {
+    const { client } = makeQueueClient([{ error: { message: "nope" } }]);
+    await expect(getCharacterFacetCounts(client, {})).rejects.toThrow(
+      /CharacterService\.getCharacterFacetCounts/,
     );
   });
 });
