@@ -545,7 +545,13 @@ export function CharacterListClient() {
   // ---------------------------------------------------------------------------
 
   function updateParams(updates: Record<string, string | null>) {
-    const next = new URLSearchParams(searchParams.toString());
+    // Build from the live URL, not the closed-over `searchParams` snapshot:
+    // the search box's debounced update fires ~300ms after a keystroke, and
+    // if a filter/sort/page change lands in that window, building from the
+    // stale snapshot would drop it. updateParams only runs from event
+    // handlers / the debounce timeout (never during render), so reading
+    // window.location here is safe. See #329.
+    const next = new URLSearchParams(window.location.search);
     for (const [key, val] of Object.entries(updates)) {
       if (val === null || val === "") {
         next.delete(key);

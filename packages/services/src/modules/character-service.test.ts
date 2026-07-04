@@ -471,6 +471,15 @@ describe("getCharactersPage", () => {
     expect(firstBuilder(client).eq).toHaveBeenCalledWith("published", true);
   });
 
+  it("filters drafts as published IS NOT TRUE so NULL rows are included (#331)", async () => {
+    const client = pageClient(0);
+    await getCharactersPage(client, { published: false });
+    const builder = firstBuilder(client);
+    expect(builder.not).toHaveBeenCalledWith("published", "is", true);
+    // Must NOT use eq(published,false), which would exclude NULL rows.
+    expect(builder.eq).not.toHaveBeenCalledWith("published", false);
+  });
+
   it("keeps characters with media via an !inner embed carrying the primary media", async () => {
     const client = pageClient(0);
     await getCharactersPage(client, { hasMedia: true });
@@ -1858,6 +1867,18 @@ describe("getCharacterFacetCounts", () => {
     ]);
   });
 
+  it("inherits a published=false selection as published IS NOT TRUE on non-owning groups (#331)", async () => {
+    const { client, builders } = makeQueueClient(
+      fifteenCounts(new Array(15).fill(1)),
+    );
+    await getCharacterFacetCounts(client, { published: false });
+    // A type-count builder (doesn't own the published group) inherits the
+    // draft selection via the not-is-true predicate, not eq(published,false).
+    const typeBuilder = builders[0]!;
+    expect(typeBuilder.calls.not).toContainEqual(["published", "is", true]);
+    expect(typeBuilder.calls.eq).not.toContainEqual(["published", false]);
+  });
+
   it("excludes published from its own two counts but keeps hasMedia", async () => {
     const { client, builders } = makeQueueClient(
       fifteenCounts(new Array(15).fill(1)),
@@ -1866,13 +1887,16 @@ describe("getCharacterFacetCounts", () => {
     const publishedBuilder = builders[11]!;
     const draftBuilder = builders[12]!;
     // Neither published-count builder should double-apply the current
-    // published selection — only its own per-option eq("published", …) call.
+    // published selection — only its own per-option predicate.
     expect(
       publishedBuilder.calls.eq.filter((c) => c[0] === "published"),
     ).toEqual([["published", true]]);
-    expect(draftBuilder.calls.eq.filter((c) => c[0] === "published")).toEqual([
-      ["published", false],
-    ]);
+    // Draft counts NULL rows too: its predicate is `published IS NOT TRUE`
+    // (not `eq(published, false)`, which would exclude NULL). See #331.
+    expect(draftBuilder.calls.eq.filter((c) => c[0] === "published")).toEqual(
+      [],
+    );
+    expect(draftBuilder.calls.not).toContainEqual(["published", "is", true]);
     // Both still inherit the unrelated hasMedia selection.
     expect(publishedBuilder.calls.not).toContainEqual([
       "character_media",

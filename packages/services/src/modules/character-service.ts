@@ -326,8 +326,14 @@ export async function getCharactersPage(
   if (userId !== undefined) {
     query = query.eq("user_id", userId);
   }
-  if (published !== undefined) {
-    query = query.eq("published", published);
+  if (published === true) {
+    query = query.eq("published", true);
+  } else if (published === false) {
+    // "draft" must also match NULL rows: `published` is nullable (no NOT NULL
+    // on the column), and the list badge renders NULL as "Draft", so the
+    // filter has to too — otherwise a NULL row shows "Draft" yet vanishes
+    // under the Draft filter. `not.is.true` = published IS NOT TRUE. See #331.
+    query = query.not("published", "is", true);
   }
   if (hasMedia === false) {
     query = query.is("character_media", null);
@@ -698,7 +704,7 @@ interface CharacterFilterBuilder<T> {
   eq(column: string, value: string | boolean): T;
   in(column: string, values: readonly string[]): T;
   is(column: string, value: null): T;
-  not(column: string, op: string, value: null): T;
+  not(column: string, op: string, value: boolean | null): T;
   textSearch(column: string, query: string, opts: { type: "websearch" }): T;
 }
 
@@ -755,7 +761,9 @@ function applyCharacterListFilters<T extends CharacterFilterBuilder<T>>(
     q = q.eq("user_id", userId);
   }
   if (!opts.skipPublished && published !== undefined) {
-    q = q.eq("published", published);
+    // "draft" (published === false) must also match NULL rows — see the
+    // matching comment in getCharactersPage and #331.
+    q = published ? q.eq("published", true) : q.not("published", "is", true);
   }
   if (!opts.skipHasMedia && hasMedia !== undefined) {
     q = hasMedia
@@ -772,7 +780,11 @@ function applyCharacterListFilters<T extends CharacterFilterBuilder<T>>(
 interface CharacterCountPredicateBuilder {
   eq(column: string, value: string | boolean): CharacterCountPredicateBuilder;
   is(column: string, value: null): CharacterCountPredicateBuilder;
-  not(column: string, op: string, value: null): CharacterCountPredicateBuilder;
+  not(
+    column: string,
+    op: string,
+    value: boolean | null,
+  ): CharacterCountPredicateBuilder;
 }
 
 /** One head-count round-trip: count characters matching the base filters plus `apply`. */
@@ -861,7 +873,9 @@ export async function getCharacterFacetCounts(
       client,
       filters,
       { skipPublished: true },
-      (q) => q.eq("published", false),
+      // Draft = published IS NOT TRUE (false OR null), matching the list badge
+      // and the getCharactersPage draft filter. See #331.
+      (q) => q.not("published", "is", true),
       "getCharacterFacetCounts.published.draft",
     ),
     countCharactersWith(
