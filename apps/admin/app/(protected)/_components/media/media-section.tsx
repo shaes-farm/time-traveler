@@ -213,6 +213,7 @@ export function MediaSection({
       {canEdit && (
         <div className="flex justify-end">
           <Button
+            type="button"
             size="sm"
             variant="secondary"
             onClick={() => setAttachOpen(true)}
@@ -231,6 +232,7 @@ export function MediaSection({
           <p className="text-sm text-destructive">Failed to load media.</p>
           {onRetry && (
             <Button
+              type="button"
               variant="secondary"
               size="sm"
               onClick={() => void onRetry()}
@@ -282,6 +284,7 @@ export function MediaSection({
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
+                      type="button"
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 shrink-0 p-0"

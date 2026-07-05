@@ -83,6 +83,18 @@ describe("characterSchema — temporal fields", () => {
     expect(result.success).toBe(true);
     expect(result.data?.birth_temporal).toBeUndefined();
   });
+
+  it("accepts null birth/death_temporal (clears the stored date on update)", () => {
+    const result = characterSchema.partial().safeParse({
+      birth_temporal: null,
+      death_temporal: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.birth_temporal).toBeNull();
+      expect(result.data.death_temporal).toBeNull();
+    }
+  });
 });
 
 describe("characterSchema — type-specific fields", () => {
