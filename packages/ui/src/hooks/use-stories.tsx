@@ -13,19 +13,23 @@ import {
   getStories,
   getStoryById,
   getStoryBySlug,
+  getStoryEvents,
   createStory,
   updateStory,
   deleteStory,
   addCharacterToStory,
   removeCharacterFromStory,
+  updateStoryCharacterRole,
   addEventToStory,
   removeEventFromStory,
+  reorderStoryEvent,
   addPeriodToStory,
   removePeriodFromStory,
 } from "@repo/services/story-service";
 import type {
   StoryFilters,
   StoryWithRelations,
+  StoryEventWithOrder,
   CreateStoryInput,
   StoryCharacterRole,
 } from "@repo/services/story-service";
@@ -45,6 +49,8 @@ export const storyKeys = {
   detail: (id: string) => [...storyKeys.details(), id] as const,
   bySlug: (userId: string, slug: string) =>
     [...storyKeys.all, "slug", userId, slug] as const,
+  events: (storyId: string) =>
+    [...storyKeys.detail(storyId), "events"] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -92,6 +98,23 @@ export function useStoryBySlug(
   return useQuery({
     queryKey: storyKeys.bySlug(userId, slug),
     queryFn: () => getStoryBySlug(client, userId, slug),
+    staleTime: 60_000,
+    ...options,
+  });
+}
+
+/** Fetch a story's events in narrative display order (editorial, then chronological fallback). */
+export function useStoryEvents(
+  client: ServiceClient,
+  storyId: string,
+  options?: Omit<
+    UseQueryOptions<StoryEventWithOrder[]>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: storyKeys.events(storyId),
+    queryFn: () => getStoryEvents(client, storyId),
     staleTime: 60_000,
     ...options,
   });
@@ -187,15 +210,70 @@ export function useRemoveCharacterFromStory(client: ServiceClient) {
   });
 }
 
-/** Add an event to a story. */
-export function useAddEventToStory(client: ServiceClient) {
+/** Change a character's role within a story. */
+export function useUpdateStoryCharacterRole(client: ServiceClient) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ storyId, eventId }: { storyId: string; eventId: string }) =>
-      addEventToStory(client, storyId, eventId),
+    mutationFn: ({
+      storyId,
+      characterId,
+      role,
+    }: {
+      storyId: string;
+      characterId: string;
+      role: StoryCharacterRole;
+    }) => updateStoryCharacterRole(client, storyId, characterId, role),
     onSuccess: (_data, { storyId }) => {
       void queryClient.invalidateQueries({
         queryKey: storyKeys.detail(storyId),
+      });
+    },
+  });
+}
+
+/** Add an event to a story, optionally at a specific editorial narrative position. */
+export function useAddEventToStory(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      storyId,
+      eventId,
+      sortOrder,
+    }: {
+      storyId: string;
+      eventId: string;
+      sortOrder?: number;
+    }) => addEventToStory(client, storyId, eventId, sortOrder),
+    onSuccess: (_data, { storyId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: storyKeys.detail(storyId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: storyKeys.events(storyId),
+      });
+    },
+  });
+}
+
+/** Set the editorial narrative order of a story↔event link. */
+export function useReorderStoryEvent(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      storyId,
+      eventId,
+      sortOrder,
+    }: {
+      storyId: string;
+      eventId: string;
+      sortOrder: number;
+    }) => reorderStoryEvent(client, storyId, eventId, sortOrder),
+    onSuccess: (_data, { storyId }) => {
+      void queryClient.invalidateQueries({
+        queryKey: storyKeys.detail(storyId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: storyKeys.events(storyId),
       });
     },
   });
@@ -210,6 +288,9 @@ export function useRemoveEventFromStory(client: ServiceClient) {
     onSuccess: (_data, { storyId }) => {
       void queryClient.invalidateQueries({
         queryKey: storyKeys.detail(storyId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: storyKeys.events(storyId),
       });
     },
   });

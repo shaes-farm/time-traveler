@@ -5,13 +5,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   useStories,
   useStory,
+  useStoryEvents,
   useCreateStory,
   useUpdateStory,
   useDeleteStory,
   useAddCharacterToStory,
   useRemoveCharacterFromStory,
+  useUpdateStoryCharacterRole,
   useAddEventToStory,
   useRemoveEventFromStory,
+  useReorderStoryEvent,
   useAddPeriodToStory,
   useRemovePeriodFromStory,
   storyKeys,
@@ -21,13 +24,16 @@ vi.mock("@repo/services/story-service", () => ({
   getStories: vi.fn(),
   getStoryById: vi.fn(),
   getStoryBySlug: vi.fn(),
+  getStoryEvents: vi.fn(),
   createStory: vi.fn(),
   updateStory: vi.fn(),
   deleteStory: vi.fn(),
   addCharacterToStory: vi.fn(),
   removeCharacterFromStory: vi.fn(),
+  updateStoryCharacterRole: vi.fn(),
   addEventToStory: vi.fn(),
   removeEventFromStory: vi.fn(),
+  reorderStoryEvent: vi.fn(),
   addPeriodToStory: vi.fn(),
   removePeriodFromStory: vi.fn(),
 }));
@@ -35,13 +41,16 @@ vi.mock("@repo/services/story-service", () => ({
 import {
   getStories,
   getStoryById,
+  getStoryEvents,
   createStory,
   updateStory,
   deleteStory,
   addCharacterToStory,
   removeCharacterFromStory,
+  updateStoryCharacterRole,
   addEventToStory,
   removeEventFromStory,
+  reorderStoryEvent,
   addPeriodToStory,
   removePeriodFromStory,
 } from "@repo/services/story-service";
@@ -89,6 +98,19 @@ describe("useStory", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getStoryById).toHaveBeenCalledWith(mockClient, "story-1");
+  });
+});
+
+describe("useStoryEvents", () => {
+  it("calls getStoryEvents with client and storyId", async () => {
+    vi.mocked(getStoryEvents).mockResolvedValue([] as never);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useStoryEvents(mockClient, "story-1"), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getStoryEvents).toHaveBeenCalledWith(mockClient, "story-1");
   });
 });
 
@@ -214,8 +236,38 @@ describe("useRemoveCharacterFromStory", () => {
   });
 });
 
+describe("useUpdateStoryCharacterRole", () => {
+  it("calls updateStoryCharacterRole and invalidates story detail", async () => {
+    vi.mocked(updateStoryCharacterRole).mockResolvedValue({} as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(
+      () => useUpdateStoryCharacterRole(mockClient),
+      { wrapper },
+    );
+
+    result.current.mutate({
+      storyId: "story-1",
+      characterId: "char-1",
+      role: "protagonist",
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(updateStoryCharacterRole).toHaveBeenCalledWith(
+      mockClient,
+      "story-1",
+      "char-1",
+      "protagonist",
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: storyKeys.detail("story-1") }),
+    );
+  });
+});
+
 describe("useAddEventToStory", () => {
-  it("calls addEventToStory and invalidates story detail", async () => {
+  it("calls addEventToStory (default sortOrder) and invalidates detail + events", async () => {
     vi.mocked(addEventToStory).mockResolvedValue({} as never);
 
     const { wrapper, queryClient } = createWrapper();
@@ -231,9 +283,65 @@ describe("useAddEventToStory", () => {
       mockClient,
       "story-1",
       "evt-1",
+      undefined,
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: storyKeys.detail("story-1") }),
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: storyKeys.events("story-1") }),
+    );
+  });
+
+  it("threads an explicit sortOrder through to addEventToStory", async () => {
+    vi.mocked(addEventToStory).mockResolvedValue({} as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(() => useAddEventToStory(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      storyId: "story-1",
+      eventId: "evt-1",
+      sortOrder: 5,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(addEventToStory).toHaveBeenCalledWith(
+      mockClient,
+      "story-1",
+      "evt-1",
+      5,
+    );
+  });
+});
+
+describe("useReorderStoryEvent", () => {
+  it("calls reorderStoryEvent and invalidates detail + events", async () => {
+    vi.mocked(reorderStoryEvent).mockResolvedValue({} as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useReorderStoryEvent(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      storyId: "story-1",
+      eventId: "evt-1",
+      sortOrder: 3,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(reorderStoryEvent).toHaveBeenCalledWith(
+      mockClient,
+      "story-1",
+      "evt-1",
+      3,
+    );
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: storyKeys.events("story-1") }),
     );
   });
 });
@@ -324,6 +432,12 @@ describe("storyKeys", () => {
       "slug",
       "user-1",
       "silmarillion",
+    ]);
+    expect(storyKeys.events("story-1")).toEqual([
+      "stories",
+      "detail",
+      "story-1",
+      "events",
     ]);
   });
 });
