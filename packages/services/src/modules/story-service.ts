@@ -216,12 +216,13 @@ export async function createStory(
  * Apply a partial update to a story.
  *
  * The first-person perspective rule is enforced conservatively for partial
- * updates: a patch is rejected only when it explicitly sets
- * `narrator_type: "first_person"` while also explicitly clearing
- * `perspective_character_id` (null/undefined present in the patch). A patch that
- * switches to first-person while relying on an already-persisted perspective
- * character is allowed, since the service cannot see the stored row without an
- * extra read.
+ * updates, without re-reading the stored row. A patch that explicitly clears
+ * `perspective_character_id` is rejected unless it also explicitly sets
+ * `narrator_type` to a non-first-person value — clearing the perspective while
+ * leaving the narrator as (a possibly-stored) `first_person` would strand the
+ * story in an invalid state. A patch that switches to first-person while
+ * omitting `perspective_character_id` is still allowed, since it may rely on an
+ * already-persisted perspective character.
  *
  * @param client - Supabase client instance
  * @param id - Story UUID
@@ -235,14 +236,19 @@ export async function updateStory(
 ): Promise<StoryRow> {
   const validated = storyBaseSchema.partial().parse(data);
 
-  // DECISION NEEDED: flipping to first_person while relying on an
-  // already-persisted perspective_character_id is permitted here (the service
-  // does not re-read the stored row). Only an explicit clear is rejected.
-  if (
-    validated.narrator_type === "first_person" &&
+  // Reject an explicit clear of the perspective character unless the same patch
+  // declares a non-first-person narrator. Because there is no DB CHECK tying the
+  // two columns together and we do not re-read the stored row, this is the only
+  // way to keep the service from leaving an existing first_person story without
+  // a perspective character.
+  const clearingPerspective =
     "perspective_character_id" in validated &&
-    validated.perspective_character_id == null
-  ) {
+    validated.perspective_character_id == null;
+  const settingNonFirstPerson =
+    validated.narrator_type !== undefined &&
+    validated.narrator_type !== "first_person";
+
+  if (clearingPerspective && !settingNonFirstPerson) {
     throw new Error(
       "StoryService.updateStory: perspective_character_id is required when narrator_type is first_person",
     );
@@ -474,9 +480,18 @@ export async function getStoryEvents(
 
   // Stable tie-break shared by both ordering modes so the list is deterministic
   // across fetches (DB row order is not guaranteed): chronological, then id.
-  const byChronologyThenId = (a: StoryEventWithOrder, b: StoryEventWithOrder) =>
-    (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0) ||
-    a.id.localeCompare(b.id);
+  // Undated events (`sort_order_years` null) sort last, matching the repo's
+  // usual `nullsFirst: false` ordering. Compare with `<` rather than
+  // subtraction so two +Infinity values don't yield `NaN`.
+  const byChronologyThenId = (
+    a: StoryEventWithOrder,
+    b: StoryEventWithOrder,
+  ) => {
+    const ay = a.sort_order_years ?? Number.POSITIVE_INFINITY;
+    const by = b.sort_order_years ?? Number.POSITIVE_INFINITY;
+    if (ay !== by) return ay < by ? -1 : 1;
+    return a.id.localeCompare(b.id);
+  };
 
   if (hasEditorialOrder) {
     merged.sort((a, b) => {

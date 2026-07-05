@@ -273,6 +273,23 @@ describe("getStoryEvents", () => {
     expect(result.map((e) => e.id)).toEqual(["alpha", "bravo"]);
   });
 
+  it("sorts undated events (null sort_order_years) last, with a stable order among them", async () => {
+    const rows = [
+      { sort_order: 0, events: { id: "undated-b", sort_order_years: null } },
+      eventJunction("dated", 0, 100),
+      { sort_order: 0, events: { id: "undated-a", sort_order_years: null } },
+    ];
+    const client = makeClient({ fromResult: { data: rows, error: null } });
+    const result = await getStoryEvents(client, "story-1");
+    // Dated event first; the two undated events follow in id order (no NaN from
+    // comparing two +Infinity chronologies).
+    expect(result.map((e) => e.id)).toEqual([
+      "dated",
+      "undated-a",
+      "undated-b",
+    ]);
+  });
+
   it("returns an empty array when the story has no events", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await expect(getStoryEvents(client, "story-1")).resolves.toEqual([]);
@@ -473,6 +490,32 @@ describe("updateStory", () => {
       updateStory(client, "story-1", {
         narrator_type: "first_person",
         perspective_character_id: "11111111-1111-4111-8111-111111111111",
+      }),
+    ).resolves.toEqual(sampleStory);
+  });
+
+  it("rejects clearing the perspective when narrator_type is not in the patch", async () => {
+    // An existing first_person story could be stranded invalid; the service
+    // cannot see the stored narrator_type, so it rejects the bare clear.
+    const client = makeClient({
+      fromResult: { data: sampleStory, error: null },
+    });
+    await expect(
+      updateStory(client, "story-1", { perspective_character_id: null }),
+    ).rejects.toThrow(
+      "StoryService.updateStory: perspective_character_id is required",
+    );
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("permits clearing the perspective when the patch declares a non-first-person narrator", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleStory, error: null },
+    });
+    await expect(
+      updateStory(client, "story-1", {
+        narrator_type: "third_person",
+        perspective_character_id: null,
       }),
     ).resolves.toEqual(sampleStory);
   });
