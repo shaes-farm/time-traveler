@@ -218,6 +218,19 @@ describe("toUpdateData", () => {
     expect(data.slug).toBe("marie-curie");
     expect("published" in data).toBe(false);
   });
+
+  it("sends null temporal fields so clearing a date persists", () => {
+    const data = toUpdateData(
+      makeValues({ birth_temporal: null, death_temporal: null }),
+    );
+    expect(data.birth_temporal).toBeNull();
+    expect(data.death_temporal).toBeNull();
+  });
+
+  it("passes a set date through unchanged", () => {
+    const data = toUpdateData(makeValues({ birth_temporal: BIRTH }));
+    expect(data.birth_temporal).toEqual(BIRTH);
+  });
 });
 
 describe("seedForAddAnother", () => {

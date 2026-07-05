@@ -764,8 +764,9 @@ export function CharacterFormClient(props: Props) {
             {addAnotherNote && (
               <Alert role="status">
                 <AlertDescription>
-                  Cleared: name, biography, aliases, dates, media. Persisted:
-                  type, significance, cultural context.
+                  Persisted: type, significance, cultural context. Everything
+                  else — name, biography, aliases, physical description, dates,
+                  and media — was cleared.
                 </AlertDescription>
               </Alert>
             )}

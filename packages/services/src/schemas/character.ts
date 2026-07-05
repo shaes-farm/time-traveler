@@ -50,8 +50,11 @@ export const characterSchema = z.object({
   // Top-level column shared by mythological/divine.
   domain: z.string().max(500).optional(),
   significance: significanceEnum.default("medium"),
-  birth_temporal: temporalDataSchema.optional(),
-  death_temporal: temporalDataSchema.optional(),
+  // Nullable so an editor can clear an existing date on update: a partial patch
+  // sending `null` writes SQL NULL to the column (the DB column is nullable
+  // JSONB). Omitting the field (undefined) leaves the stored value untouched.
+  birth_temporal: temporalDataSchema.nullish(),
+  death_temporal: temporalDataSchema.nullish(),
   // Per-type extras; validated by characterTypeProfileSchema, never top-level.
   profile_data: z.record(z.string(), z.unknown()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),

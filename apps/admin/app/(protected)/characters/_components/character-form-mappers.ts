@@ -272,12 +272,10 @@ export function toUpdateData(
     breed: values.breed,
     domain: values.domain,
     significance: values.significance,
-    // The service `characterSchema` types these JSONB fields as optional (not
-    // nullable), so a full clear can't be expressed as `null`. A set/change
-    // persists; leaving a populated date untouched round-trips; removing an
-    // existing date is not supported by this form (tracked as a follow-up).
-    birth_temporal: values.birth_temporal ?? undefined,
-    death_temporal: values.death_temporal ?? undefined,
+    // `null` clears an existing date (the schema/column are nullable); a value
+    // sets or updates it. Sent unconditionally so a clear actually persists.
+    birth_temporal: values.birth_temporal,
+    death_temporal: values.death_temporal,
     // Empty JSON text clears the extras to `{}` rather than omitting (which
     // would leave the stored value untouched).
     profile_data: parseJsonObject(values.profile_data_json) ?? {},
