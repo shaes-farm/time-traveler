@@ -80,10 +80,11 @@ export function CharacterDetailClient({
       url: string | null;
       alt: string | null;
     } | null> => {
+      if (!characterId) return null;
       const { data: junction, error: jError } = await client
         .from("character_media")
         .select("media_id")
-        .eq("character_id", characterId!)
+        .eq("character_id", characterId)
         .eq("is_primary", true)
         .maybeSingle();
       if (jError) throw jError;
@@ -326,6 +327,7 @@ export function CharacterDetailClient({
         <div className="rounded-md border border-destructive/30">
           <button
             type="button"
+            aria-expanded={showDangerZone}
             className="flex w-full items-center gap-2 px-4 py-3 text-sm text-destructive transition-colors hover:bg-destructive/5"
             onClick={() => setShowDangerZone((v) => !v)}
           >

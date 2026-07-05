@@ -149,7 +149,7 @@ describe("directionLabel", () => {
     ).toBe("Marie is the aunt uncle of Irène");
   });
 
-  it("returns undefined for symmetric roles and type-only symmetric relationships", () => {
+  it("renders symmetric sub-roles as an 'is the <role> of' phrase", () => {
     expect(
       directionLabel(
         {
@@ -159,7 +159,10 @@ describe("directionLabel", () => {
         },
         names,
       ),
-    ).toBeUndefined();
+    ).toBe("Marie is the spouse of Irène");
+  });
+
+  it("renders type-only symmetric relationships as a plural noun phrase", () => {
     expect(
       directionLabel(
         {
@@ -169,7 +172,30 @@ describe("directionLabel", () => {
         },
         names,
       ),
-    ).toBeUndefined();
+    ).toBe("Marie and Irène are friends");
+    expect(
+      directionLabel(
+        {
+          relationship_type: "enemy",
+          relationship_role: null,
+          character_id: "a",
+        },
+        names,
+      ),
+    ).toBe("Marie and Irène are enemies");
+  });
+
+  it("treats the 'other' role as type-only (no 'is the other of' phrasing)", () => {
+    expect(
+      directionLabel(
+        {
+          relationship_type: "collaboration",
+          relationship_role: "other",
+          character_id: "a",
+        },
+        names,
+      ),
+    ).toBe("Marie and Irène are collaborators");
   });
 });
 

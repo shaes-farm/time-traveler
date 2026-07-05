@@ -104,32 +104,29 @@ const ASYMMETRIC_VERB: Record<string, string> = {
   worship: "worships",
 };
 
-/** Sub-roles whose reciprocal differs from themselves (directional pairs). */
-const DIRECTIONAL_ROLES: ReadonlySet<string> = new Set([
-  "parent",
-  "child",
-  "grandparent",
-  "grandchild",
-  "aunt_uncle",
-  "niece_nephew",
-  "step_parent",
-  "step_child",
-  "adoptive_parent",
-  "adoptive_child",
-  "employer",
-  "employee",
-  "supervisor",
-  "subordinate",
-  "client",
-  "vendor",
-]);
+/**
+ * Plural noun phrase for type-only symmetric relationships that carry no
+ * sub-role, e.g. friendship → "Marie and Pierre are friends".
+ */
+const SYMMETRIC_TYPE_NOUN: Record<string, string> = {
+  friendship: "friends",
+  rivalry: "rivals",
+  enemy: "enemies",
+  collaboration: "collaborators",
+  professional: "colleagues",
+  family: "relatives",
+};
 
 /**
- * Narrative direction line for a relationship ("Marie is the parent of Irène",
- * "Marie mentors Pierre"). Rendered from the stored row's own subject/object
- * (character_id → related_character_id), so it reads correctly regardless of
- * which end is the focal character. Returns `undefined` when there's no
- * directional narrative worth showing (symmetric type with no directional role).
+ * Narrative direction line for a relationship, rendered for *every* type per
+ * the #57 card contract ("direction as narrative text, never an arrow/glyph"):
+ * - asymmetric types use a verb phrase ("Marie mentors Pierre"),
+ * - any sub-role reads as "Marie is the parent of Irène" (paired or symmetric),
+ * - type-only symmetric types get a plural noun ("Marie and Pierre are friends").
+ *
+ * Rendered from the stored row's own subject/object (character_id →
+ * related_character_id), so it reads correctly regardless of which end is the
+ * focal character.
  */
 export function directionLabel(
   rel: Pick<
@@ -137,16 +134,22 @@ export function directionLabel(
     "relationship_type" | "relationship_role" | "character_id"
   >,
   names: { subjectName: string; objectName: string },
-): string | undefined {
+): string {
   const { subjectName, objectName } = names;
   const verb = ASYMMETRIC_VERB[rel.relationship_type];
   if (verb) {
     return `${subjectName} ${verb} ${objectName}`;
   }
-  if (rel.relationship_role && DIRECTIONAL_ROLES.has(rel.relationship_role)) {
+  // Any concrete sub-role reads naturally as "X is the <role> of Y". "other" is
+  // not a meaningful role name, so it falls through to the type-noun phrasing.
+  if (rel.relationship_role && rel.relationship_role !== "other") {
     return `${subjectName} is the ${humanize(rel.relationship_role)} of ${objectName}`;
   }
-  return undefined;
+  const noun = SYMMETRIC_TYPE_NOUN[rel.relationship_type];
+  if (noun) {
+    return `${subjectName} and ${objectName} are ${noun}`;
+  }
+  return `${subjectName} — ${objectName}`;
 }
 
 /** First-letter initials (max two) for an avatar fallback. */

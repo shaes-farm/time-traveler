@@ -247,6 +247,7 @@ export function CharacterRelationshipsTab({
               <div key={group.key} className="space-y-2">
                 <button
                   type="button"
+                  aria-expanded={!isCollapsed}
                   onClick={() => toggleGroup(group.key)}
                   className="flex w-full items-center gap-1.5 text-sm font-semibold text-foreground"
                 >
