@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { storySchema, narratorTypeEnum } from "../schemas/story";
+import {
+  storySchema,
+  storyBaseSchema,
+  narratorTypeEnum,
+  storyCharacterRoleEnum,
+} from "../schemas/story";
 import type { StoryInput } from "../schemas/story";
 import { generateSlug, resolveCollision } from "../utils/slug";
 import { MAX_SLUG_LENGTH } from "../schemas/slug";
@@ -11,10 +16,16 @@ type StoryPeriodRow = Database["public"]["Tables"]["story_periods"]["Row"];
 type StoryCharacterRow =
   Database["public"]["Tables"]["story_characters"]["Row"];
 type StoryEventRow = Database["public"]["Tables"]["story_events"]["Row"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 /** Valid values for the role_in_story column of story_characters. */
-export type StoryCharacterRole =
-  "protagonist" | "supporting" | "mentioned" | "narrator";
+export type StoryCharacterRole = z.infer<typeof storyCharacterRoleEnum>;
+
+/** An event row tagged with its editorial narrative order within a story. */
+export interface StoryEventWithOrder extends EventRow {
+  /** The sort_order from the story_events junction row (0 when not set). */
+  junction_sort_order: number;
+}
 
 export interface StoryFilters {
   userId?: string;
@@ -43,6 +54,14 @@ function assertNoError(
 
 /**
  * Return a paginated list of stories, optionally filtered.
+ *
+ * Implemented filters: `userId`, `narratorType`, full-text `search` (over the
+ * generated `search_vector`), and pagination (`page`/`pageSize`). Results are
+ * ordered by `created_at` descending.
+ *
+ * Deferred to the list-UI ticket (#62), per wireframe 18-stories-list.md:
+ * published-state filter, tag filter, perspective-character filter, and
+ * caller-selectable sort (`title` / `updated_at` / `created_at`).
  *
  * @param client - Supabase client instance
  * @param filters - Optional filters: userId, narratorType, search, page, pageSize
@@ -196,6 +215,15 @@ export async function createStory(
 /**
  * Apply a partial update to a story.
  *
+ * The first-person perspective rule is enforced conservatively for partial
+ * updates, without re-reading the stored row. A patch that explicitly clears
+ * `perspective_character_id` is rejected unless it also explicitly sets
+ * `narrator_type` to a non-first-person value — clearing the perspective while
+ * leaving the narrator as (a possibly-stored) `first_person` would strand the
+ * story in an invalid state. A patch that switches to first-person while
+ * omitting `perspective_character_id` is still allowed, since it may rely on an
+ * already-persisted perspective character.
+ *
  * @param client - Supabase client instance
  * @param id - Story UUID
  * @param data - Partial story fields to update
@@ -206,7 +234,26 @@ export async function updateStory(
   id: string,
   data: Partial<StoryInput>,
 ): Promise<StoryRow> {
-  const validated = storySchema.partial().parse(data);
+  const validated = storyBaseSchema.partial().parse(data);
+
+  // Reject an explicit clear of the perspective character unless the same patch
+  // declares a non-first-person narrator. Because there is no DB CHECK tying the
+  // two columns together and we do not re-read the stored row, this is the only
+  // way to keep the service from leaving an existing first_person story without
+  // a perspective character.
+  const clearingPerspective =
+    "perspective_character_id" in validated &&
+    validated.perspective_character_id == null;
+  const settingNonFirstPerson =
+    validated.narrator_type !== undefined &&
+    validated.narrator_type !== "first_person";
+
+  if (clearingPerspective && !settingNonFirstPerson) {
+    throw new Error(
+      "StoryService.updateStory: perspective_character_id is required when narrator_type is first_person",
+    );
+  }
+
   const { data: updated, error } = await client
     .from("stories")
     .update(validated)
@@ -246,16 +293,48 @@ export async function addCharacterToStory(
   characterId: string,
   roleInStory: StoryCharacterRole = "mentioned",
 ): Promise<StoryCharacterRow> {
+  const role = storyCharacterRoleEnum.parse(roleInStory);
   const { data, error } = await client
     .from("story_characters")
     .insert({
       story_id: storyId,
       character_id: characterId,
-      role_in_story: roleInStory,
+      role_in_story: role,
     })
     .select()
     .single();
   assertNoError(error, "addCharacterToStory");
+  return data;
+}
+
+/**
+ * Change the `role_in_story` of an existing story↔character link.
+ *
+ * Unlike {@link addCharacterToStory}, this updates a row that already exists,
+ * supporting the inline role select on the story detail page. The role is
+ * validated against {@link storyCharacterRoleEnum} before the update.
+ *
+ * @param client - Supabase client instance
+ * @param storyId - Story UUID
+ * @param characterId - Character UUID
+ * @param roleInStory - New role for the character within the story
+ * @returns The updated junction row
+ */
+export async function updateStoryCharacterRole(
+  client: SupabaseClient<Database>,
+  storyId: string,
+  characterId: string,
+  roleInStory: StoryCharacterRole,
+): Promise<StoryCharacterRow> {
+  const role = storyCharacterRoleEnum.parse(roleInStory);
+  const { data, error } = await client
+    .from("story_characters")
+    .update({ role_in_story: role })
+    .eq("story_id", storyId)
+    .eq("character_id", characterId)
+    .select()
+    .single();
+  assertNoError(error, "updateStoryCharacterRole");
   return data;
 }
 
@@ -332,11 +411,16 @@ export async function removeEventFromStory(
 /**
  * Set the editorial narrative `sort_order` for a single story↔event link.
  *
+ * Upserts on `(story_id, event_id)` — mirrors
+ * `timeline-service.setTimelineEventSortOrder` — so reordering creates the
+ * junction row if it does not yet exist rather than silently affecting zero
+ * rows.
+ *
  * @param client - Supabase client instance
  * @param storyId - Story UUID
  * @param eventId - Event UUID
  * @param sortOrder - New editorial narrative order
- * @returns The updated junction row
+ * @returns The upserted junction row
  */
 export async function reorderStoryEvent(
   client: SupabaseClient<Database>,
@@ -346,13 +430,85 @@ export async function reorderStoryEvent(
 ): Promise<StoryEventRow> {
   const { data, error } = await client
     .from("story_events")
-    .update({ sort_order: sortOrder })
-    .eq("story_id", storyId)
-    .eq("event_id", eventId)
+    .upsert(
+      { story_id: storyId, event_id: eventId, sort_order: sortOrder },
+      { onConflict: "story_id,event_id" },
+    )
     .select()
     .single();
   assertNoError(error, "reorderStoryEvent");
   return data;
+}
+
+/**
+ * Return a story's events in narrative display order.
+ *
+ * If any junction row carries a non-zero `sort_order`, results are ordered by
+ * that editorial order, with unplaced events (`sort_order === 0`) pushed last.
+ * Otherwise results fall back to `events.sort_order_years` ascending
+ * (chronological). Both modes use a stable chronology-then-id tie-break so the
+ * order is deterministic across fetches. Mirrors
+ * `timeline-service.getTimelineEventsUnion`, minus the "home" events concept —
+ * every story event is a junction link.
+ *
+ * @param client - Supabase client instance
+ * @param storyId - Story UUID
+ * @returns Event rows tagged with their junction sort_order, in display order
+ */
+export async function getStoryEvents(
+  client: SupabaseClient<Database>,
+  storyId: string,
+): Promise<StoryEventWithOrder[]> {
+  const { data, error } = await client
+    .from("story_events")
+    .select("sort_order, events(*)")
+    .eq("story_id", storyId);
+  assertNoError(error, "getStoryEvents");
+
+  const rows = (data ?? []) as unknown as Array<{
+    sort_order: number | null;
+    events: EventRow | null;
+  }>;
+
+  const merged: StoryEventWithOrder[] = rows
+    .filter((r): r is { sort_order: number | null; events: EventRow } =>
+      Boolean(r.events),
+    )
+    .map((r) => ({ ...r.events, junction_sort_order: r.sort_order ?? 0 }));
+
+  const hasEditorialOrder = merged.some((e) => e.junction_sort_order !== 0);
+
+  // Stable tie-break shared by both ordering modes so the list is deterministic
+  // across fetches (DB row order is not guaranteed): chronological, then id.
+  // Undated events (`sort_order_years` null) sort last, matching the repo's
+  // usual `nullsFirst: false` ordering. Compare with `<` rather than
+  // subtraction so two +Infinity values don't yield `NaN`.
+  const byChronologyThenId = (
+    a: StoryEventWithOrder,
+    b: StoryEventWithOrder,
+  ) => {
+    const ay = a.sort_order_years ?? Number.POSITIVE_INFINITY;
+    const by = b.sort_order_years ?? Number.POSITIVE_INFINITY;
+    if (ay !== by) return ay < by ? -1 : 1;
+    return a.id.localeCompare(b.id);
+  };
+
+  if (hasEditorialOrder) {
+    merged.sort((a, b) => {
+      // Treat sort_order=0 as "not yet placed" and push those events after
+      // explicit positions.
+      if (a.junction_sort_order === 0 && b.junction_sort_order !== 0) return 1;
+      if (a.junction_sort_order !== 0 && b.junction_sort_order === 0) return -1;
+      return (
+        a.junction_sort_order - b.junction_sort_order ||
+        byChronologyThenId(a, b)
+      );
+    });
+  } else {
+    merged.sort(byChronologyThenId);
+  }
+
+  return merged;
 }
 
 /**

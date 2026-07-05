@@ -5,11 +5,13 @@ import {
   getStories,
   getStoryById,
   getStoryBySlug,
+  getStoryEvents,
   createStory,
   updateStory,
   deleteStory,
   addCharacterToStory,
   removeCharacterFromStory,
+  updateStoryCharacterRole,
   addEventToStory,
   removeEventFromStory,
   reorderStoryEvent,
@@ -27,6 +29,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     select: vi.fn().mockReturnThis(),
     insert: vi.fn().mockReturnThis(),
     update: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
@@ -221,6 +224,94 @@ describe("getStoryBySlug", () => {
 // createStory
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// getStoryEvents
+// ---------------------------------------------------------------------------
+
+/** Build a story_events select result: rows of { sort_order, events }. */
+function eventJunction(id: string, sortOrder: number, sortOrderYears: number) {
+  return {
+    sort_order: sortOrder,
+    events: { id, sort_order_years: sortOrderYears },
+  };
+}
+
+describe("getStoryEvents", () => {
+  it("returns editorial order when any junction sort_order is non-zero, pushing 0s last", async () => {
+    // Chronology is deliberately the reverse of editorial order to prove
+    // editorial wins. The sort_order=0 event lands last regardless of its date.
+    const rows = [
+      eventJunction("c", 3, 100),
+      eventJunction("a", 1, 300),
+      eventJunction("z", 0, 50),
+      eventJunction("b", 2, 200),
+    ];
+    const client = makeClient({ fromResult: { data: rows, error: null } });
+    const result = await getStoryEvents(client, "story-1");
+    expect(result.map((e) => e.id)).toEqual(["a", "b", "c", "z"]);
+    expect(result.map((e) => e.junction_sort_order)).toEqual([1, 2, 3, 0]);
+  });
+
+  it("falls back to chronological order (sort_order_years) when all sort_order are 0", async () => {
+    const rows = [
+      eventJunction("late", 0, 900),
+      eventJunction("early", 0, 100),
+      eventJunction("mid", 0, 500),
+    ];
+    const client = makeClient({ fromResult: { data: rows, error: null } });
+    const result = await getStoryEvents(client, "story-1");
+    expect(result.map((e) => e.id)).toEqual(["early", "mid", "late"]);
+  });
+
+  it("uses a deterministic id tie-break when chronology is equal", async () => {
+    const rows = [
+      eventJunction("bravo", 0, 100),
+      eventJunction("alpha", 0, 100),
+    ];
+    const client = makeClient({ fromResult: { data: rows, error: null } });
+    const result = await getStoryEvents(client, "story-1");
+    expect(result.map((e) => e.id)).toEqual(["alpha", "bravo"]);
+  });
+
+  it("sorts undated events (null sort_order_years) last, with a stable order among them", async () => {
+    const rows = [
+      { sort_order: 0, events: { id: "undated-b", sort_order_years: null } },
+      eventJunction("dated", 0, 100),
+      { sort_order: 0, events: { id: "undated-a", sort_order_years: null } },
+    ];
+    const client = makeClient({ fromResult: { data: rows, error: null } });
+    const result = await getStoryEvents(client, "story-1");
+    // Dated event first; the two undated events follow in id order (no NaN from
+    // comparing two +Infinity chronologies).
+    expect(result.map((e) => e.id)).toEqual([
+      "dated",
+      "undated-a",
+      "undated-b",
+    ]);
+  });
+
+  it("returns an empty array when the story has no events", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await expect(getStoryEvents(client, "story-1")).resolves.toEqual([]);
+  });
+
+  it("skips junction rows with a null event embed", async () => {
+    const rows = [{ sort_order: 0, events: null }, eventJunction("a", 0, 100)];
+    const client = makeClient({ fromResult: { data: rows, error: null } });
+    const result = await getStoryEvents(client, "story-1");
+    expect(result.map((e) => e.id)).toEqual(["a"]);
+  });
+
+  it("throws on DB error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "boom" } },
+    });
+    await expect(getStoryEvents(client, "story-1")).rejects.toThrow(
+      "StoryService.getStoryEvents: boom",
+    );
+  });
+});
+
 describe("createStory", () => {
   it("creates and returns a new story", async () => {
     const client = makeCreateClient({ data: sampleStory, error: null });
@@ -303,6 +394,35 @@ describe("createStory", () => {
       "StoryService.createStory: insert failed",
     );
   });
+
+  it("rejects first_person without a perspective character", async () => {
+    const client = makeCreateClient({ data: sampleStory, error: null });
+    await expect(
+      createStory(client, { title: "Voiced", narrator_type: "first_person" }),
+    ).rejects.toThrow();
+  });
+
+  it("accepts first_person when a perspective character is provided", async () => {
+    const client = makeCreateClient({ data: sampleStory, error: null });
+    const result = await createStory(client, {
+      title: "Voiced",
+      narrator_type: "first_person",
+      perspective_character_id: "11111111-1111-4111-8111-111111111111",
+    });
+    expect(result).toEqual(sampleStory);
+  });
+
+  it.each(["third_person", "omniscient"] as const)(
+    "does not require a perspective character for %s",
+    async (narrator_type) => {
+      const client = makeCreateClient({ data: sampleStory, error: null });
+      const result = await createStory(client, {
+        title: "Unvoiced",
+        narrator_type,
+      });
+      expect(result).toEqual(sampleStory);
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -335,6 +455,69 @@ describe("updateStory", () => {
     await expect(
       updateStory(client, "story-1", { title: "X" }),
     ).rejects.toThrow("StoryService.updateStory: update failed");
+  });
+
+  it("rejects a patch that switches to first_person while clearing the perspective", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleStory, error: null },
+    });
+    await expect(
+      updateStory(client, "story-1", {
+        narrator_type: "first_person",
+        perspective_character_id: null,
+      }),
+    ).rejects.toThrow(
+      "StoryService.updateStory: perspective_character_id is required",
+    );
+    // Guard runs before any DB call.
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("permits a patch that does not touch narrator_type", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleStory, error: null },
+    });
+    await expect(
+      updateStory(client, "story-1", { title: "Renamed" }),
+    ).resolves.toEqual(sampleStory);
+  });
+
+  it("permits switching to first_person alongside a perspective character", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleStory, error: null },
+    });
+    await expect(
+      updateStory(client, "story-1", {
+        narrator_type: "first_person",
+        perspective_character_id: "11111111-1111-4111-8111-111111111111",
+      }),
+    ).resolves.toEqual(sampleStory);
+  });
+
+  it("rejects clearing the perspective when narrator_type is not in the patch", async () => {
+    // An existing first_person story could be stranded invalid; the service
+    // cannot see the stored narrator_type, so it rejects the bare clear.
+    const client = makeClient({
+      fromResult: { data: sampleStory, error: null },
+    });
+    await expect(
+      updateStory(client, "story-1", { perspective_character_id: null }),
+    ).rejects.toThrow(
+      "StoryService.updateStory: perspective_character_id is required",
+    );
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("permits clearing the perspective when the patch declares a non-first-person narrator", async () => {
+    const client = makeClient({
+      fromResult: { data: sampleStory, error: null },
+    });
+    await expect(
+      updateStory(client, "story-1", {
+        narrator_type: "third_person",
+        perspective_character_id: null,
+      }),
+    ).resolves.toEqual(sampleStory);
   });
 });
 
@@ -396,6 +579,28 @@ describe("addCharacterToStory", () => {
     );
   });
 
+  it.each(["supporting", "narrator"] as const)(
+    "accepts the %s role",
+    async (role) => {
+      const client = makeClient({ fromResult: { data: {}, error: null } });
+      await addCharacterToStory(client, "story-1", "char-1", role);
+      const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+        ?.value as ReturnType<typeof makeBuilder>;
+      expect(builder.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ role_in_story: role }),
+      );
+    },
+  );
+
+  it("rejects an invalid role before hitting the DB", async () => {
+    const client = makeClient({ fromResult: { data: {}, error: null } });
+    await expect(
+      // @ts-expect-error intentionally invalid role
+      addCharacterToStory(client, "story-1", "char-1", "villain"),
+    ).rejects.toThrow();
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
   it("throws on DB error", async () => {
     const client = makeClient({
       fromResult: { data: null, error: { message: "conflict" } },
@@ -403,6 +608,50 @@ describe("addCharacterToStory", () => {
     await expect(
       addCharacterToStory(client, "story-1", "char-1"),
     ).rejects.toThrow("StoryService.addCharacterToStory: conflict");
+  });
+});
+
+describe("updateStoryCharacterRole", () => {
+  it.each(["protagonist", "supporting", "mentioned", "narrator"] as const)(
+    "updates the role to %s",
+    async (role) => {
+      const row = {
+        story_id: "story-1",
+        character_id: "char-1",
+        role_in_story: role,
+      };
+      const client = makeClient({ fromResult: { data: row, error: null } });
+      const result = await updateStoryCharacterRole(
+        client,
+        "story-1",
+        "char-1",
+        role,
+      );
+      expect(result).toEqual(row);
+      const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+        ?.value as ReturnType<typeof makeBuilder>;
+      expect(builder.update).toHaveBeenCalledWith({ role_in_story: role });
+      expect(builder.eq).toHaveBeenCalledWith("story_id", "story-1");
+      expect(builder.eq).toHaveBeenCalledWith("character_id", "char-1");
+    },
+  );
+
+  it("rejects an invalid role before hitting the DB", async () => {
+    const client = makeClient({ fromResult: { data: {}, error: null } });
+    await expect(
+      // @ts-expect-error intentionally invalid role
+      updateStoryCharacterRole(client, "story-1", "char-1", "sidekick"),
+    ).rejects.toThrow();
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("throws on DB error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "failed" } },
+    });
+    await expect(
+      updateStoryCharacterRole(client, "story-1", "char-1", "protagonist"),
+    ).rejects.toThrow("StoryService.updateStoryCharacterRole: failed");
   });
 });
 
@@ -490,16 +739,30 @@ describe("removeEventFromStory", () => {
 // ---------------------------------------------------------------------------
 
 describe("reorderStoryEvent", () => {
-  it("returns the updated junction row with the new sort_order", async () => {
+  it("upserts the junction row with the new sort_order and onConflict keys", async () => {
     const row = { story_id: "story-1", event_id: "event-1", sort_order: 3 };
     const client = makeClient({ fromResult: { data: row, error: null } });
     const result = await reorderStoryEvent(client, "story-1", "event-1", 3);
     expect(result.sort_order).toBe(3);
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.update).toHaveBeenCalledWith({ sort_order: 3 });
-    expect(builder.eq).toHaveBeenCalledWith("story_id", "story-1");
-    expect(builder.eq).toHaveBeenCalledWith("event_id", "event-1");
+    expect(builder.upsert).toHaveBeenCalledWith(
+      { story_id: "story-1", event_id: "event-1", sort_order: 3 },
+      { onConflict: "story_id,event_id" },
+    );
+  });
+
+  it("creates the junction row when the link does not yet exist (upsert)", async () => {
+    // A not-yet-linked (story, event) pair: upsert returns the freshly created row
+    // rather than silently affecting zero rows.
+    const created = {
+      story_id: "story-1",
+      event_id: "new-event",
+      sort_order: 1,
+    };
+    const client = makeClient({ fromResult: { data: created, error: null } });
+    const result = await reorderStoryEvent(client, "story-1", "new-event", 1);
+    expect(result).toEqual(created);
   });
 
   it("throws on DB error", async () => {
