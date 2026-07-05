@@ -263,7 +263,9 @@ export function MediaSection({
                 <p className="truncate text-sm font-medium">
                   {item.caption ?? item.alt_text ?? "Untitled media"}
                 </p>
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                {/* A <div>, not <p>: the primary <Badge> renders a <div>, which
+                    is invalid (and a hydration error) nested in a <p>. */}
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <span>
                     {item.source === "external" ? "external" : "uploaded"}
                   </span>
@@ -277,7 +279,7 @@ export function MediaSection({
                       Primary
                     </Badge>
                   )}
-                </p>
+                </div>
               </div>
 
               {canEdit && (

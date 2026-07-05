@@ -18,6 +18,7 @@ export default defineConfig({
         "app/**/_components/media/attach-media-dialog.tsx",
         "app/**/_components/media/media-library.tsx",
         "app/**/_components/media/media-section.tsx",
+        "app/**/character-detail-helpers.ts",
         "app/**/character-form-mappers.ts",
         "app/**/event-form-mappers.ts",
         "app/**/timeline-form-mappers.ts",
