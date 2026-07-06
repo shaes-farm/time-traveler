@@ -191,7 +191,69 @@ export async function createCategory(
 }
 
 /**
+ * Throws if assigning `newParentId` as the parent of `categoryId` would create
+ * a circular hierarchy — i.e. if `categoryId` is `newParentId` itself, or is an
+ * ancestor of `newParentId`.
+ *
+ * Detection walks the ancestor chain upward from `newParentId` via
+ * `parent_category_id`. A cycle would form exactly when `categoryId` appears on
+ * that chain, so a single upward walk is sufficient (and cheaper than
+ * enumerating `categoryId`'s descendants). A `visited` set guards against an
+ * already-corrupt chain looping forever.
+ *
+ * Detection is service-layer by design — `parent_category_id` is not
+ * cycle-constrained at the database level (docs/system-design.md §3.4),
+ * consistent with the other self-referential FK cycle guards
+ * (see `event-service.assertNoDetailTimelineCycle`).
+ *
+ * @param client - Supabase client instance
+ * @param categoryId - The category being reparented
+ * @param newParentId - The candidate parent
+ */
+export async function assertNoCategoryCycle(
+  client: SupabaseClient<Database>,
+  categoryId: string,
+  newParentId: string,
+): Promise<void> {
+  const visited = new Set<string>();
+  let cursor: string | null = newParentId;
+
+  while (cursor !== null) {
+    if (cursor === categoryId) {
+      throw new Error(
+        "CategoryService.assertNoCategoryCycle: a category cannot be its own " +
+          "ancestor (circular hierarchy)",
+      );
+    }
+    if (visited.has(cursor)) {
+      // Pre-existing cycle in the stored data; stop rather than loop forever.
+      return;
+    }
+    visited.add(cursor);
+
+    const {
+      data,
+      error,
+    }: {
+      data: { parent_category_id: string | null } | null;
+      error: { message: string } | null;
+    } = await client
+      .from("categories")
+      .select("parent_category_id")
+      .eq("id", cursor)
+      .single();
+    assertNoError(error, "assertNoCategoryCycle");
+    cursor = data?.parent_category_id ?? null;
+  }
+}
+
+/**
  * Apply a partial update to a category.
+ *
+ * When the patch reparents the node (sets `parent_category_id` to a non-null
+ * value), the assignment is checked against {@link assertNoCategoryCycle} first,
+ * so a category can never become its own ancestor. Setting
+ * `parent_category_id` to `null` moves the node to root and is always allowed.
  *
  * @param client - Supabase client instance
  * @param id - Category UUID
@@ -204,6 +266,14 @@ export async function updateCategory(
   data: Partial<CategoryInput>,
 ): Promise<CategoryRow> {
   const validated = categorySchema.partial().parse(data);
+
+  if (
+    validated.parent_category_id !== undefined &&
+    validated.parent_category_id !== null
+  ) {
+    await assertNoCategoryCycle(client, id, validated.parent_category_id);
+  }
+
   const { data: updated, error } = await client
     .from("categories")
     .update(validated)
@@ -215,8 +285,13 @@ export async function updateCategory(
 }
 
 /**
- * Delete a category by its UUID. Child categories cascade via the FK
- * constraint defined on `parent_category_id`.
+ * Delete a category and its entire subtree (wireframe 24 "Option B — delete
+ * subtree", the raw DB cascade). Descendants cascade via the
+ * `parent_category_id ... ON DELETE CASCADE` FK, and every affected event is
+ * untagged via `event_categories ... ON DELETE CASCADE`.
+ *
+ * For the safer "reparent children first" path that preserves the subtree, use
+ * {@link deleteCategoryReparentingChildren}.
  *
  * @param client - Supabase client instance
  * @param id - Category UUID
@@ -230,9 +305,58 @@ export async function deleteCategory(
 }
 
 /**
+ * Delete a single category while preserving its subtree (wireframe 24
+ * "Option A — reparent children first"). Direct children are re-pointed to the
+ * target's own parent (its grandparent, or `null` for root) before the target
+ * is deleted, so descendants survive rather than cascading away.
+ *
+ * The target's own `event_categories` tags are still removed by the DB cascade
+ * when it is deleted — only the subtree is preserved, not the target node's own
+ * event associations. This is an application-layer operation: the database only
+ * offers the raw cascade (`deleteCategory`).
+ *
+ * @param client - Supabase client instance
+ * @param id - Category UUID to delete
+ */
+export async function deleteCategoryReparentingChildren(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<void> {
+  // Resolve the target's parent — children inherit it (grandparent or root).
+  const { data: target, error: fetchError } = await client
+    .from("categories")
+    .select("parent_category_id")
+    .eq("id", id)
+    .single();
+  assertNoError(fetchError, "deleteCategoryReparentingChildren(fetch)");
+
+  // Move direct children up to the target's parent. Because they move to the
+  // target's own ancestor (never into the target's subtree), this reparent
+  // cannot introduce a cycle, so no assertNoCategoryCycle check is needed.
+  const { error: reparentError } = await client
+    .from("categories")
+    .update({ parent_category_id: target.parent_category_id })
+    .eq("parent_category_id", id);
+  assertNoError(reparentError, "deleteCategoryReparentingChildren(reparent)");
+
+  // The target is now childless; delete only it.
+  const { error: deleteError } = await client
+    .from("categories")
+    .delete()
+    .eq("id", id);
+  assertNoError(deleteError, "deleteCategoryReparentingChildren(delete)");
+}
+
+/**
  * Fetch all categories for a user and assemble them into a nested tree.
  * Root nodes are those with `parent_category_id IS NULL`. The tree is built
  * entirely in-memory from a single DB query.
+ *
+ * Ordering within every level is deterministic: alphabetical by `title`, with a
+ * stable `id` tie-break for equal titles (categories have no `sort_order` and
+ * no temporal axis). We build children in the DB's title-ascending row order,
+ * then sort each level explicitly so equal-title siblings never reorder across
+ * fetches, regardless of the order the map iterates them in.
  *
  * @param client - Supabase client instance
  * @param userId - Owner's user UUID
@@ -274,6 +398,14 @@ export async function getCategoryTree(
     } else {
       roots.push(node);
     }
+  }
+
+  // Deterministic ordering: title ascending, then id as a stable tie-break.
+  const byTitleThenId = (a: CategoryNode, b: CategoryNode) =>
+    a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+  roots.sort(byTitleThenId);
+  for (const node of nodeMap.values()) {
+    node.children?.sort(byTitleThenId);
   }
 
   return roots;
