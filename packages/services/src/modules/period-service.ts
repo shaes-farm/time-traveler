@@ -80,11 +80,17 @@ export async function getPeriods(
 }
 
 /**
- * Fetch a single period by its UUID.
+ * Fetch a single period by its UUID, with its direct child periods attached.
+ *
+ * Children are fetched in a second query rather than via a PostgREST embed:
+ * the owner-scoped composite self-FK (`00028`, `(user_id, parent_period_id)`)
+ * is not resolvable as a self-referential embed relationship, so
+ * `periods!parent_period_id(*)` no longer works. `getChildPeriods` reads the
+ * same rows ordered by `sort_order_start`.
  *
  * @param client - Supabase client instance
  * @param id - Period UUID
- * @returns The matching period row
+ * @returns The matching period row with `child_periods`
  */
 export async function getPeriodById(
   client: SupabaseClient<Database>,
@@ -92,20 +98,22 @@ export async function getPeriodById(
 ): Promise<PeriodWithRelations> {
   const { data, error } = await client
     .from("periods")
-    .select("*, child_periods:periods!parent_period_id(*)")
+    .select("*")
     .eq("id", id)
     .single();
   assertNoError(error, "getPeriodById");
-  return data as unknown as PeriodWithRelations;
+  const child_periods = await getChildPeriods(client, data.id);
+  return { ...data, child_periods };
 }
 
 /**
- * Fetch a single period by its owner and slug.
+ * Fetch a single period by its owner and slug, with its direct child periods
+ * attached (see {@link getPeriodById} for why children are a separate query).
  *
  * @param client - Supabase client instance
  * @param userId - Owner's user UUID
  * @param slug - Period slug
- * @returns The matching period row
+ * @returns The matching period row with `child_periods`
  */
 export async function getPeriodBySlug(
   client: SupabaseClient<Database>,
@@ -114,12 +122,13 @@ export async function getPeriodBySlug(
 ): Promise<PeriodWithRelations> {
   const { data, error } = await client
     .from("periods")
-    .select("*, child_periods:periods!parent_period_id(*)")
+    .select("*")
     .eq("user_id", userId)
     .eq("slug", slug)
     .single();
   assertNoError(error, "getPeriodBySlug");
-  return data as unknown as PeriodWithRelations;
+  const child_periods = await getChildPeriods(client, data.id);
+  return { ...data, child_periods };
 }
 
 /**
@@ -388,9 +397,11 @@ export interface EventsInPeriodOptions {
  * `sort_order_years` ascending.
  *
  * There is **no `period_events` junction** — a period gathers events by date,
- * read-only. An open-ended period (`sort_order_end` NULL) collapses to the
- * single instant at `sort_order_start`. Both sort columns are DB-generated from
- * the era formula (docs/system-design.md §4), so the bounds need no conversion.
+ * read-only. An open-ended period (`end_temporal_data` NULL) collapses to the
+ * single instant at `sort_order_start`. Note the generated `sort_order_end` is
+ * `0` (not NULL) when `end_temporal_data` has no era, so open-endedness is keyed
+ * off `end_temporal_data`, not `sort_order_end`. Both sort columns are
+ * DB-generated from the era formula (docs/system-design.md §4).
  *
  * With `timelineScoped: true`, results are further limited to the timelines the
  * period overlays; a period that overlays no timeline yields an empty list.
@@ -407,13 +418,17 @@ export async function getEventsInPeriod(
 ): Promise<EventRow[]> {
   const { data: period, error: periodError } = await client
     .from("periods")
-    .select("sort_order_start, sort_order_end")
+    .select("sort_order_start, sort_order_end, end_temporal_data")
     .eq("id", periodId)
     .single();
   assertNoError(periodError, "getEventsInPeriod(period)");
 
   const start = period.sort_order_start ?? 0;
-  const end = period.sort_order_end ?? start;
+  // Open-ended when there is no end era: the generated `sort_order_end` is 0
+  // (not NULL) in that case, so key off `end_temporal_data`, not the sort value.
+  const endEra = (period.end_temporal_data as { era?: string } | null)?.era;
+  const end =
+    typeof endEra === "string" ? (period.sort_order_end ?? start) : start;
 
   if (options.timelineScoped !== true) {
     const { data, error } = await client

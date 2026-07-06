@@ -211,18 +211,25 @@ describe("getPeriods", () => {
 // ---------------------------------------------------------------------------
 
 describe("getPeriodById", () => {
-  it("returns the matching period", async () => {
-    const client = makeClient({
-      fromResult: { data: samplePeriod, error: null },
-    });
+  it("returns the matching period with its child periods attached", async () => {
+    const child = {
+      ...samplePeriod,
+      id: "period-2",
+      parent_period_id: "period-1",
+    };
+    // Query 1: the period (via .single()); query 2: getChildPeriods (thenable).
+    const { client } = makeSequenceClient([
+      { data: samplePeriod, error: null },
+      { data: [child], error: null },
+    ]);
     const result = await getPeriodById(client, "period-1");
-    expect(result).toEqual(samplePeriod);
+    expect(result).toEqual({ ...samplePeriod, child_periods: [child] });
   });
 
   it("throws on error", async () => {
-    const client = makeClient({
-      fromResult: { data: null, error: { message: "not found" } },
-    });
+    const { client } = makeSequenceClient([
+      { data: null, error: { message: "not found" } },
+    ]);
     await expect(getPeriodById(client, "period-1")).rejects.toThrow(
       "PeriodService.getPeriodById: not found",
     );
@@ -234,22 +241,21 @@ describe("getPeriodById", () => {
 // ---------------------------------------------------------------------------
 
 describe("getPeriodBySlug", () => {
-  it("returns the matching period", async () => {
-    const client = makeClient({
-      fromResult: { data: samplePeriod, error: null },
-    });
+  it("returns the matching period with its child periods attached", async () => {
+    const { client, builders } = makeSequenceClient([
+      { data: samplePeriod, error: null },
+      { data: [], error: null },
+    ]);
     const result = await getPeriodBySlug(client, "user-123", "middle-ages");
-    expect(result).toEqual(samplePeriod);
-    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
-      ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.eq).toHaveBeenCalledWith("user_id", "user-123");
-    expect(builder.eq).toHaveBeenCalledWith("slug", "middle-ages");
+    expect(result).toEqual({ ...samplePeriod, child_periods: [] });
+    expect(builders[0]?.eq).toHaveBeenCalledWith("user_id", "user-123");
+    expect(builders[0]?.eq).toHaveBeenCalledWith("slug", "middle-ages");
   });
 
   it("throws on error", async () => {
-    const client = makeClient({
-      fromResult: { data: null, error: { message: "not found" } },
-    });
+    const { client } = makeSequenceClient([
+      { data: null, error: { message: "not found" } },
+    ]);
     await expect(
       getPeriodBySlug(client, "user-123", "missing"),
     ).rejects.toThrow("PeriodService.getPeriodBySlug: not found");
@@ -642,7 +648,14 @@ const sampleEvent = {
 describe("getEventsInPeriod", () => {
   it("queries events within the period's sort-order span (unscoped)", async () => {
     const { client, builders } = makeSequenceClient([
-      { data: { sort_order_start: 100, sort_order_end: 200 }, error: null },
+      {
+        data: {
+          sort_order_start: 100,
+          sort_order_end: 200,
+          end_temporal_data: { era: "CE", year: 200 },
+        },
+        error: null,
+      },
       { data: [sampleEvent], error: null },
     ]);
     const result = await getEventsInPeriod(client, "period-1");
@@ -652,9 +665,18 @@ describe("getEventsInPeriod", () => {
     expect(eventsBuilder?.lte).toHaveBeenCalledWith("sort_order_years", 200);
   });
 
-  it("collapses an open-ended period (null end) to its start instant", async () => {
+  it("collapses an open-ended period to its start instant", async () => {
+    // No end era: the generated sort_order_end is 0, but open-endedness is
+    // keyed off end_temporal_data, so the span collapses to sort_order_start.
     const { client, builders } = makeSequenceClient([
-      { data: { sort_order_start: 100, sort_order_end: null }, error: null },
+      {
+        data: {
+          sort_order_start: 100,
+          sort_order_end: 0,
+          end_temporal_data: null,
+        },
+        error: null,
+      },
       { data: [], error: null },
     ]);
     await getEventsInPeriod(client, "period-1");
@@ -673,7 +695,14 @@ describe("getEventsInPeriod", () => {
       sort_order_years: 110,
     };
     const { client, builders } = makeSequenceClient([
-      { data: { sort_order_start: 100, sort_order_end: 200 }, error: null }, // period
+      {
+        data: {
+          sort_order_start: 100,
+          sort_order_end: 200,
+          end_temporal_data: { era: "CE", year: 200 },
+        },
+        error: null,
+      }, // period
       { data: [{ timeline_id: "tl-1" }], error: null }, // period_timelines
       { data: [homeEvent], error: null }, // home events
       { data: [{ event_id: "event-guest" }], error: null }, // timeline_events
@@ -690,7 +719,14 @@ describe("getEventsInPeriod", () => {
 
   it("returns [] when a scoped period overlays no timeline", async () => {
     const { client } = makeSequenceClient([
-      { data: { sort_order_start: 100, sort_order_end: 200 }, error: null },
+      {
+        data: {
+          sort_order_start: 100,
+          sort_order_end: 200,
+          end_temporal_data: { era: "CE", year: 200 },
+        },
+        error: null,
+      },
       { data: [], error: null }, // no overlaid timelines
     ]);
     const result = await getEventsInPeriod(client, "period-1", {

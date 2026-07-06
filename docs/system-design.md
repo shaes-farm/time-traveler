@@ -638,8 +638,10 @@ CREATE TABLE timeline_events (
 -- Events-in-range contract (#60): PeriodService.getEventsInPeriod(client,
 -- periodId, { timelineScoped }) returns events whose sort_order_years is BETWEEN
 -- the period's sort_order_start and sort_order_end (inclusive), ordered
--- ascending; read-only, no junction writes. An open-ended period (sort_order_end
--- NULL) collapses to the single instant at sort_order_start. With
+-- ascending; read-only, no junction writes. An open-ended period
+-- (end_temporal_data NULL) collapses to the single instant at sort_order_start
+-- — note the generated sort_order_end is 0 (not NULL) when there is no end era,
+-- so open-endedness is keyed off end_temporal_data. With
 -- timelineScoped: true, results are limited to events on the overlaid timelines
 -- (home events.timeline_id + guest timeline_events); a period overlaying no
 -- timeline then yields []. Periods have no search_vector — list search is
