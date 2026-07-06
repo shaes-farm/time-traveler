@@ -74,6 +74,9 @@ function makeCreateClient(insertResult: { data: unknown; error: unknown }) {
 // so multi-query flows (ancestor walks, reparent-then-delete) can script each
 // step's result. Extra calls beyond the list reuse the last builder.
 function makeSequenceClient(results: { data: unknown; error: unknown }[]) {
+  if (results.length === 0) {
+    throw new Error("makeSequenceClient requires at least one result");
+  }
   const builders = results.map(makeBuilder);
   let callCount = 0;
   const client = {
