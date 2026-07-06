@@ -1,4 +1,4 @@
--- pgTAP tests for 00027_categories_same_owner_parent.sql (issue #59 / PR #338 —
+-- pgTAP tests for 00027_categories_same_owner_parent.sql (issue #59 —
 -- category nesting is constrained to a single owner via a composite FK).
 begin;
 create extension if not exists pgtap with schema extensions;

@@ -29,6 +29,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
+    maybeSingle: terminal,
     then: (resolve: (v: unknown) => unknown) =>
       Promise.resolve(result).then(resolve),
   };
@@ -71,8 +72,8 @@ function makeCreateClient(insertResult: { data: unknown; error: unknown }) {
 }
 
 // Returns a client whose successive `from()` calls yield successive builders,
-// so multi-query flows (ancestor walks, reparent-then-delete) can script each
-// step's result. Extra calls beyond the list reuse the last builder.
+// so a multi-query flow (e.g. an ancestor walk) can script each step's result.
+// Extra calls beyond the list reuse the last builder.
 function makeSequenceClient(results: { data: unknown; error: unknown }[]) {
   if (results.length === 0) {
     throw new Error("makeSequenceClient requires at least one result");

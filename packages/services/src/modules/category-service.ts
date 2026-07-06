@@ -25,6 +25,10 @@ export type CreateCategoryInput = Omit<CategoryInput, "slug"> & {
   slug?: string;
 };
 
+// Fixed-locale collator for deterministic, host-independent title ordering in
+// getCategoryTree. Created once at module scope rather than per sort.
+const TITLE_COLLATOR = new Intl.Collator("en", { sensitivity: "variant" });
+
 function assertNoError(
   error: { message: string } | null,
   context: string,
@@ -231,6 +235,10 @@ export async function assertNoCategoryCycle(
     }
     visited.add(cursor);
 
+    // maybeSingle (not single): a non-existent `newParentId` returns no row
+    // without erroring, so the walk ends here and the guard passes. The real
+    // "parent does not exist" error is then raised cleanly by the FK on the
+    // subsequent UPDATE, rather than surfacing as a misleading cycle/fetch error.
     const {
       data,
       error,
@@ -241,7 +249,7 @@ export async function assertNoCategoryCycle(
       .from("categories")
       .select("parent_category_id")
       .eq("id", cursor)
-      .single();
+      .maybeSingle();
     assertNoError(error, "assertNoCategoryCycle");
     cursor = data?.parent_category_id ?? null;
   }
@@ -389,8 +397,11 @@ export async function getCategoryTree(
   }
 
   // Deterministic ordering: title ascending, then id as a stable tie-break.
+  // A fixed-locale Intl.Collator makes the title sort independent of the host's
+  // default locale; ids are UUIDs, so a plain code-point compare is enough.
   const byTitleThenId = (a: CategoryNode, b: CategoryNode) =>
-    a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+    TITLE_COLLATOR.compare(a.title, b.title) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   roots.sort(byTitleThenId);
   for (const node of nodeMap.values()) {
     node.children?.sort(byTitleThenId);

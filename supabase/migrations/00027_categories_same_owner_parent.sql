@@ -1,8 +1,8 @@
 -- ============================================================================
 -- 00027_categories_same_owner_parent.sql
 --
--- Constrain category nesting to a single owner (issue #59 follow-up; PR #338
--- review). `read_categories` is `USING (true)` (categories are globally
+-- Constrain category nesting to a single owner (issue #59 hardening
+-- follow-up). `read_categories` is `USING (true)` (categories are globally
 -- readable organizational metadata), and the write policies only check
 -- `user_id = auth.uid()` on the mutated row — nothing stops a user from
 -- pointing their `parent_category_id` at *another* owner's category. Because
