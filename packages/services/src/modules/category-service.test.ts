@@ -459,68 +459,32 @@ describe("updateCategory reparenting", () => {
 // ---------------------------------------------------------------------------
 
 describe("deleteCategoryReparentingChildren", () => {
-  it("moves children to the grandparent, then deletes the node", async () => {
-    const { client, builders } = makeSequenceClient([
-      { data: { parent_category_id: "grandparent" }, error: null }, // fetch
-      { data: null, error: null }, // reparent update
-      { data: null, error: null }, // delete
-    ]);
+  function makeRpcClient(result: { data: unknown; error: unknown }) {
+    return {
+      rpc: vi.fn().mockResolvedValue(result),
+    } as unknown as SupabaseClient<Database>;
+  }
+
+  it("invokes the atomic reparent-then-delete RPC with the category id", async () => {
+    const client = makeRpcClient({ data: null, error: null });
     await expect(
       deleteCategoryReparentingChildren(client, "cat-1"),
     ).resolves.toBeUndefined();
-    expect(builders[1]?.update).toHaveBeenCalledWith({
-      parent_category_id: "grandparent",
-    });
-    expect(builders[1]?.eq).toHaveBeenCalledWith("parent_category_id", "cat-1");
-    expect(builders[2]?.delete).toHaveBeenCalled();
-    expect(builders[2]?.eq).toHaveBeenCalledWith("id", "cat-1");
-  });
-
-  it("moves children of a root node to root (null parent)", async () => {
-    const { client, builders } = makeSequenceClient([
-      { data: { parent_category_id: null }, error: null },
-      { data: null, error: null },
-      { data: null, error: null },
-    ]);
-    await deleteCategoryReparentingChildren(client, "cat-1");
-    expect(builders[1]?.update).toHaveBeenCalledWith({
-      parent_category_id: null,
-    });
-  });
-
-  it("throws when the target fetch fails", async () => {
-    const { client } = makeSequenceClient([
-      { data: null, error: { message: "not found" } },
-    ]);
-    await expect(
-      deleteCategoryReparentingChildren(client, "cat-1"),
-    ).rejects.toThrow(
-      "CategoryService.deleteCategoryReparentingChildren(fetch): not found",
+    expect(client.rpc).toHaveBeenCalledWith(
+      "delete_category_reparenting_children",
+      { p_category_id: "cat-1" },
     );
   });
 
-  it("throws when the reparent update fails", async () => {
-    const { client } = makeSequenceClient([
-      { data: { parent_category_id: null }, error: null },
-      { data: null, error: { message: "reparent failed" } },
-    ]);
+  it("throws when the RPC returns an error", async () => {
+    const client = makeRpcClient({
+      data: null,
+      error: { message: "category not found" },
+    });
     await expect(
       deleteCategoryReparentingChildren(client, "cat-1"),
     ).rejects.toThrow(
-      "CategoryService.deleteCategoryReparentingChildren(reparent): reparent failed",
-    );
-  });
-
-  it("throws when the final delete fails", async () => {
-    const { client } = makeSequenceClient([
-      { data: { parent_category_id: null }, error: null },
-      { data: null, error: null },
-      { data: null, error: { message: "delete failed" } },
-    ]);
-    await expect(
-      deleteCategoryReparentingChildren(client, "cat-1"),
-    ).rejects.toThrow(
-      "CategoryService.deleteCategoryReparentingChildren(delete): delete failed",
+      "CategoryService.deleteCategoryReparentingChildren: category not found",
     );
   });
 });

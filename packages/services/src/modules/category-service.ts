@@ -310,10 +310,17 @@ export async function deleteCategory(
  * target's own parent (its grandparent, or `null` for root) before the target
  * is deleted, so descendants survive rather than cascading away.
  *
+ * The reparent and delete run atomically inside the
+ * `delete_category_reparenting_children` Postgres function
+ * (00026_delete_category_reparenting_children.sql): both commit or neither
+ * does, and a `FOR UPDATE` lock on the target serializes any concurrent child
+ * insert, so a child added mid-operation can't be silently cascade-deleted. The
+ * function is `SECURITY INVOKER`, so RLS restricts the caller to their own
+ * categories — deleting another owner's category raises a not-found error.
+ *
  * The target's own `event_categories` tags are still removed by the DB cascade
  * when it is deleted — only the subtree is preserved, not the target node's own
- * event associations. This is an application-layer operation: the database only
- * offers the raw cascade (`deleteCategory`).
+ * event associations.
  *
  * @param client - Supabase client instance
  * @param id - Category UUID to delete
@@ -322,29 +329,10 @@ export async function deleteCategoryReparentingChildren(
   client: SupabaseClient<Database>,
   id: string,
 ): Promise<void> {
-  // Resolve the target's parent — children inherit it (grandparent or root).
-  const { data: target, error: fetchError } = await client
-    .from("categories")
-    .select("parent_category_id")
-    .eq("id", id)
-    .single();
-  assertNoError(fetchError, "deleteCategoryReparentingChildren(fetch)");
-
-  // Move direct children up to the target's parent. Because they move to the
-  // target's own ancestor (never into the target's subtree), this reparent
-  // cannot introduce a cycle, so no assertNoCategoryCycle check is needed.
-  const { error: reparentError } = await client
-    .from("categories")
-    .update({ parent_category_id: target.parent_category_id })
-    .eq("parent_category_id", id);
-  assertNoError(reparentError, "deleteCategoryReparentingChildren(reparent)");
-
-  // The target is now childless; delete only it.
-  const { error: deleteError } = await client
-    .from("categories")
-    .delete()
-    .eq("id", id);
-  assertNoError(deleteError, "deleteCategoryReparentingChildren(delete)");
+  const { error } = await client.rpc("delete_category_reparenting_children", {
+    p_category_id: id,
+  });
+  assertNoError(error, "deleteCategoryReparentingChildren");
 }
 
 /**
