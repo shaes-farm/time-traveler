@@ -318,6 +318,13 @@ CREATE TABLE periods (
 CREATE UNIQUE INDEX periods_slug_idx ON periods (user_id, slug);
 ```
 
+> **Same-owner nesting (#60).** `parent_period_id` is owner-scoped by a composite
+> FK — `(user_id, parent_period_id) → (user_id, id)` with `ON DELETE CASCADE`
+> (migration `00028`, mirroring categories' `00027`). A period can only nest under
+> a parent owned by the same user, so one owner's delete never cascades into
+> another's subtree. Roots (`NULL` parent) skip the check via MATCH SIMPLE. Cycle
+> prevention remains service-layer (`PeriodService.assertNoPeriodCycle`).
+
 #### events
 
 ```sql
@@ -627,6 +634,16 @@ CREATE TABLE timeline_events (
 -- (sort_order_years BETWEEN the period's sort_order_start/_end), computed, not
 -- linked. Contrast: timelines contain curated events; an event_type='period'
 -- event is a discrete span event. See docs/design/admin (period detail, screen 23).
+--
+-- Events-in-range contract (#60): PeriodService.getEventsInPeriod(client,
+-- periodId, { timelineScoped }) returns events whose sort_order_years is BETWEEN
+-- the period's sort_order_start and sort_order_end (inclusive), ordered
+-- ascending; read-only, no junction writes. An open-ended period (sort_order_end
+-- NULL) collapses to the single instant at sort_order_start. With
+-- timelineScoped: true, results are limited to events on the overlaid timelines
+-- (home events.timeline_id + guest timeline_events); a period overlaying no
+-- timeline then yields []. Periods have no search_vector — list search is
+-- title-only ilike (flag if full-text is wanted later).
 CREATE TABLE period_timelines (
   period_id UUID REFERENCES periods(id) ON DELETE CASCADE,
   timeline_id UUID REFERENCES timelines(id) ON DELETE CASCADE,
