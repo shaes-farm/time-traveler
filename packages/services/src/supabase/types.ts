@@ -1329,6 +1329,10 @@ export type Database = {
           target_name: string;
         }[];
       };
+      delete_category_reparenting_children: {
+        Args: { p_category_id: string };
+        Returns: undefined;
+      };
       events_in_temporal_range: {
         Args: {
           p_end_years: number;

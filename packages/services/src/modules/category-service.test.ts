@@ -8,6 +8,8 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  deleteCategoryReparentingChildren,
+  assertNoCategoryCycle,
   getCategoryTree,
 } from "./category-service";
 
@@ -27,6 +29,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     single: terminal,
+    maybeSingle: terminal,
     then: (resolve: (v: unknown) => unknown) =>
       Promise.resolve(result).then(resolve),
   };
@@ -66,6 +69,25 @@ function makeCreateClient(insertResult: { data: unknown; error: unknown }) {
         .mockResolvedValue({ data: { user: { id: "user-123" } }, error: null }),
     },
   } as unknown as SupabaseClient<Database>;
+}
+
+// Returns a client whose successive `from()` calls yield successive builders,
+// so a multi-query flow (e.g. an ancestor walk) can script each step's result.
+// Extra calls beyond the list reuse the last builder.
+function makeSequenceClient(results: { data: unknown; error: unknown }[]) {
+  if (results.length === 0) {
+    throw new Error("makeSequenceClient requires at least one result");
+  }
+  const builders = results.map(makeBuilder);
+  let callCount = 0;
+  const client = {
+    from: vi.fn().mockImplementation(() => {
+      const builder = builders[Math.min(callCount, builders.length - 1)];
+      callCount++;
+      return builder;
+    }),
+  } as unknown as SupabaseClient<Database>;
+  return { client, builders };
 }
 
 // ---------------------------------------------------------------------------
@@ -331,6 +353,147 @@ describe("deleteCategory", () => {
 });
 
 // ---------------------------------------------------------------------------
+// assertNoCategoryCycle
+// ---------------------------------------------------------------------------
+
+describe("assertNoCategoryCycle", () => {
+  it("rejects making a category its own parent (no DB call needed)", async () => {
+    const { client } = makeSequenceClient([{ data: null, error: null }]);
+    await expect(
+      assertNoCategoryCycle(client, "cat-1", "cat-1"),
+    ).rejects.toThrow(
+      "CategoryService.assertNoCategoryCycle: a category cannot be its own ancestor",
+    );
+    expect(client.from).not.toHaveBeenCalled();
+  });
+
+  it("rejects assigning a descendant as the new parent", async () => {
+    // Reparent cat-1 under cat-3, whose ancestor chain is cat-3 → cat-2 → cat-1.
+    const { client } = makeSequenceClient([
+      { data: { parent_category_id: "cat-2" }, error: null },
+      { data: { parent_category_id: "cat-1" }, error: null },
+    ]);
+    await expect(
+      assertNoCategoryCycle(client, "cat-1", "cat-3"),
+    ).rejects.toThrow("circular hierarchy");
+  });
+
+  it("allows a valid non-descendant parent (chain reaches root)", async () => {
+    const { client } = makeSequenceClient([
+      { data: { parent_category_id: null }, error: null },
+    ]);
+    await expect(
+      assertNoCategoryCycle(client, "cat-1", "cat-5"),
+    ).resolves.toBeUndefined();
+  });
+
+  it("terminates on a pre-existing cycle not involving the moved node", async () => {
+    // Stored chain cat-3 → cat-4 → cat-3 loops but never reaches cat-1.
+    const { client } = makeSequenceClient([
+      { data: { parent_category_id: "cat-4" }, error: null },
+      { data: { parent_category_id: "cat-3" }, error: null },
+    ]);
+    await expect(
+      assertNoCategoryCycle(client, "cat-1", "cat-3"),
+    ).resolves.toBeUndefined();
+    // cat-3 and cat-4 each fetched once; the loop stops when cat-3 repeats.
+    expect(client.from).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws on a DB error while walking the chain", async () => {
+    const { client } = makeSequenceClient([
+      { data: null, error: { message: "walk failed" } },
+    ]);
+    await expect(
+      assertNoCategoryCycle(client, "cat-1", "cat-9"),
+    ).rejects.toThrow("CategoryService.assertNoCategoryCycle: walk failed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateCategory — reparent / cycle behavior
+// ---------------------------------------------------------------------------
+
+describe("updateCategory reparenting", () => {
+  // parent_category_id is validated as a UUID by the Zod schema, so update
+  // inputs must use real UUIDs (mock DB return values are unvalidated).
+  const NEW_PARENT_UUID = "11111111-1111-4111-8111-111111111111";
+
+  it("rejects a reparent that would create a cycle", async () => {
+    // Reparent cat-1 under NEW_PARENT, whose parent is cat-1 → cycle.
+    const { client } = makeSequenceClient([
+      { data: { parent_category_id: "cat-1" }, error: null },
+    ]);
+    await expect(
+      updateCategory(client, "cat-1", { parent_category_id: NEW_PARENT_UUID }),
+    ).rejects.toThrow("circular hierarchy");
+    // The guard ran (1 call) but the UPDATE never did (still 1 call).
+    expect(client.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows a safe reparent under a non-descendant", async () => {
+    const { client } = makeSequenceClient([
+      { data: { parent_category_id: null }, error: null },
+      { data: sampleCategory, error: null },
+    ]);
+    const result = await updateCategory(client, "cat-1", {
+      parent_category_id: NEW_PARENT_UUID,
+    });
+    expect(result).toEqual(sampleCategory);
+  });
+
+  it("allows reparenting to root (null) without a cycle check", async () => {
+    const { client, builders } = makeSequenceClient([
+      { data: sampleCategory, error: null },
+    ]);
+    const result = await updateCategory(client, "cat-1", {
+      parent_category_id: null,
+    });
+    expect(result).toEqual(sampleCategory);
+    // Only the UPDATE ran — no ancestor walk for a move to root.
+    expect(client.from).toHaveBeenCalledTimes(1);
+    expect(builders[0]?.update).toHaveBeenCalledWith({
+      parent_category_id: null,
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deleteCategoryReparentingChildren
+// ---------------------------------------------------------------------------
+
+describe("deleteCategoryReparentingChildren", () => {
+  function makeRpcClient(result: { data: unknown; error: unknown }) {
+    return {
+      rpc: vi.fn().mockResolvedValue(result),
+    } as unknown as SupabaseClient<Database>;
+  }
+
+  it("invokes the atomic reparent-then-delete RPC with the category id", async () => {
+    const client = makeRpcClient({ data: null, error: null });
+    await expect(
+      deleteCategoryReparentingChildren(client, "cat-1"),
+    ).resolves.toBeUndefined();
+    expect(client.rpc).toHaveBeenCalledWith(
+      "delete_category_reparenting_children",
+      { p_category_id: "cat-1" },
+    );
+  });
+
+  it("throws when the RPC returns an error", async () => {
+    const client = makeRpcClient({
+      data: null,
+      error: { message: "category not found" },
+    });
+    await expect(
+      deleteCategoryReparentingChildren(client, "cat-1"),
+    ).rejects.toThrow(
+      "CategoryService.deleteCategoryReparentingChildren: category not found",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
 // getCategoryTree
 // ---------------------------------------------------------------------------
 
@@ -419,6 +582,18 @@ describe("getCategoryTree", () => {
     const tree = await getCategoryTree(client, "user-123");
     expect(tree).toHaveLength(1);
     expect(tree[0]?.id).toBe("orphan");
+  });
+
+  it("orders equal-title siblings deterministically by id", async () => {
+    // Two roots share a title; the id tie-break must place "aaa" before "zzz"
+    // regardless of the order the rows arrive in.
+    const cats = [
+      { ...sampleCategory, id: "zzz", title: "Same", parent_category_id: null },
+      { ...sampleCategory, id: "aaa", title: "Same", parent_category_id: null },
+    ];
+    const client = makeClient({ fromResult: { data: cats, error: null } });
+    const tree = await getCategoryTree(client, "user-123");
+    expect(tree.map((n) => n.id)).toEqual(["aaa", "zzz"]);
   });
 
   it("throws on DB error", async () => {
