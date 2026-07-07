@@ -1,12 +1,11 @@
-// TODO: replace with @repo/ui/components/character-type-badge once #284 ships.
-// Local scaffold per #55's fallback instructions — #284 ("Build
-// CharacterTypeBadge primitive") was still open when this list was built, so
-// the shared `--color-type-*` tokens (Batch J) don't exist yet; this uses
-// inline low-chroma Tailwind classes instead, matching the icon/color mapping
-// from docs/design/admin/03-aesthetic-notes.md § Character-type identity.
-// No `cva` here (unlike the eventual shared primitive) — `class-variance-
-// authority` is a @repo/ui dependency, not an apps/admin one, and pulling it
-// in for a component this scaffold will delete isn't worth the new edge.
+// Shared CharacterTypeBadge primitive. Promoted from apps/admin (#55 scaffold)
+// to @repo/ui in #62 so the stories pages can render the perspective-character
+// identity without a cross-route import.
+//
+// This still uses inline low-chroma Tailwind classes (not `cva` + the
+// `--color-type-*` tokens) — building the fully token-driven primitive remains
+// #284's job. The icon/color mapping matches
+// docs/design/admin/03-aesthetic-notes.md § Character-type identity.
 import * as React from "react";
 import {
   User,
@@ -22,8 +21,8 @@ import { characterTypeEnum } from "@repo/services/schemas/character";
 
 export type CharacterType = (typeof characterTypeEnum.options)[number];
 
-/** Exported for reuse as the type-icon placeholder in the list's name-cell
- * hover thumbnail (no media → show the type icon instead). */
+/** Exported for reuse as the type-icon placeholder in list name-cell hover
+ * thumbnails (no media → show the type icon instead). */
 export const CHARACTER_TYPE_ICON: Record<
   CharacterType,
   React.ComponentType<{ className?: string }>

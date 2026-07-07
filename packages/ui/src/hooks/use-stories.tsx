@@ -11,12 +11,16 @@ import {
 } from "@tanstack/react-query";
 import {
   getStories,
+  getStoriesPage,
+  getStoryFacetCounts,
   getStoryById,
   getStoryBySlug,
   getStoryEvents,
   createStory,
   updateStory,
   deleteStory,
+  publishStory,
+  unpublishStory,
   addCharacterToStory,
   removeCharacterFromStory,
   updateStoryCharacterRole,
@@ -45,6 +49,9 @@ export const storyKeys = {
   all: ["stories"] as const,
   lists: () => [...storyKeys.all, "list"] as const,
   list: (filters: StoryFilters) => [...storyKeys.lists(), filters] as const,
+  page: (filters: StoryFilters) => [...storyKeys.all, "page", filters] as const,
+  facetCounts: (filters: StoryFilters) =>
+    [...storyKeys.all, "facetCounts", filters] as const,
   details: () => [...storyKeys.all, "detail"] as const,
   detail: (id: string) => [...storyKeys.details(), id] as const,
   bySlug: (userId: string, slug: string) =>
@@ -69,6 +76,43 @@ export function useStories(
   return useQuery({
     queryKey: storyKeys.list(filters),
     queryFn: () => getStories(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/**
+ * Fetch a page of stories together with the total filtered count and the
+ * event/character link counts the stories list renders on each row.
+ */
+export function useStoriesPage(
+  client: ServiceClient,
+  filters: StoryFilters = {},
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getStoriesPage>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: storyKeys.page(filters),
+    queryFn: () => getStoriesPage(client, filters),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
+/** Fetch per-option facet counts for the stories list filter rail. */
+export function useStoryFacetCounts(
+  client: ServiceClient,
+  filters: StoryFilters = {},
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getStoryFacetCounts>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: storyKeys.facetCounts(filters),
+    queryFn: () => getStoryFacetCounts(client, filters),
     staleTime: 30_000,
     ...options,
   });
@@ -166,6 +210,32 @@ export function useDeleteStory(client: ServiceClient) {
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: storyKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: storyKeys.lists() });
+    },
+  });
+}
+
+/** Publish a story (set published=true and record published_at). */
+export function usePublishStory(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => publishStory(client, id),
+    onSuccess: () => {
+      // Invalidate by prefix so lists, page, bySlug, and detail queries stay
+      // consistent with the RLS visibility change — mirrors usePublishCharacter.
+      void queryClient.invalidateQueries({ queryKey: storyKeys.all });
+    },
+  });
+}
+
+/** Unpublish a story (set published=false and clear published_at). */
+export function useUnpublishStory(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unpublishStory(client, id),
+    onSuccess: () => {
+      // Invalidate by prefix so lists, page, bySlug, and detail queries stay
+      // consistent with the RLS visibility change — mirrors useUnpublishCharacter.
+      void queryClient.invalidateQueries({ queryKey: storyKeys.all });
     },
   });
 }

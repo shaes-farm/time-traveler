@@ -4,11 +4,15 @@ import { type ReactNode, createElement } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   useStories,
+  useStoriesPage,
+  useStoryFacetCounts,
   useStory,
   useStoryEvents,
   useCreateStory,
   useUpdateStory,
   useDeleteStory,
+  usePublishStory,
+  useUnpublishStory,
   useAddCharacterToStory,
   useRemoveCharacterFromStory,
   useUpdateStoryCharacterRole,
@@ -22,12 +26,16 @@ import {
 
 vi.mock("@repo/services/story-service", () => ({
   getStories: vi.fn(),
+  getStoriesPage: vi.fn(),
+  getStoryFacetCounts: vi.fn(),
   getStoryById: vi.fn(),
   getStoryBySlug: vi.fn(),
   getStoryEvents: vi.fn(),
   createStory: vi.fn(),
   updateStory: vi.fn(),
   deleteStory: vi.fn(),
+  publishStory: vi.fn(),
+  unpublishStory: vi.fn(),
   addCharacterToStory: vi.fn(),
   removeCharacterFromStory: vi.fn(),
   updateStoryCharacterRole: vi.fn(),
@@ -40,11 +48,15 @@ vi.mock("@repo/services/story-service", () => ({
 
 import {
   getStories,
+  getStoriesPage,
+  getStoryFacetCounts,
   getStoryById,
   getStoryEvents,
   createStory,
   updateStory,
   deleteStory,
+  publishStory,
+  unpublishStory,
   addCharacterToStory,
   removeCharacterFromStory,
   updateStoryCharacterRole,
@@ -85,6 +97,42 @@ describe("useStories", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getStories).toHaveBeenCalledWith(mockClient, {});
+  });
+});
+
+describe("useStoriesPage", () => {
+  it("calls getStoriesPage with client and filters", async () => {
+    vi.mocked(getStoriesPage).mockResolvedValue({
+      rows: [],
+      total: 0,
+    } as never);
+    const { wrapper } = createWrapper();
+    const filters = { userId: "user-1", published: true };
+    const { result } = renderHook(() => useStoriesPage(mockClient, filters), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getStoriesPage).toHaveBeenCalledWith(mockClient, filters);
+  });
+});
+
+describe("useStoryFacetCounts", () => {
+  it("calls getStoryFacetCounts with client and filters", async () => {
+    vi.mocked(getStoryFacetCounts).mockResolvedValue({
+      narratorType: { first_person: 0, third_person: 0, omniscient: 0 },
+      published: { published: 0, draft: 0 },
+    } as never);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useStoryFacetCounts(mockClient, { userId: "user-1" }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getStoryFacetCounts).toHaveBeenCalledWith(mockClient, {
+      userId: "user-1",
+    });
   });
 });
 
@@ -182,6 +230,46 @@ describe("useDeleteStory", () => {
     expect(deleteStory).toHaveBeenCalledWith(mockClient, "story-1");
     expect(removeSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: storyKeys.detail("story-1") }),
+    );
+  });
+});
+
+describe("usePublishStory", () => {
+  it("calls publishStory and invalidates the stories prefix", async () => {
+    vi.mocked(publishStory).mockResolvedValue(mockStory as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => usePublishStory(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("story-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(publishStory).toHaveBeenCalledWith(mockClient, "story-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: storyKeys.all }),
+    );
+  });
+});
+
+describe("useUnpublishStory", () => {
+  it("calls unpublishStory and invalidates the stories prefix", async () => {
+    vi.mocked(unpublishStory).mockResolvedValue(mockStory as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUnpublishStory(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("story-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(unpublishStory).toHaveBeenCalledWith(mockClient, "story-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: storyKeys.all }),
     );
   });
 });
@@ -422,6 +510,16 @@ describe("storyKeys", () => {
   it("produces stable, unique keys", () => {
     expect(storyKeys.all).toEqual(["stories"]);
     expect(storyKeys.lists()).toEqual(["stories", "list"]);
+    expect(storyKeys.page({ userId: "u" })).toEqual([
+      "stories",
+      "page",
+      { userId: "u" },
+    ]);
+    expect(storyKeys.facetCounts({ userId: "u" })).toEqual([
+      "stories",
+      "facetCounts",
+      { userId: "u" },
+    ]);
     expect(storyKeys.detail("story-1")).toEqual([
       "stories",
       "detail",
