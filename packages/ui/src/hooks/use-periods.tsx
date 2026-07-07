@@ -19,11 +19,13 @@ import {
   getChildPeriods,
   addPeriodToTimeline,
   removePeriodFromTimeline,
+  getEventsInPeriod,
 } from "@repo/services/period-service";
 import type {
   PeriodFilters,
   PeriodWithRelations,
   CreatePeriodInput,
+  EventsInPeriodOptions,
 } from "@repo/services/period-service";
 
 type ServiceClient = Parameters<typeof getPeriods>[0];
@@ -42,6 +44,8 @@ export const periodKeys = {
   bySlug: (userId: string, slug: string) =>
     [...periodKeys.all, "slug", userId, slug] as const,
   children: (id: string) => [...periodKeys.all, "children", id] as const,
+  events: (id: string, options: EventsInPeriodOptions = {}) =>
+    [...periodKeys.detail(id), "events", options] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -108,6 +112,30 @@ export function useChildPeriods(
     queryFn: () => getChildPeriods(client, parentPeriodId),
     staleTime: 30_000,
     ...options,
+  });
+}
+
+/**
+ * Fetch the events falling within a period's temporal span (span-overlay model —
+ * there is no `period_events` junction). Pass `{ timelineScoped: true }` to limit
+ * results to the timelines the period overlays. The query key nests under
+ * `detail(periodId)`, so any invalidation of the period detail (span edits,
+ * timeline association changes) refreshes this query automatically.
+ */
+export function useEventsInPeriod(
+  client: ServiceClient,
+  periodId: string,
+  serviceOptions: EventsInPeriodOptions = {},
+  queryOptions?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getEventsInPeriod>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: periodKeys.events(periodId, serviceOptions),
+    queryFn: () => getEventsInPeriod(client, periodId, serviceOptions),
+    staleTime: 30_000,
+    ...queryOptions,
   });
 }
 
