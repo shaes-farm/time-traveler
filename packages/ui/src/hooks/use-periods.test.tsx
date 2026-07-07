@@ -10,6 +10,7 @@ import {
   useUpdatePeriod,
   useDeletePeriod,
   useChildPeriods,
+  useEventsInPeriod,
   useAddPeriodToTimeline,
   useRemovePeriodFromTimeline,
   periodKeys,
@@ -23,6 +24,7 @@ vi.mock("@repo/services/period-service", () => ({
   updatePeriod: vi.fn(),
   deletePeriod: vi.fn(),
   getChildPeriods: vi.fn(),
+  getEventsInPeriod: vi.fn(),
   addPeriodToTimeline: vi.fn(),
   removePeriodFromTimeline: vi.fn(),
 }));
@@ -35,6 +37,7 @@ import {
   updatePeriod,
   deletePeriod,
   getChildPeriods,
+  getEventsInPeriod,
   addPeriodToTimeline,
   removePeriodFromTimeline,
 } from "@repo/services/period-service";
@@ -114,6 +117,56 @@ describe("useChildPeriods", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getChildPeriods).toHaveBeenCalledWith(mockClient, "period-1");
+  });
+});
+
+describe("useEventsInPeriod", () => {
+  const mockEvents = [{ id: "event-1", title: "Fall of Rome" }];
+
+  it("calls getEventsInPeriod with client, periodId and default options", async () => {
+    vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useEventsInPeriod(mockClient, "period-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getEventsInPeriod).toHaveBeenCalledWith(mockClient, "period-1", {});
+    expect(result.current.data).toEqual(mockEvents);
+  });
+
+  it("forwards the timelineScoped option to the service", async () => {
+    vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useEventsInPeriod(mockClient, "period-1", { timelineScoped: true }),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getEventsInPeriod).toHaveBeenCalledWith(mockClient, "period-1", {
+      timelineScoped: true,
+    });
+  });
+
+  it("is refreshed when the parent period detail is invalidated", async () => {
+    vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
+    const { wrapper, queryClient } = createWrapper();
+    const { result } = renderHook(
+      () => useEventsInPeriod(mockClient, "period-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    // The events key nests under detail(periodId), so a detail invalidation
+    // (as issued by span edits / timeline association) matches it too.
+    const matched = queryClient
+      .getQueryCache()
+      .findAll({ queryKey: periodKeys.detail("period-1") })
+      .map((q) => q.queryKey);
+    expect(matched).toContainEqual(periodKeys.events("period-1", {}));
   });
 });
 
@@ -276,5 +329,24 @@ describe("periodKeys", () => {
       "user-1",
       "dark-ages",
     ]);
+    expect(periodKeys.events("period-1")).toEqual([
+      "periods",
+      "detail",
+      "period-1",
+      "events",
+      {},
+    ]);
+  });
+
+  it("includes options in the events key so scoped and unscoped queries do not collide", () => {
+    expect(periodKeys.events("period-1", { timelineScoped: true })).not.toEqual(
+      periodKeys.events("period-1", {}),
+    );
+  });
+
+  it("nests the events key under detail for prefix invalidation", () => {
+    const detail = periodKeys.detail("period-1");
+    const events = periodKeys.events("period-1", {});
+    expect(events.slice(0, detail.length)).toEqual([...detail]);
   });
 });
