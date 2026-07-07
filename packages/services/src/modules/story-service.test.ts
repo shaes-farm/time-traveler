@@ -3,12 +3,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../supabase/types";
 import {
   getStories,
+  getStoriesPage,
+  getStoryFacetCounts,
   getStoryById,
   getStoryBySlug,
   getStoryEvents,
   createStory,
   updateStory,
   deleteStory,
+  publishStory,
+  unpublishStory,
   addCharacterToStory,
   removeCharacterFromStory,
   updateStoryCharacterRole,
@@ -23,7 +27,11 @@ import {
 // Mock builder helpers
 // ---------------------------------------------------------------------------
 
-function makeBuilder(result: { data: unknown; error: unknown }) {
+function makeBuilder(result: {
+  data: unknown;
+  error: unknown;
+  count?: unknown;
+}) {
   const terminal = vi.fn().mockResolvedValue(result);
   const builder = {
     select: vi.fn().mockReturnThis(),
@@ -32,6 +40,9 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
     upsert: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    overlaps: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
+    is: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
@@ -43,7 +54,7 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
 }
 
 function makeClient(overrides: {
-  fromResult?: { data: unknown; error: unknown };
+  fromResult?: { data: unknown; error: unknown; count?: unknown };
   authUser?: { data: { user: unknown }; error: unknown };
 }) {
   const { fromResult = { data: null, error: null }, authUser } = overrides;
@@ -160,12 +171,144 @@ describe("getStories", () => {
     expect(builder.textSearch).not.toHaveBeenCalled();
   });
 
+  it("applies perspectiveCharacterId filter", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getStories(client, { perspectiveCharacterId: "char-9" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith(
+      "perspective_character_id",
+      "char-9",
+    );
+  });
+
+  it("applies tags filter via array overlap", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getStories(client, { tags: ["war", "myth"] });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.overlaps).toHaveBeenCalledWith("tags", ["war", "myth"]);
+  });
+
+  it("does not apply tags filter when the array is empty", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getStories(client, { tags: [] });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.overlaps).not.toHaveBeenCalled();
+  });
+
+  it("applies published=true as an equality filter", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getStories(client, { published: true });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.eq).toHaveBeenCalledWith("published", true);
+  });
+
+  it("applies published=false as `not published is true` (matches NULL drafts)", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getStories(client, { published: false });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.not).toHaveBeenCalledWith("published", "is", true);
+  });
+
+  it("defaults to sorting by updated_at descending", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getStories(client);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("updated_at", {
+      ascending: false,
+      nullsFirst: false,
+    });
+  });
+
+  it("honours an explicit sortBy/sortDirection", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getStories(client, { sortBy: "title", sortDirection: "asc" });
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.order).toHaveBeenCalledWith("title", {
+      ascending: true,
+      nullsFirst: false,
+    });
+  });
+
   it("throws on query error", async () => {
     const client = makeClient({
       fromResult: { data: null, error: { message: "db error" } },
     });
     await expect(getStories(client)).rejects.toThrow(
       "StoryService.getStories: db error",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getStoriesPage
+// ---------------------------------------------------------------------------
+
+describe("getStoriesPage", () => {
+  const listRow = {
+    ...sampleStory,
+    story_events: [{ count: 3 }],
+    story_characters: [{ count: 2 }],
+  };
+
+  it("returns rows and the total filtered count", async () => {
+    const client = makeClient({
+      fromResult: { data: [listRow], count: 7, error: null },
+    });
+    const result = await getStoriesPage(client, { userId: "user-123" });
+    expect(result.rows).toEqual([listRow]);
+    expect(result.total).toBe(7);
+  });
+
+  it("defaults total to 0 when count is null", async () => {
+    const client = makeClient({
+      fromResult: { data: [], count: null, error: null },
+    });
+    const result = await getStoriesPage(client);
+    expect(result.total).toBe(0);
+    expect(result.rows).toEqual([]);
+  });
+
+  it("throws on query error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, count: null, error: { message: "boom" } },
+    });
+    await expect(getStoriesPage(client)).rejects.toThrow(
+      "StoryService.getStoriesPage: boom",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getStoryFacetCounts
+// ---------------------------------------------------------------------------
+
+describe("getStoryFacetCounts", () => {
+  it("returns per-narrator and published/draft counts", async () => {
+    // makeClient returns the same builder for every `from()` call, so all five
+    // head-count round-trips resolve to the same count — enough to assert shape.
+    const client = makeClient({
+      fromResult: { data: null, count: 4, error: null },
+    });
+    const result = await getStoryFacetCounts(client, { userId: "user-123" });
+    expect(result).toEqual({
+      narratorType: { first_person: 4, third_person: 4, omniscient: 4 },
+      published: { published: 4, draft: 4 },
+    });
+  });
+
+  it("throws on a count query error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, count: null, error: { message: "nope" } },
+    });
+    await expect(getStoryFacetCounts(client)).rejects.toThrow(
+      "StoryService.getStoryFacetCounts",
     );
   });
 });
@@ -537,6 +680,62 @@ describe("deleteStory", () => {
     });
     await expect(deleteStory(client, "story-1")).rejects.toThrow(
       "StoryService.deleteStory: delete failed",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// publishStory / unpublishStory
+// ---------------------------------------------------------------------------
+
+describe("publishStory", () => {
+  it("sets published true and stamps published_at", async () => {
+    const published = { ...sampleStory, published: true };
+    const client = makeClient({
+      fromResult: { data: published, error: null },
+    });
+    const result = await publishStory(client, "story-1");
+    expect(result).toEqual(published);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ published: true }),
+    );
+    const updateArg = (builder.update as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0] as { published_at: string };
+    expect(typeof updateArg.published_at).toBe("string");
+  });
+
+  it("throws on DB error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "failed" } },
+    });
+    await expect(publishStory(client, "story-1")).rejects.toThrow(
+      "StoryService.publishStory: failed",
+    );
+  });
+});
+
+describe("unpublishStory", () => {
+  it("sets published false and clears published_at", async () => {
+    const draft = { ...sampleStory, published: false, published_at: null };
+    const client = makeClient({ fromResult: { data: draft, error: null } });
+    const result = await unpublishStory(client, "story-1");
+    expect(result).toEqual(draft);
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(builder.update).toHaveBeenCalledWith({
+      published: false,
+      published_at: null,
+    });
+  });
+
+  it("throws on DB error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "failed" } },
+    });
+    await expect(unpublishStory(client, "story-1")).rejects.toThrow(
+      "StoryService.unpublishStory: failed",
     );
   });
 });

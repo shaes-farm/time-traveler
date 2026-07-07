@@ -21,6 +21,7 @@ export default defineConfig({
         "app/**/character-detail-helpers.ts",
         "app/**/character-form-mappers.ts",
         "app/**/event-form-mappers.ts",
+        "app/**/story-form-mappers.ts",
         "app/**/timeline-form-mappers.ts",
       ],
       exclude: ["app/**/*.test.{ts,tsx}"],

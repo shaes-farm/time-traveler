@@ -192,6 +192,104 @@ describe("FilterRail", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("selects a combobox option and reveals clear-all", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const groups: FilterGroup[] = [
+      {
+        type: "combobox",
+        id: "perspective",
+        label: "Perspective",
+        value: null,
+        placeholder: "Any character",
+        options: [
+          { value: "char-1", label: "Frodo" },
+          { value: "char-2", label: "Sam" },
+        ],
+        onChange,
+      },
+    ];
+
+    render(<FilterRail groups={groups} onClearAll={vi.fn()} />);
+
+    // Null value → "any" option shown, no active filter yet.
+    expect(
+      screen.queryByRole("button", { name: /clear all/i }),
+    ).not.toBeInTheDocument();
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Perspective" }),
+      "char-2",
+    );
+    expect(onChange).toHaveBeenCalledWith("char-2");
+  });
+
+  it("clears the combobox selection back to null when 'any' is chosen", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const groups: FilterGroup[] = [
+      {
+        type: "combobox",
+        id: "perspective",
+        label: "Perspective",
+        value: "char-1",
+        placeholder: "Any character",
+        options: [{ value: "char-1", label: "Frodo" }],
+        onChange,
+      },
+    ];
+
+    render(<FilterRail groups={groups} onClearAll={vi.fn()} />);
+
+    // A non-null value counts as active.
+    expect(
+      screen.getByRole("button", { name: /clear all/i }),
+    ).toBeInTheDocument();
+
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Perspective" }),
+      "Any character",
+    );
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+
+  it("adds a tag via the tags group and marks the rail active", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const groups: FilterGroup[] = [
+      {
+        type: "tags",
+        id: "tags",
+        label: "Tags",
+        value: [],
+        onChange,
+      },
+    ];
+
+    render(<FilterRail groups={groups} onClearAll={vi.fn()} />);
+
+    const input = screen.getByLabelText("Tags");
+    await user.type(input, "war{Enter}");
+    expect(onChange).toHaveBeenCalledWith(["war"]);
+  });
+
+  it("counts a tags group with values as an active filter", () => {
+    const groups: FilterGroup[] = [
+      {
+        type: "tags",
+        id: "tags",
+        label: "Tags",
+        value: ["myth"],
+        onChange: vi.fn(),
+      },
+    ];
+
+    render(<FilterRail groups={groups} onClearAll={vi.fn()} />);
+    expect(
+      screen.getByRole("button", { name: /clear all/i }),
+    ).toBeInTheDocument();
+  });
+
   it("handles unknown group types without crashing", () => {
     const groups = [
       {

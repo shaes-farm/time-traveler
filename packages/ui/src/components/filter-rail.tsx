@@ -7,6 +7,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { Checkbox } from "@repo/ui/components/checkbox";
 import { Slider } from "@repo/ui/components/slider";
 import { Label } from "@repo/ui/components/label";
+import { ChipInput } from "@repo/ui/components/chip-input";
 
 // ---- Filter group type definitions ----------------------------------------
 
@@ -48,8 +49,46 @@ export interface FilterRadioGroup {
   noLabel?: string;
 }
 
+export interface FilterComboboxOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Single-select dropdown group (e.g. the stories list's perspective-character
+ * filter). `value` of null means "no selection" — the group renders an "any"
+ * option (labelled by `placeholder`) at the top.
+ */
+export interface FilterComboboxGroup {
+  type: "combobox";
+  id: string;
+  label: string;
+  value: string | null;
+  options: FilterComboboxOption[];
+  onChange: (value: string | null) => void;
+  /** Label for the null/"any" option. Defaults to "Any". */
+  placeholder?: string;
+}
+
+/**
+ * Free-form tag entry group (e.g. the stories list's tag filter). Matching is
+ * ANY-of the entered tags; the group is active whenever at least one tag is set.
+ */
+export interface FilterTagsGroup {
+  type: "tags";
+  id: string;
+  label: string;
+  value: string[];
+  onChange: (value: string[]) => void;
+  placeholder?: string;
+}
+
 export type FilterGroup =
-  FilterCheckboxGroup | FilterRangeGroup | FilterRadioGroup;
+  | FilterCheckboxGroup
+  | FilterRangeGroup
+  | FilterRadioGroup
+  | FilterComboboxGroup
+  | FilterTagsGroup;
 
 // ---- FilterRail component --------------------------------------------------
 
@@ -142,6 +181,38 @@ function RadioGroupSection({ group }: { group: FilterRadioGroup }) {
   );
 }
 
+function ComboboxGroupSection({ group }: { group: FilterComboboxGroup }) {
+  return (
+    <select
+      id={`${group.id}-select`}
+      value={group.value ?? ""}
+      onChange={(e) =>
+        group.onChange(e.target.value === "" ? null : e.target.value)
+      }
+      aria-label={group.label}
+      className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+    >
+      <option value="">{group.placeholder ?? "Any"}</option>
+      {group.options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function TagsGroupSection({ group }: { group: FilterTagsGroup }) {
+  return (
+    <ChipInput
+      value={group.value}
+      onChange={group.onChange}
+      placeholder={group.placeholder ?? "Add tag"}
+      aria-label={group.label}
+    />
+  );
+}
+
 // ---- Main export -----------------------------------------------------------
 
 export function FilterRail({ groups, onClearAll, className }: FilterRailProps) {
@@ -149,6 +220,8 @@ export function FilterRail({ groups, onClearAll, className }: FilterRailProps) {
     if (g.type === "checkbox") return g.value.length > 0;
     if (g.type === "range") return g.value[0] !== g.min || g.value[1] !== g.max;
     if (g.type === "radio") return g.value !== "any";
+    if (g.type === "combobox") return g.value !== null && g.value !== "";
+    if (g.type === "tags") return g.value.length > 0;
     return false;
   });
 
@@ -186,6 +259,10 @@ export function FilterRail({ groups, onClearAll, className }: FilterRailProps) {
             )}
             {group.type === "range" && <RangeGroupSection group={group} />}
             {group.type === "radio" && <RadioGroupSection group={group} />}
+            {group.type === "combobox" && (
+              <ComboboxGroupSection group={group} />
+            )}
+            {group.type === "tags" && <TagsGroupSection group={group} />}
           </div>
         ))}
       </div>

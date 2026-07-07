@@ -42,7 +42,7 @@ import {
   CharacterTypeBadge,
   CHARACTER_TYPE_ICON,
   type CharacterType,
-} from "../../_components/character-type-badge";
+} from "@repo/ui/components/character-type-badge";
 import { CharacterOverviewTab } from "./character-overview-tab";
 import { CharacterEventsTab } from "./character-events-tab";
 import { CharacterRelationshipsTab } from "./character-relationships-tab";

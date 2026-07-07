@@ -30,7 +30,17 @@ export interface StoryEventWithOrder extends EventRow {
 export interface StoryFilters {
   userId?: string;
   narratorType?: z.infer<typeof narratorTypeEnum>;
+  /** Filter to stories told through a specific perspective character. */
+  perspectiveCharacterId?: string;
+  /** Match stories carrying ANY of these tags (SQL array overlap). */
+  tags?: string[];
+  /** When true → only published rows; false → only draft rows; omit → no filter. */
+  published?: boolean;
   search?: string;
+  /** Sort column. Defaults to "updated_at" (stories are work surfaces). */
+  sortBy?: "title" | "created_at" | "updated_at";
+  /** Sort direction. Defaults to "desc". */
+  sortDirection?: "asc" | "desc";
   page?: number;
   pageSize?: number;
 }
@@ -39,6 +49,27 @@ export interface StoryWithRelations extends StoryRow {
   story_periods?: StoryPeriodRow[];
   story_characters?: StoryCharacterRow[];
   story_events?: StoryEventRow[];
+}
+
+/**
+ * A story row as returned by getStoriesPage — carries the event and character
+ * link counts the list renders on each row (`N ev · M ch`).
+ */
+export interface StoryListRow extends StoryRow {
+  story_events: { count: number }[];
+  story_characters: { count: number }[];
+}
+
+/** Paginated result from getStoriesPage — includes the total filtered count. */
+export interface StoriesPage {
+  rows: StoryListRow[];
+  total: number;
+}
+
+/** Per-option counts for the stories list filter rail (see getStoryFacetCounts). */
+export interface StoryFacetCounts {
+  narratorType: Record<z.infer<typeof narratorTypeEnum>, number>;
+  published: { published: number; draft: number };
 }
 
 export type CreateStoryInput = Omit<StoryInput, "slug"> & { slug?: string };
@@ -52,51 +83,151 @@ function assertNoError(
   }
 }
 
+/** Builder surface needed by applyStoryFilters. */
+interface StoryFilterBuilder<T> {
+  eq(column: string, value: string | boolean): T;
+  overlaps(column: string, value: readonly string[]): T;
+  not(column: string, op: string, value: boolean | null): T;
+  textSearch(column: string, query: string, opts: { type: "websearch" }): T;
+}
+
+/**
+ * Applies the owner, narrator-type, perspective-character, tag, published, and
+ * full-text-search predicates shared by getStories, getStoriesPage, and every
+ * getStoryFacetCounts per-option count query. Skip flags omit a group's own
+ * predicate so counting that group's options isn't constrained by the group's
+ * own current selection — the standard faceted-filter convention (mirrors
+ * CharacterService.applyCharacterListFilters).
+ */
+function applyStoryFilters<T extends StoryFilterBuilder<T>>(
+  builder: T,
+  filters: StoryFilters,
+  opts: { skipNarratorType?: boolean; skipPublished?: boolean } = {},
+): T {
+  let q = builder;
+  const {
+    userId,
+    narratorType,
+    perspectiveCharacterId,
+    tags,
+    published,
+    search,
+  } = filters;
+
+  if (userId !== undefined) {
+    q = q.eq("user_id", userId);
+  }
+  if (!opts.skipNarratorType && narratorType !== undefined) {
+    q = q.eq("narrator_type", narratorType);
+  }
+  if (perspectiveCharacterId !== undefined) {
+    q = q.eq("perspective_character_id", perspectiveCharacterId);
+  }
+  if (tags !== undefined && tags.length > 0) {
+    q = q.overlaps("tags", tags);
+  }
+  if (!opts.skipPublished && published !== undefined) {
+    // "draft" (published === false) must also match NULL rows — `published` is
+    // nullable, and the list badge renders NULL as "Draft", so the filter must
+    // too. `not.is.true` = published IS NOT TRUE. Mirrors CharacterService (#331).
+    q = published ? q.eq("published", true) : q.not("published", "is", true);
+  }
+  if (search !== undefined && search.trim().length > 0) {
+    q = q.textSearch("search_vector", search, { type: "websearch" });
+  }
+  return q;
+}
+
 /**
  * Return a paginated list of stories, optionally filtered.
  *
- * Implemented filters: `userId`, `narratorType`, full-text `search` (over the
- * generated `search_vector`), and pagination (`page`/`pageSize`). Results are
- * ordered by `created_at` descending.
+ * Filters: `userId`, `narratorType`, `perspectiveCharacterId`, `tags` (array
+ * overlap — matches ANY), `published`, and full-text `search` (over the
+ * generated `search_vector`). Sorts by `sortBy`/`sortDirection` (default
+ * `updated_at` desc — stories are work surfaces, per wireframe 18) with an `id`
+ * tie-break for deterministic paging.
  *
- * Deferred to the list-UI ticket (#62), per wireframe 18-stories-list.md:
- * published-state filter, tag filter, perspective-character filter, and
- * caller-selectable sort (`title` / `updated_at` / `created_at`).
+ * `page` is clamped to ≥ 1; `pageSize` is clamped to [1, 100].
  *
  * @param client - Supabase client instance
- * @param filters - Optional filters: userId, narratorType, search, page, pageSize
- * @returns Array of story rows ordered by created_at descending
+ * @param filters - Optional filters + sort + pagination
+ * @returns Array of story rows in the requested order
  */
 export async function getStories(
   client: SupabaseClient<Database>,
   filters: StoryFilters = {},
 ): Promise<StoryRow[]> {
-  const { userId, narratorType, search, page, pageSize } = filters;
+  const { sortBy = "updated_at", sortDirection = "desc" } = filters;
 
-  const safePage = Math.max(1, Math.floor(page ?? 1));
-  const safePageSize = Math.min(100, Math.max(1, Math.floor(pageSize ?? 20)));
+  const safePage = Math.max(1, Math.floor(filters.page ?? 1));
+  const safePageSize = Math.min(
+    100,
+    Math.max(1, Math.floor(filters.pageSize ?? 20)),
+  );
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  let query = client
-    .from("stories")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .range(from, to);
+  const base = client.from("stories").select("*");
+  let query = applyStoryFilters(
+    base as unknown as StoryFilterBuilder<typeof base>,
+    filters,
+  ) as unknown as typeof base;
 
-  if (userId !== undefined) {
-    query = query.eq("user_id", userId);
-  }
-  if (narratorType !== undefined) {
-    query = query.eq("narrator_type", narratorType);
-  }
-  if (search !== undefined && search.trim().length > 0) {
-    query = query.textSearch("search_vector", search, { type: "websearch" });
-  }
+  const ascending = sortDirection === "asc";
+  query = query
+    .order(sortBy, { ascending, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(from, to);
 
   const { data, error } = await query;
   assertNoError(error, "getStories");
   return data ?? [];
+}
+
+/**
+ * Returns a page of stories together with the total filtered count and the
+ * event/character link counts the stories list renders on each row.
+ *
+ * Supports the same filter + sort set as getStories. `page` is clamped to ≥ 1;
+ * `pageSize` is clamped to [1, 100].
+ */
+export async function getStoriesPage(
+  client: SupabaseClient<Database>,
+  filters: StoryFilters = {},
+): Promise<StoriesPage> {
+  const { sortBy = "updated_at", sortDirection = "desc" } = filters;
+
+  const safePage = Math.max(1, Math.floor(filters.page ?? 1));
+  const safePageSize = Math.min(
+    100,
+    Math.max(1, Math.floor(filters.pageSize ?? 20)),
+  );
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
+  const base = client
+    .from("stories")
+    .select("*, story_events(count), story_characters(count)", {
+      count: "exact",
+    });
+  let query = applyStoryFilters(
+    base as unknown as StoryFilterBuilder<typeof base>,
+    filters,
+  ) as unknown as typeof base;
+
+  const ascending = sortDirection === "asc";
+  query = query
+    .order(sortBy, { ascending, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(from, to);
+
+  const { data, count, error } = await query;
+  assertNoError(error, "getStoriesPage");
+
+  return {
+    rows: (data ?? []) as unknown as StoryListRow[],
+    total: count ?? 0,
+  };
 }
 
 /**
@@ -276,6 +407,140 @@ export async function deleteStory(
 ): Promise<void> {
   const { error } = await client.from("stories").delete().eq("id", id);
   assertNoError(error, "deleteStory");
+}
+
+/**
+ * Marks a story as published and records `published_at`.
+ *
+ * Stories carry no publish precondition (unlike timelines, which gate on event
+ * count) — the story wireframes specify none. Publishing is owner-gated in the
+ * UI and re-checked by RLS on the write path (defense in depth).
+ */
+export async function publishStory(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<StoryRow> {
+  const { data, error } = await client
+    .from("stories")
+    .update({ published: true, published_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+
+  assertNoError(error, "publishStory");
+  return data;
+}
+
+/**
+ * Reverts a story to unpublished state and clears `published_at`.
+ */
+export async function unpublishStory(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<StoryRow> {
+  const { data, error } = await client
+    .from("stories")
+    .update({ published: false, published_at: null })
+    .eq("id", id)
+    .select()
+    .single();
+
+  assertNoError(error, "unpublishStory");
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// Facet counts
+// ---------------------------------------------------------------------------
+
+/** Builder surface for the per-option count predicates (`.eq`, `.not`). */
+interface StoryCountPredicateBuilder {
+  eq(column: string, value: string | boolean): StoryCountPredicateBuilder;
+  not(
+    column: string,
+    op: string,
+    value: boolean | null,
+  ): StoryCountPredicateBuilder;
+}
+
+/** One head-count round-trip: count stories matching the base filters plus `apply`. */
+async function countStoriesWith(
+  client: SupabaseClient<Database>,
+  filters: StoryFilters,
+  skip: { skipNarratorType?: boolean; skipPublished?: boolean },
+  apply: (q: StoryCountPredicateBuilder) => StoryCountPredicateBuilder,
+  context: string,
+): Promise<number> {
+  const base = client
+    .from("stories")
+    .select("*", { count: "exact", head: true });
+  const filtered = applyStoryFilters(
+    base as unknown as StoryFilterBuilder<typeof base>,
+    filters,
+    skip,
+  ) as unknown as typeof base;
+  apply(filtered as unknown as StoryCountPredicateBuilder);
+  const { count, error } = await filtered;
+  assertNoError(error, context);
+  return count ?? 0;
+}
+
+/**
+ * Returns per-option counts for the stories list filter rail. The narrator-type
+ * and published groups are each counted with their OWN selection removed (so
+ * toggling an option within a group does not zero out its siblings) but with
+ * the other groups + owner + perspective + tags + search applied — OR within a
+ * group, AND across groups. Mirrors CharacterService.getCharacterFacetCounts.
+ *
+ * Perspective (a combobox) and tags (a free-form chip input) are not enumerable
+ * facets, so they contribute no per-option counts.
+ */
+export async function getStoryFacetCounts(
+  client: SupabaseClient<Database>,
+  filters: StoryFilters = {},
+): Promise<StoryFacetCounts> {
+  const narratorOptions = narratorTypeEnum.options;
+
+  const [narratorCounts, publishedCount, draftCount] = await Promise.all([
+    Promise.all(
+      narratorOptions.map((n) =>
+        countStoriesWith(
+          client,
+          filters,
+          { skipNarratorType: true },
+          (q) => q.eq("narrator_type", n),
+          "getStoryFacetCounts.narratorType",
+        ),
+      ),
+    ),
+    countStoriesWith(
+      client,
+      filters,
+      { skipPublished: true },
+      (q) => q.eq("published", true),
+      "getStoryFacetCounts.published.published",
+    ),
+    countStoriesWith(
+      client,
+      filters,
+      { skipPublished: true },
+      // Draft = published IS NOT TRUE (false OR null), matching the list badge
+      // and the getStories draft filter.
+      (q) => q.not("published", "is", true),
+      "getStoryFacetCounts.published.draft",
+    ),
+  ]);
+
+  return {
+    narratorType: {
+      first_person:
+        narratorCounts[narratorOptions.indexOf("first_person")] ?? 0,
+      third_person:
+        narratorCounts[narratorOptions.indexOf("third_person")] ?? 0,
+      omniscient: narratorCounts[narratorOptions.indexOf("omniscient")] ?? 0,
+    },
+    published: { published: publishedCount, draft: draftCount },
+  };
 }
 
 /**

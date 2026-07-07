@@ -5,16 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@repo/ui/components/sonner";
 import { Plus } from "lucide-react";
-import type { TemporalData } from "@repo/services/schemas/temporal";
 import {
-  deleteCharacter,
-  publishCharacter,
-  unpublishCharacter,
-  type CharacterFilters,
-  type CharacterListRow,
-  type CharacterType,
-  type Significance,
-} from "@repo/services/character-service";
+  deleteStory,
+  publishStory,
+  unpublishStory,
+  type StoryFilters,
+  type StoryListRow,
+} from "@repo/services/story-service";
 import { BulkActionBar } from "@repo/ui/components/bulk-action-bar";
 import { Button } from "@repo/ui/components/button";
 import {
@@ -26,18 +23,17 @@ import {
 import { FilterRail, type FilterGroup } from "@repo/ui/components/filter-rail";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { StatusBadge } from "@repo/ui/components/status-badge";
-import { TemporalDisplay } from "@repo/ui/components/temporal-display";
-import { cn } from "@repo/ui/lib/utils";
-import {
-  characterKeys,
-  useCharactersPage,
-  useCharacterFacetCounts,
-} from "@repo/ui/hooks/use-characters";
-import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
 import {
   CharacterTypeBadge,
-  CHARACTER_TYPE_ICON,
+  type CharacterType,
 } from "@repo/ui/components/character-type-badge";
+import {
+  storyKeys,
+  useStoriesPage,
+  useStoryFacetCounts,
+} from "@repo/ui/hooks/use-stories";
+import { useCharacters } from "@repo/ui/hooks/use-characters";
+import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -45,58 +41,33 @@ import {
 
 const PAGE_SIZE = 20;
 
-// character_type values are the exact schema enum (see characterTypeEnum).
-const CHARACTER_TYPES: { value: CharacterType; label: string }[] = [
-  { value: "human", label: "Human" },
-  { value: "animal", label: "Animal" },
-  { value: "mythological", label: "Mythological" },
-  { value: "fictional", label: "Fictional" },
-  { value: "organization", label: "Organization" },
-  { value: "divine", label: "Divine" },
-  { value: "artifact", label: "Artifact" },
+const NARRATOR_TYPES: { value: string; label: string }[] = [
+  { value: "first_person", label: "First-person" },
+  { value: "third_person", label: "Third-person" },
+  { value: "omniscient", label: "Omniscient" },
 ];
-const VALID_TYPES = new Set<string>(CHARACTER_TYPES.map((t) => t.value));
+const NARRATOR_LABEL: Record<string, string> = Object.fromEntries(
+  NARRATOR_TYPES.map((n) => [n.value, n.label]),
+);
+const VALID_NARRATORS = new Set(NARRATOR_TYPES.map((n) => n.value));
 
-const SIGNIFICANCES: { value: Significance; label: string }[] = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "critical", label: "Critical" },
-];
-const VALID_SIGNIFICANCES = new Set<string>(SIGNIFICANCES.map((s) => s.value));
-
-// Published and has-media are each rendered as a 2-option checkbox group
-// (not the shared radio component) specifically so both options can carry a
-// count, matching the wireframe — the filter is applied only when exactly one
-// option is checked, same convention the events list uses for its own
-// Status group.
-const VALID_PUBLICATIONS = new Set<string>(["published", "draft"]);
-const VALID_MEDIA = new Set<string>(["yes", "no"]);
+// Published is a 2-option checkbox group (not the shared radio) so both options
+// can carry a count; the filter is applied only when exactly one is checked —
+// the same "exactly one" convention the characters list uses for its Published
+// and Has-media groups.
+const VALID_PUBLICATIONS = new Set(["published", "draft"]);
 
 const SORT_LABELS: Record<string, string> = {
-  name: "Name",
-  created_at: "Created",
   updated_at: "Last updated",
-  sort_order_years: "Birth date",
+  created_at: "Created",
+  title: "Title",
 };
 const VALID_SORT = new Set(Object.keys(SORT_LABELS));
 
-const SIGNIFICANCE_STARS: Record<Significance, number> = {
-  low: 1,
-  medium: 2,
-  high: 3,
-  critical: 4,
-};
-// Reuses the existing Batch F importance sequential ramp — significance and
-// importance are the same visual language (03-aesthetic-notes.md § Significance
-// scale, finalized). Literal class names (not interpolated) so Tailwind's
-// scanner picks them up.
-const SIGNIFICANCE_CLASS: Record<Significance, string> = {
-  low: "text-importance-low",
-  medium: "text-importance-medium",
-  high: "text-importance-high",
-  critical: "text-importance-critical",
-};
+// Perspective characters populate both the filter combobox and the per-row
+// perspective chip. Capped at the service's max page size — admins rarely
+// exceed this early on, and an unresolved id simply omits the chip.
+const PERSPECTIVE_FETCH_SIZE = 100;
 
 // ---------------------------------------------------------------------------
 // URL state helpers
@@ -112,8 +83,7 @@ function arrayToCsv(values: string[]): string {
 }
 
 /**
- * Returns a windowed list of page numbers and "ellipsis" placeholders.
- * Always shows first, last, current ±2, with "ellipsis" gaps between.
+ * Windowed page numbers with "ellipsis" gaps: always first, last, current ±2.
  */
 function buildPageWindows(
   current: number,
@@ -139,10 +109,10 @@ function buildPageWindows(
 }
 
 interface ParsedFilters {
-  types: string[];
-  significances: string[];
+  narrators: string[];
   publications: string[];
-  media: string[];
+  perspective: string | null;
+  tags: string[];
   search: string;
   sortBy: string;
   sortDir: "asc" | "desc";
@@ -150,59 +120,51 @@ interface ParsedFilters {
 }
 
 function readFiltersFromParams(params: URLSearchParams): ParsedFilters {
-  const rawSort = params.get("sort") ?? "name";
-  const sortBy = VALID_SORT.has(rawSort) ? rawSort : "name";
+  const rawSort = params.get("sort") ?? "updated_at";
+  const sortBy = VALID_SORT.has(rawSort) ? rawSort : "updated_at";
 
   const rawPage = parseInt(params.get("page") ?? "1", 10);
   const page = Number.isFinite(rawPage) ? Math.max(1, rawPage) : 1;
 
   return {
-    types: csvToArray(params.get("type")).filter((t) => VALID_TYPES.has(t)),
-    significances: csvToArray(params.get("sig")).filter((s) =>
-      VALID_SIGNIFICANCES.has(s),
+    narrators: csvToArray(params.get("narrator")).filter((n) =>
+      VALID_NARRATORS.has(n),
     ),
     publications: csvToArray(params.get("pub")).filter((p) =>
       VALID_PUBLICATIONS.has(p),
     ),
-    media: csvToArray(params.get("media")).filter((m) => VALID_MEDIA.has(m)),
+    perspective: params.get("persp"),
+    tags: csvToArray(params.get("tags")),
     search: params.get("q") ?? "",
     sortBy,
-    sortDir: params.get("dir") === "desc" ? "desc" : "asc",
+    // Stories default to newest-first (updated_at desc): they are work surfaces.
+    sortDir: params.get("dir") === "asc" ? "asc" : "desc",
     page,
   };
 }
 
-function buildServiceFilters(parsed: ParsedFilters): CharacterFilters {
-  const filters: CharacterFilters = {
+function buildServiceFilters(parsed: ParsedFilters): StoryFilters {
+  const filters: StoryFilters = {
     page: parsed.page,
     pageSize: PAGE_SIZE,
-    sortBy: parsed.sortBy as CharacterFilters["sortBy"],
+    sortBy: parsed.sortBy as StoryFilters["sortBy"],
     sortDirection: parsed.sortDir,
   };
 
-  const safeTypes = parsed.types.filter((t) =>
-    VALID_TYPES.has(t),
-  ) as CharacterType[];
-  if (safeTypes.length > 0) {
-    filters.characterType = safeTypes;
-  }
-
-  const safeSignificances = parsed.significances.filter((s) =>
-    VALID_SIGNIFICANCES.has(s),
-  ) as Significance[];
-  if (safeSignificances.length > 0) {
-    filters.significance = safeSignificances;
-  }
-
-  // published/hasMedia: exactly one value selected → filter; otherwise omit
+  // narrator/published: exactly one value selected → filter; otherwise omit
   // (both, or neither, checked narrows nothing).
+  if (parsed.narrators.length === 1) {
+    filters.narratorType = parsed.narrators[0] as StoryFilters["narratorType"];
+  }
   if (parsed.publications.length === 1) {
     filters.published = parsed.publications[0] === "published";
   }
-  if (parsed.media.length === 1) {
-    filters.hasMedia = parsed.media[0] === "yes";
+  if (parsed.perspective) {
+    filters.perspectiveCharacterId = parsed.perspective;
   }
-
+  if (parsed.tags.length > 0) {
+    filters.tags = parsed.tags;
+  }
   if (parsed.search.length > 0) {
     filters.search = parsed.search;
   }
@@ -214,55 +176,36 @@ function buildServiceFilters(parsed: ParsedFilters): CharacterFilters {
 // Cells
 // ---------------------------------------------------------------------------
 
-function SignificanceCell({ value }: { value: Significance | null }) {
-  // significance is DEFAULT 'medium' but not NOT NULL (migration 00001), so a
-  // row written outside the app's own create/update path (direct SQL, import)
-  // can carry a null — render the same "—" placeholder as the Temporal cell
-  // rather than indexing the lookup maps with a value they don't cover.
-  if (value === null) {
-    return <span className="text-sm text-foreground-muted">—</span>;
-  }
-  const filled = SIGNIFICANCE_STARS[value];
-  return (
-    <span
-      className={cn("text-sm", SIGNIFICANCE_CLASS[value])}
-      title={`Significance: ${value}`}
-    >
-      <span aria-hidden>{"★".repeat(filled)}</span>
-      <span className="sr-only">{value}</span>
-    </span>
-  );
-}
+type PerspectiveInfo = { name: string; character_type: CharacterType };
 
-function NameCell({
+function TitleCell({
   row,
+  perspectiveMap,
   onRowClick,
 }: {
-  row: CharacterListRow;
-  onRowClick: (row: CharacterListRow) => void;
+  row: StoryListRow;
+  perspectiveMap: Map<string, PerspectiveInfo>;
+  onRowClick: (row: StoryListRow) => void;
 }) {
-  const primaryMedia =
-    row.character_media.find((m) => m.is_primary === true)?.media ??
-    row.character_media[0]?.media ??
-    null;
-  const aliases = row.aliases ?? [];
-  const firstAlias = aliases[0];
-  const extraAliasCount = aliases.length > 1 ? aliases.length - 1 : 0;
-  const eventCount = row.event_characters[0]?.count ?? 0;
-  const line2 = [
-    firstAlias !== undefined
-      ? `${firstAlias}${extraAliasCount > 0 ? ` +${extraAliasCount}` : ""}`
-      : null,
-    eventCount > 0 ? `${eventCount} event${eventCount !== 1 ? "s" : ""}` : null,
-  ].filter(Boolean);
-  const PlaceholderIcon =
-    CHARACTER_TYPE_ICON[row.character_type as CharacterType];
+  const eventCount = row.story_events[0]?.count ?? 0;
+  const characterCount = row.story_characters[0]?.count ?? 0;
+  const tags = row.tags ?? [];
+  const shownTags = tags.slice(0, 2);
+  const extraTags = tags.length - shownTags.length;
+
+  const perspective =
+    row.perspective_character_id !== null
+      ? (perspectiveMap.get(row.perspective_character_id) ?? null)
+      : null;
+  const isFirstPerson = row.narrator_type === "first_person";
+
+  const counts = `${eventCount} ev · ${characterCount} ch`;
 
   return (
-    <div className="group relative">
+    <div className="flex flex-col gap-1">
       <button
         type="button"
-        className="flex w-full flex-col gap-0.5 text-left hover:opacity-80 transition-opacity"
+        className="flex flex-col gap-0.5 text-left hover:opacity-80 transition-opacity"
         onClick={(ev) => {
           ev.stopPropagation();
           onRowClick(row);
@@ -270,32 +213,41 @@ function NameCell({
       >
         <span
           className="line-clamp-1 font-medium text-foreground leading-tight"
-          title={row.name}
+          title={row.title}
         >
-          {row.name}
+          {row.title}
         </span>
-        {line2.length > 0 && (
-          <span className="text-xs text-foreground-muted">
-            {line2.join(" · ")}
+        {row.sub_title && (
+          <span
+            className="line-clamp-1 text-xs text-foreground-muted"
+            title={row.sub_title}
+          >
+            {row.sub_title}
           </span>
         )}
       </button>
-      <div className="pointer-events-none absolute left-0 top-full z-10 mt-1 hidden rounded-md border border-border bg-popover p-1 shadow-md group-hover:block">
-        {primaryMedia ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={primaryMedia.url}
-            alt={primaryMedia.alt_text ?? ""}
-            className="h-24 w-24 rounded object-cover"
-          />
-        ) : (
-          <div className="flex h-24 w-24 items-center justify-center rounded bg-surface-2">
-            <PlaceholderIcon
-              className="h-8 w-8 text-foreground-muted"
-              aria-hidden
+      <div className="flex flex-wrap items-center gap-1.5 text-xs text-foreground-muted">
+        {perspective && (
+          <span className="inline-flex items-center gap-1">
+            <CharacterTypeBadge
+              type={perspective.character_type}
+              label={perspective.name}
             />
-          </div>
+            {isFirstPerson && (
+              <span className="text-foreground-muted">(narrator)</span>
+            )}
+          </span>
         )}
+        <span>{counts}</span>
+        {shownTags.map((tag) => (
+          <span
+            key={tag}
+            className="rounded bg-surface-2 px-1.5 py-0.5 text-foreground-muted"
+          >
+            {tag}
+          </span>
+        ))}
+        {extraTags > 0 && <span>+{extraTags}</span>}
       </div>
     </div>
   );
@@ -306,60 +258,35 @@ function NameCell({
 // ---------------------------------------------------------------------------
 
 function buildColumns(
-  onRowClick: (row: CharacterListRow) => void,
-): DataTableProps<CharacterListRow, unknown>["columns"] {
+  perspectiveMap: Map<string, PerspectiveInfo>,
+  onRowClick: (row: StoryListRow) => void,
+): DataTableProps<StoryListRow, unknown>["columns"] {
   return [
-    createSelectColumn<CharacterListRow>(),
+    createSelectColumn<StoryListRow>(),
     {
-      id: "name",
-      header: "Name",
+      id: "title",
+      header: "Title",
       enableSorting: false,
-      cell: ({ row }: { row: { original: CharacterListRow } }) => (
-        <NameCell row={row.original} onRowClick={onRowClick} />
+      cell: ({ row }: { row: { original: StoryListRow } }) => (
+        <TitleCell
+          row={row.original}
+          perspectiveMap={perspectiveMap}
+          onRowClick={onRowClick}
+        />
       ),
     },
     {
-      accessorKey: "character_type",
-      header: "Type",
+      accessorKey: "narrator_type",
+      header: "Narrator",
       enableSorting: false,
-      cell: ({ getValue }: { getValue: () => unknown }) => (
-        <CharacterTypeBadge type={getValue() as CharacterType} />
-      ),
-    },
-    {
-      id: "temporal",
-      header: "Temporal",
-      enableSorting: false,
-      cell: ({ row }: { row: { original: CharacterListRow } }) => {
-        const c = row.original;
-        const birth = c.birth_temporal as TemporalData | null;
-        if (!birth || Object.keys(birth).length === 0) {
-          return <span className="text-sm text-foreground-muted">—</span>;
-        }
+      cell: ({ getValue }: { getValue: () => unknown }) => {
+        const v = getValue() as string | null;
         return (
           <span className="text-sm text-foreground-muted">
-            <TemporalDisplay
-              value={birth}
-              endValue={(c.death_temporal as TemporalData | null) ?? undefined}
-              format="compact"
-            />
+            {v !== null ? (NARRATOR_LABEL[v] ?? v) : "—"}
           </span>
         );
       },
-    },
-    {
-      accessorKey: "significance",
-      // Star glyph for sighted users; sr-only text so the column is announced.
-      header: () => (
-        <>
-          <span aria-hidden>★</span>
-          <span className="sr-only">Significance</span>
-        </>
-      ),
-      enableSorting: false,
-      cell: ({ getValue }: { getValue: () => unknown }) => (
-        <SignificanceCell value={getValue() as Significance | null} />
-      ),
     },
     {
       accessorKey: "published",
@@ -367,11 +294,6 @@ function buildColumns(
       enableSorting: false,
       cell: ({ getValue }: { getValue: () => unknown }) => {
         const v = getValue() as boolean | null;
-        // DECISION NEEDED: wireframe 03 annotation #7 describes a 3rd "shared"
-        // status (reachable via a timeline_collaborators join two hops away).
-        // No query for that reachability exists yet and the events list (the
-        // reference template) doesn't implement it either — deferring to
-        // 2-state per the wireframe's own filter checkboxes and #55's AC.
         return <StatusBadge status={v === true ? "published" : "draft"} />;
       },
     },
@@ -397,7 +319,7 @@ function TableSkeleton() {
 // Main component
 // ---------------------------------------------------------------------------
 
-export function CharacterListClient() {
+export function StoryListClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -425,21 +347,21 @@ export function CharacterListClient() {
   const client = React.useMemo(() => getBrowserSupabaseClient(), []);
 
   const filters = React.useMemo(() => buildServiceFilters(parsed), [parsed]);
-  // Facet counts key off the filters minus page/sort, so paging or changing
-  // sort doesn't refire all 15 count queries the rail depends on.
-  const facetFilters = React.useMemo<CharacterFilters>(() => {
-    const picked: CharacterFilters = {};
-    if (filters.characterType !== undefined) {
-      picked.characterType = filters.characterType;
-    }
-    if (filters.significance !== undefined) {
-      picked.significance = filters.significance;
+  // Facet counts key off the filters minus page/sort so paging or re-sorting
+  // doesn't refire the count queries the rail depends on.
+  const facetFilters = React.useMemo<StoryFilters>(() => {
+    const picked: StoryFilters = {};
+    if (filters.narratorType !== undefined) {
+      picked.narratorType = filters.narratorType;
     }
     if (filters.published !== undefined) {
       picked.published = filters.published;
     }
-    if (filters.hasMedia !== undefined) {
-      picked.hasMedia = filters.hasMedia;
+    if (filters.perspectiveCharacterId !== undefined) {
+      picked.perspectiveCharacterId = filters.perspectiveCharacterId;
+    }
+    if (filters.tags !== undefined) {
+      picked.tags = filters.tags;
     }
     if (filters.search !== undefined) {
       picked.search = filters.search;
@@ -447,14 +369,11 @@ export function CharacterListClient() {
     return picked;
   }, [filters]);
 
-  const { data, isPending, isError, refetch } = useCharactersPage(
-    client,
-    filters,
-  );
-  const { data: facetCounts } = useCharacterFacetCounts(client, facetFilters);
+  const { data, isPending, isError, refetch } = useStoriesPage(client, filters);
+  const { data: facetCounts } = useStoryFacetCounts(client, facetFilters);
 
-  // Current user — used to gate bulk publish/unpublish/delete to owner-owned
-  // rows (RLS re-checks server-side regardless).
+  // Current user — used to gate bulk publish/unpublish/delete to owned rows
+  // (RLS re-checks server-side regardless) and to scope the perspective query.
   const { data: userId = "" } = useQuery({
     queryKey: ["auth", "user-id"],
     queryFn: async () => {
@@ -466,21 +385,38 @@ export function CharacterListClient() {
     staleTime: 5 * 60_000,
   });
 
+  // The user's characters drive the perspective filter options and the per-row
+  // perspective chip. Only fetched once a user id is known.
+  const { data: characters = [] } = useCharacters(
+    client,
+    { userId, pageSize: PERSPECTIVE_FETCH_SIZE, sortBy: "name" },
+    { enabled: userId !== "" },
+  );
+
+  const perspectiveMap = React.useMemo(() => {
+    const map = new Map<string, PerspectiveInfo>();
+    for (const c of characters) {
+      map.set(c.id, {
+        name: c.name,
+        character_type: c.character_type as CharacterType,
+      });
+    }
+    return map;
+  }, [characters]);
+
   const queryClient = useQueryClient();
 
-  // Row selection for the bulk-action bar, keyed by character id (getRowId).
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [bulkBusy, setBulkBusy] = React.useState(false);
 
   const rows = React.useMemo(
-    () => (data?.rows ?? []) as CharacterListRow[],
+    () => (data?.rows ?? []) as StoryListRow[],
     [data],
   );
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-  // Selection lives on the current page only; reset it whenever the query
-  // (filters/sort/page) changes so stale ids never leak into a bulk action.
+  // Selection lives on the current page only; reset whenever the query changes.
   const filterKey = searchParams.toString();
   const [prevFilterKey, setPrevFilterKey] = React.useState(filterKey);
   if (filterKey !== prevFilterKey) {
@@ -492,8 +428,6 @@ export function CharacterListClient() {
     () => rows.filter((r) => rowSelection[r.id]),
     [rows, rowSelection],
   );
-  // Publishing/deleting is owner-only — exclude shared/other-owned rows from
-  // the action and report them as skipped.
   const ownedSelected = React.useMemo(
     () => selectedRows.filter((r) => r.user_id === userId),
     [selectedRows, userId],
@@ -506,13 +440,13 @@ export function CharacterListClient() {
     setBulkBusy(true);
     const fn =
       action === "publish"
-        ? publishCharacter
+        ? publishStory
         : action === "unpublish"
-          ? unpublishCharacter
-          : deleteCharacter;
+          ? unpublishStory
+          : deleteStory;
     const results = await Promise.allSettled(ids.map((id) => fn(client, id)));
     setBulkBusy(false);
-    await queryClient.invalidateQueries({ queryKey: characterKeys.all });
+    await queryClient.invalidateQueries({ queryKey: storyKeys.all });
     setRowSelection({});
 
     const failed = results.filter((r) => r.status === "rejected").length;
@@ -523,7 +457,7 @@ export function CharacterListClient() {
         : action === "unpublish"
           ? "Unpublished"
           : "Deleted";
-    const noun = (n: number) => `character${n !== 1 ? "s" : ""}`;
+    const noun = (n: number) => `stor${n !== 1 ? "ies" : "y"}`;
     if (failed === 0) {
       toast.success(`${verb} ${ok} ${noun(ok)}.`);
     } else if (ok === 0) {
@@ -534,10 +468,10 @@ export function CharacterListClient() {
   }
 
   const hasFilters =
-    parsed.types.length > 0 ||
-    parsed.significances.length > 0 ||
+    parsed.narrators.length === 1 ||
     parsed.publications.length === 1 ||
-    parsed.media.length === 1 ||
+    parsed.perspective !== null ||
+    parsed.tags.length > 0 ||
     parsed.search.length > 0;
 
   // ---------------------------------------------------------------------------
@@ -545,12 +479,10 @@ export function CharacterListClient() {
   // ---------------------------------------------------------------------------
 
   function updateParams(updates: Record<string, string | null>) {
-    // Build from the live URL, not the closed-over `searchParams` snapshot:
-    // the search box's debounced update fires ~300ms after a keystroke, and
-    // if a filter/sort/page change lands in that window, building from the
-    // stale snapshot would drop it. updateParams only runs from event
-    // handlers / the debounce timeout (never during render), so reading
-    // window.location here is safe. See #329.
+    // Build from the live URL, not the closed-over snapshot: the search box's
+    // debounced update fires ~300ms after a keystroke, and a filter/sort/page
+    // change landing in that window must not be dropped. Only runs from event
+    // handlers / the debounce timeout (never during render). Mirrors #329.
     const next = new URLSearchParams(window.location.search);
     for (const [key, val] of Object.entries(updates)) {
       if (val === null || val === "") {
@@ -562,17 +494,17 @@ export function CharacterListClient() {
     router.replace(`?${next.toString()}`, { scroll: false });
   }
 
-  function handleTypeChange(values: string[]) {
-    updateParams({ type: arrayToCsv(values) || null, page: null });
-  }
-  function handleSignificanceChange(values: string[]) {
-    updateParams({ sig: arrayToCsv(values) || null, page: null });
+  function handleNarratorChange(values: string[]) {
+    updateParams({ narrator: arrayToCsv(values) || null, page: null });
   }
   function handlePublicationChange(values: string[]) {
     updateParams({ pub: arrayToCsv(values) || null, page: null });
   }
-  function handleMediaChange(values: string[]) {
-    updateParams({ media: arrayToCsv(values) || null, page: null });
+  function handlePerspectiveChange(value: string | null) {
+    updateParams({ persp: value, page: null });
+  }
+  function handleTagsChange(values: string[]) {
+    updateParams({ tags: arrayToCsv(values) || null, page: null });
   }
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = e.target.value;
@@ -600,13 +532,13 @@ export function CharacterListClient() {
     router.replace("?", { scroll: false });
   }
 
-  function handleNewCharacter() {
-    router.push("/characters/new");
+  function handleNewStory() {
+    router.push("/stories/new");
   }
 
   const handleRowClick = React.useCallback(
-    (row: CharacterListRow) => {
-      router.push(`/characters/${row.slug}`);
+    (row: StoryListRow) => {
+      router.push(`/stories/${row.slug}`);
     },
     [router],
   );
@@ -645,37 +577,37 @@ export function CharacterListClient() {
   }
 
   // ---------------------------------------------------------------------------
-  // Filter groups. Published and Has-media are checkbox groups (not the
-  // shared radio component) so both options can carry a count.
+  // Filter groups
   // ---------------------------------------------------------------------------
 
   const filterGroups: FilterGroup[] = [
     {
       type: "checkbox",
-      id: "type",
-      label: "Type",
-      options: CHARACTER_TYPES.map((t) => ({
-        ...t,
-        count: facetCounts?.characterType[t.value],
+      id: "narrator",
+      label: "Narrator",
+      options: NARRATOR_TYPES.map((n) => ({
+        ...n,
+        count:
+          facetCounts?.narratorType[
+            n.value as keyof typeof facetCounts.narratorType
+          ],
       })),
-      value: parsed.types,
-      onChange: handleTypeChange,
+      value: parsed.narrators,
+      onChange: handleNarratorChange,
     },
     {
-      type: "checkbox",
-      id: "significance",
-      label: "Significance",
-      options: SIGNIFICANCES.map((s) => ({
-        ...s,
-        count: facetCounts?.significance[s.value],
-      })),
-      value: parsed.significances,
-      onChange: handleSignificanceChange,
+      type: "combobox",
+      id: "perspective",
+      label: "Perspective",
+      placeholder: "Any character",
+      value: parsed.perspective,
+      options: characters.map((c) => ({ value: c.id, label: c.name })),
+      onChange: handlePerspectiveChange,
     },
     {
       type: "checkbox",
       id: "publication",
-      label: "Published",
+      label: "Status",
       options: [
         {
           value: "published",
@@ -688,21 +620,17 @@ export function CharacterListClient() {
       onChange: handlePublicationChange,
     },
     {
-      type: "checkbox",
-      id: "media",
-      label: "Has media",
-      options: [
-        { value: "yes", label: "Yes", count: facetCounts?.hasMedia.yes },
-        { value: "no", label: "No", count: facetCounts?.hasMedia.no },
-      ],
-      value: parsed.media,
-      onChange: handleMediaChange,
+      type: "tags",
+      id: "tags",
+      label: "Tags",
+      value: parsed.tags,
+      onChange: handleTagsChange,
     },
   ];
 
   const columns = React.useMemo(
-    () => buildColumns(handleRowClick),
-    [handleRowClick],
+    () => buildColumns(perspectiveMap, handleRowClick),
+    [perspectiveMap, handleRowClick],
   );
 
   // ---------------------------------------------------------------------------
@@ -715,23 +643,23 @@ export function CharacterListClient() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4 shrink-0">
           <div>
-            <h1 className="font-display text-xl text-foreground">Characters</h1>
+            <h1 className="font-display text-xl text-foreground">Stories</h1>
             <p className="mt-0.5 text-xs text-foreground-muted">
               {isPending
                 ? "Loading…"
                 : hasFilters
                   ? `${total} result${total !== 1 ? "s" : ""} · filtered`
-                  : `${total} character${total !== 1 ? "s" : ""}`}
+                  : `${total} stor${total !== 1 ? "ies" : "y"}`}
             </p>
           </div>
           <Button
             variant="primary"
             size="sm"
             className="gap-1.5"
-            onClick={handleNewCharacter}
+            onClick={handleNewStory}
           >
             <Plus className="h-3.5 w-3.5" aria-hidden />
-            New character
+            New story
           </Button>
         </div>
 
@@ -739,11 +667,11 @@ export function CharacterListClient() {
         <div className="flex items-center gap-3 border-b border-border px-6 py-3 shrink-0">
           <input
             type="search"
-            placeholder="Search name, biography, aliases…"
+            placeholder="Search title, sub-title, summary, detail…"
             value={searchInput}
             onChange={handleSearchChange}
             className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-foreground-muted focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="Search characters"
+            aria-label="Search stories"
           />
         </div>
 
@@ -755,7 +683,7 @@ export function CharacterListClient() {
               className="flex flex-col items-center justify-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-8 text-center"
             >
               <p className="text-sm text-destructive">
-                Failed to load characters.
+                Failed to load stories.
               </p>
               <Button
                 variant="secondary"
@@ -772,12 +700,12 @@ export function CharacterListClient() {
           {!isError && !isPending && total === 0 && !hasFilters && (
             <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
               <p className="max-w-sm text-sm text-foreground-muted">
-                No characters yet. Characters are the people, beings, and
-                organizations that participate in your events.
+                No stories yet. A story is a telling — your interpretation of
+                events, from a point of view.
               </p>
-              <Button variant="primary" size="sm" onClick={handleNewCharacter}>
+              <Button variant="primary" size="sm" onClick={handleNewStory}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                New character
+                New story
               </Button>
             </div>
           )}
@@ -785,7 +713,7 @@ export function CharacterListClient() {
           {!isError && !isPending && total === 0 && hasFilters && (
             <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
               <p className="text-sm text-foreground-muted">
-                No characters match these filters.
+                No stories match these filters.
               </p>
               <button
                 type="button"
@@ -802,7 +730,7 @@ export function CharacterListClient() {
               <BulkActionBar
                 count={ownedSelected.length}
                 skippedCount={skippedCount}
-                entityLabel="character"
+                entityLabel="story"
                 busy={bulkBusy}
                 onPublish={() => void runBulk("publish")}
                 onUnpublish={() => void runBulk("unpublish")}
@@ -848,23 +776,20 @@ export function CharacterListClient() {
 
             <div className="flex items-center gap-2">
               <label
-                htmlFor="character-sort-select"
+                htmlFor="story-sort-select"
                 className="text-xs text-foreground-muted"
               >
                 Sort:
               </label>
               <select
-                id="character-sort-select"
+                id="story-sort-select"
                 value={parsed.sortBy}
                 onChange={handleSortChange}
                 className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               >
-                <option value="name">{SORT_LABELS["name"]}</option>
-                <option value="created_at">{SORT_LABELS["created_at"]}</option>
                 <option value="updated_at">{SORT_LABELS["updated_at"]}</option>
-                <option value="sort_order_years">
-                  {SORT_LABELS["sort_order_years"]}
-                </option>
+                <option value="created_at">{SORT_LABELS["created_at"]}</option>
+                <option value="title">{SORT_LABELS["title"]}</option>
               </select>
               <button
                 type="button"
