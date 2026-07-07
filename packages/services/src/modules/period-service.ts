@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { periodSchema } from "../schemas/period";
+import { periodSchema, periodUpdateSchema } from "../schemas/period";
 import type { PeriodInput } from "../schemas/period";
+import { temporalRangeSchema } from "../schemas/temporal";
 import { generateSlug, resolveCollision } from "../utils/slug";
 import { MAX_SLUG_LENGTH } from "../schemas/slug";
 import type { Database } from "../supabase/types";
@@ -9,6 +10,7 @@ import type { Database } from "../supabase/types";
 type PeriodRow = Database["public"]["Tables"]["periods"]["Row"];
 type PeriodTimelineRow =
   Database["public"]["Tables"]["period_timelines"]["Row"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
 
 export interface PeriodFilters {
   userId?: string;
@@ -79,11 +81,17 @@ export async function getPeriods(
 }
 
 /**
- * Fetch a single period by its UUID.
+ * Fetch a single period by its UUID, with its direct child periods attached.
+ *
+ * Children are fetched in a second query rather than via a PostgREST embed:
+ * the owner-scoped composite self-FK (`00028`, `(user_id, parent_period_id)`)
+ * is not resolvable as a self-referential embed relationship, so
+ * `periods!parent_period_id(*)` no longer works. `getChildPeriods` reads the
+ * same rows ordered by `sort_order_start`.
  *
  * @param client - Supabase client instance
  * @param id - Period UUID
- * @returns The matching period row
+ * @returns The matching period row with `child_periods`
  */
 export async function getPeriodById(
   client: SupabaseClient<Database>,
@@ -91,20 +99,22 @@ export async function getPeriodById(
 ): Promise<PeriodWithRelations> {
   const { data, error } = await client
     .from("periods")
-    .select("*, child_periods:periods!parent_period_id(*)")
+    .select("*")
     .eq("id", id)
     .single();
   assertNoError(error, "getPeriodById");
-  return data as unknown as PeriodWithRelations;
+  const child_periods = await getChildPeriods(client, data.id);
+  return { ...data, child_periods };
 }
 
 /**
- * Fetch a single period by its owner and slug.
+ * Fetch a single period by its owner and slug, with its direct child periods
+ * attached (see {@link getPeriodById} for why children are a separate query).
  *
  * @param client - Supabase client instance
  * @param userId - Owner's user UUID
  * @param slug - Period slug
- * @returns The matching period row
+ * @returns The matching period row with `child_periods`
  */
 export async function getPeriodBySlug(
   client: SupabaseClient<Database>,
@@ -113,12 +123,13 @@ export async function getPeriodBySlug(
 ): Promise<PeriodWithRelations> {
   const { data, error } = await client
     .from("periods")
-    .select("*, child_periods:periods!parent_period_id(*)")
+    .select("*")
     .eq("user_id", userId)
     .eq("slug", slug)
     .single();
   assertNoError(error, "getPeriodBySlug");
-  return data as unknown as PeriodWithRelations;
+  const child_periods = await getChildPeriods(client, data.id);
+  return { ...data, child_periods };
 }
 
 /**
@@ -192,7 +203,72 @@ export async function createPeriod(
 }
 
 /**
- * Update an existing period.
+ * Throws if assigning `newParentId` as the parent of `periodId` would create a
+ * circular hierarchy — i.e. if `periodId` is `newParentId` itself, or is an
+ * ancestor of `newParentId`.
+ *
+ * Detection walks the ancestor chain upward from `newParentId` via
+ * `parent_period_id`. A cycle would form exactly when `periodId` appears on that
+ * chain, so a single upward walk is sufficient (and cheaper than enumerating
+ * `periodId`'s descendants). A `visited` set guards against an already-corrupt
+ * chain looping forever.
+ *
+ * Detection is service-layer by design — `parent_period_id` is not
+ * cycle-constrained at the database level (docs/system-design.md §3.4),
+ * consistent with the other self-referential FK cycle guards
+ * (see `category-service.assertNoCategoryCycle`).
+ *
+ * @param client - Supabase client instance
+ * @param periodId - The period being reparented
+ * @param newParentId - The candidate parent
+ */
+export async function assertNoPeriodCycle(
+  client: SupabaseClient<Database>,
+  periodId: string,
+  newParentId: string,
+): Promise<void> {
+  const visited = new Set<string>();
+  let cursor: string | null = newParentId;
+
+  while (cursor !== null) {
+    if (cursor === periodId) {
+      throw new Error(
+        "PeriodService.assertNoPeriodCycle: a period cannot be its own " +
+          "ancestor (circular hierarchy)",
+      );
+    }
+    if (visited.has(cursor)) {
+      // Pre-existing cycle in the stored data; stop rather than loop forever.
+      return;
+    }
+    visited.add(cursor);
+
+    // maybeSingle (not single): a non-existent `newParentId` returns no row
+    // without erroring, so the walk ends here and the guard passes. The real
+    // "parent does not exist" error is then raised cleanly by the FK on the
+    // subsequent UPDATE, rather than surfacing as a misleading cycle/fetch error.
+    const {
+      data,
+      error,
+    }: {
+      data: { parent_period_id: string | null } | null;
+      error: { message: string } | null;
+    } = await client
+      .from("periods")
+      .select("parent_period_id")
+      .eq("id", cursor)
+      .maybeSingle();
+    assertNoError(error, "assertNoPeriodCycle");
+    cursor = data?.parent_period_id ?? null;
+  }
+}
+
+/**
+ * Update an existing period. A patch touching only one temporal bound is
+ * re-validated against the stored row so it can't create an inverted span
+ * (end before start). When the payload reparents the period under a non-null
+ * parent, `assertNoPeriodCycle` runs to reject circular hierarchies;
+ * reparenting to root (`null`) skips the walk.
  *
  * @param client - Supabase client instance
  * @param id - Period UUID
@@ -204,7 +280,40 @@ export async function updatePeriod(
   id: string,
   data: Partial<PeriodInput>,
 ): Promise<PeriodRow> {
-  const validated = periodSchema.partial().parse(data);
+  const validated = periodUpdateSchema.parse(data);
+
+  // Span validity on partial patches: periodUpdateSchema can only compare the
+  // two bounds when both are in the payload. When a patch touches exactly one
+  // bound, merge it with the stored row and re-check, so a partial update can't
+  // slip in an end that precedes the start (or vice versa).
+  const touchesStart = validated.temporal_data !== undefined;
+  const touchesEnd = validated.end_temporal_data !== undefined;
+  if (touchesStart !== touchesEnd) {
+    const { data: current, error: spanError } = await client
+      .from("periods")
+      .select("temporal_data, end_temporal_data")
+      .eq("id", id)
+      .single();
+    assertNoError(spanError, "updatePeriod(span)");
+    const start = touchesStart
+      ? validated.temporal_data
+      : current.temporal_data;
+    const end = touchesEnd
+      ? validated.end_temporal_data
+      : current.end_temporal_data;
+    // Open-ended (end null/absent) is always valid; only check a real span.
+    if (start != null && end != null) {
+      temporalRangeSchema.parse({ start, end });
+    }
+  }
+
+  if (
+    validated.parent_period_id !== undefined &&
+    validated.parent_period_id !== null
+  ) {
+    await assertNoPeriodCycle(client, id, validated.parent_period_id);
+  }
+
   const { data: updated, error } = await client
     .from("periods")
     .update(validated)
@@ -252,23 +361,30 @@ export async function getChildPeriods(
 /**
  * Associate a period with a timeline via the period_timelines junction.
  *
+ * Idempotent: the junction has composite PK `(period_id, timeline_id)`, so a
+ * repeated association is a no-op (upsert with `ignoreDuplicates`) rather than a
+ * `23505` unique-violation error.
+ *
  * @param client - Supabase client instance
  * @param periodId - Period UUID
  * @param timelineId - Timeline UUID
- * @returns The created junction row
+ * @returns The junction row (existing or newly created)
  */
 export async function addPeriodToTimeline(
   client: SupabaseClient<Database>,
   periodId: string,
   timelineId: string,
 ): Promise<PeriodTimelineRow> {
-  const { data, error } = await client
+  const { error } = await client
     .from("period_timelines")
-    .insert({ period_id: periodId, timeline_id: timelineId })
-    .select()
-    .single();
+    .upsert(
+      { period_id: periodId, timeline_id: timelineId },
+      { onConflict: "period_id,timeline_id", ignoreDuplicates: true },
+    );
   assertNoError(error, "addPeriodToTimeline");
-  return data;
+  // The junction is fully described by its composite key; return it rather than
+  // relying on a RETURNING row, which upsert-ignoreDuplicates omits on conflict.
+  return { period_id: periodId, timeline_id: timelineId };
 }
 
 /**
@@ -289,4 +405,117 @@ export async function removePeriodFromTimeline(
     .eq("period_id", periodId)
     .eq("timeline_id", timelineId);
   assertNoError(error, "removePeriodFromTimeline");
+}
+
+export interface EventsInPeriodOptions {
+  /**
+   * When true, restrict results to events belonging to a timeline the period
+   * overlays (via the `period_timelines` junction) — either as their home
+   * timeline (`events.timeline_id`) or a guest appearance (`timeline_events`).
+   * When false (default), return every event in the period's temporal span
+   * regardless of timeline.
+   */
+  timelineScoped?: boolean;
+}
+
+/**
+ * Events-in-range contract (span-overlay model). Returns the events whose
+ * `sort_order_years` falls within the period's temporal span
+ * `[sort_order_start, sort_order_end]` (inclusive), ordered by
+ * `sort_order_years` ascending.
+ *
+ * There is **no `period_events` junction** — a period gathers events by date,
+ * read-only. An open-ended period (`end_temporal_data` NULL) collapses to the
+ * single instant at `sort_order_start`. Note the generated `sort_order_end` is
+ * `0` (not NULL) when `end_temporal_data` has no era, so open-endedness is keyed
+ * off `end_temporal_data`, not `sort_order_end`. Both sort columns are
+ * DB-generated from the era formula (docs/system-design.md §4).
+ *
+ * With `timelineScoped: true`, results are further limited to the timelines the
+ * period overlays; a period that overlays no timeline yields an empty list.
+ *
+ * @param client - Supabase client instance
+ * @param periodId - Period UUID
+ * @param options - See {@link EventsInPeriodOptions}
+ * @returns Matching event rows, ordered by `sort_order_years` ascending
+ */
+export async function getEventsInPeriod(
+  client: SupabaseClient<Database>,
+  periodId: string,
+  options: EventsInPeriodOptions = {},
+): Promise<EventRow[]> {
+  const { data: period, error: periodError } = await client
+    .from("periods")
+    .select("sort_order_start, sort_order_end, end_temporal_data")
+    .eq("id", periodId)
+    .single();
+  assertNoError(periodError, "getEventsInPeriod(period)");
+
+  const start = period.sort_order_start ?? 0;
+  // Open-ended when there is no end era: the generated `sort_order_end` is 0
+  // (not NULL) in that case, so key off `end_temporal_data`, not the sort value.
+  const endEra = (period.end_temporal_data as { era?: string } | null)?.era;
+  const end =
+    typeof endEra === "string" ? (period.sort_order_end ?? start) : start;
+
+  if (options.timelineScoped !== true) {
+    const { data, error } = await client
+      .from("events")
+      .select("*")
+      .gte("sort_order_years", start)
+      .lte("sort_order_years", end)
+      .order("sort_order_years", { ascending: true });
+    assertNoError(error, "getEventsInPeriod");
+    return data ?? [];
+  }
+
+  // Scoped: the union of events on any timeline this period overlays, as home
+  // timeline (events.timeline_id) or guest appearance (timeline_events).
+  const { data: overlays, error: overlaysError } = await client
+    .from("period_timelines")
+    .select("timeline_id")
+    .eq("period_id", periodId);
+  assertNoError(overlaysError, "getEventsInPeriod(overlays)");
+
+  const timelineIds = (overlays ?? []).map((r) => r.timeline_id);
+  if (timelineIds.length === 0) {
+    return [];
+  }
+
+  const { data: homeEvents, error: homeError } = await client
+    .from("events")
+    .select("*")
+    .in("timeline_id", timelineIds)
+    .gte("sort_order_years", start)
+    .lte("sort_order_years", end);
+  assertNoError(homeError, "getEventsInPeriod(home)");
+
+  const { data: guestRows, error: guestError } = await client
+    .from("timeline_events")
+    .select("event_id")
+    .in("timeline_id", timelineIds);
+  assertNoError(guestError, "getEventsInPeriod(guestRows)");
+
+  const guestIds = (guestRows ?? []).map((r) => r.event_id);
+  let guestEvents: EventRow[] = [];
+  if (guestIds.length > 0) {
+    const { data, error } = await client
+      .from("events")
+      .select("*")
+      .in("id", guestIds)
+      .gte("sort_order_years", start)
+      .lte("sort_order_years", end);
+    assertNoError(error, "getEventsInPeriod(guest)");
+    guestEvents = data ?? [];
+  }
+
+  // Merge home + guest, de-duplicate by id, and re-sort (each source was
+  // fetched independently, so the union needs a final ordering pass).
+  const byId = new Map<string, EventRow>();
+  for (const ev of [...(homeEvents ?? []), ...guestEvents]) {
+    byId.set(ev.id, ev);
+  }
+  return [...byId.values()].sort(
+    (a, b) => (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0),
+  );
 }

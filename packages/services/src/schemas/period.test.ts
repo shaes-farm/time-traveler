@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { periodSchema } from "./period";
+import { periodSchema, periodUpdateSchema } from "./period";
 
 const validTemporal = {
   year: 66,
@@ -25,10 +25,27 @@ describe("periodSchema — valid inputs", () => {
     expect(result.data?.significance).toBe("medium");
   });
 
-  it("accepts an optional end_temporal_data", () => {
+  it("accepts an optional end_temporal_data later than the start", () => {
+    // start = 66 MYA; end = 50 MYA is chronologically later (more recent).
     const result = periodSchema.safeParse({
       ...validBase,
-      end_temporal_data: { year: 145, era: "MYA", precision: "geological" },
+      end_temporal_data: { year: 50, era: "MYA", precision: "geological" },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts an end equal to the start (zero-length span)", () => {
+    const result = periodSchema.safeParse({
+      ...validBase,
+      end_temporal_data: validTemporal,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a null parent_period_id (reparent-to-root)", () => {
+    const result = periodSchema.safeParse({
+      ...validBase,
+      parent_period_id: null,
     });
     expect(result.success).toBe(true);
   });
@@ -78,5 +95,37 @@ describe("periodSchema — invalid inputs", () => {
   it("rejects an empty title", () => {
     const result = periodSchema.safeParse({ ...validBase, title: "" });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects an end_temporal_data earlier than the start", () => {
+    // start = 66 MYA; end = 145 MYA is chronologically earlier — invalid span.
+    const result = periodSchema.safeParse({
+      ...validBase,
+      end_temporal_data: { year: 145, era: "MYA", precision: "geological" },
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["end_temporal_data"]);
+  });
+});
+
+describe("periodUpdateSchema — partial patches", () => {
+  it("accepts a partial patch omitting required create fields", () => {
+    const result = periodUpdateSchema.safeParse({ title: "Renamed" });
+    expect(result.success).toBe(true);
+  });
+
+  it("still enforces span validity when both bounds are patched", () => {
+    const result = periodUpdateSchema.safeParse({
+      temporal_data: validTemporal, // 66 MYA
+      end_temporal_data: { year: 145, era: "MYA", precision: "geological" },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("skips the span check when only one bound is present", () => {
+    const result = periodUpdateSchema.safeParse({
+      end_temporal_data: { year: 145, era: "MYA", precision: "geological" },
+    });
+    expect(result.success).toBe(true);
   });
 });
