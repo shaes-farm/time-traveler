@@ -11,6 +11,7 @@ import {
   deleteCategoryReparentingChildren,
   assertNoCategoryCycle,
   getCategoryTree,
+  getCategoryUsageCounts,
 } from "./category-service";
 
 // ---------------------------------------------------------------------------
@@ -602,6 +603,56 @@ describe("getCategoryTree", () => {
     });
     await expect(getCategoryTree(client, "user-123")).rejects.toThrow(
       "CategoryService.getCategoryTree: db error",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCategoryUsageCounts
+// ---------------------------------------------------------------------------
+
+describe("getCategoryUsageCounts", () => {
+  it("aggregates junction rows into a per-category count map", async () => {
+    const client = makeClient({
+      fromResult: {
+        data: [
+          { category_id: "cat-1" },
+          { category_id: "cat-1" },
+          { category_id: "cat-2" },
+          { category_id: "cat-1" },
+        ],
+        error: null,
+      },
+    });
+    const counts = await getCategoryUsageCounts(client, "user-123");
+    expect(counts).toEqual({ "cat-1": 3, "cat-2": 1 });
+  });
+
+  it("scopes the query to the owner's categories via the inner embed", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    await getCategoryUsageCounts(client, "user-123");
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as ReturnType<typeof makeBuilder>;
+    expect(client.from).toHaveBeenCalledWith("event_categories");
+    expect(builder.eq).toHaveBeenCalledWith("categories.user_id", "user-123");
+  });
+
+  it("returns an empty map when no events are tagged", async () => {
+    const client = makeClient({ fromResult: { data: [], error: null } });
+    expect(await getCategoryUsageCounts(client, "user-123")).toEqual({});
+  });
+
+  it("tolerates a null data payload", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    expect(await getCategoryUsageCounts(client, "user-123")).toEqual({});
+  });
+
+  it("throws on DB error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "db error" } },
+    });
+    await expect(getCategoryUsageCounts(client, "user-123")).rejects.toThrow(
+      "CategoryService.getCategoryUsageCounts: db error",
     );
   });
 });

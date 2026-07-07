@@ -18,6 +18,8 @@ export default defineConfig({
         "app/**/_components/media/attach-media-dialog.tsx",
         "app/**/_components/media/media-library.tsx",
         "app/**/_components/media/media-section.tsx",
+        "app/**/category-form-mappers.ts",
+        "app/**/category-tree-utils.ts",
         "app/**/character-detail-helpers.ts",
         "app/**/character-form-mappers.ts",
         "app/**/event-form-mappers.ts",

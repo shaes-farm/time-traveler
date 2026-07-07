@@ -16,7 +16,9 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  deleteCategoryReparentingChildren,
   getCategoryTree,
+  getCategoryUsageCounts,
 } from "@repo/services/category-service";
 import type {
   CategoryFilters,
@@ -41,6 +43,7 @@ export const categoryKeys = {
   bySlug: (userId: string, slug: string) =>
     [...categoryKeys.all, "slug", userId, slug] as const,
   tree: (userId: string) => [...categoryKeys.all, "tree", userId] as const,
+  usage: (userId: string) => [...categoryKeys.all, "usage", userId] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -113,6 +116,26 @@ export function useCategoryTree(
   });
 }
 
+/**
+ * Fetch a map of category UUID → number of events tagged with it. Categories
+ * with no tagged events are absent from the map; treat a missing key as `0`.
+ */
+export function useCategoryUsageCounts(
+  client: ServiceClient,
+  userId: string,
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getCategoryUsageCounts>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: categoryKeys.usage(userId),
+    queryFn: () => getCategoryUsageCounts(client, userId),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mutation hooks
 // ---------------------------------------------------------------------------
@@ -126,6 +149,9 @@ export function useCreateCategory(client: ServiceClient) {
       void queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
       void queryClient.invalidateQueries({
         queryKey: [...categoryKeys.all, "tree"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: [...categoryKeys.all, "usage"],
       });
     },
   });
@@ -153,6 +179,9 @@ export function useUpdateCategory(client: ServiceClient) {
       void queryClient.invalidateQueries({
         queryKey: [...categoryKeys.all, "tree"],
       });
+      void queryClient.invalidateQueries({
+        queryKey: [...categoryKeys.all, "usage"],
+      });
     },
   });
 }
@@ -167,6 +196,31 @@ export function useDeleteCategory(client: ServiceClient) {
       void queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
       void queryClient.invalidateQueries({
         queryKey: [...categoryKeys.all, "tree"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: [...categoryKeys.all, "usage"],
+      });
+    },
+  });
+}
+
+/**
+ * Delete a category while preserving its subtree — its direct children are
+ * reparented to the target's own parent (wireframe 24 "Option A"). Mirrors
+ * {@link useDeleteCategory} but calls the atomic reparent-then-delete RPC.
+ */
+export function useDeleteCategoryReparentingChildren(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteCategoryReparentingChildren(client, id),
+    onSuccess: (_data, id) => {
+      queryClient.removeQueries({ queryKey: categoryKeys.detail(id) });
+      void queryClient.invalidateQueries({ queryKey: categoryKeys.lists() });
+      void queryClient.invalidateQueries({
+        queryKey: [...categoryKeys.all, "tree"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: [...categoryKeys.all, "usage"],
       });
     },
   });
