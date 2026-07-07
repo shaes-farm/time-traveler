@@ -123,6 +123,10 @@ describe("useChildPeriods", () => {
 describe("useEventsInPeriod", () => {
   const mockEvents = [{ id: "event-1", title: "Fall of Rome" }];
 
+  beforeEach(() => {
+    vi.mocked(getEventsInPeriod).mockClear();
+  });
+
   it("calls getEventsInPeriod with client, periodId and default options", async () => {
     vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
     const { wrapper } = createWrapper();
@@ -150,7 +154,7 @@ describe("useEventsInPeriod", () => {
     });
   });
 
-  it("is refreshed when the parent period detail is invalidated", async () => {
+  it("refetches when the parent period detail is invalidated", async () => {
     vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
     const { wrapper, queryClient } = createWrapper();
     const { result } = renderHook(
@@ -159,14 +163,15 @@ describe("useEventsInPeriod", () => {
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getEventsInPeriod).toHaveBeenCalledTimes(1);
 
     // The events key nests under detail(periodId), so a detail invalidation
-    // (as issued by span edits / timeline association) matches it too.
-    const matched = queryClient
-      .getQueryCache()
-      .findAll({ queryKey: periodKeys.detail("period-1") })
-      .map((q) => q.queryKey);
-    expect(matched).toContainEqual(periodKeys.events("period-1", {}));
+    // (as issued by span edits / timeline association) refetches it too.
+    await queryClient.invalidateQueries({
+      queryKey: periodKeys.detail("period-1"),
+    });
+
+    await waitFor(() => expect(getEventsInPeriod).toHaveBeenCalledTimes(2));
   });
 });
 
