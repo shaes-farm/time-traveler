@@ -51,7 +51,9 @@ export const QUICK_CREATE_ITEMS: ShellQuickCreateItem[] = [
   { label: "Period", href: "/periods/new" },
   { label: "Story", href: "/stories/new" },
   { label: "Timeline", href: "/timelines/new" },
-  { label: "Category", href: "/categories/new" },
+  // Categories are a single tree+inspector surface (no per-node route); the
+  // ?new=1 deep link opens the create form (issue #63).
+  { label: "Category", href: "/categories?new=1" },
   { label: "Media", href: "/media/new" },
   { label: "Relationship", href: "/relationships/new" },
 ];

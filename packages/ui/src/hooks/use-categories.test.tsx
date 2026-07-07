@@ -7,9 +7,11 @@ import {
   useCategory,
   useCategoryBySlug,
   useCategoryTree,
+  useCategoryUsageCounts,
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
+  useDeleteCategoryReparentingChildren,
   categoryKeys,
 } from "./use-categories";
 
@@ -20,7 +22,9 @@ vi.mock("@repo/services/category-service", () => ({
   createCategory: vi.fn(),
   updateCategory: vi.fn(),
   deleteCategory: vi.fn(),
+  deleteCategoryReparentingChildren: vi.fn(),
   getCategoryTree: vi.fn(),
+  getCategoryUsageCounts: vi.fn(),
 }));
 
 import {
@@ -30,7 +34,9 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  deleteCategoryReparentingChildren,
   getCategoryTree,
+  getCategoryUsageCounts,
 } from "@repo/services/category-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -237,6 +243,64 @@ describe("useDeleteCategory", () => {
   });
 });
 
+describe("useCategoryUsageCounts", () => {
+  it("returns the usage-count map keyed by category id", async () => {
+    vi.mocked(getCategoryUsageCounts).mockResolvedValue({
+      "cat-1": 3,
+    } as never);
+
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useCategoryUsageCounts(mockClient, "user-1"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(getCategoryUsageCounts).toHaveBeenCalledWith(mockClient, "user-1");
+    expect(result.current.data).toEqual({ "cat-1": 3 });
+  });
+
+  it("uses the usage query key", async () => {
+    vi.mocked(getCategoryUsageCounts).mockResolvedValue({} as never);
+    const { wrapper, queryClient } = createWrapper();
+
+    renderHook(() => useCategoryUsageCounts(mockClient, "user-9"), { wrapper });
+
+    await waitFor(() =>
+      expect(
+        queryClient.getQueryData(categoryKeys.usage("user-9")),
+      ).toBeDefined(),
+    );
+  });
+});
+
+describe("useDeleteCategoryReparentingChildren", () => {
+  it("calls the reparent-delete service fn and removes from cache", async () => {
+    vi.mocked(deleteCategoryReparentingChildren).mockResolvedValue(
+      undefined as never,
+    );
+
+    const { wrapper, queryClient } = createWrapper();
+    queryClient.setQueryData(categoryKeys.detail("cat-1"), mockCategory);
+    const removeSpy = vi.spyOn(queryClient, "removeQueries");
+
+    const { result } = renderHook(
+      () => useDeleteCategoryReparentingChildren(mockClient),
+      { wrapper },
+    );
+    result.current.mutate("cat-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(deleteCategoryReparentingChildren).toHaveBeenCalledWith(
+      mockClient,
+      "cat-1",
+    );
+    expect(removeSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: categoryKeys.detail("cat-1") }),
+    );
+  });
+});
+
 describe("categoryKeys", () => {
   it("produces stable, unique keys", () => {
     expect(categoryKeys.all).toEqual(["categories"]);
@@ -244,6 +308,11 @@ describe("categoryKeys", () => {
     expect(categoryKeys.tree("user-1")).toEqual([
       "categories",
       "tree",
+      "user-1",
+    ]);
+    expect(categoryKeys.usage("user-1")).toEqual([
+      "categories",
+      "usage",
       "user-1",
     ]);
     expect(categoryKeys.bySlug("user-1", "battles")).toEqual([

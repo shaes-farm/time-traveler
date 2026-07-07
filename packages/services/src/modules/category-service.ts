@@ -409,3 +409,40 @@ export async function getCategoryTree(
 
   return roots;
 }
+
+/**
+ * Count how many events are tagged with each of a user's categories via the
+ * `event_categories` junction. Powers the per-node usage indicator and the
+ * delete-dialog blast radius in the category management UI (wireframe 24 #4/#6).
+ *
+ * The junction has no `user_id`; ownership is scoped two ways that agree — the
+ * `categories!inner(user_id)` embed filters to rows whose category belongs to
+ * the user, and RLS restricts visible junction rows to the caller's own data.
+ * Counts are aggregated in memory: the result set is bounded by how many
+ * event/category tags a single owner has, so a client-side reduce is adequate
+ * (promote to a `SECURITY INVOKER` aggregate RPC — per the `00026` precedent —
+ * only if that volume ever grows).
+ *
+ * Categories with zero tagged events are simply absent from the map; callers
+ * should treat a missing key as `0`.
+ *
+ * @param client - Supabase client instance
+ * @param userId - Owner's user UUID
+ * @returns A map of category UUID → number of events tagged with it
+ */
+export async function getCategoryUsageCounts(
+  client: SupabaseClient<Database>,
+  userId: string,
+): Promise<Record<string, number>> {
+  const { data, error } = await client
+    .from("event_categories")
+    .select("category_id, categories!inner(user_id)")
+    .eq("categories.user_id", userId);
+  assertNoError(error, "getCategoryUsageCounts");
+
+  const counts: Record<string, number> = {};
+  for (const row of (data ?? []) as { category_id: string }[]) {
+    counts[row.category_id] = (counts[row.category_id] ?? 0) + 1;
+  }
+  return counts;
+}
