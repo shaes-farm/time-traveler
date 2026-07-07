@@ -1,11 +1,9 @@
-import { PlaceholderPage } from "../../../components/placeholder-page";
+import { PeriodListClient } from "./_components/period-list-client";
+
+export const metadata = {
+  title: "Periods",
+};
 
 export default function PeriodsPage() {
-  return (
-    <PlaceholderPage
-      title="Periods"
-      description="Named temporal spans — eras, ages, dynasties, geological epochs."
-      trackedIn="Batch F (list primitives)"
-    />
-  );
+  return <PeriodListClient />;
 }

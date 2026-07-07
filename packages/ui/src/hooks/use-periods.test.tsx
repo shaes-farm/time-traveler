@@ -13,6 +13,9 @@ import {
   useEventsInPeriod,
   useAddPeriodToTimeline,
   useRemovePeriodFromTimeline,
+  usePeriodTimelines,
+  usePublishPeriod,
+  useUnpublishPeriod,
   periodKeys,
 } from "./use-periods";
 
@@ -27,6 +30,9 @@ vi.mock("@repo/services/period-service", () => ({
   getEventsInPeriod: vi.fn(),
   addPeriodToTimeline: vi.fn(),
   removePeriodFromTimeline: vi.fn(),
+  getPeriodTimelines: vi.fn(),
+  publishPeriod: vi.fn(),
+  unpublishPeriod: vi.fn(),
 }));
 
 import {
@@ -40,6 +46,9 @@ import {
   getEventsInPeriod,
   addPeriodToTimeline,
   removePeriodFromTimeline,
+  getPeriodTimelines,
+  publishPeriod,
+  unpublishPeriod,
 } from "@repo/services/period-service";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -245,6 +254,10 @@ describe("useUpdatePeriod", () => {
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: periodKeys.lists() }),
     );
+    // The detail page reads via bySlug, so the slug namespace must refresh too.
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: periodKeys.slugs() }),
+    );
   });
 });
 
@@ -315,6 +328,62 @@ describe("useRemovePeriodFromTimeline", () => {
     );
     expect(invalidateSpy).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: periodKeys.detail("period-1") }),
+    );
+  });
+});
+
+describe("usePeriodTimelines", () => {
+  it("fetches the period's overlaid-timeline junction rows", async () => {
+    vi.mocked(getPeriodTimelines).mockResolvedValue([
+      { timeline_id: "tl-1" },
+    ] as never);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => usePeriodTimelines(mockClient, "period-1"),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data).toEqual([{ timeline_id: "tl-1" }]);
+    expect(getPeriodTimelines).toHaveBeenCalledWith(mockClient, "period-1");
+  });
+});
+
+describe("usePublishPeriod", () => {
+  it("calls publishPeriod and invalidates all period queries", async () => {
+    vi.mocked(publishPeriod).mockResolvedValue(mockPeriod as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => usePublishPeriod(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("period-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(publishPeriod).toHaveBeenCalledWith(mockClient, "period-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: periodKeys.all }),
+    );
+  });
+});
+
+describe("useUnpublishPeriod", () => {
+  it("calls unpublishPeriod and invalidates all period queries", async () => {
+    vi.mocked(unpublishPeriod).mockResolvedValue(mockPeriod as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUnpublishPeriod(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate("period-1");
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(unpublishPeriod).toHaveBeenCalledWith(mockClient, "period-1");
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: periodKeys.all }),
     );
   });
 });

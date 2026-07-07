@@ -22,6 +22,12 @@ export interface PeriodFilters {
 
 export interface PeriodWithRelations extends PeriodRow {
   child_periods?: PeriodRow[];
+  /**
+   * The `period_timelines` junction rows for this period — the timelines it
+   * overlays. Timeline titles/spans are resolved separately by the UI (via the
+   * timelines list) rather than embedded, mirroring the story ⇄ period pattern.
+   */
+  period_timelines?: { timeline_id: string }[];
 }
 
 export type CreatePeriodInput = Omit<z.input<typeof periodSchema>, "slug"> & {
@@ -104,7 +110,8 @@ export async function getPeriodById(
     .single();
   assertNoError(error, "getPeriodById");
   const child_periods = await getChildPeriods(client, data.id);
-  return { ...data, child_periods };
+  const period_timelines = await getPeriodTimelines(client, data.id);
+  return { ...data, child_periods, period_timelines };
 }
 
 /**
@@ -129,7 +136,8 @@ export async function getPeriodBySlug(
     .single();
   assertNoError(error, "getPeriodBySlug");
   const child_periods = await getChildPeriods(client, data.id);
-  return { ...data, child_periods };
+  const period_timelines = await getPeriodTimelines(client, data.id);
+  return { ...data, child_periods, period_timelines };
 }
 
 /**
@@ -339,6 +347,52 @@ export async function deletePeriod(
 }
 
 /**
+ * Publish a period: set `published=true` and stamp `published_at`.
+ *
+ * Publish is a dedicated call (not part of {@link updatePeriod}) because the
+ * `periods` Zod schema intentionally omits `published`/`published_at`, so an
+ * update would strip them. Mirrors `story-service.publishStory`.
+ *
+ * @param client - Supabase client instance
+ * @param id - Period UUID
+ * @returns The updated period row
+ */
+export async function publishPeriod(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<PeriodRow> {
+  const { data, error } = await client
+    .from("periods")
+    .update({ published: true, published_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  assertNoError(error, "publishPeriod");
+  return data;
+}
+
+/**
+ * Revert a period to draft: set `published=false` and clear `published_at`.
+ *
+ * @param client - Supabase client instance
+ * @param id - Period UUID
+ * @returns The updated period row
+ */
+export async function unpublishPeriod(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<PeriodRow> {
+  const { data, error } = await client
+    .from("periods")
+    .update({ published: false, published_at: null })
+    .eq("id", id)
+    .select()
+    .single();
+  assertNoError(error, "unpublishPeriod");
+  return data;
+}
+
+/**
  * Return all direct child periods of a given parent period.
  *
  * @param client - Supabase client instance
@@ -405,6 +459,28 @@ export async function removePeriodFromTimeline(
     .eq("period_id", periodId)
     .eq("timeline_id", timelineId);
   assertNoError(error, "removePeriodFromTimeline");
+}
+
+/**
+ * Return the `period_timelines` junction rows for a period — i.e. the ids of
+ * the timelines it overlays. Timeline titles/spans are resolved by the caller
+ * against the timelines list (the junction carries no timeline detail), keeping
+ * this a single, cheap key lookup.
+ *
+ * @param client - Supabase client instance
+ * @param periodId - Period UUID
+ * @returns Array of `{ timeline_id }` rows
+ */
+export async function getPeriodTimelines(
+  client: SupabaseClient<Database>,
+  periodId: string,
+): Promise<{ timeline_id: string }[]> {
+  const { data, error } = await client
+    .from("period_timelines")
+    .select("timeline_id")
+    .eq("period_id", periodId);
+  assertNoError(error, "getPeriodTimelines");
+  return data ?? [];
 }
 
 export interface EventsInPeriodOptions {

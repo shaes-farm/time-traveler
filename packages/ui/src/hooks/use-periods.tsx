@@ -19,7 +19,10 @@ import {
   getChildPeriods,
   addPeriodToTimeline,
   removePeriodFromTimeline,
+  getPeriodTimelines,
   getEventsInPeriod,
+  publishPeriod,
+  unpublishPeriod,
 } from "@repo/services/period-service";
 import type {
   PeriodFilters,
@@ -41,9 +44,11 @@ export const periodKeys = {
   list: (filters: PeriodFilters) => [...periodKeys.lists(), filters] as const,
   details: () => [...periodKeys.all, "detail"] as const,
   detail: (id: string) => [...periodKeys.details(), id] as const,
+  slugs: () => [...periodKeys.all, "slug"] as const,
   bySlug: (userId: string, slug: string) =>
-    [...periodKeys.all, "slug", userId, slug] as const,
+    [...periodKeys.slugs(), userId, slug] as const,
   children: (id: string) => [...periodKeys.all, "children", id] as const,
+  timelines: (id: string) => [...periodKeys.detail(id), "timelines"] as const,
   events: (id: string, options: EventsInPeriodOptions = {}) =>
     [...periodKeys.detail(id), "events", options] as const,
 };
@@ -139,6 +144,23 @@ export function useEventsInPeriod(
   });
 }
 
+/** Fetch the `period_timelines` junction rows (overlaid timeline ids) for a period. */
+export function usePeriodTimelines(
+  client: ServiceClient,
+  periodId: string,
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getPeriodTimelines>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: periodKeys.timelines(periodId),
+    queryFn: () => getPeriodTimelines(client, periodId),
+    staleTime: 30_000,
+    ...options,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Mutation hooks
 // ---------------------------------------------------------------------------
@@ -173,6 +195,10 @@ export function useUpdatePeriod(client: ServiceClient) {
     onSuccess: (_data, { id }) => {
       void queryClient.invalidateQueries({ queryKey: periodKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: periodKeys.lists() });
+      // The detail page reads via bySlug (not detail(id)); invalidate the whole
+      // slug namespace so an edit is reflected immediately after the redirect,
+      // rather than showing a stale row until staleTime elapses.
+      void queryClient.invalidateQueries({ queryKey: periodKeys.slugs() });
     },
   });
 }
@@ -185,6 +211,30 @@ export function useDeletePeriod(client: ServiceClient) {
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: periodKeys.detail(id) });
       void queryClient.invalidateQueries({ queryKey: periodKeys.lists() });
+    },
+  });
+}
+
+/** Publish a period (set published=true and record published_at). */
+export function usePublishPeriod(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => publishPeriod(client, id),
+    onSuccess: () => {
+      // Invalidate by prefix so lists, detail, and bySlug queries stay
+      // consistent with the RLS visibility change.
+      void queryClient.invalidateQueries({ queryKey: periodKeys.all });
+    },
+  });
+}
+
+/** Unpublish a period (set published=false and clear published_at). */
+export function useUnpublishPeriod(client: ServiceClient) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => unpublishPeriod(client, id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: periodKeys.all });
     },
   });
 }

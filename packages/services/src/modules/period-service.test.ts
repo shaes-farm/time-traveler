@@ -12,6 +12,9 @@ import {
   getChildPeriods,
   addPeriodToTimeline,
   removePeriodFromTimeline,
+  getPeriodTimelines,
+  publishPeriod,
+  unpublishPeriod,
   assertNoPeriodCycle,
   getEventsInPeriod,
 } from "./period-service";
@@ -217,13 +220,19 @@ describe("getPeriodById", () => {
       id: "period-2",
       parent_period_id: "period-1",
     };
-    // Query 1: the period (via .single()); query 2: getChildPeriods (thenable).
+    // Query 1: the period (.single()); query 2: getChildPeriods (thenable);
+    // query 3: getPeriodTimelines (thenable).
     const { client } = makeSequenceClient([
       { data: samplePeriod, error: null },
       { data: [child], error: null },
+      { data: [{ timeline_id: "timeline-1" }], error: null },
     ]);
     const result = await getPeriodById(client, "period-1");
-    expect(result).toEqual({ ...samplePeriod, child_periods: [child] });
+    expect(result).toEqual({
+      ...samplePeriod,
+      child_periods: [child],
+      period_timelines: [{ timeline_id: "timeline-1" }],
+    });
   });
 
   it("throws on error", async () => {
@@ -245,9 +254,14 @@ describe("getPeriodBySlug", () => {
     const { client, builders } = makeSequenceClient([
       { data: samplePeriod, error: null },
       { data: [], error: null },
+      { data: [], error: null },
     ]);
     const result = await getPeriodBySlug(client, "user-123", "middle-ages");
-    expect(result).toEqual({ ...samplePeriod, child_periods: [] });
+    expect(result).toEqual({
+      ...samplePeriod,
+      child_periods: [],
+      period_timelines: [],
+    });
     expect(builders[0]?.eq).toHaveBeenCalledWith("user_id", "user-123");
     expect(builders[0]?.eq).toHaveBeenCalledWith("slug", "middle-ages");
   });
@@ -819,6 +833,92 @@ describe("getEventsInPeriod", () => {
     ]);
     await expect(getEventsInPeriod(client, "period-1")).rejects.toThrow(
       "PeriodService.getEventsInPeriod(period): not found",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getPeriodTimelines
+// ---------------------------------------------------------------------------
+
+describe("getPeriodTimelines", () => {
+  it("returns the junction rows for a period", async () => {
+    const rows = [{ timeline_id: "timeline-1" }, { timeline_id: "timeline-2" }];
+    const client = makeClient({ fromResult: { data: rows, error: null } });
+    const result = await getPeriodTimelines(client, "period-1");
+    expect(result).toEqual(rows);
+    expect(client.from).toHaveBeenCalledWith("period_timelines");
+  });
+
+  it("returns an empty array when there are no overlays", async () => {
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    const result = await getPeriodTimelines(client, "period-1");
+    expect(result).toEqual([]);
+  });
+
+  it("throws on error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "boom" } },
+    });
+    await expect(getPeriodTimelines(client, "period-1")).rejects.toThrow(
+      "PeriodService.getPeriodTimelines: boom",
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// publishPeriod / unpublishPeriod
+// ---------------------------------------------------------------------------
+
+describe("publishPeriod", () => {
+  it("sets published=true and stamps published_at", async () => {
+    const published = { ...samplePeriod, published: true };
+    const client = makeClient({ fromResult: { data: published, error: null } });
+    const result = await publishPeriod(client, "period-1");
+    expect(result).toEqual(published);
+
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as { update: ReturnType<typeof vi.fn> };
+    expect(builder.update).toHaveBeenCalledWith(
+      expect.objectContaining({ published: true }),
+    );
+    const arg = builder.update.mock.calls[0]?.[0] as {
+      published_at: string | null;
+    };
+    expect(typeof arg.published_at).toBe("string");
+  });
+
+  it("throws on error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "denied" } },
+    });
+    await expect(publishPeriod(client, "period-1")).rejects.toThrow(
+      "PeriodService.publishPeriod: denied",
+    );
+  });
+});
+
+describe("unpublishPeriod", () => {
+  it("sets published=false and clears published_at", async () => {
+    const draft = { ...samplePeriod, published: false };
+    const client = makeClient({ fromResult: { data: draft, error: null } });
+    const result = await unpublishPeriod(client, "period-1");
+    expect(result).toEqual(draft);
+
+    const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
+      ?.value as { update: ReturnType<typeof vi.fn> };
+    expect(builder.update).toHaveBeenCalledWith({
+      published: false,
+      published_at: null,
+    });
+  });
+
+  it("throws on error", async () => {
+    const client = makeClient({
+      fromResult: { data: null, error: { message: "denied" } },
+    });
+    await expect(unpublishPeriod(client, "period-1")).rejects.toThrow(
+      "PeriodService.unpublishPeriod: denied",
     );
   });
 });

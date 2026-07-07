@@ -25,6 +25,8 @@ export default defineConfig({
         "app/**/event-form-mappers.ts",
         "app/**/story-form-mappers.ts",
         "app/**/timeline-form-mappers.ts",
+        "app/**/period-form-mappers.ts",
+        "app/**/period-tree-utils.ts",
       ],
       exclude: ["app/**/*.test.{ts,tsx}"],
       thresholds: {
