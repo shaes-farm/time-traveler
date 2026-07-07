@@ -225,31 +225,52 @@ export function StoryEventsTab({
     [localEvents],
   );
 
-  function persistOrder(next: StoryEventWithOrder[]) {
+  // The UI only supports adjacent up/down moves, so a move never touches more
+  // than two rows: swap the moved event with its neighbour and persist just the
+  // two affected sort_order values (2 writes, not N). This keeps every other
+  // row's sort_order untouched and avoids the partial-failure inconsistency a
+  // full-list renumber would risk on each click.
+  function moveEvent(eventId: string, dir: -1 | 1) {
+    const idx = localEvents.findIndex((e) => e.id === eventId);
+    const swapIdx = idx + dir;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= localEvents.length) return;
+
+    const current = localEvents[idx]!;
+    const neighbor = localEvents[swapIdx]!;
+
+    // Swap the two rows' positions and their editorial sort_order values in one
+    // pass so rapid successive moves (before a refetch lands) stay consistent.
+    const nextCurrent: StoryEventWithOrder = {
+      ...current,
+      junction_sort_order: neighbor.junction_sort_order,
+    };
+    const nextNeighbor: StoryEventWithOrder = {
+      ...neighbor,
+      junction_sort_order: current.junction_sort_order,
+    };
+    const next = [...localEvents];
+    next[swapIdx] = nextCurrent;
+    next[idx] = nextNeighbor;
     setLocalEvents(next);
-    // Assign a 1-based editorial sort_order to every event (mirrors the
-    // timeline detail's reorder). Narrative order is the whole point here.
-    next.forEach((event, idx) => {
-      reorderEvent.mutate({ storyId, eventId: event.id, sortOrder: idx + 1 });
+
+    reorderEvent.mutate({
+      storyId,
+      eventId: current.id,
+      sortOrder: nextCurrent.junction_sort_order,
+    });
+    reorderEvent.mutate({
+      storyId,
+      eventId: neighbor.id,
+      sortOrder: nextNeighbor.junction_sort_order,
     });
   }
 
   function handleMoveUp(eventId: string) {
-    const idx = localEvents.findIndex((e) => e.id === eventId);
-    if (idx <= 0) return;
-    const next = [...localEvents];
-    const [item] = next.splice(idx, 1);
-    next.splice(idx - 1, 0, item!);
-    persistOrder(next);
+    moveEvent(eventId, -1);
   }
 
   function handleMoveDown(eventId: string) {
-    const idx = localEvents.findIndex((e) => e.id === eventId);
-    if (idx < 0 || idx >= localEvents.length - 1) return;
-    const next = [...localEvents];
-    const [item] = next.splice(idx, 1);
-    next.splice(idx + 1, 0, item!);
-    persistOrder(next);
+    moveEvent(eventId, 1);
   }
 
   function handleAdd(eventId: string) {

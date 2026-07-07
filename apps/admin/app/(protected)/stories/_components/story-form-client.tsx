@@ -494,11 +494,7 @@ export function StoryFormClient(props: Props) {
                 <FormItem>
                   <FormLabel>Summary</FormLabel>
                   <FormControl>
-                    <Textarea
-                      rows={3}
-                      placeholder="A short hook (Markdown)"
-                      {...field}
-                    />
+                    <Textarea rows={3} placeholder="A short hook" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -514,7 +510,7 @@ export function StoryFormClient(props: Props) {
                   <FormControl>
                     <Textarea
                       rows={16}
-                      placeholder="The long-form narrative (Markdown)"
+                      placeholder="The long-form narrative"
                       className="font-mono text-sm"
                       {...field}
                     />

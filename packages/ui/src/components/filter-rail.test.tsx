@@ -1,5 +1,5 @@
 import * as React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -246,9 +246,12 @@ describe("FilterRail", () => {
       screen.getByRole("button", { name: /clear all/i }),
     ).toBeInTheDocument();
 
+    // Select the "any" option by its node (its value is "", not the label), so
+    // the match doesn't depend on selectOptions' label/value fallback.
+    const select = screen.getByRole("combobox", { name: "Perspective" });
     await user.selectOptions(
-      screen.getByRole("combobox", { name: "Perspective" }),
-      "Any character",
+      select,
+      within(select).getByRole("option", { name: "Any character" }),
     );
     expect(onChange).toHaveBeenCalledWith(null);
   });
