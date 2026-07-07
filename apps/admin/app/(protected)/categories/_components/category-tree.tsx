@@ -128,9 +128,12 @@ export function CategoryTree({
             No categories match “{filter}”.
           </p>
         ) : (
-          // Remount on filter changes so default-expansion recomputes.
+          // Remount on every filter change (not just empty↔non-empty) so the
+          // Tree recomputes default-expansion and newly-matched nodes aren't
+          // hidden by stale internal expand state. The filter input lives
+          // outside this subtree, so it keeps focus across remounts.
           <Tree
-            key={expandAll ? "filtered" : "all"}
+            key={expandAll ? `filtered:${filter.trim()}` : "all"}
             nodes={nodes}
             aria-label="Category hierarchy"
           />

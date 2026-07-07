@@ -65,6 +65,13 @@ export function DeleteCategoryDialog({
   const ownUsage = counts[node.id] ?? 0;
   const subtreeUsage = sumSubtreeUsage(node, counts);
 
+  // Until the usage map has loaded, the counts above are all 0 from the `{}`
+  // fallback — don't present that as fact ("0 events") since it understates the
+  // blast radius; show an explicit unknown placeholder instead.
+  const usageLoaded = usage !== undefined;
+  const eventsText = (n: number) =>
+    usageLoaded ? pluralize(n, "event") : "an unknown number of events";
+
   const parentName =
     node.parent_category_id === null
       ? "root"
@@ -113,21 +120,20 @@ export function DeleteCategoryDialog({
                     <li>
                       <strong>Reparent children first</strong> — move its direct
                       children up to <em>{parentName}</em>, then delete only
-                      this category (removes its tag from{" "}
-                      {pluralize(ownUsage, "event")}
+                      this category (removes its tag from {eventsText(ownUsage)}
                       ). The subtree is preserved.
                     </li>
                     <li>
                       <strong>Delete subtree</strong> — delete this category and
                       all {pluralize(descendants, "descendant")}, removing tags
-                      from {pluralize(subtreeUsage, "event")}.
+                      from {eventsText(subtreeUsage)}.
                     </li>
                   </ul>
                 </>
               ) : (
                 <p>
-                  This removes its tag from {pluralize(ownUsage, "event")}. This
-                  cannot be undone.
+                  This removes its tag from {eventsText(ownUsage)}. This cannot
+                  be undone.
                 </p>
               )}
             </div>

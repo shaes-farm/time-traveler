@@ -33,11 +33,19 @@ export function CategoryManagerClient({ userId }: { userId: string }) {
   const usageQuery = useCategoryUsageCounts(client, userId);
 
   // Deep-link: /categories?new=1 (topbar quick-create) opens the create form.
+  const newParam = searchParams.get("new");
   const [selection, setSelection] = React.useState<Selection>(() =>
-    searchParams.get("new") !== null
-      ? { mode: "create", parentId: null }
-      : null,
+    newParam !== null ? { mode: "create", parentId: null } : null,
   );
+  // Open create when ?new=1 arrives while already on this page (the component
+  // stays mounted, so only the search param changes). Adjust-state-during-render
+  // on param change — React's alternative to an effect — fires once per change,
+  // so it won't clobber a selection the user makes after the form first opens.
+  const [prevNewParam, setPrevNewParam] = React.useState(newParam);
+  if (newParam !== prevNewParam) {
+    setPrevNewParam(newParam);
+    if (newParam !== null) setSelection({ mode: "create", parentId: null });
+  }
 
   const tree = React.useMemo(() => treeQuery.data ?? [], [treeQuery.data]);
   const total = React.useMemo(() => flattenTree(tree).length, [tree]);
