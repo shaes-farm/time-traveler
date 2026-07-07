@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { periodSchema, periodUpdateSchema } from "../schemas/period";
 import type { PeriodInput } from "../schemas/period";
+import { temporalRangeSchema } from "../schemas/temporal";
 import { generateSlug, resolveCollision } from "../utils/slug";
 import { MAX_SLUG_LENGTH } from "../schemas/slug";
 import type { Database } from "../supabase/types";
@@ -263,9 +264,11 @@ export async function assertNoPeriodCycle(
 }
 
 /**
- * Update an existing period. When the payload reparents the period under a
- * non-null parent, `assertNoPeriodCycle` runs first to reject circular
- * hierarchies; reparenting to root (`null`) skips the walk.
+ * Update an existing period. A patch touching only one temporal bound is
+ * re-validated against the stored row so it can't create an inverted span
+ * (end before start). When the payload reparents the period under a non-null
+ * parent, `assertNoPeriodCycle` runs to reject circular hierarchies;
+ * reparenting to root (`null`) skips the walk.
  *
  * @param client - Supabase client instance
  * @param id - Period UUID
@@ -278,6 +281,31 @@ export async function updatePeriod(
   data: Partial<PeriodInput>,
 ): Promise<PeriodRow> {
   const validated = periodUpdateSchema.parse(data);
+
+  // Span validity on partial patches: periodUpdateSchema can only compare the
+  // two bounds when both are in the payload. When a patch touches exactly one
+  // bound, merge it with the stored row and re-check, so a partial update can't
+  // slip in an end that precedes the start (or vice versa).
+  const touchesStart = validated.temporal_data !== undefined;
+  const touchesEnd = validated.end_temporal_data !== undefined;
+  if (touchesStart !== touchesEnd) {
+    const { data: current, error: spanError } = await client
+      .from("periods")
+      .select("temporal_data, end_temporal_data")
+      .eq("id", id)
+      .single();
+    assertNoError(spanError, "updatePeriod(span)");
+    const start = touchesStart
+      ? validated.temporal_data
+      : current.temporal_data;
+    const end = touchesEnd
+      ? validated.end_temporal_data
+      : current.end_temporal_data;
+    // Open-ended (end null/absent) is always valid; only check a real span.
+    if (start != null && end != null) {
+      temporalRangeSchema.parse({ start, end });
+    }
+  }
 
   if (
     validated.parent_period_id !== undefined &&

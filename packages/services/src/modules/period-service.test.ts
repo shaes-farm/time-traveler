@@ -634,6 +634,83 @@ describe("updatePeriod (reparenting)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// updatePeriod — partial-patch span validity (against the stored row)
+// ---------------------------------------------------------------------------
+
+const geo = (year: number) =>
+  ({ year, era: "MYA", precision: "geological" }) as const;
+
+describe("updatePeriod (partial-patch span validity)", () => {
+  it("rejects a patch whose new end precedes the stored start, skipping UPDATE", async () => {
+    // Stored start = 66 MYA; patch end = 145 MYA is chronologically earlier.
+    const { client } = makeSequenceClient([
+      {
+        data: { temporal_data: geo(66), end_temporal_data: null },
+        error: null,
+      },
+    ]);
+    await expect(
+      updatePeriod(client, "period-1", { end_temporal_data: geo(145) }),
+    ).rejects.toThrow("end must be the same as or later than start");
+    // Only the span fetch ran; the UPDATE never did.
+    expect(client.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a patch whose new start follows the stored end", async () => {
+    // Stored end = 66 MYA; patch start = 40 MYA is chronologically later.
+    const { client } = makeSequenceClient([
+      {
+        data: { temporal_data: geo(145), end_temporal_data: geo(66) },
+        error: null,
+      },
+    ]);
+    await expect(
+      updatePeriod(client, "period-1", { temporal_data: geo(40) }),
+    ).rejects.toThrow("end must be the same as or later than start");
+  });
+
+  it("allows a partial patch that keeps the span valid (then UPDATE runs)", async () => {
+    // Stored start = 145 MYA; patch end = 66 MYA is chronologically later.
+    const { client } = makeSequenceClient([
+      {
+        data: { temporal_data: geo(145), end_temporal_data: null },
+        error: null,
+      },
+      { data: samplePeriod, error: null },
+    ]);
+    const result = await updatePeriod(client, "period-1", {
+      end_temporal_data: geo(66),
+    });
+    expect(result).toEqual(samplePeriod);
+    expect(client.from).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips the merged-span fetch when the patch touches no temporal bound", async () => {
+    const client = makeClient({
+      fromResult: { data: samplePeriod, error: null },
+    });
+    await updatePeriod(client, "period-1", { title: "Renamed" });
+    // Only the UPDATE — no extra read for span validation.
+    expect(client.from).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows clearing the end (open-ended) without a span error", async () => {
+    const { client } = makeSequenceClient([
+      {
+        data: { temporal_data: geo(66), end_temporal_data: geo(30) },
+        error: null,
+      },
+      { data: samplePeriod, error: null },
+    ]);
+    const result = await updatePeriod(client, "period-1", {
+      end_temporal_data: null,
+    });
+    expect(result).toEqual(samplePeriod);
+    expect(client.from).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // getEventsInPeriod
 // ---------------------------------------------------------------------------
 
