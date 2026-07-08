@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Hybrid temporal system** — JSONB-encoded dates extend beyond SQL date limits to handle prehistoric/geological/cosmological dates, with precision metadata and uncertainty ranges. See `docs/system-design.md` §4 for the era conversion formula used by all `sort_order` generated columns.
 - **Seven character types** — Human, Animal, Mythological, Fictional, Organization, Divine, Artifact — with temporally-scoped relationships and event participation.
 
-**Current state:** The Supabase layer is mature (19 numbered migrations + pgTAP tests). `apps/admin` is under active feature development — auth, the app shell, dashboard, list pages (timelines, characters, events, periods, stories, categories, media), and the timeline create/edit editor — backed by `@repo/services` (nine service modules + Zod schemas) and `@repo/ui` (TanStack Query hooks, a Zustand store, shadcn/ui primitives). The public-facing reader is comprehensively designed (UX/IA/motion/accessibility specs in `docs/design/public/`) and will live in a dedicated `apps/reader` Next.js app per [ADR-0030](docs/adr/adr-0030-public-reader-app-placement.md). All 32 load-bearing architectural decisions are documented in `docs/adr/` (retroactive 0001–0027 recorded May 2026; forward decisions 0028 onward). `apps/docs` is still Turborepo boilerplate.
+**Current state:** The Supabase layer is mature (19 numbered migrations + pgTAP tests). `apps/admin` is under active feature development — auth, the app shell, dashboard, list pages (timelines, characters, events, periods, stories, categories, media), and the timeline create/edit editor — backed by `@repo/services` (nine service modules + Zod schemas) and `@repo/ui` (TanStack Query hooks, a Zustand store, shadcn/ui primitives). The public-facing reader is comprehensively designed (UX/IA/motion/accessibility specs in `docs/design/public/`) and will live in a dedicated `apps/reader` Next.js app per [ADR-0030](docs/adr/adr-0030-public-reader-app-placement.md). All 36 load-bearing architectural decisions are documented in `docs/adr/` (retroactive 0001–0027 recorded May 2026; forward decisions 0028 onward). `apps/docs` is still Turborepo boilerplate.
 
 ## Repository Layout
 
@@ -27,7 +27,7 @@ pnpm monorepo orchestrated by Turborepo. Workspaces: `apps/*`, `packages/*`.
 - `docs/prd/PRD-0001-time-traveler-system.md` and `docs/system-design.md` are the authoritative references for feature/schema work.
 - `docs/design/admin/` contains the fidelity-1 wireframes for the admin app (IA + interaction spec for characters, events, and relationships editor). When doing UI work in `apps/admin`, read alongside PRD §7.11 (divergences tracked in #127).
 - `docs/design/public/` contains the complete design spec for the public-facing reader: UX principles, wireframes, mid-fidelity designs, interaction spec, motion tokens, and accessibility spec. This design gates implementation tickets #65–#69.
-- `docs/adr/` contains all 32 load-bearing architectural decisions. See [`docs/adr/README.md`](docs/adr/README.md) for the index; decisions 0001–0027 were retroactively documented in May 2026, and forward decisions (0028 onward) are added as decisions are made.
+- `docs/adr/` contains all 36 load-bearing architectural decisions. See [`docs/adr/README.md`](docs/adr/README.md) for the index; decisions 0001–0027 were retroactively documented in May 2026, and forward decisions (0028 onward) are added as decisions are made.
 - CI runs on GitHub Actions (`.github/workflows/ci.yml`): format, lint, type-check, build, and test on every push/PR; these are required checks on `main`.
 
 ## Toolchain
@@ -103,8 +103,8 @@ If implementing a task reveals a bug in the spec (`docs/system-design.md`, PRD),
 
 ## When to write an ADR
 
-Architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/). The series ADR-0001…0032 documents every load-bearing decision made to date; the index and process live in [`docs/adr/README.md`](docs/adr/README.md).
+Architectural decisions are recorded as ADRs in [`docs/adr/`](docs/adr/). The series ADR-0001…0036 documents every load-bearing decision made to date; the index and process live in [`docs/adr/README.md`](docs/adr/README.md).
 
 - Write a new ADR when you make a decision that is **hard to reverse, cross-cutting, or sets a precedent** — a new dependency/platform, a schema/RLS pattern, an API boundary, a state/data-flow choice, or a design-system rule. Routine, local, easily-reversible changes do not need one.
-- **Number new ADRs from the next free number** — the series currently runs through ADR-0032, so check [`docs/adr/README.md`](docs/adr/README.md) for the latest before numbering. Copy [`docs/adr/adr-0000-template.md`](docs/adr/adr-0000-template.md), fill it in, cite concrete evidence (migration file/section or doc section), and add a row to the README index.
+- **Number new ADRs from the next free number** — the series currently runs through ADR-0036, so check [`docs/adr/README.md`](docs/adr/README.md) for the latest before numbering. Copy [`docs/adr/adr-0000-template.md`](docs/adr/adr-0000-template.md), fill it in, cite concrete evidence (migration file/section or doc section), and add a row to the README index.
 - If a new decision **supersedes or amends** an existing ADR, set the `supersedes`/`superseded_by` front matter on both sides and update the index status.
