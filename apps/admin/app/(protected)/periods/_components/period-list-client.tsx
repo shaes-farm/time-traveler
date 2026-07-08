@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import type { TemporalData } from "@repo/services/schemas/temporal";
+import type { Database } from "@repo/services/supabase/types";
 import {
   deletePeriod,
   publishPeriod,
@@ -32,21 +33,9 @@ import { TemporalDisplay } from "@repo/ui/components/temporal-display";
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
 import { SignificanceRamp, type Significance } from "./significance-ramp";
 
-// A period row as returned by getPeriods (the generated Row type).
-type PeriodRow = {
-  id: string;
-  user_id: string;
-  slug: string;
-  title: string;
-  temporal_data: TemporalData;
-  end_temporal_data: TemporalData | null;
-  parent_period_id: string | null;
-  significance: string | null;
-  characteristics: string[] | null;
-  published: boolean | null;
-  sort_order_start: number | null;
-  updated_at: string | null;
-};
+// The generated periods row, exactly as getPeriods returns it. Temporal columns
+// are `Json` on this type and are narrowed to TemporalData at the point of use.
+type PeriodRow = Database["public"]["Tables"]["periods"]["Row"];
 
 const SIG_ORDER: Significance[] = ["low", "medium", "high", "critical"];
 const SIG_RANK: Record<Significance, number> = {
@@ -147,8 +136,11 @@ function buildColumns(
         <span className="text-xs text-foreground-muted">
           {row.original.temporal_data && (
             <TemporalDisplay
-              value={row.original.temporal_data}
-              endValue={row.original.end_temporal_data ?? undefined}
+              value={row.original.temporal_data as TemporalData}
+              endValue={
+                (row.original.end_temporal_data as TemporalData | null) ??
+                undefined
+              }
               format="compact"
             />
           )}
@@ -211,13 +203,8 @@ export function PeriodListClient() {
     client,
     { userId, pageSize: 100 },
     { enabled: userId !== "" },
-  ) as unknown as {
-    data: PeriodRow[] | undefined;
-    isPending: boolean;
-    isError: boolean;
-    refetch: () => void;
-  };
-  const allPeriods = React.useMemo(() => data ?? [], [data]);
+  );
+  const allPeriods = React.useMemo<PeriodRow[]>(() => data ?? [], [data]);
 
   // Filter + sort state (local — not URL-persisted for this view).
   const [search, setSearch] = React.useState("");
@@ -445,7 +432,11 @@ export function PeriodListClient() {
               <p className="text-sm text-destructive">
                 Failed to load periods.
               </p>
-              <Button variant="secondary" size="sm" onClick={() => refetch()}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => void refetch()}
+              >
                 Retry
               </Button>
             </div>

@@ -23,7 +23,11 @@ import {
 // Mock builder helpers
 // ---------------------------------------------------------------------------
 
-function makeBuilder(result: { data: unknown; error: unknown }) {
+function makeBuilder(result: {
+  data: unknown;
+  error: unknown;
+  count?: number;
+}) {
   const terminal = vi.fn().mockResolvedValue(result);
   const builder = {
     select: vi.fn().mockReturnThis(),
@@ -50,7 +54,9 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
 // Successive `from()` calls return successive builders — used to script the
 // multi-step ancestor walk in `assertNoPeriodCycle` and the multi-query
 // `getEventsInPeriod` scoped path.
-function makeSequenceClient(results: { data: unknown; error: unknown }[]) {
+function makeSequenceClient(
+  results: { data: unknown; error: unknown; count?: number }[],
+) {
   const builders = results.map(makeBuilder);
   let callCount = 0;
   const client = {
@@ -747,13 +753,37 @@ describe("getEventsInPeriod", () => {
         },
         error: null,
       },
-      { data: [sampleEvent], error: null },
+      { data: [sampleEvent], error: null, count: 1 },
     ]);
     const result = await getEventsInPeriod(client, "period-1");
-    expect(result).toEqual([sampleEvent]);
+    expect(result).toEqual({ rows: [sampleEvent], total: 1 });
     const eventsBuilder = builders[1];
     expect(eventsBuilder?.gte).toHaveBeenCalledWith("sort_order_years", 100);
     expect(eventsBuilder?.lte).toHaveBeenCalledWith("sort_order_years", 200);
+    // Default first page: range(0, 24) and an exact count for the total.
+    expect(eventsBuilder?.select).toHaveBeenCalledWith("*", { count: "exact" });
+    expect(eventsBuilder?.range).toHaveBeenCalledWith(0, 24);
+  });
+
+  it("applies page/pageSize as a server-side range (unscoped)", async () => {
+    const { client, builders } = makeSequenceClient([
+      {
+        data: {
+          sort_order_start: 100,
+          sort_order_end: 200,
+          end_temporal_data: { era: "CE", year: 200 },
+        },
+        error: null,
+      },
+      { data: [sampleEvent], error: null, count: 42 },
+    ]);
+    const result = await getEventsInPeriod(client, "period-1", {
+      page: 3,
+      pageSize: 10,
+    });
+    expect(result.total).toBe(42);
+    // page 3, size 10 → rows 20..29.
+    expect(builders[1]?.range).toHaveBeenCalledWith(20, 29);
   });
 
   it("collapses an open-ended period to its start instant", async () => {
@@ -803,7 +833,8 @@ describe("getEventsInPeriod", () => {
       timelineScoped: true,
     });
     // De-duplicated and sorted by sort_order_years ascending.
-    expect(result.map((e) => e.id)).toEqual(["event-guest", "event-home"]);
+    expect(result.rows.map((e) => e.id)).toEqual(["event-guest", "event-home"]);
+    expect(result.total).toBe(2);
     expect(builders[1]?.eq).toHaveBeenCalledWith("period_id", "period-1");
     expect(builders[2]?.in).toHaveBeenCalledWith("timeline_id", ["tl-1"]);
   });
@@ -823,7 +854,7 @@ describe("getEventsInPeriod", () => {
     const result = await getEventsInPeriod(client, "period-1", {
       timelineScoped: true,
     });
-    expect(result).toEqual([]);
+    expect(result).toEqual({ rows: [], total: 0 });
     expect(client.from).toHaveBeenCalledTimes(2);
   });
 

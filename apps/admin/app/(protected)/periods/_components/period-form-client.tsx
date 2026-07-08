@@ -112,8 +112,10 @@ function SignificanceControl({
 
 /**
  * Returns a soft, non-blocking message when the child's span falls outside the
- * chosen parent's span. Returns null when either span is incomplete or the
- * child sits inside the parent (wireframe 22 edge case).
+ * chosen parent's span. Returns null when both starts are unknown or the child
+ * sits inside the parent (wireframe 22 edge case). An **open-ended** child
+ * (no end) against a parent with a finite end counts as extending past the
+ * parent — an unbounded span runs beyond any closed one.
  */
 function outOfParentRangeWarning(
   childStart: TemporalData | null,
@@ -125,9 +127,8 @@ function outOfParentRangeWarning(
   if (childStart === null || parentStart === null) return null;
   const startsBefore = compareTemporal(childStart, parentStart) < 0;
   const endsAfter =
-    childEnd !== null &&
     parentEnd !== null &&
-    compareTemporal(childEnd, parentEnd) > 0;
+    (childEnd === null || compareTemporal(childEnd, parentEnd) > 0);
   if (!startsBefore && !endsAfter) return null;
   return `This period's span extends outside ${parentTitle}. Period boundaries can overlap — this is allowed, just double-check.`;
 }

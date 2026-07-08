@@ -19,8 +19,8 @@ const PAGE_SIZE = 25;
  * Events-in-range: the events whose date falls within this period's span
  * (span-overlay model — computed by date, not linked). Read-only. A scope
  * toggle limits results to the overlaid timelines vs. all events in range
- * (wireframe 23 #4). The list is paginated because a wide (e.g. BYA) span can
- * return many rows.
+ * (wireframe 23 #4). Pagination is server-side (the hook fetches one page +
+ * the total), because a wide (e.g. BYA) span can match many events.
  */
 export function PeriodEventsTab({
   client,
@@ -35,25 +35,24 @@ export function PeriodEventsTab({
   // Default to timeline-scoped when the period overlays something (it is
   // contextualising those canvases); otherwise all-in-range.
   const [scoped, setScoped] = React.useState(hasOverlays);
-  const [page, setPage] = React.useState(0);
+  const [page, setPage] = React.useState(1);
 
-  // Reset paging whenever the scope changes.
-  const [prevScoped, setPrevScoped] = React.useState(scoped);
-  if (scoped !== prevScoped) {
-    setPrevScoped(scoped);
-    setPage(0);
-  }
+  // Changing scope resets to the first page (done in the handler so no state is
+  // written during render).
+  const changeScope = React.useCallback((next: boolean) => {
+    setScoped(next);
+    setPage(1);
+  }, []);
 
-  const { data: events = [], isPending } = useEventsInPeriod(client, periodId, {
+  const { data, isPending } = useEventsInPeriod(client, periodId, {
     timelineScoped: scoped,
+    page,
+    pageSize: PAGE_SIZE,
   });
 
-  const total = events.length;
+  const events = data?.rows ?? [];
+  const total = data?.total ?? 0;
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const pageEvents = events.slice(
-    page * PAGE_SIZE,
-    page * PAGE_SIZE + PAGE_SIZE,
-  );
 
   return (
     <div className="space-y-3">
@@ -72,7 +71,7 @@ export function PeriodEventsTab({
             role="radio"
             aria-checked={scoped}
             disabled={!hasOverlays}
-            onClick={() => setScoped(true)}
+            onClick={() => changeScope(true)}
             className={
               scoped
                 ? "rounded bg-surface-2 px-2 py-1 text-foreground"
@@ -85,7 +84,7 @@ export function PeriodEventsTab({
             type="button"
             role="radio"
             aria-checked={!scoped}
-            onClick={() => setScoped(false)}
+            onClick={() => changeScope(false)}
             className={
               !scoped
                 ? "rounded bg-surface-2 px-2 py-1 text-foreground"
@@ -112,7 +111,7 @@ export function PeriodEventsTab({
       ) : (
         <>
           <ul className="divide-y divide-border rounded-md border border-border">
-            {pageEvents.map((ev) => (
+            {events.map((ev) => (
               <li key={ev.id}>
                 <button
                   type="button"
@@ -155,26 +154,26 @@ export function PeriodEventsTab({
           {pageCount > 1 && (
             <div className="flex items-center justify-between text-xs text-foreground-muted">
               <span>
-                {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)}{" "}
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)}{" "}
                 of {total}
               </span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                  disabled={page === 0}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
                   className="rounded px-2 py-1 hover:text-foreground disabled:opacity-40"
                   aria-label="Previous page"
                 >
                   ‹
                 </button>
                 <span>
-                  {page + 1} / {pageCount}
+                  {page} / {pageCount}
                 </span>
                 <button
                   type="button"
-                  onClick={() => setPage((p) => Math.min(pageCount - 1, p + 1))}
-                  disabled={page >= pageCount - 1}
+                  onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                  disabled={page >= pageCount}
                   className="rounded px-2 py-1 hover:text-foreground disabled:opacity-40"
                   aria-label="Next page"
                 >
