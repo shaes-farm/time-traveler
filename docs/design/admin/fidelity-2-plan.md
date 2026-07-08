@@ -326,7 +326,7 @@ Closes [#42](https://github.com/shaes-farm/time-traveler/issues/42), [#43](https
 - **`Pages/Timeline Editor`** (`timeline-editor.stories.tsx`, #43) — mirrors the event editor layout: `TemporalInput` start/end span, `SlugField`, `SaveDropdown`, `AutosaveIndicator`, biographical → subject-character field, `RadioGroup` visibility, and draft-only publication guidance. Timeline publish/unpublish remains detail-page-only; visibility and publication are **separate concepts, never merged**.
 - **`Pages/Timeline Detail`** (`timeline-detail.stories.tsx`, #44) — header with publication via `PublishControl` + visibility chip; `Tabs` Events / Periods (read-only stub) / Collaborators (`CollaboratorList`) / Media. Events tab: home/linked badges, dependency-free up/down reordering (no DnD lib added), unlink.
 - **`Pages/Event Detail`** (`event-detail.stories.tsx`, #47) — two-column read view; `TemporalDisplay` (header + block); timelines block (Contained-in home/guest, Expands-into, Nearby-in-timeline); `Tabs` Participants / Categories / Media.
-- **`// BLOCKED: #177`** — the fractal "Expands into" / "Details the event" / per-row drill-down affordances are gated behind a `FRACTAL_ENABLED` flag (default off) in the timeline-detail and event-detail stories until `events.detail_timeline_id` lands.
+- **Fractal drill-down (#296, shipped)** — the "Expands into" / "Details the event" / per-row drill-down affordances are live against `events.detail_timeline_id` (landed via migration `00017`). The `FRACTAL_ENABLED` flag and its `// BLOCKED: #177` gates were removed; the admin detail surfaces render the drill-down through the `Tree` primitive (see `packages/ui/src/components/fractal-tree.tsx`).
 
 ### Batch L — Publish workflow + collaborators
 
