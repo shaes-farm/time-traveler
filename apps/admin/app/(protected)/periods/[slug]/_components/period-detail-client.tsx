@@ -128,6 +128,19 @@ export function PeriodDetailClient({
     (period.summary && period.summary.length > 0) ||
     (period.detail && period.detail.length > 0);
 
+  // clipboard.writeText can reject (non-secure context, denied permission);
+  // surface the outcome rather than dropping the promise. The id is captured in
+  // a const so the narrowing survives into this closure.
+  const periodId = period.id;
+  async function copyId() {
+    try {
+      await navigator.clipboard.writeText(periodId);
+      toast.success("Period ID copied.");
+    } catch {
+      toast.error("Couldn’t copy the ID to the clipboard.");
+    }
+  }
+
   return (
     <div className="p-6 space-y-6 max-w-4xl">
       {/* Header */}
@@ -218,9 +231,7 @@ export function PeriodDetailClient({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => void navigator.clipboard.writeText(period.id)}
-              >
+              <DropdownMenuItem onClick={() => void copyId()}>
                 Copy ID
               </DropdownMenuItem>
             </DropdownMenuContent>

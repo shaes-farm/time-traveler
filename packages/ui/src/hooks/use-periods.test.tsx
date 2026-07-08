@@ -131,13 +131,15 @@ describe("useChildPeriods", () => {
 
 describe("useEventsInPeriod", () => {
   const mockEvents = [{ id: "event-1", title: "Fall of Rome" }];
+  // getEventsInPeriod returns a page ({ rows, total }), not a bare array.
+  const mockPage = { rows: mockEvents, total: mockEvents.length };
 
   beforeEach(() => {
     vi.mocked(getEventsInPeriod).mockClear();
   });
 
   it("calls getEventsInPeriod with client, periodId and default options", async () => {
-    vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
+    vi.mocked(getEventsInPeriod).mockResolvedValue(mockPage as never);
     const { wrapper } = createWrapper();
     const { result } = renderHook(
       () => useEventsInPeriod(mockClient, "period-1"),
@@ -146,11 +148,11 @@ describe("useEventsInPeriod", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(getEventsInPeriod).toHaveBeenCalledWith(mockClient, "period-1", {});
-    expect(result.current.data).toEqual(mockEvents);
+    expect(result.current.data).toEqual(mockPage);
   });
 
   it("forwards the timelineScoped option to the service", async () => {
-    vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
+    vi.mocked(getEventsInPeriod).mockResolvedValue(mockPage as never);
     const { wrapper } = createWrapper();
     const { result } = renderHook(
       () => useEventsInPeriod(mockClient, "period-1", { timelineScoped: true }),
@@ -164,7 +166,7 @@ describe("useEventsInPeriod", () => {
   });
 
   it("refetches when the parent period detail is invalidated", async () => {
-    vi.mocked(getEventsInPeriod).mockResolvedValue(mockEvents as never);
+    vi.mocked(getEventsInPeriod).mockResolvedValue(mockPage as never);
     const { wrapper, queryClient } = createWrapper();
     const { result } = renderHook(
       () => useEventsInPeriod(mockClient, "period-1"),
