@@ -22,6 +22,12 @@ export interface PeriodFilters {
 
 export interface PeriodWithRelations extends PeriodRow {
   child_periods?: PeriodRow[];
+  /**
+   * The `period_timelines` junction rows for this period — the timelines it
+   * overlays. Timeline titles/spans are resolved separately by the UI (via the
+   * timelines list) rather than embedded, mirroring the story ⇄ period pattern.
+   */
+  period_timelines?: { timeline_id: string }[];
 }
 
 export type CreatePeriodInput = Omit<z.input<typeof periodSchema>, "slug"> & {
@@ -103,8 +109,13 @@ export async function getPeriodById(
     .eq("id", id)
     .single();
   assertNoError(error, "getPeriodById");
-  const child_periods = await getChildPeriods(client, data.id);
-  return { ...data, child_periods };
+  // The children + overlays reads are independent — fetch them in parallel
+  // rather than waterfalling, to cut latency on the detail/editor critical path.
+  const [child_periods, period_timelines] = await Promise.all([
+    getChildPeriods(client, data.id),
+    getPeriodTimelines(client, data.id),
+  ]);
+  return { ...data, child_periods, period_timelines };
 }
 
 /**
@@ -128,8 +139,12 @@ export async function getPeriodBySlug(
     .eq("slug", slug)
     .single();
   assertNoError(error, "getPeriodBySlug");
-  const child_periods = await getChildPeriods(client, data.id);
-  return { ...data, child_periods };
+  // Independent follow-up reads — run them in parallel (see getPeriodById).
+  const [child_periods, period_timelines] = await Promise.all([
+    getChildPeriods(client, data.id),
+    getPeriodTimelines(client, data.id),
+  ]);
+  return { ...data, child_periods, period_timelines };
 }
 
 /**
@@ -339,6 +354,52 @@ export async function deletePeriod(
 }
 
 /**
+ * Publish a period: set `published=true` and stamp `published_at`.
+ *
+ * Publish is a dedicated call (not part of {@link updatePeriod}) because the
+ * `periods` Zod schema intentionally omits `published`/`published_at`, so an
+ * update would strip them. Mirrors `story-service.publishStory`.
+ *
+ * @param client - Supabase client instance
+ * @param id - Period UUID
+ * @returns The updated period row
+ */
+export async function publishPeriod(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<PeriodRow> {
+  const { data, error } = await client
+    .from("periods")
+    .update({ published: true, published_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  assertNoError(error, "publishPeriod");
+  return data;
+}
+
+/**
+ * Revert a period to draft: set `published=false` and clear `published_at`.
+ *
+ * @param client - Supabase client instance
+ * @param id - Period UUID
+ * @returns The updated period row
+ */
+export async function unpublishPeriod(
+  client: SupabaseClient<Database>,
+  id: string,
+): Promise<PeriodRow> {
+  const { data, error } = await client
+    .from("periods")
+    .update({ published: false, published_at: null })
+    .eq("id", id)
+    .select()
+    .single();
+  assertNoError(error, "unpublishPeriod");
+  return data;
+}
+
+/**
  * Return all direct child periods of a given parent period.
  *
  * @param client - Supabase client instance
@@ -407,6 +468,28 @@ export async function removePeriodFromTimeline(
   assertNoError(error, "removePeriodFromTimeline");
 }
 
+/**
+ * Return the `period_timelines` junction rows for a period — i.e. the ids of
+ * the timelines it overlays. Timeline titles/spans are resolved by the caller
+ * against the timelines list (the junction carries no timeline detail), keeping
+ * this a single, cheap key lookup.
+ *
+ * @param client - Supabase client instance
+ * @param periodId - Period UUID
+ * @returns Array of `{ timeline_id }` rows
+ */
+export async function getPeriodTimelines(
+  client: SupabaseClient<Database>,
+  periodId: string,
+): Promise<{ timeline_id: string }[]> {
+  const { data, error } = await client
+    .from("period_timelines")
+    .select("timeline_id")
+    .eq("period_id", periodId);
+  assertNoError(error, "getPeriodTimelines");
+  return data ?? [];
+}
+
 export interface EventsInPeriodOptions {
   /**
    * When true, restrict results to events belonging to a timeline the period
@@ -416,6 +499,16 @@ export interface EventsInPeriodOptions {
    * regardless of timeline.
    */
   timelineScoped?: boolean;
+  /** 1-based page number. Defaults to 1; clamped to ≥ 1. */
+  page?: number;
+  /** Page size. Defaults to 25; clamped to [1, 200]. */
+  pageSize?: number;
+}
+
+/** A page of events-in-range plus the total count of matches. */
+export interface EventsInPeriodPage {
+  rows: EventRow[];
+  total: number;
 }
 
 /**
@@ -432,18 +525,32 @@ export interface EventsInPeriodOptions {
  * DB-generated from the era formula (docs/system-design.md §4).
  *
  * With `timelineScoped: true`, results are further limited to the timelines the
- * period overlays; a period that overlays no timeline yields an empty list.
+ * period overlays; a period that overlays no timeline yields an empty page.
+ *
+ * Paginated: a wide (e.g. BYA-spanning) period can match many events, so the
+ * result is a single page plus the total count. The unscoped path paginates in
+ * the database (`.range()` + exact count); the scoped path must build the
+ * home+guest union first, then slices that union server-side (its `total` is the
+ * full union size).
  *
  * @param client - Supabase client instance
  * @param periodId - Period UUID
  * @param options - See {@link EventsInPeriodOptions}
- * @returns Matching event rows, ordered by `sort_order_years` ascending
+ * @returns A page of matching event rows (ordered by `sort_order_years`) + total
  */
 export async function getEventsInPeriod(
   client: SupabaseClient<Database>,
   periodId: string,
   options: EventsInPeriodOptions = {},
-): Promise<EventRow[]> {
+): Promise<EventsInPeriodPage> {
+  const safePage = Math.max(1, Math.floor(options.page ?? 1));
+  const safePageSize = Math.min(
+    200,
+    Math.max(1, Math.floor(options.pageSize ?? 25)),
+  );
+  const from = (safePage - 1) * safePageSize;
+  const to = from + safePageSize - 1;
+
   const { data: period, error: periodError } = await client
     .from("periods")
     .select("sort_order_start, sort_order_end, end_temporal_data")
@@ -459,14 +566,15 @@ export async function getEventsInPeriod(
     typeof endEra === "string" ? (period.sort_order_end ?? start) : start;
 
   if (options.timelineScoped !== true) {
-    const { data, error } = await client
+    const { data, error, count } = await client
       .from("events")
-      .select("*")
+      .select("*", { count: "exact" })
       .gte("sort_order_years", start)
       .lte("sort_order_years", end)
-      .order("sort_order_years", { ascending: true });
+      .order("sort_order_years", { ascending: true })
+      .range(from, to);
     assertNoError(error, "getEventsInPeriod");
-    return data ?? [];
+    return { rows: data ?? [], total: count ?? 0 };
   }
 
   // Scoped: the union of events on any timeline this period overlays, as home
@@ -479,7 +587,7 @@ export async function getEventsInPeriod(
 
   const timelineIds = (overlays ?? []).map((r) => r.timeline_id);
   if (timelineIds.length === 0) {
-    return [];
+    return { rows: [], total: 0 };
   }
 
   const { data: homeEvents, error: homeError } = await client
@@ -515,7 +623,11 @@ export async function getEventsInPeriod(
   for (const ev of [...(homeEvents ?? []), ...guestEvents]) {
     byId.set(ev.id, ev);
   }
-  return [...byId.values()].sort(
+  const merged = [...byId.values()].sort(
     (a, b) => (a.sort_order_years ?? 0) - (b.sort_order_years ?? 0),
   );
+  return {
+    rows: merged.slice(from, from + safePageSize),
+    total: merged.length,
+  };
 }
