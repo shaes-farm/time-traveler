@@ -60,6 +60,17 @@ export const colors = {
   importanceMedium: "oklch(0.65 0.09 55)", // 4–6 — mid amber
   importanceHigh: "oklch(0.74 0.14 55)", // 7–8 — bright amber
   importanceCritical: "oklch(0.81 0.18 55)", // 9–10 — saturated gold
+
+  // Character-type identity tints — CharacterTypeBadge (Batch J). Low-chroma so
+  // the 7 categorical tints don't fight the era accents / importance gradient in
+  // a dense row. Icon + label carry the signal; hue is reinforcement only.
+  typeHuman: "oklch(0.72 0.04 250)", // slate
+  typeAnimal: "oklch(0.74 0.06 150)", // muted green
+  typeMythological: "oklch(0.76 0.07 30)", // terracotta
+  typeFictional: "oklch(0.74 0.06 300)", // muted violet
+  typeOrganization: "oklch(0.72 0.03 230)", // steel
+  typeDivine: "oklch(0.80 0.08 90)", // gold
+  typeArtifact: "oklch(0.70 0.04 60)", // bronze
 } as const;
 
 export const fonts = {

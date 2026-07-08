@@ -53,6 +53,16 @@
   --color-importance-high: oklch(0.74 0.14 55); /* 7–8 */
   --color-importance-critical: oklch(0.81 0.18 55); /* 9–10 */
 
+  /* Character-type identity tints — CharacterTypeBadge (Batch J). Low-chroma;
+     icon + label carry meaning, hue is a reinforcement layer (colorblind-safe). */
+  --color-type-human: oklch(0.72 0.04 250); /* slate */
+  --color-type-animal: oklch(0.74 0.06 150); /* muted green */
+  --color-type-mythological: oklch(0.76 0.07 30); /* terracotta */
+  --color-type-fictional: oklch(0.74 0.06 300); /* muted violet */
+  --color-type-organization: oklch(0.72 0.03 230); /* steel */
+  --color-type-divine: oklch(0.80 0.08 90); /* gold */
+  --color-type-artifact: oklch(0.70 0.04 60); /* bronze */
+
   /* ------------------------------------------------------------------ */
   /* shadcn vocabulary aliases                                          */
   /* The shadcn primitive registry uses a fixed semantic vocabulary     */
