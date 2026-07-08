@@ -3,9 +3,9 @@
 // identity without a cross-route import.
 //
 // Token-driven `cva` primitive (#284): each of the 7 `character_type` values
-// gets a low-chroma `--color-type-*` tint (source of truth in styles/tokens.css)
-// + a lucide icon + an always-visible literal label. The icon/color mapping
-// matches docs/design/admin/03-aesthetic-notes.md § Character-type identity.
+// gets a low-chroma `--color-type-*` tint (source of truth in styles/tokens.ts,
+// mirrored in styles/tokens.css) + a lucide icon + an always-visible literal label.
+// The icon/color mapping matches docs/design/admin/03-aesthetic-notes.md § Character-type identity.
 import * as React from "react";
 import {
   User,
