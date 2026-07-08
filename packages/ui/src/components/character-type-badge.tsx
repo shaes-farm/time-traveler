@@ -2,10 +2,10 @@
 // to @repo/ui in #62 so the stories pages can render the perspective-character
 // identity without a cross-route import.
 //
-// This still uses inline low-chroma Tailwind classes (not `cva` + the
-// `--color-type-*` tokens) — building the fully token-driven primitive remains
-// #284's job. The icon/color mapping matches
-// docs/design/admin/03-aesthetic-notes.md § Character-type identity.
+// Token-driven `cva` primitive (#284): each of the 7 `character_type` values
+// gets a low-chroma `--color-type-*` tint (source of truth in styles/tokens.ts,
+// mirrored in styles/tokens.css) + a lucide icon + an always-visible literal label.
+// The icon/color mapping matches docs/design/admin/03-aesthetic-notes.md § Character-type identity.
 import * as React from "react";
 import {
   User,
@@ -16,10 +16,35 @@ import {
   Sparkles,
   Gem,
 } from "lucide-react";
+import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@repo/ui/lib/utils";
 import { characterTypeEnum } from "@repo/services/schemas/character";
 
 export type CharacterType = (typeof characterTypeEnum.options)[number];
+
+const characterTypeBadgeVariants = cva(
+  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+  {
+    variants: {
+      type: {
+        human:
+          "bg-type-human/10 text-type-human ring-1 ring-inset ring-type-human/20",
+        animal:
+          "bg-type-animal/10 text-type-animal ring-1 ring-inset ring-type-animal/20",
+        mythological:
+          "bg-type-mythological/10 text-type-mythological ring-1 ring-inset ring-type-mythological/20",
+        fictional:
+          "bg-type-fictional/10 text-type-fictional ring-1 ring-inset ring-type-fictional/20",
+        organization:
+          "bg-type-organization/10 text-type-organization ring-1 ring-inset ring-type-organization/20",
+        divine:
+          "bg-type-divine/10 text-type-divine ring-1 ring-inset ring-type-divine/20",
+        artifact:
+          "bg-type-artifact/10 text-type-artifact ring-1 ring-inset ring-type-artifact/20",
+      },
+    },
+  },
+);
 
 /** Exported for reuse as the type-icon placeholder in list name-cell hover
  * thumbnails (no media → show the type icon instead). */
@@ -46,24 +71,10 @@ const TYPE_LABEL: Record<CharacterType, string> = {
   artifact: "Artifact",
 };
 
-const TYPE_CLASS: Record<CharacterType, string> = {
-  human: "bg-slate-500/10 text-slate-400 ring-1 ring-inset ring-slate-500/20",
-  animal:
-    "bg-emerald-500/10 text-emerald-400 ring-1 ring-inset ring-emerald-500/20",
-  mythological:
-    "bg-orange-500/10 text-orange-400 ring-1 ring-inset ring-orange-500/20",
-  fictional:
-    "bg-violet-500/10 text-violet-400 ring-1 ring-inset ring-violet-500/20",
-  organization: "bg-sky-500/10 text-sky-400 ring-1 ring-inset ring-sky-500/20",
-  divine: "bg-amber-500/10 text-amber-400 ring-1 ring-inset ring-amber-500/20",
-  artifact:
-    "bg-yellow-700/10 text-yellow-600 ring-1 ring-inset ring-yellow-700/20",
-};
-
-export interface CharacterTypeBadgeProps extends Omit<
-  React.HTMLAttributes<HTMLSpanElement>,
-  "children"
-> {
+export interface CharacterTypeBadgeProps
+  extends
+    Omit<React.HTMLAttributes<HTMLSpanElement>, "children">,
+    VariantProps<typeof characterTypeBadgeVariants> {
   /** The character_type value this badge represents (required). */
   type: CharacterType;
   /** Optional label override; defaults to the canonical name for the type. */
@@ -84,11 +95,7 @@ export const CharacterTypeBadge = React.forwardRef<
   return (
     <span
       ref={ref}
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-        TYPE_CLASS[type],
-        className,
-      )}
+      className={cn(characterTypeBadgeVariants({ type, className }))}
       {...props}
     >
       <Icon className="h-3 w-3" aria-hidden />
@@ -97,3 +104,5 @@ export const CharacterTypeBadge = React.forwardRef<
   );
 });
 CharacterTypeBadge.displayName = "CharacterTypeBadge";
+
+export { characterTypeBadgeVariants };
