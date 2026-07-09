@@ -274,7 +274,7 @@ describe("useCreateCharacter", () => {
 // ---------------------------------------------------------------------------
 
 describe("useUpdateCharacter", () => {
-  it("calls updateCharacter and invalidates detail + list caches on success", async () => {
+  it("invalidates by prefix on success so the detail page's bySlug query refreshes", async () => {
     const updated = { ...mockCharacter, slug: "strider" };
     vi.mocked(updateCharacter).mockResolvedValue(updated as never);
     vi.mocked(getCharacters).mockResolvedValue(mockCharacters as never);
@@ -295,11 +295,11 @@ describe("useUpdateCharacter", () => {
     expect(updateCharacter).toHaveBeenCalledWith(mockClient, "char-1", {
       slug: "strider",
     });
+    // Regression: invalidating only detail(id)+lists() left the detail page
+    // (which reads characterKeys.bySlug) stale after an edit. Prefix
+    // invalidation covers bySlug too.
     expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: characterKeys.detail("char-1") }),
-    );
-    expect(invalidateSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ queryKey: characterKeys.lists() }),
+      expect.objectContaining({ queryKey: characterKeys.all }),
     );
   });
 
