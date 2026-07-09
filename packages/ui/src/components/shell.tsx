@@ -132,7 +132,6 @@ export const ShellSidebar = ({
         "flex h-screen shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-150",
         sidebarOpen ? "w-60" : "w-16",
       )}
-      aria-label="Primary navigation"
     >
       <div
         className={cn(
@@ -147,7 +146,10 @@ export const ShellSidebar = ({
           </span>
         )}
       </div>
-      <nav className="flex-1 overflow-y-auto p-2">
+      <nav
+        aria-label="Primary navigation"
+        className="flex-1 overflow-y-auto p-2"
+      >
         <ul className="flex flex-col gap-3">
           {nav.map((entry, entryIndex) => {
             const items = isShellNavGroup(entry) ? entry.items : [entry];

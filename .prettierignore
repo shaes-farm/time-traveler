@@ -4,3 +4,7 @@ coverage/
 .next/
 node_modules/
 pnpm-lock.yaml
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
