@@ -106,12 +106,12 @@ export function useTimelinesPage(
   });
 }
 
-/** Fetch a single timeline by UUID with related data. */
+/** Fetch a single timeline by UUID with related data (null when not found). */
 export function useTimeline(
   client: ServiceClient,
   id: string,
   options?: Omit<
-    UseQueryOptions<TimelineWithRelations>,
+    UseQueryOptions<TimelineWithRelations | null>,
     "queryKey" | "queryFn"
   >,
 ) {

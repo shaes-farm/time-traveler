@@ -781,7 +781,11 @@ export function TimelineDetailClient({ id }: { id: string }) {
     staleTime: 60_000,
   });
 
-  const timeline = authAndTimeline?.timeline as TimelineRow | undefined;
+  // getTimelineById returns null for a missing/deleted/RLS-hidden row (e.g. the
+  // brief refetch after this timeline is deleted). Treat null as undefined so
+  // the not-found branch below renders instead of surfacing a query error.
+  const timeline = (authAndTimeline?.timeline ?? undefined) as
+    TimelineRow | undefined;
   const userId = authAndTimeline?.userId ?? "";
 
   // --- Events union ---
