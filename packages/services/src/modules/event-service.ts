@@ -488,9 +488,12 @@ export async function updateEvent(
 ): Promise<EventRow> {
   const validated = eventSchema.partial().parse(data);
 
+  // `!= null` (not `!== undefined`) so a timeline-less event — which the form
+  // mapper sends as `timeline_id: null, detail_timeline_id: null` — is not
+  // mistaken for a self-cycle (`null === null`). Mirrors createEvent's guard.
   if (
-    validated.detail_timeline_id !== undefined &&
-    validated.timeline_id !== undefined &&
+    validated.detail_timeline_id != null &&
+    validated.timeline_id != null &&
     validated.detail_timeline_id === validated.timeline_id
   ) {
     throw new Error(

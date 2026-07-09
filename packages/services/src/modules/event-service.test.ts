@@ -859,6 +859,23 @@ describe("updateEvent", () => {
     ).rejects.toThrow("detail_timeline_id cannot equal timeline_id");
   });
 
+  it("allows an update when timeline_id and detail_timeline_id are both null (regression: no false self-cycle)", async () => {
+    // The form mapper sends a timeline-less event as { timeline_id: null,
+    // detail_timeline_id: null }. The cycle guard must treat that as "no
+    // relationship", not `null === null` — otherwise no timeline-less event
+    // could ever be edited.
+    const updated = { ...sampleEvent, title: "Untethered Event" };
+    const client = makeClient({ fromResult: { data: updated, error: null } });
+
+    const result = await updateEvent(client, "event-1", {
+      title: "Untethered Event",
+      timeline_id: null,
+      detail_timeline_id: null,
+    });
+
+    expect(result).toEqual(updated);
+  });
+
   it("rejects when detail_timeline_id transitively reaches the new timeline_id", async () => {
     const newHomeTimeline = "22222222-2222-4222-8222-222222222222";
     const detailTimeline = "11111111-1111-4111-8111-111111111111";
