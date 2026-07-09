@@ -39,7 +39,7 @@ const isAuthRoute = (path: string) =>
  * app: the redirect rule below ("already signed in → /dashboard") runs
  * before the gate. The public timeline reader lives in the dedicated
  * `apps/reader` app (ADR-0030, #254), so every admin route — including
- * `/timelines/<slug>` — requires a session.
+ * `/timelines/<id>` — requires a session.
  */
 const isPublicRoute = (path: string) => isAuthRoute(path);
 

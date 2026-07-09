@@ -20,7 +20,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@repo/ui/components/sonner";
 import type { TemporalData } from "@repo/services/schemas/temporal";
 import {
-  getTimelineBySlug,
+  getTimelineById,
   getTimelineEventsUnion,
   type TimelineEventWithMembership,
 } from "@repo/services/timeline-service";
@@ -754,7 +754,7 @@ function DeleteTimelineDialog({
 // Main component
 // ---------------------------------------------------------------------------
 
-export function TimelineDetailClient({ slug }: { slug: string }) {
+export function TimelineDetailClient({ id }: { id: string }) {
   const router = useRouter();
   const client = React.useMemo(() => getBrowserSupabaseClient(), []);
 
@@ -767,15 +767,15 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
     // Key under the timelines namespace so timeline mutations (publish/unpublish,
     // collaborator changes) that invalidate `timelineKeys.all` also refresh this
     // page. The trailing "detail-auth" distinguishes its { timeline, userId }
-    // shape from the shared useTimelineBySlug cache entry.
-    queryKey: [...timelineKeys.bySlug(slug), "detail-auth"],
+    // shape from the shared useTimeline cache entry.
+    queryKey: [...timelineKeys.detail(id), "detail-auth"],
     queryFn: async () => {
       const {
         data: { user },
         error: authError,
       } = await client.auth.getUser();
       if (authError || !user) throw new Error("Not authenticated");
-      const timeline = await getTimelineBySlug(client, slug);
+      const timeline = await getTimelineById(client, id);
       return { timeline, userId: user.id };
     },
     staleTime: 60_000,
@@ -1178,7 +1178,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             />
             {canEdit && (
               <Link
-                href={`/timelines/${slug}/edit`}
+                href={`/timelines/${id}/edit`}
                 className={buttonVariants({ variant: "secondary", size: "sm" })}
               >
                 Edit

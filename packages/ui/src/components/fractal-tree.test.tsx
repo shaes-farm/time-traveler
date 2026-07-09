@@ -105,7 +105,7 @@ describe("buildSubTimelineTree", () => {
     expect(root.children![0]!.id).toBe("event:e1");
   });
 
-  it("navigates to the timeline slug on root activate and event slug on child activate", () => {
+  it("navigates to the timeline id on root activate and event slug on child activate", () => {
     const onNavigateEvent = vi.fn();
     const onNavigateTimeline = vi.fn();
     const [root] = buildSubTimelineTree({
@@ -116,7 +116,7 @@ describe("buildSubTimelineTree", () => {
     });
 
     root!.onActivate!();
-    expect(onNavigateTimeline).toHaveBeenCalledWith("polonium-isolation");
+    expect(onNavigateTimeline).toHaveBeenCalledWith("t1");
 
     root!.children![0]!.onActivate!();
     expect(onNavigateEvent).toHaveBeenCalledWith("sklodowska-arrives");

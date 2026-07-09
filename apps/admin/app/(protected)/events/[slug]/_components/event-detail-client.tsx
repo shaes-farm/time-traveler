@@ -206,7 +206,7 @@ function TimelinesPanel({
             {home && (
               <li className="flex items-center gap-2 text-sm">
                 <Link
-                  href={`/timelines/${home.slug}`}
+                  href={`/timelines/${home.id}`}
                   className="truncate hover:underline"
                 >
                   {home.title}
@@ -219,7 +219,7 @@ function TimelinesPanel({
             {guests.map((g) => (
               <li key={g.id} className="flex items-center gap-2 text-sm">
                 <Link
-                  href={`/timelines/${g.slug}`}
+                  href={`/timelines/${g.id}`}
                   className="truncate hover:underline"
                 >
                   {g.title}
@@ -248,7 +248,7 @@ function TimelinesPanel({
               timeline: expandsInto.timeline,
               events: subTimelineEvents,
               onNavigateEvent: (slug) => router.push(`/events/${slug}`),
-              onNavigateTimeline: (slug) => router.push(`/timelines/${slug}`),
+              onNavigateTimeline: (id) => router.push(`/timelines/${id}`),
             })}
           />
           <p className="text-xs text-muted-foreground">
@@ -292,7 +292,7 @@ function TimelinesPanel({
             </Link>
           )}
           <Link
-            href={`/timelines/${home.slug}`}
+            href={`/timelines/${home.id}`}
             className="text-xs text-muted-foreground hover:underline"
           >
             See all
@@ -862,7 +862,7 @@ export function EventDetailClient({ slug }: { slug: string }) {
       {/* Breadcrumb — timeline-rooted (falls back to Events when no home) */}
       <nav className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {home ? (
-          <Link href={`/timelines/${home.slug}`} className="hover:underline">
+          <Link href={`/timelines/${home.id}`} className="hover:underline">
             {home.title}
           </Link>
         ) : (

@@ -27,10 +27,12 @@ test.describe("timeline CRUD spine", () => {
     await saveForm(page);
 
     // ── View ────────────────────────────────────────────────────────────
-    const slug = await expectDetailAndReadSlug(page, title);
+    // Timeline detail routes on the UUID primary key (#234); the trailing
+    // path segment is the id, not the slug.
+    const id = await expectDetailAndReadSlug(page, title);
 
     // ── Edit ────────────────────────────────────────────────────────────
-    await page.goto(`/timelines/${slug}/edit`);
+    await page.goto(`/timelines/${id}/edit`);
     const titleField = page.getByPlaceholder("Timeline title");
     await expect(titleField).toHaveValue(title);
     await titleField.fill(editedTitle);
@@ -39,7 +41,7 @@ test.describe("timeline CRUD spine", () => {
     await expect(
       page.getByRole("heading", { level: 1, name: editedTitle }),
     ).toBeVisible();
-    await expect(page).toHaveURL(new RegExp(`/timelines/${slug}$`));
+    await expect(page).toHaveURL(new RegExp(`/timelines/${id}$`));
 
     // ── Delete ──────────────────────────────────────────────────────────
     await deleteViaDangerZone(page, "timeline");

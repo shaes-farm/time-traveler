@@ -1,6 +1,8 @@
 import { createServiceRoleClient } from "./supabase-admin";
 
 export interface FractalFixture {
+  /** UUID primary key — the timeline detail route keys on this (#234). */
+  timelineId: string;
   timelineSlug: string;
   timelineTitle: string;
   subTimelineSlug: string;
@@ -89,6 +91,7 @@ export async function seedFractalTimeline(
   }
 
   return {
+    timelineId: parentId,
     timelineSlug,
     timelineTitle,
     subTimelineSlug,

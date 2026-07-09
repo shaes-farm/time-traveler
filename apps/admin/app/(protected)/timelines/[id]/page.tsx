@@ -9,9 +9,9 @@ export const metadata = {
 export default async function TimelineDetailPage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { slug } = await params;
+  const { id } = await params;
   return (
     <Suspense
       fallback={
@@ -27,7 +27,7 @@ export default async function TimelineDetailPage({
         </div>
       }
     >
-      <TimelineDetailClient slug={slug} />
+      <TimelineDetailClient id={id} />
     </Suspense>
   );
 }

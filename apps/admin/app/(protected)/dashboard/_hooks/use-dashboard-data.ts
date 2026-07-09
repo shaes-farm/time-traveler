@@ -70,14 +70,19 @@ const toDisplayName = (
   return displayName || fallback;
 };
 
-const toEntityHref = (entityType: ActivityEntityType, slug: string): string => {
+// The identifier is entity-specific: timelines route on their UUID primary key
+// (#234), while events and characters still route on slug.
+const toEntityHref = (
+  entityType: ActivityEntityType,
+  identifier: string,
+): string => {
   switch (entityType) {
     case "timeline":
-      return `/timelines/${slug}/edit`;
+      return `/timelines/${identifier}/edit`;
     case "event":
-      return `/events/${slug}/edit`;
+      return `/events/${identifier}/edit`;
     case "character":
-      return `/characters/${slug}/edit`;
+      return `/characters/${identifier}/edit`;
   }
 };
 
@@ -175,7 +180,7 @@ const fetchDashboardData = async (): Promise<DashboardData> => {
       updatedAt: row.updated_at as string,
       entityType: "timeline" as const,
       isPublished: row.published === true,
-      href: toEntityHref("timeline", row.slug),
+      href: toEntityHref("timeline", row.id),
     }));
 
   const eventActivity = (eventsResult.data ?? [])

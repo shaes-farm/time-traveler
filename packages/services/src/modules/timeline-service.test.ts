@@ -5,14 +5,12 @@ import {
   getTimelines,
   getTimelinesPage,
   getTimelineById,
-  getTimelineBySlug,
   createTimeline,
   updateTimeline,
   deleteTimeline,
   publishTimeline,
   unpublishTimeline,
   TimelinePublishError,
-  TimelineLookupError,
   getTimelineEventsUnion,
   getCollaborators,
   addCollaborator,
@@ -413,57 +411,6 @@ describe("getTimelineById", () => {
     });
     await expect(getTimelineById(client, "x")).rejects.toThrow(
       "TimelineService.getTimelineById: not found",
-    );
-  });
-});
-
-// ---------------------------------------------------------------------------
-// getTimelineBySlug
-// ---------------------------------------------------------------------------
-
-describe("getTimelineBySlug", () => {
-  const full = {
-    ...sampleTimeline,
-    timeline_collaborators: [],
-    timeline_events: [],
-    timeline_media: [],
-  };
-
-  it("returns the single matching timeline with relations", async () => {
-    const client = makeClient({ fromResult: { data: [full], error: null } });
-    const result = await getTimelineBySlug(client, "my-timeline");
-    expect(result).toEqual(full);
-  });
-
-  it("throws TimelineLookupError(not_found) when no rows match", async () => {
-    const client = makeClient({ fromResult: { data: [], error: null } });
-    await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
-      TimelineLookupError,
-    );
-    await expect(getTimelineBySlug(client, "missing")).rejects.toMatchObject({
-      code: "not_found",
-    });
-  });
-
-  it("throws TimelineLookupError(ambiguous_slug) when slug matches multiple owners", async () => {
-    const other = { ...full, id: "timeline-2", user_id: "user-456" };
-    const client = makeClient({
-      fromResult: { data: [full, other], error: null },
-    });
-    await expect(getTimelineBySlug(client, "my-timeline")).rejects.toThrow(
-      TimelineLookupError,
-    );
-    await expect(
-      getTimelineBySlug(client, "my-timeline"),
-    ).rejects.toMatchObject({ code: "ambiguous_slug" });
-  });
-
-  it("throws on Supabase error", async () => {
-    const client = makeClient({
-      fromResult: { data: null, error: { message: "boom" } },
-    });
-    await expect(getTimelineBySlug(client, "missing")).rejects.toThrow(
-      "TimelineService.getTimelineBySlug: boom",
     );
   });
 });
