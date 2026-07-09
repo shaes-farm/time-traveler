@@ -50,9 +50,15 @@ export async function seedTestUser(): Promise<void> {
     },
   });
 
-  // Re-running against a warm database is expected — only a genuinely
-  // unexpected failure should abort setup.
-  if (error && !/already been registered|already exists/i.test(error.message)) {
-    throw error;
+  // Re-running against a warm database is expected: a duplicate user is
+  // success, not failure. Prefer the structured error code; fall back to the
+  // message text only for older SDKs that don't populate `code`.
+  if (error) {
+    const alreadyExists =
+      error.code === "email_exists" ||
+      /already been registered|already exists/i.test(error.message);
+    if (!alreadyExists) {
+      throw error;
+    }
   }
 }

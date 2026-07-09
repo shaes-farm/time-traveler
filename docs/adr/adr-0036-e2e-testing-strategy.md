@@ -66,11 +66,13 @@ Concrete decisions:
    already-realized value is a **local refactoring safety net** at zero CI
    cost, run via `pnpm test:e2e`.
 
-3. **Use Playwright project dependencies, not `globalSetup`**, to keep the
-   anonymous suite decoupled from Supabase. Projects: `chromium` (anonymous —
-   runs with no DB), `setup` (seeds + signs in), and `authenticated`
-   (`dependencies: ["setup"]`, loads `storageState`). `pnpm test:e2e
---project=chromium` runs the anon suite with no Supabase running.
+3. **Use Playwright project dependencies, not `globalSetup`**, so the
+   anonymous suite is decoupled from the `setup`/seed step (not from the app
+   itself). Projects: `chromium` (anonymous — no seeded user required),
+   `setup` (seeds + signs in), and `authenticated` (`dependencies: ["setup"]`,
+   loads `storageState`). `pnpm test:e2e --project=chromium` runs the anon
+   suite without the seed step. All e2e still assume a running local Supabase
+   — the admin proxy calls `getUser()` on every request (see NEG-002).
 
 4. **Defer the CI smoke job until the suite is worth smoking.** The real work
    is growing enough coverage of critical journeys to be worth running against
@@ -96,8 +98,9 @@ Concrete decisions:
 - **POS-002**: The local harness exercises the true server-side auth path
   (Server Action + `@supabase/ssr` cookie handshake + redirect), catching
   whole-flow regressions that unit tests miss — a safety net for refactoring.
-- **POS-003**: The anonymous suite runs without Supabase, so contributors can
-  run part of the e2e suite with no local stack.
+- **POS-003**: The anonymous suite doesn't require the service-role seed step
+  (the `setup` project), so contributors can run it — `pnpm test:e2e
+--project=chromium` — without provisioning a test user.
 - **POS-004**: Deferring the smoke job avoids building and maintaining a
   non-gating check whose value is unproven; it can be added cheaply later.
 

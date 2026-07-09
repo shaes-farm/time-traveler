@@ -28,13 +28,16 @@ if (existsSync(localEnv)) {
  * a live server and a browser, so it runs on demand via `pnpm run test:e2e`.
  *
  * Projects:
- *   - `chromium`       — anonymous specs. No session, no Supabase required.
+ *   - `chromium`       — anonymous specs. No session; decoupled from the
+ *                        `setup`/seed step (no seeded user needed). The app
+ *                        and its Supabase config still run — the proxy calls
+ *                        `getUser()` on every request.
  *   - `setup`          — seeds the test user and saves an authenticated
  *                        storage state (see e2e/support/auth.setup.ts).
  *   - `authenticated`  — specs that start signed in; depends on `setup`.
  *
  * Run everything with `pnpm test:e2e`, or a single project with
- * `pnpm test:e2e --project=chromium` (the anon suite, no DB needed).
+ * `pnpm test:e2e --project=chromium` (the anon suite — skips the seed step).
  */
 export default defineConfig({
   testDir: "./e2e",

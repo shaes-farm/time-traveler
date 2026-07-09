@@ -3,11 +3,12 @@ import { expect, test } from "@playwright/test";
 /**
  * Auth / login-page e2e coverage.
  *
- * These specs need no session and no live Supabase: the login page is a
- * server component that renders the form, and the sign-in Server Action
- * only fires on submit with valid input (which we never do here). The
- * unauthenticated-redirect check works because `getUser()` returns null
- * without a session cookie.
+ * These specs sign no one in and don't need the seeded test user, so they
+ * run under the anonymous `chromium` project — decoupled from the `setup`
+ * step, not from the app itself. The running admin app is still exercised:
+ * its edge proxy calls `getUser()` on every request (see `proxy.ts`), which
+ * returns null without a session cookie, so the login page renders and
+ * protected routes redirect to login.
  */
 
 test.describe("login page", () => {
