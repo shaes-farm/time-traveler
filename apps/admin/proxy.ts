@@ -31,33 +31,17 @@ import { createServerSupabaseClient } from "./lib/auth";
 const AUTH_PREFIX = "/auth";
 const ADMIN_PREFIX = "/admin";
 
-/**
- * Public URLs (no auth required). Auth pages live here so the redirect
- * rule below ("already signed in → /dashboard") can run before the gate.
- * Public timeline detail (`/timelines/<slug>`) is handled by the regex
- * below since it shares the `/timelines` prefix with a protected list.
- *
- * WORKAROUND (#210): The (public)/timelines/[slug] placeholder was removed
- * because it conflicted with the new (protected)/timelines/[slug] admin detail
- * page. Until the routing strategy is decided (#210), unauthenticated visitors
- * to /timelines/<slug> will pass through this proxy but be redirected to login
- * by the (protected) layout. The regex below is kept intentionally to make the
- * intent explicit — remove it once a public reader route is established.
- */
-const PUBLIC_TIMELINE_DETAIL = /^\/timelines\/[^/]+\/?$/;
-
 const isAuthRoute = (path: string) =>
   path === AUTH_PREFIX || path.startsWith(`${AUTH_PREFIX}/`);
 
-const isPublicRoute = (path: string) => {
-  // Normalise trailing slash so /timelines/new/ can't bypass the explicit
-  // deny below by slipping through the PUBLIC_TIMELINE_DETAIL regex.
-  const p = path.length > 1 ? path.replace(/\/$/, "") : path;
-  if (isAuthRoute(p)) return true;
-  if (p === "/timelines") return false; // protected list
-  if (p === "/timelines/new") return false; // protected new-page stub
-  return PUBLIC_TIMELINE_DETAIL.test(p);
-};
+/**
+ * Public URLs (no auth required). Only auth pages are public in the admin
+ * app: the redirect rule below ("already signed in → /dashboard") runs
+ * before the gate. The public timeline reader lives in the dedicated
+ * `apps/reader` app (ADR-0030, #254), so every admin route — including
+ * `/timelines/<slug>` — requires a session.
+ */
+const isPublicRoute = (path: string) => isAuthRoute(path);
 
 const isAdminRoute = (path: string) =>
   path === ADMIN_PREFIX || path.startsWith(`${ADMIN_PREFIX}/`);
