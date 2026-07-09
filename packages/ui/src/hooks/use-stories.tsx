@@ -195,9 +195,12 @@ export function useUpdateStory(client: ServiceClient) {
         queryClient.setQueryData(storyKeys.detail(id), context.previous);
       }
     },
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: storyKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: storyKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix so lists, page, bySlug, and detail queries stay
+      // consistent — mirrors usePublish/useDelete. Invalidating only
+      // detail(id)+lists() left the detail page (which reads storyKeys.bySlug)
+      // stale after an edit.
+      void queryClient.invalidateQueries({ queryKey: storyKeys.all });
     },
   });
 }
