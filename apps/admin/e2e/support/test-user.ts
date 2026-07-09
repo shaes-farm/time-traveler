@@ -3,7 +3,7 @@
  * graph), so the turbo env-var declaration rule doesn't apply here.
  */
 /* eslint-disable turbo/no-undeclared-env-vars */
-import { createClient } from "@supabase/supabase-js";
+import { createServiceRoleClient } from "./supabase-admin";
 
 /**
  * The seeded editor account the authenticated e2e suite signs in as.
@@ -18,29 +18,19 @@ export const TEST_USER = {
 } as const;
 
 /**
- * Idempotently create {@link TEST_USER} via the Supabase admin API.
+ * Idempotently create {@link TEST_USER} via the Supabase admin API and
+ * return its auth id (callers seed fixtures owned by that id).
  *
- * `email_confirm: true` skips the email-verification step so the account
- * can sign in immediately, and `user_metadata` feeds the `handle_new_user`
- * trigger (migration 00004) which provisions the matching `profiles` row.
- * Safe to call on every run: a user left over from a previous run is
- * treated as success.
+ * `email_confirm: true` skips email verification so the account can sign in
+ * immediately, and `user_metadata` feeds the `handle_new_user` trigger
+ * (migration 00004) which provisions the matching `profiles` row. Safe to
+ * call on every run: a user left over from a previous run is looked up
+ * rather than treated as a failure.
  */
-export async function seedTestUser(): Promise<void> {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !serviceRoleKey) {
-    throw new Error(
-      "e2e auth setup needs NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. " +
-        "Locally these live in apps/admin/.env.local; in CI source them from `supabase status`.",
-    );
-  }
+export async function seedTestUser(): Promise<string> {
+  const admin = createServiceRoleClient();
 
-  const admin = createClient(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-
-  const { error } = await admin.auth.admin.createUser({
+  const { data, error } = await admin.auth.admin.createUser({
     email: TEST_USER.email,
     password: TEST_USER.password,
     email_confirm: true,
@@ -50,9 +40,13 @@ export async function seedTestUser(): Promise<void> {
     },
   });
 
-  // Re-running against a warm database is expected: a duplicate user is
-  // success, not failure. Prefer the structured error code; fall back to the
-  // message text only for older SDKs that don't populate `code`.
+  if (!error && data.user) {
+    return data.user.id;
+  }
+
+  // Re-running against a warm database is expected: a duplicate user is not a
+  // failure. Prefer the structured error code; fall back to the message text
+  // only for older SDKs that don't populate `code`.
   if (error) {
     const alreadyExists =
       error.code === "email_exists" ||
@@ -61,4 +55,15 @@ export async function seedTestUser(): Promise<void> {
       throw error;
     }
   }
+
+  // Already existed — look the account up so we can return its id.
+  const { data: list, error: listError } = await admin.auth.admin.listUsers();
+  if (listError) {
+    throw listError;
+  }
+  const existing = list.users.find((u) => u.email === TEST_USER.email);
+  if (!existing) {
+    throw new Error(`Test user ${TEST_USER.email} not found after createUser`);
+  }
+  return existing.id;
 }
