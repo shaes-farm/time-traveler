@@ -555,7 +555,7 @@ export function TimelineListClient() {
   }
   const handleRowClick = React.useCallback(
     (row: TimelineRow) => {
-      router.push(`/timelines/${row.slug}`);
+      router.push(`/timelines/${row.id}`);
     },
     [router],
   );

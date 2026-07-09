@@ -129,7 +129,7 @@ export function buildSubTimelineTree({
   timeline: FractalTimelineNode;
   events: FractalEventNode[];
   onNavigateEvent: (slug: string) => void;
-  onNavigateTimeline: (slug: string) => void;
+  onNavigateTimeline: (id: string) => void;
 }): TreeNode[] {
   return [
     {
@@ -137,7 +137,7 @@ export function buildSubTimelineTree({
       label: timeline.title,
       icon: GitBranch,
       defaultExpanded: true,
-      onActivate: () => onNavigateTimeline(timeline.slug),
+      onActivate: () => onNavigateTimeline(timeline.id),
       children: events.map((event) =>
         eventToTreeNode(event, { onNavigateEvent, showMembership: false }),
       ),

@@ -154,7 +154,7 @@ export function PeriodTimelinesTab({
               <button
                 type="button"
                 className="min-w-0 flex-1 text-left hover:opacity-80"
-                onClick={() => router.push(`/timelines/${t.slug}`)}
+                onClick={() => router.push(`/timelines/${t.id}`)}
               >
                 <span className="block truncate text-sm text-foreground">
                   {t.title}
