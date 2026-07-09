@@ -52,6 +52,12 @@ import { Input } from "@repo/ui/components/input";
 import { PublishControl } from "@repo/ui/components/publish-control";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { TemporalDisplay } from "@repo/ui/components/temporal-display";
+import { Tree } from "@repo/ui/components/tree";
+import {
+  buildTimelineEventTree,
+  type FractalEventNode,
+} from "@repo/ui/components/fractal-tree";
+import { cn } from "@repo/ui/lib/utils";
 import {
   Tabs,
   TabsContent,
@@ -310,6 +316,7 @@ function EventRowItem({
 
 interface EventsTabProps {
   timelineId: string;
+  timelineTitle: string;
   canEdit: boolean;
   events: TimelineEventWithMembership[];
   isLoading: boolean;
@@ -320,6 +327,7 @@ interface EventsTabProps {
 
 function EventsTab({
   timelineId,
+  timelineTitle,
   canEdit,
   events,
   isLoading,
@@ -327,7 +335,29 @@ function EventsTab({
   onLinkEvent,
   onReorder,
 }: EventsTabProps) {
+  const router = useRouter();
+  const [view, setView] = React.useState<"list" | "tree">("list");
   const hasEditorialOrder = events.some((e) => e.junction_sort_order !== 0);
+
+  // Read-only fractal view: expandable events (detail_timeline_id) carry a
+  // drill marker and navigate to their own page on activate. Kept separate from
+  // the editable List view so the Tree's keyboard nav never fights the row's
+  // reorder/unlink controls. Only built for the Tree branch — mapping large
+  // event lists on every render while in List view would be wasted work.
+  const treeEvents: FractalEventNode[] = React.useMemo(
+    () =>
+      view === "tree"
+        ? events.map((e) => ({
+            id: e.id,
+            title: e.title,
+            slug: e.slug,
+            temporal_data: e.temporal_data as TemporalData,
+            detail_timeline_id: e.detail_timeline_id,
+            membership: e.membership,
+          }))
+        : [],
+    [events, view],
+  );
 
   function handleMoveUp(eventId: string) {
     const idx = events.findIndex((e) => e.id === eventId);
@@ -359,12 +389,40 @@ function EventsTab({
 
   return (
     <div className="space-y-3">
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button size="sm" variant="secondary" onClick={onLinkEvent}>
-            <Link2 className="h-4 w-4 mr-1.5" />
-            Link event
-          </Button>
+      {(canEdit || events.length > 0) && (
+        <div className="flex items-center justify-between gap-2">
+          {events.length > 0 ? (
+            <div
+              role="group"
+              aria-label="Events view"
+              className="inline-flex rounded-md border border-border p-0.5"
+            >
+              {(["list", "tree"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  aria-pressed={view === v}
+                  onClick={() => setView(v)}
+                  className={cn(
+                    "rounded px-2.5 py-1 text-xs capitalize transition-colors",
+                    view === v
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span />
+          )}
+          {canEdit && (
+            <Button size="sm" variant="secondary" onClick={onLinkEvent}>
+              <Link2 className="h-4 w-4 mr-1.5" />
+              Link event
+            </Button>
+          )}
         </div>
       )}
 
@@ -392,6 +450,14 @@ function EventsTab({
             </div>
           )}
         </div>
+      ) : view === "tree" ? (
+        <Tree
+          aria-label={`${timelineTitle} — event tree`}
+          nodes={buildTimelineEventTree({
+            events: treeEvents,
+            onNavigateEvent: (slug) => router.push(`/events/${slug}`),
+          })}
+        />
       ) : (
         <div className="space-y-1.5">
           {events.map((event, idx) => (
@@ -1075,10 +1141,13 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
             </div>
             {detailsEvent && (
               <p className="text-xs text-muted-foreground">
-                {/* BLOCKED: #177 — should be a jump link to the parent event/timeline
-                    once the event detail route is live. */}
                 Details the event:{" "}
-                <span className="font-medium">{detailsEvent.title}</span>
+                <Link
+                  href={`/events/${detailsEvent.slug}`}
+                  className="font-medium text-foreground hover:underline"
+                >
+                  {detailsEvent.title}
+                </Link>
               </p>
             )}
           </div>
@@ -1162,6 +1231,7 @@ export function TimelineDetailClient({ slug }: { slug: string }) {
         <TabsContent value="events" className="pt-4">
           <EventsTab
             timelineId={timeline.id}
+            timelineTitle={timeline.title}
             canEdit={canEdit}
             events={localEvents}
             isLoading={eventsPending}

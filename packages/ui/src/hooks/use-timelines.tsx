@@ -27,6 +27,7 @@ import {
   removeEventFromTimeline,
   setTimelineEventSortOrder,
   getEventTimelineLinks,
+  getTimelineEventsUnion,
   addMediaToTimeline,
   removeMediaFromTimeline,
   reorderTimelineMedia,
@@ -64,6 +65,9 @@ export const timelineKeys = {
   /** The "also appears in" timeline_events memberships for a given event. */
   eventLinks: (eventId: string) =>
     [...timelineKeys.all, "event-links", eventId] as const,
+  /** The merged home + linked events for a timeline (fractal drill-down). */
+  eventsUnion: (timelineId: string) =>
+    [...timelineKeys.all, "events-union", timelineId] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -172,6 +176,27 @@ export function useEventTimelineLinks(
     queryKey: timelineKeys.eventLinks(eventId),
     queryFn: () => getEventTimelineLinks(client, eventId),
     staleTime: 30_000,
+    ...options,
+  });
+}
+
+/**
+ * Fetch a timeline's merged home + linked events (chronological / editorial
+ * order), for the fractal drill-down surfaces. Shares its cache key with any
+ * other caller of the same timeline's event union.
+ */
+export function useTimelineEventsUnion(
+  client: ServiceClient,
+  timelineId: string,
+  options?: Omit<
+    UseQueryOptions<Awaited<ReturnType<typeof getTimelineEventsUnion>>>,
+    "queryKey" | "queryFn"
+  >,
+) {
+  return useQuery({
+    queryKey: timelineKeys.eventsUnion(timelineId),
+    queryFn: () => getTimelineEventsUnion(client, timelineId),
+    staleTime: 60_000,
     ...options,
   });
 }
