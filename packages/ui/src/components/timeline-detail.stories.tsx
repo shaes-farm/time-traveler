@@ -54,11 +54,6 @@ const QUICK_CREATE: ShellQuickCreateItem[] = [
 
 const SHELL_USER = { name: "Philipe Banglarian", email: "philipe@example.com" };
 
-// BLOCKED: #177 — the fractal context line ("Details the event …") and the
-// per-row drill-down marker depend on `events.detail_timeline_id`. Flip this to
-// preview the design; it ships disabled until the column lands.
-const FRACTAL_ENABLED = false;
-
 // ─── Event row fixture ──────────────────────────────────────────────────────────
 
 interface TimelineEventRow {
@@ -68,7 +63,7 @@ interface TimelineEventRow {
   eventType: string;
   importance: number;
   membership: "home" | "linked";
-  /** Has a `detail_timeline_id` → drill-down marker (gated on #177). */
+  /** Has a `detail_timeline_id` → drill-down marker. */
   expandable?: boolean;
 }
 
@@ -242,7 +237,7 @@ function EventsTab() {
             >
               {event.membership}
             </Badge>
-            {FRACTAL_ENABLED && event.expandable ? (
+            {event.expandable ? (
               <button
                 type="button"
                 aria-label={`Drill into ${event.title}`}
@@ -307,16 +302,13 @@ function TimelineDetailPage() {
             <TemporalDisplay value={SPAN_START} endValue={SPAN_END} />
           </p>
 
-          {FRACTAL_ENABLED && (
-            // BLOCKED: #177 — inverse lookup of events.detail_timeline_id.
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1 text-xs text-foreground-muted">
-              <Info className="h-3.5 w-3.5" aria-hidden />
-              Details the event:{" "}
-              <button type="button" className="text-foreground hover:underline">
-                ↗ &ldquo;Marie Curie&rsquo;s life&rdquo; (in Cosmic history)
-              </button>
-            </p>
-          )}
+          <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-surface px-2.5 py-1 text-xs text-foreground-muted">
+            <Info className="h-3.5 w-3.5" aria-hidden />
+            Details the event:{" "}
+            <button type="button" className="text-foreground hover:underline">
+              ↗ &ldquo;Marie Curie&rsquo;s life&rdquo; (in Cosmic history)
+            </button>
+          </p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">

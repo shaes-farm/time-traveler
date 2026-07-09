@@ -47,10 +47,6 @@ const QUICK_CREATE: ShellQuickCreateItem[] = [
 
 const SHELL_USER = { name: "Admin User", email: "admin@example.com" };
 
-// BLOCKED: #177 — the "Expands into" sub-timeline drill-down depends on
-// events.detail_timeline_id. Flip to preview; ships disabled until the column lands.
-const FRACTAL_ENABLED = false;
-
 // ─── Fixtures ───────────────────────────────────────────────────────────────────
 
 const EVENT_DATE: TemporalData = { year: 1898, era: "CE", precision: "exact" };
@@ -266,21 +262,18 @@ function EventDetailPage() {
                 </ul>
               </div>
 
-              {FRACTAL_ENABLED && (
-                // BLOCKED: #177 — events.detail_timeline_id.
-                <div>
-                  <p className="mb-1 text-xs text-foreground-subtle">
-                    Expands into
-                  </p>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 text-foreground hover:underline"
-                  >
-                    <CornerRightDown className="h-3.5 w-3.5" aria-hidden />
-                    Polonium isolation (sub-timeline) · 6 events
-                  </button>
-                </div>
-              )}
+              <div>
+                <p className="mb-1 text-xs text-foreground-subtle">
+                  Expands into
+                </p>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1.5 text-foreground hover:underline"
+                >
+                  <CornerRightDown className="h-3.5 w-3.5" aria-hidden />
+                  Polonium isolation (sub-timeline) · 6 events
+                </button>
+              </div>
 
               <div>
                 <p className="mb-1 text-xs text-foreground-subtle">

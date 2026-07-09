@@ -41,6 +41,11 @@ import {
 import { PublishControl } from "@repo/ui/components/publish-control";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import { TemporalDisplay } from "@repo/ui/components/temporal-display";
+import { Tree } from "@repo/ui/components/tree";
+import {
+  buildSubTimelineTree,
+  type FractalEventNode,
+} from "@repo/ui/components/fractal-tree";
 import {
   Tabs,
   TabsContent,
@@ -56,6 +61,7 @@ import {
   useRemoveMediaFromEvent,
   useReorderEventMedia,
 } from "@repo/ui/hooks/use-events";
+import { useTimelineEventsUnion } from "@repo/ui/hooks/use-timelines";
 import { getBrowserSupabaseClient } from "../../../../../lib/auth/browser-client";
 import { MediaSection } from "../../../_components/media/media-section";
 
@@ -165,6 +171,8 @@ interface TimelinesPanelProps {
   home: TimelineRef | null;
   guests: TimelineRef[];
   expandsInto: ExpandsInto | null;
+  /** The sub-timeline's events, rendered as fractal Tree children. */
+  subTimelineEvents: FractalEventNode[];
   earlier: NeighborEvent | null;
   later: NeighborEvent | null;
 }
@@ -173,9 +181,11 @@ function TimelinesPanel({
   home,
   guests,
   expandsInto,
+  subTimelineEvents,
   earlier,
   later,
 }: TimelinesPanelProps) {
+  const router = useRouter();
   return (
     <div className="space-y-4">
       <SectionHeading>Timelines</SectionHeading>
@@ -223,19 +233,24 @@ function TimelinesPanel({
         )}
       </div>
 
-      {/* Expands into (forward drill-down) — omitted for leaf events */}
+      {/* Expands into (forward drill-down) — omitted for leaf events.
+          Rendered as an accessible fractal Tree: the sub-timeline root plus
+          its events. Activating a node navigates to that entity's page. */}
       {expandsInto && (
         <div className="space-y-1">
           <p className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
             Expands into
             <CornerRightDown className="h-3.5 w-3.5" aria-hidden />
           </p>
-          <Link
-            href={`/timelines/${expandsInto.timeline.slug}`}
-            className="block text-sm font-medium hover:underline"
-          >
-            {expandsInto.timeline.title}
-          </Link>
+          <Tree
+            aria-label={`${expandsInto.timeline.title} — sub-timeline drill-down`}
+            nodes={buildSubTimelineTree({
+              timeline: expandsInto.timeline,
+              events: subTimelineEvents,
+              onNavigateEvent: (slug) => router.push(`/events/${slug}`),
+              onNavigateTimeline: (slug) => router.push(`/timelines/${slug}`),
+            })}
+          />
           <p className="text-xs text-muted-foreground">
             sub-timeline · {expandsInto.eventCount}{" "}
             {expandsInto.eventCount === 1 ? "event" : "events"}
@@ -552,6 +567,24 @@ export function EventDetailClient({ slug }: { slug: string }) {
     enabled: !!event?.detail_timeline_id,
     staleTime: 60_000,
   });
+
+  // --- Sub-timeline events (children of the "Expands into" fractal Tree) ---
+  const { data: subTimelineEventsRaw = [] } = useTimelineEventsUnion(
+    client,
+    event?.detail_timeline_id ?? "",
+    { enabled: !!event?.detail_timeline_id },
+  );
+  const subTimelineEvents: FractalEventNode[] = React.useMemo(
+    () =>
+      subTimelineEventsRaw.map((e) => ({
+        id: e.id,
+        title: e.title,
+        slug: e.slug,
+        temporal_data: e.temporal_data as TemporalData,
+        detail_timeline_id: e.detail_timeline_id,
+      })),
+    [subTimelineEventsRaw],
+  );
 
   // --- Nearby in (home) timeline: nearest earlier + later by proximity ---
   const { data: neighbors = { earlier: null, later: null } } = useQuery({
@@ -963,6 +996,7 @@ export function EventDetailClient({ slug }: { slug: string }) {
             home={home}
             guests={guests}
             expandsInto={expandsInto}
+            subTimelineEvents={subTimelineEvents}
             earlier={neighbors.earlier}
             later={neighbors.later}
           />
