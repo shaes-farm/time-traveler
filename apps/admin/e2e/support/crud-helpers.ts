@@ -51,16 +51,21 @@ export async function expectDetailAndReadSlug(
 
 /**
  * Delete the current entity from its detail page: expand the owner-only
- * "Danger zone", trigger "Delete <entity>", and confirm the "Delete
- * <entity>?" dialog. `entity` is the lowercase noun as it appears in the UI
- * ("timeline", "event", "character").
+ * "Danger zone", trigger "Delete <entity>", and confirm the dialog. `entity`
+ * is the lowercase noun as it appears in the UI ("timeline", "event",
+ * "character"). Most confirmation dialogs are titled "Delete <entity>?"; pass
+ * `dialogName` to override for the ones that title with the record instead
+ * (periods use `Delete "<title>"?`).
  */
 export async function deleteViaDangerZone(
   page: Page,
   entity: string,
+  opts?: { dialogName?: string | RegExp },
 ): Promise<void> {
   await page.getByRole("button", { name: "Danger zone" }).click();
   await page.getByRole("button", { name: `Delete ${entity}` }).click();
-  const dialog = page.getByRole("dialog", { name: `Delete ${entity}?` });
+  const dialog = page.getByRole("dialog", {
+    name: opts?.dialogName ?? `Delete ${entity}?`,
+  });
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
 }
