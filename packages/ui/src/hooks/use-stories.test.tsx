@@ -210,6 +210,29 @@ describe("useUpdateStory", () => {
     result.current.mutate({ id: "story-1", data: { title: "Bad" } as never });
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
+  it("invalidates by prefix on success so the detail page's bySlug query refreshes", async () => {
+    vi.mocked(updateStory).mockResolvedValue(mockStory as never);
+    vi.mocked(getStories).mockResolvedValue(mockStories as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUpdateStory(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      id: "story-1",
+      data: { title: "Renamed" } as never,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // Regression: invalidating only detail(id)+lists() left the detail page
+    // (which reads storyKeys.bySlug) stale after an edit. Prefix invalidation
+    // covers bySlug too.
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: storyKeys.all }),
+    );
+  });
 });
 
 describe("useDeleteStory", () => {
