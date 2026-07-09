@@ -63,6 +63,7 @@ function EventNodeMeta({
       )}
       {expandable && (
         <span
+          role="img"
           aria-label="Expands into a sub-timeline"
           title="Expands into a sub-timeline"
           className="text-foreground-subtle"

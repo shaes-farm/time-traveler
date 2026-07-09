@@ -342,15 +342,22 @@ function EventsTab({
   // Read-only fractal view: expandable events (detail_timeline_id) carry a
   // drill marker and navigate to their own page on activate. Kept separate from
   // the editable List view so the Tree's keyboard nav never fights the row's
-  // reorder/unlink controls.
-  const treeEvents: FractalEventNode[] = events.map((e) => ({
-    id: e.id,
-    title: e.title,
-    slug: e.slug,
-    temporal_data: e.temporal_data as TemporalData,
-    detail_timeline_id: e.detail_timeline_id,
-    membership: e.membership,
-  }));
+  // reorder/unlink controls. Only built for the Tree branch — mapping large
+  // event lists on every render while in List view would be wasted work.
+  const treeEvents: FractalEventNode[] = React.useMemo(
+    () =>
+      view === "tree"
+        ? events.map((e) => ({
+            id: e.id,
+            title: e.title,
+            slug: e.slug,
+            temporal_data: e.temporal_data as TemporalData,
+            detail_timeline_id: e.detail_timeline_id,
+            membership: e.membership,
+          }))
+        : [],
+    [events, view],
+  );
 
   function handleMoveUp(eventId: string) {
     const idx = events.findIndex((e) => e.id === eventId);
