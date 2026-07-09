@@ -217,6 +217,28 @@ describe("useUpdateEvent", () => {
     result.current.mutate({ id: "evt-1", data: { title: "Bad" } as never });
     await waitFor(() => expect(result.current.isError).toBe(true));
   });
+  it("invalidates by prefix on success so the detail view refreshes", async () => {
+    vi.mocked(updateEvent).mockResolvedValue(mockEvent as never);
+    vi.mocked(getEvents).mockResolvedValue(mockEvents as never);
+
+    const { wrapper, queryClient } = createWrapper();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const { result } = renderHook(() => useUpdateEvent(mockClient), {
+      wrapper,
+    });
+
+    result.current.mutate({
+      id: "evt-1",
+      data: { title: "Renamed" } as never,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    // Parity with usePublishEvent: prefix invalidation covers the detail
+    // view's `detail-auth` query, not just detail(id)+lists().
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: eventKeys.all }),
+    );
+  });
 });
 
 describe("useDeleteEvent", () => {
