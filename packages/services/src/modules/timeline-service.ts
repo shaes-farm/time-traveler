@@ -226,22 +226,26 @@ export async function getTimelinesPage(
  * is globally unique, so it resolves deterministically for owners *and*
  * collaborators (RLS `read_timelines` = owner OR is_timeline_collaborator).
  * Routing on the UUID avoids the slug ambiguity of `UNIQUE (user_id, slug)`
- * (#234). Throws (via `.single()`) when the id is unknown or RLS-hidden.
+ * (#234). Returns `null` when the id is unknown, deleted, or RLS-hidden — a
+ * missing row is a not-found, not an exception (cf. ADR-0029 IMP-004). This
+ * also avoids a raw PostgREST coercion error during the brief window a detail
+ * page refetches an entity that was just deleted. Still throws on a real DB
+ * error.
  */
 export async function getTimelineById(
   client: SupabaseClient<Database>,
   id: string,
-): Promise<TimelineWithRelations> {
+): Promise<TimelineWithRelations | null> {
   const { data, error } = await client
     .from("timelines")
     .select(
       "*, timeline_collaborators(*), timeline_events(*), timeline_media(*)",
     )
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   assertNoError(error, "getTimelineById");
-  return data as TimelineWithRelations;
+  return data as TimelineWithRelations | null;
 }
 
 /**

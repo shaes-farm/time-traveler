@@ -230,7 +230,9 @@ export function TimelineFormClient(props: Props) {
   const hydratedRef = React.useRef(false);
   const editRow = editQuery.data;
   React.useEffect(() => {
-    if (!isEdit || hydratedRef.current || editRow === undefined) return;
+    // `editRow == null` covers both the pending (undefined) and not-found
+    // (null) cases — never hydrate the form from a missing timeline.
+    if (!isEdit || hydratedRef.current || editRow == null) return;
     form.reset(mapRowToFormValues(editRow));
     hydratedRef.current = true;
   }, [isEdit, editRow, form]);
@@ -380,6 +382,21 @@ export function TimelineFormClient(props: Props) {
             {editQuery.error instanceof Error
               ? editQuery.error.message
               : "Unknown error."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Fetch succeeded but the timeline is gone (deleted / RLS-hidden). getTimelineById
+  // returns null rather than throwing, so this is not an `isError` state.
+  if (isEdit && editRow === null) {
+    return (
+      <div className="p-6">
+        <Alert role="alert">
+          <AlertTitle>Timeline not found</AlertTitle>
+          <AlertDescription>
+            This timeline no longer exists or you don’t have access to it.
           </AlertDescription>
         </Alert>
       </div>

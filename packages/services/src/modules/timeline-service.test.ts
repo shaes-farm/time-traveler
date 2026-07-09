@@ -405,12 +405,18 @@ describe("getTimelineById", () => {
     expect(result).toEqual(full);
   });
 
+  it("returns null when no row matches (missing / deleted / RLS-hidden)", async () => {
+    // maybeSingle() → data null, error null for zero rows.
+    const client = makeClient({ fromResult: { data: null, error: null } });
+    await expect(getTimelineById(client, "gone")).resolves.toBeNull();
+  });
+
   it("throws on Supabase error", async () => {
     const client = makeClient({
-      fromResult: { data: null, error: { message: "not found" } },
+      fromResult: { data: null, error: { message: "boom" } },
     });
     await expect(getTimelineById(client, "x")).rejects.toThrow(
-      "TimelineService.getTimelineById: not found",
+      "TimelineService.getTimelineById: boom",
     );
   });
 });
