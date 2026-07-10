@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { getUser } from "../../../../lib/auth";
-import { getServerSupabaseClient } from "../../../auth/_lib/server-supabase";
+import { getServerUser } from "../../../auth/_lib/server-supabase";
 import { EditCategoryClient } from "../_components/edit-category-client";
 
 export const metadata = {
@@ -14,8 +13,8 @@ export default async function EditCategoryPage({
 }) {
   // Owner id resolved server-side (mirrors the layout) so the client hooks
   // build their (userId) query keys on first render without an auth round-trip.
-  const client = await getServerSupabaseClient();
-  const user = await getUser(client);
+  // Request-memoized, so this reuses the layout's lookup rather than repeating.
+  const user = await getServerUser();
   if (!user) redirect("/auth/login");
 
   const { id } = await params;

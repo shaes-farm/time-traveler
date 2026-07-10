@@ -4,6 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
+import { Button } from "@repo/ui/components/button";
 import { Skeleton } from "@repo/ui/components/skeleton";
 import {
   useCategoryTree,
@@ -16,9 +18,9 @@ import { findNode } from "./category-tree-utils";
 
 /**
  * Edit-form wrapper for the `/categories/[id]` route. Resolves the node from
- * the cached tree; shows a skeleton while it loads and a not-found notice if
- * the id doesn't resolve (deleted node / bad link) — the tree stays available
- * in the shell to pick another.
+ * the cached tree; shows a skeleton while it loads, surfaces a load error
+ * distinctly, and a not-found notice if the id doesn't resolve (deleted node /
+ * bad link) — the tree stays available in the shell to pick another.
  */
 export function EditCategoryClient({
   userId,
@@ -41,6 +43,31 @@ export function EditCategoryClient({
         <Skeleton className="h-6 w-32 rounded-md" />
         <Skeleton className="h-9 w-full rounded-md" />
         <Skeleton className="h-20 w-full rounded-md" />
+      </div>
+    );
+  }
+
+  // Distinguish a load failure from a genuinely missing node — otherwise a
+  // fetch/auth/network error falls through to the not-found branch and
+  // misreports itself as "That category no longer exists."
+  if (treeQuery.isError) {
+    return (
+      <div className="p-4">
+        <Alert variant="destructive">
+          <AlertTitle>Couldn’t load this category</AlertTitle>
+          <AlertDescription className="flex flex-col items-start gap-2">
+            {treeQuery.error instanceof Error
+              ? treeQuery.error.message
+              : "Something went wrong."}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void treeQuery.refetch()}
+            >
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
