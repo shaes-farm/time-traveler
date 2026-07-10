@@ -91,7 +91,11 @@ export const resetPasswordAction = async (input: {
   const client = await getServerSupabaseClient();
   return resetPasswordCore(client, {
     email: input.email,
-    redirectTo: await callbackUrl("/auth/update-password"),
+    // Route through the callback so the recovery `code` is exchanged for a
+    // session before the user lands on the update-password form. Pointing the
+    // email link straight at /auth/update-password skips that exchange, so the
+    // form's updateUser() fails with "Auth session missing".
+    redirectTo: await callbackUrl("/auth/callback?next=/auth/update-password"),
   });
 };
 
