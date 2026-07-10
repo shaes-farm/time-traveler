@@ -137,6 +137,17 @@ test.describe("category CRUD spine", () => {
     const childId = await expectEditRouteAndReadId(page, childTitle);
     expect(childId).not.toBe(parentId);
 
+    // The new child is revealed under its (now-expandable) parent and
+    // highlighted — the parent auto-expands so the child isn't left hidden.
+    await expect(treeItem(page, childTitle)).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(treeItem(page, parentTitle)).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
     // ── Delete the parent → hierarchy policy dialog ─────────────────────
     // A node with children offers reparent vs. subtree-cascade (wireframe 24
     // #6); "descendant" in the copy confirms the child was actually nested.

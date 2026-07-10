@@ -106,4 +106,19 @@ describe("Tree", () => {
 
     expect(rowFor("Event A")).not.toHaveAttribute("aria-selected");
   });
+
+  it("reveals a selected node by expanding its collapsed ancestors", () => {
+    // Event B is not a root, so it stays collapsed by default and its child is
+    // hidden — until that child becomes the selection.
+    const { rerender } = render(<Tree aria-label="Hierarchy" nodes={NODES} />);
+    expect(screen.queryByText("Sub event")).not.toBeInTheDocument();
+
+    rerender(
+      <Tree aria-label="Hierarchy" nodes={NODES} selectedId="grandchild" />,
+    );
+
+    expect(screen.getByText("Sub event")).toBeInTheDocument();
+    expect(rowFor("Event B")).toHaveAttribute("aria-expanded", "true");
+    expect(rowFor("Sub event")).toHaveAttribute("aria-selected", "true");
+  });
 });

@@ -79,6 +79,25 @@ function collectDefaultExpanded(nodes: TreeNode[], acc: Set<string>): void {
   }
 }
 
+/**
+ * The ancestor id path from the forest down to (but excluding) `targetId`, or
+ * null if the id isn't present. Used to reveal a selected node by expanding its
+ * ancestors. An empty array means the target is a root (no ancestors).
+ */
+function findAncestorPath(
+  nodes: TreeNode[],
+  targetId: string,
+): string[] | null {
+  for (const node of nodes) {
+    if (node.id === targetId) return [];
+    if (node.children) {
+      const sub = findAncestorPath(node.children, targetId);
+      if (sub) return [node.id, ...sub];
+    }
+  }
+  return null;
+}
+
 export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
   ({ nodes, className, selectedId, ...props }, ref) => {
     const [expandedIds, setExpandedIds] = React.useState<Set<string>>(() => {
@@ -91,6 +110,39 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
     const rowElementsRef = React.useRef(
       new Map<string, HTMLLIElement | null>(),
     );
+
+    // Reveal the selected node: when `selectedId` is set (e.g. from the route),
+    // expand its ancestor chain so a deep or newly-created node isn't hidden in
+    // a collapsed subtree. A leaf only becomes expandable once it gains its
+    // first child, so its parent is never in the default-expanded set — this is
+    // what surfaces such a child. We adjust state during render (React's
+    // prop-change pattern) once per selection, so a later manual collapse
+    // sticks; if the node isn't in `nodes` yet (e.g. just created) we leave
+    // `revealedSelection` unset and retry when `nodes` updates.
+    const [revealedSelection, setRevealedSelection] = React.useState<
+      string | null
+    >(null);
+    if (selectedId === undefined) {
+      if (revealedSelection !== null) setRevealedSelection(null);
+    } else if (selectedId !== revealedSelection) {
+      const ancestors = findAncestorPath(nodes, selectedId);
+      if (ancestors) {
+        setRevealedSelection(selectedId);
+        if (ancestors.length > 0) {
+          setExpandedIds((prev) => {
+            let changed = false;
+            const next = new Set(prev);
+            for (const id of ancestors) {
+              if (!next.has(id)) {
+                next.add(id);
+                changed = true;
+              }
+            }
+            return changed ? next : prev;
+          });
+        }
+      }
+    }
 
     const rows: FlatRow[] = [];
     flatten(nodes, expandedIds, 1, rows);
