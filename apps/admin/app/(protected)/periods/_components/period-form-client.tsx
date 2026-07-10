@@ -48,7 +48,7 @@ import { TemporalDisplay } from "@repo/ui/components/temporal-display";
 import { cn } from "@repo/ui/lib/utils";
 
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
-import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import { SignificanceRamp, type Significance } from "./significance-ramp";
 import { PeriodParentPicker } from "./period-parent-picker";
 import {

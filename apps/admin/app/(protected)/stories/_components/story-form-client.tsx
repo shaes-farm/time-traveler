@@ -62,7 +62,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
-import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   storyFormSchema,
   BLANK_VALUES,

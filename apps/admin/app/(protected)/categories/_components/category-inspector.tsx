@@ -40,6 +40,7 @@ import { CategoryColorField } from "./category-color-field";
 import { CategoryIconField } from "./category-icon-field";
 import { CategoryParentPicker } from "./category-parent-picker";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
+import { useReportEditorDirty } from "./editor-guard-context";
 
 export type InspectorSelection =
   | { mode: "create"; parentId: string | null }
@@ -84,6 +85,10 @@ export function CategoryInspector({
 
   const watchedTitle = useWatch({ control: form.control, name: "title" });
 
+  // Surface the form's dirty state to the manager shell's navigation guard, so
+  // switching tree nodes / "New category" / reload prompts before losing edits.
+  useReportEditorDirty(form.formState.isDirty);
+
   const onSubmit = React.useCallback(
     async (values: CategoryFormValues) => {
       setFormError(null);
@@ -107,6 +112,9 @@ export function CategoryInspector({
             message: `Created “${row.title}”.`,
             variant: "success",
           });
+          // Clear dirty before navigating to the new node's route so the guard
+          // treats this post-save redirect as clean.
+          form.reset(mapNodeToFormValues(row));
           onSaved(row);
         }
       } catch (err) {

@@ -212,4 +212,47 @@ test.describe("category CRUD spine", () => {
     await page.waitForURL("**/categories");
     await expect(treeItem(page, title)).toHaveCount(0);
   });
+
+  test("warns before losing unsaved edits when navigating in the manager", async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const title = `E2E Guard ${stamp}`;
+
+    // Create a category, then land on its edit route and make an unsaved edit.
+    await page.goto("/categories/new");
+    await fillTitleAndSave(page, title);
+    await expectEditRouteAndReadId(page, title);
+    await page.getByPlaceholder(TITLE_PLACEHOLDER).fill(`${title} UNSAVED`);
+
+    // Shell-driven navigation (New category) is intercepted while dirty.
+    await page.getByRole("button", { name: "New category" }).click();
+    const confirm = page.getByRole("dialog", {
+      name: "Discard unsaved changes?",
+    });
+    await expect(confirm).toBeVisible();
+
+    // Keep editing → dialog closes, the in-progress edit is preserved.
+    await confirm.getByRole("button", { name: "Keep editing" }).click();
+    await expect(confirm).toBeHidden();
+    await expect(page.getByPlaceholder(TITLE_PLACEHOLDER)).toHaveValue(
+      `${title} UNSAVED`,
+    );
+
+    // Retry and Discard → navigation proceeds.
+    await page.getByRole("button", { name: "New category" }).click();
+    await page
+      .getByRole("dialog", { name: "Discard unsaved changes?" })
+      .getByRole("button", { name: "Discard" })
+      .click();
+    await expect(page).toHaveURL(/\/categories\/new$/);
+
+    // Clean up: the edit was discarded, so the node keeps its saved title.
+    await page.goto("/categories");
+    await treeItem(page, title).click();
+    const del = await openDeleteDialog(page);
+    await del.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.waitForURL("**/categories");
+    await expect(treeItem(page, title)).toHaveCount(0);
+  });
 });

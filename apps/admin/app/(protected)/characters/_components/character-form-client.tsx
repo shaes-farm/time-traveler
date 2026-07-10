@@ -57,7 +57,7 @@ import {
   type AttachedMedia,
 } from "../../_components/media/media-section";
 import { AttachMediaDialog } from "../../_components/media/attach-media-dialog";
-import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   characterFormSchema,
   BLANK_VALUES,
