@@ -37,6 +37,12 @@ export interface TreeNode {
 export interface TreeProps extends React.HTMLAttributes<HTMLUListElement> {
   nodes: TreeNode[];
   "aria-label": string;
+  /**
+   * Id of the currently-selected node (e.g. the row the route is showing).
+   * Distinct from roving-tabindex focus: it persists a visible selection and
+   * sets `aria-selected` on the matching treeitem.
+   */
+  selectedId?: string;
 }
 
 interface FlatRow {
@@ -74,7 +80,7 @@ function collectDefaultExpanded(nodes: TreeNode[], acc: Set<string>): void {
 }
 
 export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
-  ({ nodes, className, ...props }, ref) => {
+  ({ nodes, className, selectedId, ...props }, ref) => {
     const [expandedIds, setExpandedIds] = React.useState<Set<string>>(() => {
       const acc = new Set<string>();
       collectDefaultExpanded(nodes, acc);
@@ -165,6 +171,7 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
           const { node, level, expanded, expandable } = row;
           const Icon = node.icon;
           const isActive = node.id === activeId;
+          const isSelected = node.id === selectedId;
           return (
             <li
               key={node.id}
@@ -175,6 +182,7 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
               role="treeitem"
               aria-level={level}
               aria-expanded={expandable ? expanded : undefined}
+              aria-selected={selectedId !== undefined ? isSelected : undefined}
               tabIndex={isActive ? 0 : -1}
               onKeyDown={(e) => onKeyDown(e, row, index)}
               onFocus={() => setFocusedId(node.id)}
@@ -184,6 +192,7 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
                 isActive
                   ? "bg-surface-2 text-foreground"
                   : "text-foreground-muted",
+                isSelected && "bg-primary/10 font-medium text-foreground",
                 "hover:bg-surface-2/60 hover:text-foreground",
               )}
               style={{ paddingLeft: `${(level - 1) * 16 + 4}px` }}

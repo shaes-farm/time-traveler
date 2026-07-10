@@ -93,4 +93,17 @@ describe("Tree", () => {
     // Focus should move up to Root timeline.
     expect(rowFor("Root timeline")).toHaveAttribute("tabindex", "0");
   });
+
+  it("marks the selectedId row with aria-selected", () => {
+    render(<Tree aria-label="Hierarchy" nodes={NODES} selectedId="child-a" />);
+
+    expect(rowFor("Event A")).toHaveAttribute("aria-selected", "true");
+    expect(rowFor("Event B")).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("omits aria-selected entirely when selectedId is not provided", () => {
+    render(<Tree aria-label="Hierarchy" nodes={NODES} />);
+
+    expect(rowFor("Event A")).not.toHaveAttribute("aria-selected");
+  });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FolderTree, Plus } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
@@ -14,57 +14,32 @@ import {
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
 
 import { CategoryTree } from "./category-tree";
-import {
-  CategoryInspector,
-  type InspectorSelection,
-} from "./category-inspector";
-import { flattenTree, findNode } from "./category-tree-utils";
+import { flattenTree } from "./category-tree-utils";
 
-type Selection =
-  | { mode: "edit"; id: string }
-  | { mode: "create"; parentId: string | null }
-  | null;
-
-export function CategoryManagerClient({ userId }: { userId: string }) {
+/**
+ * The persistent left pane of the category manager: the tree, its header, and
+ * the "new category" affordance. Lives in the route-group layout, so it stays
+ * mounted while the inspector (`children`, driven by the nested route) swaps —
+ * preserving tree filter/expand state across create/edit navigation.
+ */
+export function CategoryManagerShell({
+  userId,
+  children,
+}: {
+  userId: string;
+  children: React.ReactNode;
+}) {
   const client = React.useMemo(() => getBrowserSupabaseClient(), []);
-  const searchParams = useSearchParams();
+  const router = useRouter();
+  const params = useParams<{ id?: string }>();
+  const selectedId = typeof params.id === "string" ? params.id : undefined;
 
   const treeQuery = useCategoryTree(client, userId);
   const usageQuery = useCategoryUsageCounts(client, userId);
 
-  // Deep-link: /categories?new=1 (topbar quick-create) opens the create form.
-  const newParam = searchParams.get("new");
-  const [selection, setSelection] = React.useState<Selection>(() =>
-    newParam !== null ? { mode: "create", parentId: null } : null,
-  );
-  // Open create when ?new=1 arrives while already on this page (the component
-  // stays mounted, so only the search param changes). Adjust-state-during-render
-  // on param change — React's alternative to an effect — fires once per change,
-  // so it won't clobber a selection the user makes after the form first opens.
-  const [prevNewParam, setPrevNewParam] = React.useState(newParam);
-  if (newParam !== prevNewParam) {
-    setPrevNewParam(newParam);
-    if (newParam !== null) setSelection({ mode: "create", parentId: null });
-  }
-
   const tree = React.useMemo(() => treeQuery.data ?? [], [treeQuery.data]);
   const total = React.useMemo(() => flattenTree(tree).length, [tree]);
   const rootCount = tree.length;
-
-  // Resolve the edit selection against the live tree; a deleted node clears it.
-  const inspectorSelection: InspectorSelection | null = React.useMemo(() => {
-    if (selection === null) return null;
-    if (selection.mode === "create") return selection;
-    const node = findNode(tree, selection.id);
-    return node ? { mode: "edit", node } : null;
-  }, [selection, tree]);
-
-  const selectionKey =
-    selection === null
-      ? "none"
-      : selection.mode === "edit"
-        ? `edit:${selection.id}`
-        : `create:${selection.parentId ?? "root"}`;
 
   return (
     <div className="flex h-full flex-col">
@@ -78,9 +53,7 @@ export function CategoryManagerClient({ userId }: { userId: string }) {
             </p>
           )}
         </div>
-        <Button
-          onClick={() => setSelection({ mode: "create", parentId: null })}
-        >
+        <Button onClick={() => router.push("/categories/new")}>
           <Plus className="mr-1.5 h-4 w-4" aria-hidden />
           New category
         </Button>
@@ -125,9 +98,7 @@ export function CategoryManagerClient({ userId }: { userId: string }) {
                   into a tree (Science → Physics → Quantum Mechanics).
                 </p>
               </div>
-              <Button
-                onClick={() => setSelection({ mode: "create", parentId: null })}
-              >
+              <Button onClick={() => router.push("/categories/new")}>
                 <Plus className="mr-1.5 h-4 w-4" aria-hidden />
                 New category
               </Button>
@@ -136,28 +107,14 @@ export function CategoryManagerClient({ userId }: { userId: string }) {
             <CategoryTree
               tree={tree}
               usage={usageQuery.data}
-              onSelect={(id) => setSelection({ mode: "edit", id })}
+              selectedId={selectedId}
+              onSelect={(id) => router.push(`/categories/${id}`)}
             />
           )}
         </main>
 
         <aside className="flex w-80 shrink-0 flex-col border-l border-border">
-          {inspectorSelection === null ? (
-            <div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-foreground-muted">
-              Select a category to edit, or create a new one.
-            </div>
-          ) : (
-            <CategoryInspector
-              key={selectionKey}
-              client={client}
-              tree={tree}
-              usage={usageQuery.data}
-              selection={inspectorSelection}
-              onSaved={(node) => setSelection({ mode: "edit", id: node.id })}
-              onDeleted={() => setSelection(null)}
-              onCancel={() => setSelection(null)}
-            />
-          )}
+          {children}
         </aside>
       </div>
     </div>
