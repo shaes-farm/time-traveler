@@ -4,23 +4,23 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 
 /**
- * Guards a dirty form against accidental navigation loss.
+ * Guards a dirty form against accidental navigation loss. Shared by every
+ * editor (timeline, event, period, story, character, and the category
+ * manager shell).
  *
  * Two surfaces are covered:
  *  - **Hard navigation** (reload / tab close / external link): a `beforeunload`
  *    listener triggers the browser's native confirmation while `isDirty`.
- *  - **In-app navigation** the form controls (Cancel button, breadcrumbs):
- *    call `requestNavigate(href)` instead of `router.push`. When dirty it
- *    defers the push and exposes `isConfirmOpen` so the caller can render a
- *    confirm dialog; on confirm it completes the navigation.
+ *  - **In-app navigation** the caller controls (Cancel/breadcrumbs, or — in the
+ *    category manager — switching tree nodes and "New category"): call
+ *    `requestNavigate(href)` instead of `router.push`. When dirty it defers the
+ *    push and exposes `isConfirmOpen` so the caller can render a confirm dialog;
+ *    on confirm it completes the navigation.
  *
  * NOTE: the App Router has no stable API to intercept arbitrary in-app
  * navigation (e.g. clicking a sidebar link), so only the surfaces routed
- * through `requestNavigate` are guarded in-app; `beforeunload` is the
- * backstop for everything else.
- *
- * (Route-local copy of the timeline editor's guard — kept per-route rather
- * than promoted to a shared hook to avoid a cross-route import.)
+ * through `requestNavigate` are guarded in-app; `beforeunload` is the backstop
+ * for everything else.
  */
 export function useUnsavedChangesGuard(isDirty: boolean) {
   const router = useRouter();
@@ -49,11 +49,11 @@ export function useUnsavedChangesGuard(isDirty: boolean) {
   );
 
   const confirmNavigation = React.useCallback(() => {
-    setPendingHref((href) => {
-      if (href !== null) router.push(href);
-      return null;
-    });
-  }, [router]);
+    // Push in the event handler, not inside the state updater — an updater runs
+    // during render, and navigating there triggers a Router update mid-render.
+    if (pendingHref !== null) router.push(pendingHref);
+    setPendingHref(null);
+  }, [pendingHref, router]);
 
   const cancelNavigation = React.useCallback(() => setPendingHref(null), []);
 

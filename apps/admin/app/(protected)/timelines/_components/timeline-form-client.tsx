@@ -64,7 +64,7 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
 
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
-import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   timelineFormSchema,
   BLANK_VALUES,

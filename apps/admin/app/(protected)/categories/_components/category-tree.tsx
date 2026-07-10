@@ -90,10 +90,12 @@ function toTreeNodes(
 export function CategoryTree({
   tree,
   usage,
+  selectedId,
   onSelect,
 }: {
   tree: CategoryNode[];
   usage: Record<string, number> | undefined;
+  selectedId?: string;
   onSelect: (id: string) => void;
 }) {
   const [filter, setFilter] = React.useState("");
@@ -135,6 +137,7 @@ export function CategoryTree({
           <Tree
             key={expandAll ? `filtered:${filter.trim()}` : "all"}
             nodes={nodes}
+            selectedId={selectedId}
             aria-label="Category hierarchy"
           />
         )}
