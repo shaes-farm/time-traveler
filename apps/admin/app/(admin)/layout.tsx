@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { getProfile, getUser } from "../../lib/auth";
-import { getServerSupabaseClient } from "../auth/_lib/server-supabase";
+import { getProfile } from "../../lib/auth";
+import {
+  getServerSupabaseClient,
+  getServerUser,
+} from "../auth/_lib/server-supabase";
 
 /**
  * Admin route group gate. Belt-and-suspenders with `proxy.ts`'s edge-
@@ -21,10 +24,10 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  const client = await getServerSupabaseClient();
-  const user = await getUser(client);
+  const user = await getServerUser();
   if (!user) redirect("/auth/login");
 
+  const client = await getServerSupabaseClient();
   const profile = await getProfile(client, user.id);
   if (profile?.role !== "admin") {
     redirect("/dashboard?error=forbidden");

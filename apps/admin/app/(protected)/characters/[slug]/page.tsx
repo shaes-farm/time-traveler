@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Skeleton } from "@repo/ui/components/skeleton";
-import { getUser } from "../../../../lib/auth";
-import { getServerSupabaseClient } from "../../../auth/_lib/server-supabase";
+import { getServerUser } from "../../../auth/_lib/server-supabase";
 import { CharacterDetailClient } from "./_components/character-detail-client";
 
 export const metadata = {
@@ -20,8 +19,7 @@ export default async function CharacterDetailPage({
   // protected layout) so the client hook can build its (userId, slug) query
   // key on first render without an auth round-trip / loading flash. Mirrors
   // the character editor's edit/page.tsx.
-  const client = await getServerSupabaseClient();
-  const user = await getUser(client);
+  const user = await getServerUser();
   if (!user) redirect("/auth/login");
 
   return (
