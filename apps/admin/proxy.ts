@@ -69,9 +69,14 @@ export const proxy = async (request: NextRequest): Promise<NextResponse> => {
     data: { user },
   } = await client.auth.getUser();
 
-  // Auth pages: redirect signed-in users away.
+  // Auth pages: redirect signed-in users away — except the two recovery
+  // routes. `/auth/callback` exchanges the code; `/auth/update-password` is
+  // the password-recovery form, which the user reaches *with* a (recovery)
+  // session, so bouncing "authenticated" users off it would break reset.
   if (isAuthRoute(pathname)) {
-    if (user && pathname !== "/auth/callback") {
+    const recoveryExempt =
+      pathname === "/auth/callback" || pathname === "/auth/update-password";
+    if (user && !recoveryExempt) {
       return NextResponse.redirect(new URL("/dashboard", origin));
     }
     return response;
