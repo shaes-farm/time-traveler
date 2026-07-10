@@ -111,41 +111,25 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
       new Map<string, HTMLLIElement | null>(),
     );
 
-    // Reveal the selected node: when `selectedId` is set (e.g. from the route),
-    // expand its ancestor chain so a deep or newly-created node isn't hidden in
-    // a collapsed subtree. A leaf only becomes expandable once it gains its
-    // first child, so its parent is never in the default-expanded set — this is
-    // what surfaces such a child. We adjust state during render (React's
-    // prop-change pattern) once per selection, so a later manual collapse
-    // sticks; if the node isn't in `nodes` yet (e.g. just created) we leave
-    // `revealedSelection` unset and retry when `nodes` updates.
-    const [revealedSelection, setRevealedSelection] = React.useState<
-      string | null
-    >(null);
-    if (selectedId === undefined) {
-      if (revealedSelection !== null) setRevealedSelection(null);
-    } else if (selectedId !== revealedSelection) {
+    // Reveal the selected node: expand its ancestor chain for this render so a
+    // deep or newly-created node isn't hidden in a collapsed subtree. A leaf
+    // only becomes expandable once it gains its first child, so its parent is
+    // never in the default-expanded set — this is what surfaces such a child.
+    // Derived, not stored: the render stays pure (no state writes), and
+    // `expandedIds` remains purely the user's own toggle state. Recomputing
+    // from `nodes` each render also means a just-created node reveals itself as
+    // soon as it appears in the tree.
+    const effectiveExpanded = React.useMemo(() => {
+      if (selectedId === undefined) return expandedIds;
       const ancestors = findAncestorPath(nodes, selectedId);
-      if (ancestors) {
-        setRevealedSelection(selectedId);
-        if (ancestors.length > 0) {
-          setExpandedIds((prev) => {
-            let changed = false;
-            const next = new Set(prev);
-            for (const id of ancestors) {
-              if (!next.has(id)) {
-                next.add(id);
-                changed = true;
-              }
-            }
-            return changed ? next : prev;
-          });
-        }
-      }
-    }
+      if (!ancestors || ancestors.length === 0) return expandedIds;
+      const merged = new Set(expandedIds);
+      for (const id of ancestors) merged.add(id);
+      return merged;
+    }, [selectedId, nodes, expandedIds]);
 
     const rows: FlatRow[] = [];
-    flatten(nodes, expandedIds, 1, rows);
+    flatten(nodes, effectiveExpanded, 1, rows);
 
     const activeId = focusedId ?? rows[0]?.node.id ?? null;
 
