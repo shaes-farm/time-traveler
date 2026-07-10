@@ -65,5 +65,5 @@ function extractLink(body: string, pattern: RegExp): string | null {
 }
 
 function decodeEntities(s: string): string {
-  return s.replace(/&#38;/g, "&").replace(/&amp;/g, "&");
+  return s.replace(/(?:&#38;|&amp;)/g, "&");
 }
