@@ -49,11 +49,11 @@ export function useUnsavedChangesGuard(isDirty: boolean) {
   );
 
   const confirmNavigation = React.useCallback(() => {
-    setPendingHref((href) => {
-      if (href !== null) router.push(href);
-      return null;
-    });
-  }, [router]);
+    // Push in the event handler, not inside the state updater — an updater runs
+    // during render, and navigating there triggers a Router update mid-render.
+    if (pendingHref !== null) router.push(pendingHref);
+    setPendingHref(null);
+  }, [pendingHref, router]);
 
   const cancelNavigation = React.useCallback(() => setPendingHref(null), []);
 

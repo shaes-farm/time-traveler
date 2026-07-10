@@ -219,6 +219,18 @@ test.describe("category CRUD spine", () => {
     const stamp = Date.now();
     const title = `E2E Guard ${stamp}`;
 
+    // Regression guard: confirming discard must not push during render (which
+    // logs "update a component while rendering a different component").
+    const renderErrors: string[] = [];
+    page.on("console", (msg) => {
+      if (
+        msg.type() === "error" &&
+        msg.text().includes("while rendering a different component")
+      ) {
+        renderErrors.push(msg.text());
+      }
+    });
+
     // Create a category, then land on its edit route and make an unsaved edit.
     await page.goto("/categories/new");
     await fillTitleAndSave(page, title);
@@ -254,5 +266,7 @@ test.describe("category CRUD spine", () => {
     await del.getByRole("button", { name: "Delete", exact: true }).click();
     await page.waitForURL("**/categories");
     await expect(treeItem(page, title)).toHaveCount(0);
+
+    expect(renderErrors).toEqual([]);
   });
 });
