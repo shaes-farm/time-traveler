@@ -269,4 +269,65 @@ test.describe("category CRUD spine", () => {
 
     expect(renderErrors).toEqual([]);
   });
+
+  test("warns before losing unsaved edits when navigating via the app shell", async ({
+    page,
+  }) => {
+    const stamp = Date.now();
+    const title = `E2E Shell ${stamp}`;
+
+    // Same render-phase regression guard as the in-manager case: the global
+    // confirm must push in the handler, never inside a state updater.
+    const renderErrors: string[] = [];
+    page.on("console", (msg) => {
+      if (
+        msg.type() === "error" &&
+        msg.text().includes("while rendering a different component")
+      ) {
+        renderErrors.push(msg.text());
+      }
+    });
+
+    await page.goto("/categories/new");
+    await fillTitleAndSave(page, title);
+    await expectEditRouteAndReadId(page, title);
+    await page.getByPlaceholder(TITLE_PLACEHOLDER).fill(`${title} UNSAVED`);
+
+    const nav = page.getByRole("navigation", { name: "Primary navigation" });
+
+    // Sidebar navigation is a plain <Link>; the global guard intercepts it via
+    // onNavigate while any editor is dirty. (This is the gap #370's local guard
+    // couldn't see.)
+    await nav.getByRole("link", { name: "Timelines" }).click();
+    const confirm = page.getByRole("dialog", {
+      name: "Discard unsaved changes?",
+    });
+    await expect(confirm).toBeVisible();
+
+    // Keep editing → stay put on the category edit route with the edit intact.
+    await confirm.getByRole("button", { name: "Keep editing" }).click();
+    await expect(confirm).toBeHidden();
+    await expect(page).toHaveURL(/\/categories\/[0-9a-f-]{36}$/);
+    await expect(page.getByPlaceholder(TITLE_PLACEHOLDER)).toHaveValue(
+      `${title} UNSAVED`,
+    );
+
+    // Retry and Discard → the sidebar navigation proceeds.
+    await nav.getByRole("link", { name: "Timelines" }).click();
+    await page
+      .getByRole("dialog", { name: "Discard unsaved changes?" })
+      .getByRole("button", { name: "Discard" })
+      .click();
+    await expect(page).toHaveURL(/\/timelines$/);
+
+    // Clean up: the edit was discarded, so the node keeps its saved title.
+    await page.goto("/categories");
+    await treeItem(page, title).click();
+    const del = await openDeleteDialog(page);
+    await del.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.waitForURL("**/categories");
+    await expect(treeItem(page, title)).toHaveCount(0);
+
+    expect(renderErrors).toEqual([]);
+  });
 });

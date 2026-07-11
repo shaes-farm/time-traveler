@@ -20,6 +20,7 @@ import {
   useCategoryUsageCounts,
 } from "@repo/ui/hooks/use-categories";
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
+import { useRegisterUnsavedChanges } from "../../../../lib/use-register-unsaved-changes";
 import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 
 import { CategoryTree } from "./category-tree";
@@ -50,6 +51,7 @@ export function CategoryManagerShell({
   const setDirty = React.useCallback((dirty: boolean) => setIsDirty(dirty), []);
   const guardValue = React.useMemo(() => ({ setDirty }), [setDirty]);
   const guard = useUnsavedChangesGuard(isDirty);
+  useRegisterUnsavedChanges(isDirty);
 
   const treeQuery = useCategoryTree(client, userId);
   const usageQuery = useCategoryUsageCounts(client, userId);
