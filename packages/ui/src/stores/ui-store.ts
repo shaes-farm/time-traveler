@@ -100,18 +100,23 @@ export const useUiStore = create<UiStore>()(
             "removeToast",
           ),
 
-        setEditorDirty: (id, dirty) =>
+        setEditorDirty: (id, dirty) => {
+          // No-op when the flag already matches: skips the Set rebuild and
+          // avoids notifying subscribers for an idempotent call.
+          if (get().dirtyEditors.has(id) === dirty) return;
           set(
-            () => {
-              // Rebuild the Set so the reference changes and subscribers re-render.
-              const next = new Set(get().dirtyEditors);
+            (state) => {
+              // Rebuild from the updater's `state` (not the outer `get()`) so the
+              // Set is derived from the snapshot `set` is actually applying.
+              const next = new Set(state.dirtyEditors);
               if (dirty) next.add(id);
               else next.delete(id);
               return { dirtyEditors: next };
             },
             false,
             "setEditorDirty",
-          ),
+          );
+        },
 
         requestShellNavigate: (href) =>
           set({ pendingNavigation: href }, false, "requestShellNavigate"),
