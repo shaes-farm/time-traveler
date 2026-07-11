@@ -8,13 +8,19 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
-    include: ["app/**/*.test.{ts,tsx}"],
+    include: [
+      "app/**/*.test.{ts,tsx}",
+      "lib/**/*.test.{ts,tsx}",
+      "components/**/*.test.{ts,tsx}",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
       // Scope to files that have tests (ADR-0026: no coverage theater on
       // untested app boilerplate). Expand this list as app test coverage grows.
       include: [
+        "lib/use-register-unsaved-changes.ts",
+        "components/shell-link.tsx",
         "app/**/_components/media/attach-media-dialog.tsx",
         "app/**/_components/media/media-library.tsx",
         "app/**/_components/media/media-section.tsx",

@@ -9,6 +9,8 @@ beforeEach(() => {
     activeModal: null,
     modalData: {},
     toasts: [],
+    dirtyEditors: new Set<string>(),
+    pendingNavigation: null,
   });
 });
 
@@ -177,6 +179,67 @@ describe("removeToast", () => {
   });
 });
 
+describe("setEditorDirty", () => {
+  it("registers a dirty editor by id", () => {
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    expect(useUiStore.getState().dirtyEditors.has("editor-a")).toBe(true);
+  });
+
+  it("ref-counts across editors — clearing one keeps others dirty", () => {
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    useUiStore.getState().setEditorDirty("editor-b", true);
+    expect(useUiStore.getState().dirtyEditors.size).toBe(2);
+
+    useUiStore.getState().setEditorDirty("editor-a", false);
+    const { dirtyEditors } = useUiStore.getState();
+    expect(dirtyEditors.has("editor-a")).toBe(false);
+    expect(dirtyEditors.has("editor-b")).toBe(true);
+    expect(dirtyEditors.size).toBe(1);
+  });
+
+  it("clearing the last dirty editor empties the set", () => {
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    useUiStore.getState().setEditorDirty("editor-a", false);
+    expect(useUiStore.getState().dirtyEditors.size).toBe(0);
+  });
+
+  it("produces a new Set reference so subscribers re-render", () => {
+    const before = useUiStore.getState().dirtyEditors;
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    expect(useUiStore.getState().dirtyEditors).not.toBe(before);
+  });
+
+  it("registering the same id twice is idempotent", () => {
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    expect(useUiStore.getState().dirtyEditors.size).toBe(1);
+  });
+});
+
+describe("shell navigation guard", () => {
+  it("requestShellNavigate stashes the pending href", () => {
+    useUiStore.getState().requestShellNavigate("/characters");
+    expect(useUiStore.getState().pendingNavigation).toBe("/characters");
+  });
+
+  it("cancelShellNavigate clears the pending href without touching dirty flags", () => {
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    useUiStore.getState().requestShellNavigate("/characters");
+    useUiStore.getState().cancelShellNavigate();
+    expect(useUiStore.getState().pendingNavigation).toBeNull();
+    expect(useUiStore.getState().dirtyEditors.has("editor-a")).toBe(true);
+  });
+
+  it("confirmShellNavigate clears both the pending href and all dirty flags", () => {
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    useUiStore.getState().setEditorDirty("editor-b", true);
+    useUiStore.getState().requestShellNavigate("/timelines");
+    useUiStore.getState().confirmShellNavigate();
+    expect(useUiStore.getState().pendingNavigation).toBeNull();
+    expect(useUiStore.getState().dirtyEditors.size).toBe(0);
+  });
+});
+
 describe("persist partialize", () => {
   it("only persists sidebarOpen and sidebarWidth", () => {
     useUiStore.getState().setSidebarWidth(360);
@@ -185,6 +248,8 @@ describe("persist partialize", () => {
     useUiStore
       .getState()
       .addToast({ id: "t-1", message: "hi", variant: "default" });
+    useUiStore.getState().setEditorDirty("editor-a", true);
+    useUiStore.getState().requestShellNavigate("/dashboard");
 
     const stored = useUiStore.persist
       .getOptions()
@@ -195,6 +260,8 @@ describe("persist partialize", () => {
     expect(stored).not.toHaveProperty("activeModal");
     expect(stored).not.toHaveProperty("modalData");
     expect(stored).not.toHaveProperty("toasts");
+    expect(stored).not.toHaveProperty("dirtyEditors");
+    expect(stored).not.toHaveProperty("pendingNavigation");
   });
 });
 
@@ -207,6 +274,8 @@ describe("UiState type completeness", () => {
       "activeModal",
       "modalData",
       "toasts",
+      "dirtyEditors",
+      "pendingNavigation",
     ];
     requiredKeys.forEach((key) => {
       expect(state).toHaveProperty(key);

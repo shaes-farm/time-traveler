@@ -64,6 +64,7 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
 
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
+import { useRegisterUnsavedChanges } from "../../../../lib/use-register-unsaved-changes";
 import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   timelineFormSchema,
@@ -239,6 +240,7 @@ export function TimelineFormClient(props: Props) {
 
   const isDirty = form.formState.isDirty;
   const guard = useUnsavedChangesGuard(isDirty);
+  useRegisterUnsavedChanges(isDirty);
 
   // Confirm dialog state for switching timeline_type away from biographical.
   const [pendingType, setPendingType] = React.useState<TimelineType | null>(
