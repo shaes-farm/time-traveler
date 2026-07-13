@@ -57,7 +57,8 @@ import {
   type AttachedMedia,
 } from "../../_components/media/media-section";
 import { AttachMediaDialog } from "../../_components/media/attach-media-dialog";
-import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+import { useRegisterUnsavedChanges } from "../../../../lib/use-register-unsaved-changes";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   characterFormSchema,
   BLANK_VALUES,
@@ -406,6 +407,7 @@ export function CharacterFormClient(props: Props) {
 
   const isDirty = form.formState.isDirty;
   const guard = useUnsavedChangesGuard(isDirty);
+  useRegisterUnsavedChanges(isDirty);
 
   const [pendingTypeChange, setPendingTypeChange] =
     React.useState<PendingTypeChange | null>(null);

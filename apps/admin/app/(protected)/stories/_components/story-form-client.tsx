@@ -62,7 +62,8 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
-import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+import { useRegisterUnsavedChanges } from "../../../../lib/use-register-unsaved-changes";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   storyFormSchema,
   BLANK_VALUES,
@@ -223,6 +224,7 @@ export function StoryFormClient(props: Props) {
 
   const isDirty = form.formState.isDirty;
   const guard = useUnsavedChangesGuard(isDirty);
+  useRegisterUnsavedChanges(isDirty);
 
   const [autosaveAt, setAutosaveAt] = React.useState<Date | null>(null);
   const [addAnotherNote, setAddAnotherNote] = React.useState(false);

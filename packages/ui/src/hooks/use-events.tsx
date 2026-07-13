@@ -196,9 +196,12 @@ export function useUpdateEvent(client: ServiceClient) {
         queryClient.setQueryData(eventKeys.detail(id), context.previous);
       }
     },
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({ queryKey: eventKeys.detail(id) });
-      void queryClient.invalidateQueries({ queryKey: eventKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix so lists, bySlug, AND the detail view's
+      // `detail-auth` query (all under eventKeys.all) refresh — matching
+      // useUpdateTimeline and usePublishEvent. The narrower detail(id)+lists()
+      // did not cover the detail-auth key the detail page reads.
+      void queryClient.invalidateQueries({ queryKey: eventKeys.all });
     },
   });
 }

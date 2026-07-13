@@ -26,7 +26,6 @@ vi.mock("@repo/services/timeline-service", () => ({
   getTimelines: vi.fn(),
   getTimelinesPage: vi.fn(),
   getTimelineById: vi.fn(),
-  getTimelineBySlug: vi.fn(),
   createTimeline: vi.fn(),
   updateTimeline: vi.fn(),
   deleteTimeline: vi.fn(),

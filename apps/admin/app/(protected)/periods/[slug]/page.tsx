@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Skeleton } from "@repo/ui/components/skeleton";
-import { getUser } from "../../../../lib/auth";
-import { getServerSupabaseClient } from "../../../auth/_lib/server-supabase";
+import { getServerUser } from "../../../auth/_lib/server-supabase";
 import { PeriodDetailClient } from "./_components/period-detail-client";
 
 export const metadata = {
@@ -19,8 +18,7 @@ export default async function PeriodDetailPage({
   // Resolve the owner id server-side (session already validated by the
   // protected layout) so the client hook can build its (userId, slug) query
   // key on first render without an auth round-trip / loading flash.
-  const client = await getServerSupabaseClient();
-  const user = await getUser(client);
+  const user = await getServerUser();
   if (!user) redirect("/auth/login");
 
   return (

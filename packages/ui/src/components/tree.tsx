@@ -37,6 +37,12 @@ export interface TreeNode {
 export interface TreeProps extends React.HTMLAttributes<HTMLUListElement> {
   nodes: TreeNode[];
   "aria-label": string;
+  /**
+   * Id of the currently-selected node (e.g. the row the route is showing).
+   * Distinct from roving-tabindex focus: it persists a visible selection and
+   * sets `aria-selected` on the matching treeitem.
+   */
+  selectedId?: string;
 }
 
 interface FlatRow {
@@ -73,8 +79,27 @@ function collectDefaultExpanded(nodes: TreeNode[], acc: Set<string>): void {
   }
 }
 
+/**
+ * The ancestor id path from the forest down to (but excluding) `targetId`, or
+ * null if the id isn't present. Used to reveal a selected node by expanding its
+ * ancestors. An empty array means the target is a root (no ancestors).
+ */
+function findAncestorPath(
+  nodes: TreeNode[],
+  targetId: string,
+): string[] | null {
+  for (const node of nodes) {
+    if (node.id === targetId) return [];
+    if (node.children) {
+      const sub = findAncestorPath(node.children, targetId);
+      if (sub) return [node.id, ...sub];
+    }
+  }
+  return null;
+}
+
 export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
-  ({ nodes, className, ...props }, ref) => {
+  ({ nodes, className, selectedId, ...props }, ref) => {
     const [expandedIds, setExpandedIds] = React.useState<Set<string>>(() => {
       const acc = new Set<string>();
       collectDefaultExpanded(nodes, acc);
@@ -86,8 +111,25 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
       new Map<string, HTMLLIElement | null>(),
     );
 
+    // Reveal the selected node: expand its ancestor chain for this render so a
+    // deep or newly-created node isn't hidden in a collapsed subtree. A leaf
+    // only becomes expandable once it gains its first child, so its parent is
+    // never in the default-expanded set — this is what surfaces such a child.
+    // Derived, not stored: the render stays pure (no state writes), and
+    // `expandedIds` remains purely the user's own toggle state. Recomputing
+    // from `nodes` each render also means a just-created node reveals itself as
+    // soon as it appears in the tree.
+    const effectiveExpanded = React.useMemo(() => {
+      if (selectedId === undefined) return expandedIds;
+      const ancestors = findAncestorPath(nodes, selectedId);
+      if (!ancestors || ancestors.length === 0) return expandedIds;
+      const merged = new Set(expandedIds);
+      for (const id of ancestors) merged.add(id);
+      return merged;
+    }, [selectedId, nodes, expandedIds]);
+
     const rows: FlatRow[] = [];
-    flatten(nodes, expandedIds, 1, rows);
+    flatten(nodes, effectiveExpanded, 1, rows);
 
     const activeId = focusedId ?? rows[0]?.node.id ?? null;
 
@@ -165,6 +207,7 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
           const { node, level, expanded, expandable } = row;
           const Icon = node.icon;
           const isActive = node.id === activeId;
+          const isSelected = node.id === selectedId;
           return (
             <li
               key={node.id}
@@ -175,6 +218,7 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
               role="treeitem"
               aria-level={level}
               aria-expanded={expandable ? expanded : undefined}
+              aria-selected={selectedId !== undefined ? isSelected : undefined}
               tabIndex={isActive ? 0 : -1}
               onKeyDown={(e) => onKeyDown(e, row, index)}
               onFocus={() => setFocusedId(node.id)}
@@ -184,6 +228,7 @@ export const Tree = React.forwardRef<HTMLUListElement, TreeProps>(
                 isActive
                   ? "bg-surface-2 text-foreground"
                   : "text-foreground-muted",
+                isSelected && "bg-primary/10 font-medium text-foreground",
                 "hover:bg-surface-2/60 hover:text-foreground",
               )}
               style={{ paddingLeft: `${(level - 1) * 16 + 4}px` }}

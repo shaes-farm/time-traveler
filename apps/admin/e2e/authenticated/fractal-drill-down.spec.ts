@@ -24,7 +24,7 @@ test.describe("fractal drill-down", () => {
   test("Tree view marks the expandable event and drills into it", async ({
     page,
   }) => {
-    await page.goto(`/timelines/${fx.timelineSlug}`);
+    await page.goto(`/timelines/${fx.timelineId}`);
 
     // The Events tab is the default; with events present, the view toggle shows.
     const viewToggle = page.getByRole("group", { name: "Events view" });

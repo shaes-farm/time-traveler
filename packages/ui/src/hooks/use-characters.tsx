@@ -252,11 +252,12 @@ export function useUpdateCharacter(client: ServiceClient) {
         queryClient.setQueryData(characterKeys.detail(id), context.previous);
       }
     },
-    onSuccess: (_data, { id }) => {
-      void queryClient.invalidateQueries({
-        queryKey: characterKeys.detail(id),
-      });
-      void queryClient.invalidateQueries({ queryKey: characterKeys.lists() });
+    onSuccess: () => {
+      // Invalidate by prefix so bySlug (used by the detail page) and other
+      // derived queries stay consistent — mirrors usePublish/useDelete.
+      // Invalidating only detail(id)+lists() left the detail page stale after
+      // a rename, since the detail page reads characterKeys.bySlug.
+      void queryClient.invalidateQueries({ queryKey: characterKeys.all });
     },
   });
 }

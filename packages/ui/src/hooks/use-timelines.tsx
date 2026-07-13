@@ -13,7 +13,6 @@ import {
   getTimelines,
   getTimelinesPage,
   getTimelineById,
-  getTimelineBySlug,
   createTimeline,
   updateTimeline,
   deleteTimeline,
@@ -59,7 +58,6 @@ export const timelineKeys = {
     [...timelineKeys.pages(), filters] as const,
   details: () => [...timelineKeys.all, "detail"] as const,
   detail: (id: string) => [...timelineKeys.details(), id] as const,
-  bySlug: (slug: string) => [...timelineKeys.all, "slug", slug] as const,
   collaborators: (id: string) =>
     [...timelineKeys.all, "collaborators", id] as const,
   /** The "also appears in" timeline_events memberships for a given event. */
@@ -108,35 +106,18 @@ export function useTimelinesPage(
   });
 }
 
-/** Fetch a single timeline by UUID with related data. */
+/** Fetch a single timeline by UUID with related data (null when not found). */
 export function useTimeline(
   client: ServiceClient,
   id: string,
   options?: Omit<
-    UseQueryOptions<TimelineWithRelations>,
+    UseQueryOptions<TimelineWithRelations | null>,
     "queryKey" | "queryFn"
   >,
 ) {
   return useQuery({
     queryKey: timelineKeys.detail(id),
     queryFn: () => getTimelineById(client, id),
-    staleTime: 60_000,
-    ...options,
-  });
-}
-
-/** Fetch a single timeline by slug. Access is governed by RLS. */
-export function useTimelineBySlug(
-  client: ServiceClient,
-  slug: string,
-  options?: Omit<
-    UseQueryOptions<TimelineWithRelations>,
-    "queryKey" | "queryFn"
-  >,
-) {
-  return useQuery({
-    queryKey: timelineKeys.bySlug(slug),
-    queryFn: () => getTimelineBySlug(client, slug),
     staleTime: 60_000,
     ...options,
   });
@@ -240,7 +221,7 @@ export function useUpdateTimeline(client: ServiceClient) {
       }
     },
     onSuccess: () => {
-      // Invalidate by prefix to keep bySlug and collaborator queries consistent.
+      // Invalidate by prefix to keep detail and collaborator queries consistent.
       void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
@@ -253,7 +234,7 @@ export function useDeleteTimeline(client: ServiceClient) {
     mutationFn: (id: string) => deleteTimeline(client, id),
     onSuccess: (_data, id) => {
       queryClient.removeQueries({ queryKey: timelineKeys.detail(id) });
-      // Invalidate by prefix to keep lists, bySlug, and collaborator queries consistent.
+      // Invalidate by prefix to keep lists, detail, and collaborator queries consistent.
       void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
@@ -265,7 +246,7 @@ export function usePublishTimeline(client: ServiceClient) {
   return useMutation({
     mutationFn: (id: string) => publishTimeline(client, id),
     onSuccess: () => {
-      // Invalidate by prefix to keep lists, bySlug, and collaborator queries consistent.
+      // Invalidate by prefix to keep lists, detail, and collaborator queries consistent.
       void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });
@@ -277,7 +258,7 @@ export function useUnpublishTimeline(client: ServiceClient) {
   return useMutation({
     mutationFn: (id: string) => unpublishTimeline(client, id),
     onSuccess: () => {
-      // Invalidate by prefix to keep lists, bySlug, and collaborator queries consistent.
+      // Invalidate by prefix to keep lists, detail, and collaborator queries consistent.
       void queryClient.invalidateQueries({ queryKey: timelineKeys.all });
     },
   });

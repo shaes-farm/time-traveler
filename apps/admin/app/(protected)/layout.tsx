@@ -1,8 +1,11 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import type { ShellUser } from "@repo/ui/components/shell";
-import { getUser, getProfile } from "../../lib/auth";
-import { getServerSupabaseClient } from "../auth/_lib/server-supabase";
+import { getProfile } from "../../lib/auth";
+import {
+  getServerSupabaseClient,
+  getServerUser,
+} from "../auth/_lib/server-supabase";
 import { ProtectedShell } from "./_components/protected-shell";
 
 /**
@@ -16,10 +19,10 @@ export default async function ProtectedLayout({
 }: {
   children: ReactNode;
 }) {
-  const client = await getServerSupabaseClient();
-  const user = await getUser(client);
+  const user = await getServerUser();
   if (!user || !user.email) redirect("/auth/login");
 
+  const client = await getServerSupabaseClient();
   const profile = await getProfile(client, user.id);
   const shellUser: ShellUser = {
     name: profile ? `${profile.firstName} ${profile.lastName}` : user.email,

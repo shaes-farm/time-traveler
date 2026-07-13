@@ -91,21 +91,6 @@ export class TimelinePublishError extends Error {
   }
 }
 
-/**
- * Thrown by getTimelineBySlug when a slug resolves to zero rows (`not_found`)
- * or — because slug is only unique per owner (`UNIQUE (user_id, slug)`) — to
- * more than one visible row (`ambiguous_slug`).
- */
-export class TimelineLookupError extends Error {
-  constructor(
-    public readonly code: "not_found" | "ambiguous_slug",
-    message: string,
-  ) {
-    super(message);
-    this.name = "TimelineLookupError";
-  }
-}
-
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
@@ -237,62 +222,30 @@ export async function getTimelinesPage(
 
 /**
  * Fetches a single timeline by UUID, including collaborators, linked events,
- * and linked media.
+ * and linked media. This is the canonical detail lookup: the UUID primary key
+ * is globally unique, so it resolves deterministically for owners *and*
+ * collaborators (RLS `read_timelines` = owner OR is_timeline_collaborator).
+ * Routing on the UUID avoids the slug ambiguity of `UNIQUE (user_id, slug)`
+ * (#234). Returns `null` when the id is unknown, deleted, or RLS-hidden — a
+ * missing row is a not-found, not an exception (cf. ADR-0029 IMP-004). This
+ * also avoids a raw PostgREST coercion error during the brief window a detail
+ * page refetches an entity that was just deleted. Still throws on a real DB
+ * error.
  */
 export async function getTimelineById(
   client: SupabaseClient<Database>,
   id: string,
-): Promise<TimelineWithRelations> {
+): Promise<TimelineWithRelations | null> {
   const { data, error } = await client
     .from("timelines")
     .select(
       "*, timeline_collaborators(*), timeline_events(*), timeline_media(*)",
     )
     .eq("id", id)
-    .single();
+    .maybeSingle();
 
   assertNoError(error, "getTimelineById");
-  return data as TimelineWithRelations;
-}
-
-/**
- * Fetches a single timeline by slug under RLS (so collaborators, not just the
- * owner, can load it), including collaborators, linked events, and linked media.
- *
- * Because the DB uniqueness constraint is `UNIQUE (user_id, slug)`, slug is not
- * globally unique: a viewer who can see two same-slug timelines from different
- * owners would match multiple rows. Rather than letting `.single()` surface a
- * raw PostgREST error, this throws a typed `TimelineLookupError` —
- * `ambiguous_slug` for >1 match, `not_found` for 0. A future route redesign
- * (key on UUID or owner+slug) is tracked in #234.
- */
-export async function getTimelineBySlug(
-  client: SupabaseClient<Database>,
-  slug: string,
-): Promise<TimelineWithRelations> {
-  const { data, error } = await client
-    .from("timelines")
-    .select(
-      "*, timeline_collaborators(*), timeline_events(*), timeline_media(*)",
-    )
-    .eq("slug", slug);
-
-  assertNoError(error, "getTimelineBySlug");
-
-  const rows = (data ?? []) as TimelineWithRelations[];
-  if (rows.length > 1) {
-    throw new TimelineLookupError(
-      "ambiguous_slug",
-      `Slug "${slug}" matches ${rows.length} timelines; it is unique only per owner.`,
-    );
-  }
-  if (rows.length === 0) {
-    throw new TimelineLookupError(
-      "not_found",
-      `No timeline found for slug "${slug}".`,
-    );
-  }
-  return rows[0]!;
+  return data as TimelineWithRelations | null;
 }
 
 /**

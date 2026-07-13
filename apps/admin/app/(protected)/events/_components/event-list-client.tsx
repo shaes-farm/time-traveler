@@ -313,7 +313,7 @@ interface TimelineInfo {
 function buildColumns(
   onRowClick: (row: EventListRow) => void,
   timelineInfo: Map<string, TimelineInfo>,
-  onOpenSubTimeline: (slug: string) => void,
+  onOpenSubTimeline: (id: string) => void,
 ): DataTableProps<EventListRow, unknown>["columns"] {
   return [
     createSelectColumn<EventListRow>(),
@@ -324,10 +324,11 @@ function buildColumns(
       cell: ({ row }: { row: { original: EventListRow } }) => {
         const e = row.original;
         // ⤵ marks an event that expands into a sub-timeline (annotation #3).
-        // Blank for leaf events. Clicking opens the sub-timeline when its slug
-        // is known (i.e. it's among the user's own timelines).
+        // Blank for leaf events. Clicking opens the sub-timeline when it's
+        // known (i.e. it's among the timelines visible to the user).
         if (e.detail_timeline_id === null) return null;
-        const sub = timelineInfo.get(e.detail_timeline_id);
+        const subTimelineId = e.detail_timeline_id;
+        const sub = timelineInfo.get(subTimelineId);
         if (!sub) {
           return (
             <CornerDownRight
@@ -341,7 +342,7 @@ function buildColumns(
             type="button"
             onClick={(ev) => {
               ev.stopPropagation();
-              onOpenSubTimeline(sub.slug);
+              onOpenSubTimeline(subTimelineId);
             }}
             aria-label={`Open sub-timeline: ${sub.title}`}
             title={`Open sub-timeline: ${sub.title}`}
@@ -696,8 +697,8 @@ export function EventListClient() {
   );
 
   const handleOpenSubTimeline = React.useCallback(
-    (slug: string) => {
-      router.push(`/timelines/${slug}`);
+    (id: string) => {
+      router.push(`/timelines/${id}`);
     },
     [router],
   );

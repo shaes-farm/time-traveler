@@ -14,7 +14,7 @@ import {
 import { generateSlug } from "@repo/services/utils/slug";
 
 import {
-  useTimelineBySlug,
+  useTimeline,
   useCreateTimeline,
   useUpdateTimeline,
 } from "@repo/ui/hooks/use-timelines";
@@ -64,7 +64,8 @@ import { Textarea } from "@repo/ui/components/textarea";
 import { cn } from "@repo/ui/lib/utils";
 
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
-import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
+import { useRegisterUnsavedChanges } from "../../../../lib/use-register-unsaved-changes";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   timelineFormSchema,
   BLANK_VALUES,
@@ -198,8 +199,7 @@ function SubjectCharacterPicker({
 // Main component
 // ---------------------------------------------------------------------------
 
-type Props =
-  { mode: "create" } | { mode: "edit"; userId: string; slug: string };
+type Props = { mode: "create" } | { mode: "edit"; id: string };
 
 export function TimelineFormClient(props: Props) {
   const router = useRouter();
@@ -209,16 +209,16 @@ export function TimelineFormClient(props: Props) {
   const createTimeline = useCreateTimeline(client);
   const updateTimeline = useUpdateTimeline(client);
 
-  // Edit mode: fetch the existing row (userId resolved server-side).
+  // Edit mode: fetch the existing row by its UUID primary key.
   const isEdit = props.mode === "edit";
-  const editQuery = useTimelineBySlug(client, isEdit ? props.slug : "", {
+  const editQuery = useTimeline(client, isEdit ? props.id : "", {
     enabled: isEdit,
   });
 
   // Cancel returns to the timeline being edited (its detail page); when
   // creating, there is no detail page yet, so fall back to the list.
   const cancelHref =
-    props.mode === "edit" ? `/timelines/${props.slug}` : "/timelines";
+    props.mode === "edit" ? `/timelines/${props.id}` : "/timelines";
 
   const form = useForm<TimelineFormValues>({
     resolver: zodResolver(timelineFormSchema) as Resolver<TimelineFormValues>,
@@ -231,13 +231,16 @@ export function TimelineFormClient(props: Props) {
   const hydratedRef = React.useRef(false);
   const editRow = editQuery.data;
   React.useEffect(() => {
-    if (!isEdit || hydratedRef.current || editRow === undefined) return;
+    // `editRow == null` covers both the pending (undefined) and not-found
+    // (null) cases — never hydrate the form from a missing timeline.
+    if (!isEdit || hydratedRef.current || editRow == null) return;
     form.reset(mapRowToFormValues(editRow));
     hydratedRef.current = true;
   }, [isEdit, editRow, form]);
 
   const isDirty = form.formState.isDirty;
   const guard = useUnsavedChangesGuard(isDirty);
+  useRegisterUnsavedChanges(isDirty);
 
   // Confirm dialog state for switching timeline_type away from biographical.
   const [pendingType, setPendingType] = React.useState<TimelineType | null>(
@@ -255,15 +258,15 @@ export function TimelineFormClient(props: Props) {
   // -------------------------------------------------------------------------
 
   const finalize = React.useCallback(
-    (slug: string, addAnother: boolean) => {
+    (id: string, addAnother: boolean) => {
       // Mark the form clean so the unsaved-changes guard won't fire on redirect.
       if (addAnother) {
         form.reset(BLANK_VALUES);
         return;
       }
-      // TODO(#44): redirect to the protected timeline detail page once it
-      // exists. Until then `/timelines/[slug]` resolves to the public reader.
-      router.push(`/timelines/${slug}`);
+      // Redirect to the timeline detail page, keyed on the UUID primary key
+      // (deterministic for owners and collaborators — #234).
+      router.push(`/timelines/${id}`);
     },
     [form, router],
   );
@@ -274,17 +277,17 @@ export function TimelineFormClient(props: Props) {
       addAnotherRef.current = false;
 
       try {
-        let savedSlug: string;
+        let savedId: string;
 
         if (isEdit) {
           const row = await updateTimeline.mutateAsync({
             id: editRow!.id,
             data: toUpdateData(values),
           });
-          savedSlug = row.slug;
+          savedId = row.id;
         } else {
           const row = await createTimeline.mutateAsync(toCreateInput(values));
-          savedSlug = row.slug;
+          savedId = row.id;
         }
 
         // Reset to the saved values so isDirty clears before any redirect.
@@ -295,7 +298,7 @@ export function TimelineFormClient(props: Props) {
           variant: "success",
         });
 
-        finalize(savedSlug, addAnother);
+        finalize(savedId, addAnother);
       } catch {
         // Mutation errors surface via the form-level Alert below.
       }
@@ -381,6 +384,21 @@ export function TimelineFormClient(props: Props) {
             {editQuery.error instanceof Error
               ? editQuery.error.message
               : "Unknown error."}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Fetch succeeded but the timeline is gone (deleted / RLS-hidden). getTimelineById
+  // returns null rather than throwing, so this is not an `isError` state.
+  if (isEdit && editRow === null) {
+    return (
+      <div className="p-6">
+        <Alert role="alert">
+          <AlertTitle>Timeline not found</AlertTitle>
+          <AlertDescription>
+            This timeline no longer exists or you don’t have access to it.
           </AlertDescription>
         </Alert>
       </div>

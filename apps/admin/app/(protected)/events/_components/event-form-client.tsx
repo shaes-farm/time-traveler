@@ -68,7 +68,8 @@ import { cn } from "@repo/ui/lib/utils";
 
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
 // The unsaved-changes guard is feature-agnostic; reuse the timeline editor's.
-import { useUnsavedChangesGuard } from "../../timelines/_components/use-unsaved-changes-guard";
+import { useRegisterUnsavedChanges } from "../../../../lib/use-register-unsaved-changes";
+import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 import {
   eventFormSchema,
   BLANK_VALUES,
@@ -360,6 +361,7 @@ export function EventFormClient(props: Props) {
 
   const isDirty = form.formState.isDirty;
   const guard = useUnsavedChangesGuard(isDirty);
+  useRegisterUnsavedChanges(isDirty);
 
   const addAnotherRef = React.useRef(false);
 
