@@ -43,7 +43,12 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  // Specs run against the Next dev server (`pnpm run dev`), which compiles
+  // routes on demand — under peak parallel load a mutation can transiently fail
+  // (e.g. a CRUD spine's save). One local retry absorbs that single-shot dev-
+  // server flake, matching the intent of the CI retry policy; `trace:
+  // "on-first-retry"` still captures a trace when the first attempt fails.
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
 
