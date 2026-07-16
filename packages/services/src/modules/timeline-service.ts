@@ -182,7 +182,14 @@ export async function getTimelinesPage(
   // Only filter by published when exactly one value is requested.
   // Omitting the predicate when both or neither are selected avoids a no-op filter.
   if (published !== undefined) {
-    query = query.eq("published", published);
+    // "draft" (published === false) must also match NULL rows: `published` is
+    // nullable (BOOLEAN DEFAULT false, no NOT NULL — migration 00001) and the
+    // list badge renders NULL as "Draft", so the filter has to too — otherwise
+    // a NULL row shows "Draft" yet vanishes under the Draft filter.
+    // `not.is.true` = published IS NOT TRUE (false OR NULL). See #331.
+    query = published
+      ? query.eq("published", true)
+      : query.not("published", "is", true);
   }
 
   if (userId !== undefined) {

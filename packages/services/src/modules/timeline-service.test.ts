@@ -47,6 +47,7 @@ function makeBuilder(result: {
     upsert: vi.fn().mockReturnThis(),
     delete: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
+    not: vi.fn().mockReturnThis(),
     in: vi.fn().mockReturnThis(),
     ilike: vi.fn().mockReturnThis(),
     textSearch: vi.fn().mockReturnThis(),
@@ -323,14 +324,14 @@ describe("getTimelinesPage", () => {
     expect(builder.eq).toHaveBeenCalledWith("published", true);
   });
 
-  it("applies published=false filter", async () => {
+  it("applies published=false as `not published is true` (matches NULL drafts) (#331)", async () => {
     const client = makeClient({
       fromResult: { data: [], error: null, count: 0 },
     });
     await getTimelinesPage(client, { published: false });
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.eq).toHaveBeenCalledWith("published", false);
+    expect(builder.not).toHaveBeenCalledWith("published", "is", true);
   });
 
   it("sorts by title ascending", async () => {
