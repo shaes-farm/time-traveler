@@ -552,6 +552,21 @@ export function EventListClient() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
+  // Clamp an out-of-range page (e.g. a bulk delete shrank the result set below
+  // the current page, or a deep link points past the last page) back to the
+  // last valid page. Gated on !isPending so a legitimately deep-linked page
+  // isn't clamped before its data loads. Builds from window.location like
+  // updateParams (see #329) and mirrors handlePageChange's "page 1 → drop the
+  // param" convention.
+  React.useEffect(() => {
+    if (isPending || isError) return;
+    if (parsed.page <= totalPages) return;
+    const next = new URLSearchParams(window.location.search);
+    if (totalPages <= 1) next.delete("page");
+    else next.set("page", String(totalPages));
+    router.replace(`?${next.toString()}`, { scroll: false });
+  }, [isPending, isError, parsed.page, totalPages, router]);
+
   // Selection lives on the current page only; reset it whenever the query
   // (filters/sort/page) changes so stale ids never leak into a bulk action.
   // Keyed on the stable URL string and done in render (not an effect), per the
