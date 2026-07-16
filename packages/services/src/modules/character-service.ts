@@ -213,7 +213,13 @@ export async function getCharacters(
     query = query.eq("user_id", userId);
   }
   if (published !== undefined) {
-    query = query.eq("published", published);
+    // "draft" (published === false) must also match NULL rows — mirrors the
+    // getCharactersPage note below; `not.is.true` = published IS NOT TRUE
+    // (false OR NULL), matching the list badge that renders NULL as "Draft".
+    // See #331.
+    query = published
+      ? query.eq("published", true)
+      : query.not("published", "is", true);
   }
   if (hasMedia === false) {
     query = query.is("character_media", null);

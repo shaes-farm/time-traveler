@@ -391,6 +391,16 @@ describe("getEventsPage", () => {
     expect(firstBuilder(client).eq).toHaveBeenCalledWith("published", true);
   });
 
+  it("applies published=false as `not published is true` (matches NULL drafts) (#331)", async () => {
+    const client = pageClient(0);
+    await getEventsPage(client, { published: false });
+    expect(firstBuilder(client).not).toHaveBeenCalledWith(
+      "published",
+      "is",
+      true,
+    );
+  });
+
   it("keeps events with participants via an !inner embed", async () => {
     const client = pageClient(0);
     await getEventsPage(client, { hasParticipants: true });

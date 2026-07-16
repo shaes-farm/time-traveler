@@ -204,12 +204,12 @@ describe("getCharacters", () => {
     expect(builder.eq).toHaveBeenCalledWith("published", true);
   });
 
-  it("applies published=false filter", async () => {
+  it("applies published=false as `not published is true` (matches NULL drafts) (#331)", async () => {
     const client = makeClient({ fromResult: { data: [], error: null } });
     await getCharacters(client, { published: false });
     const builder = (client.from as ReturnType<typeof vi.fn>).mock.results[0]
       ?.value as ReturnType<typeof makeBuilder>;
-    expect(builder.eq).toHaveBeenCalledWith("published", false);
+    expect(builder.not).toHaveBeenCalledWith("published", "is", true);
   });
 
   it("selects an inner has-media embed when hasMedia=true", async () => {
