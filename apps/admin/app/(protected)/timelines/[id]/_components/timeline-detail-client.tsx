@@ -227,9 +227,9 @@ function EventRowItem({
   onUnlink,
 }: EventRowProps) {
   return (
-    <div className="flex items-center gap-2 px-4 py-3 border border-border rounded-md bg-background hover:bg-muted/30 transition-colors">
+    <div className="relative flex items-center gap-2 px-4 py-3 border border-border rounded-md bg-background hover:bg-muted/30 transition-colors">
       {canEdit && (
-        <div className="flex flex-col gap-0.5 shrink-0">
+        <div className="relative z-10 flex flex-col gap-0.5 shrink-0">
           <button
             type="button"
             disabled={index === 0}
@@ -262,9 +262,12 @@ function EventRowItem({
       </div>
 
       <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium truncate block">
+        <Link
+          href={`/events/${event.slug}`}
+          className="text-sm font-medium truncate block after:absolute after:inset-0 after:rounded-md hover:underline focus-visible:underline focus-visible:outline-none"
+        >
           {event.title}
-        </span>
+        </Link>
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
@@ -299,7 +302,7 @@ function EventRowItem({
           <button
             type="button"
             onClick={() => onUnlink(event)}
-            className="ml-1 p-1 rounded text-muted-foreground hover:text-destructive"
+            className="relative z-10 ml-1 p-1 rounded text-muted-foreground hover:text-destructive"
             aria-label="Unlink event"
           >
             <X className="h-3.5 w-3.5" />
