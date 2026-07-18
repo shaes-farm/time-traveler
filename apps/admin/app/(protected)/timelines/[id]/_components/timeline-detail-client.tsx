@@ -264,7 +264,7 @@ function EventRowItem({
       <div className="flex-1 min-w-0">
         <Link
           href={`/events/${event.slug}`}
-          className="text-sm font-medium truncate block after:absolute after:inset-0 after:rounded-md hover:underline focus-visible:underline focus-visible:outline-none"
+          className="text-sm font-medium truncate block after:absolute after:inset-0 after:rounded-md focus-visible:underline focus-visible:outline-none"
         >
           {event.title}
         </Link>
