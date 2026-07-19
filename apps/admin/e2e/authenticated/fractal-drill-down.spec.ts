@@ -57,4 +57,22 @@ test.describe("fractal drill-down", () => {
     await expandableItem.click();
     await page.waitForURL(`**/events/${fx.expandableEventSlug}`);
   });
+
+  test("List view: clicking an event row navigates to its event page (#391)", async ({
+    page,
+  }) => {
+    await page.goto(`/timelines/${fx.timelineId}`);
+
+    // The Events tab defaults to List view — no toggle needed.
+    const listButton = page
+      .getByRole("group", { name: "Events view" })
+      .getByRole("button", { name: "list" });
+    await expect(listButton).toHaveAttribute("aria-pressed", "true");
+
+    // Each list row exposes its title as a link to the event detail page.
+    const plainRowLink = page.getByRole("link", { name: fx.plainEventTitle });
+    await expect(plainRowLink).toBeVisible();
+    await plainRowLink.click();
+    await page.waitForURL(`**/events/${fx.plainEventSlug}`);
+  });
 });

@@ -56,14 +56,27 @@ export async function seedTestUser(): Promise<string> {
     }
   }
 
-  // Already existed — look the account up so we can return its id.
-  const { data: list, error: listError } = await admin.auth.admin.listUsers();
-  if (listError) {
-    throw listError;
+  // Already existed — page through the admin user list to find it. listUsers
+  // paginates (default 50 users/page) and the admin API has no getByEmail, so a
+  // single unpaged call silently misses the account once the shared local auth
+  // table exceeds one page (it accumulates a user per auth-flow run). Page until
+  // the account is found or a short page signals the end.
+  const perPage = 1000;
+  for (let page = 1; ; page++) {
+    const { data: list, error: listError } = await admin.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+    if (listError) {
+      throw listError;
+    }
+    const existing = list.users.find((u) => u.email === TEST_USER.email);
+    if (existing) {
+      return existing.id;
+    }
+    if (list.users.length < perPage) {
+      break;
+    }
   }
-  const existing = list.users.find((u) => u.email === TEST_USER.email);
-  if (!existing) {
-    throw new Error(`Test user ${TEST_USER.email} not found after createUser`);
-  }
-  return existing.id;
+  throw new Error(`Test user ${TEST_USER.email} not found after createUser`);
 }
