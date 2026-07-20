@@ -38,11 +38,11 @@ Most timelines begin where written records begin, as if the previous 13.8 billio
 
 We refuse the preface.
 
-Time Traveler treats the whole span of time as one continuous, navigable space — from the first second of the universe, through the drifting of continents and the rise and fall of species, into recorded history, the present day, and the futures we can only imagine. Zoom out until a billion years is a hand's width. Zoom in until a single afternoon fills the horizon. The formation of the Moon and the signing of a treaty live on the same axis, because they do.
+Time Traveler recognizes no boundary between cosmology, geology, biology, history, the present, and the future. It treats the whole span of time as one continuous, navigable space — from the first second of the universe, through the drifting of continents and the rise and fall of species, into recorded history and the futures we can only imagine. Zoom out until a billion years is a hand's width. Zoom in until a single afternoon fills the horizon. The formation of the Moon and the signing of a treaty live on the same axis, because they do.
 
-Deep time is not a different subject from history.
+These are not separate subjects.
 
-It is history, further back.
+They are chapters of the same story.
 
 ---
 
@@ -52,7 +52,7 @@ Here is a quiet lie told by almost every timeline ever drawn: the tick marks. Ne
 
 It didn't. Some dates are certain to the second. Some are known to the decade, the century, the geological epoch. Some are the subject of live scholarly argument, and some are educated guesses that the next excavation may overturn.
 
-Time Traveler records that honestly. Every date in the system carries its own confession: how precisely it is known, how it was determined, and how much it might be wrong. _Circa_ is not a decoration here. Uncertainty is not an embarrassment to be hidden — it is information, and often it is the most interesting information there is. We believe you can be rigorous and humble at the same time. In fact, we believe you can't be rigorous any other way.
+Time Traveler records that honestly. Every date carries its own confession: how precisely it is known, how it came to be known, and why reasonable people may disagree. _Circa_ is not a decoration here. Uncertainty is not an embarrassment to be hidden — it is information, and often it is the most interesting information there is. We believe you can be rigorous and humble at the same time. In fact, we believe you can't be rigorous any other way.
 
 ---
 
@@ -62,7 +62,7 @@ Once when it happens. Again when someone takes the trouble to record it, connect
 
 Time Traveler does not contain the history of the world. Nobody's database does. What it offers is a place where those threads can be woven together — and the weaving is done by people: the teacher mapping a century for her students, the investigator laying events side by side until a pattern surfaces, the grandchild tracing a family across three continents, the paleontologist giving a vanished species the dignity of a life story, the writer building a world one dated moment at a time.
 
-Their work is the point. The chains of cause and consequence do not make themselves visible.
+Their work is what Time Traveler exists to preserve. The chains of cause and consequence do not make themselves visible.
 
 Someone makes them visible.
 
@@ -72,7 +72,7 @@ Someone makes them visible.
 
 And not everything people weave is fact — nor should it be.
 
-Sherlock Holmes has a biography. Olympus has a genealogy. Middle-earth has an archaeology. Every myth, novel, faith, and invented world carries its own internal history — and those histories have shaped the real one as surely as any battle.
+Sherlock Holmes has a biography. Olympus has a genealogy. Middle-earth has an archaeology. Every myth, novel, faith, and invented world carries its own internal history — and those histories have shaped the real one as surely as any empire, discovery, or revolution.
 
 Time Traveler does not fence off the factual from the imagined. Gods and racehorses, corporations and fictional detectives, artifacts and ancestors — anything with a story across time can live here, clearly on its own terms. The historian and the novelist use the same instrument, the way the astronomer and the poet share the same sky.
 
@@ -84,11 +84,11 @@ So this is what we are building: an instrument for seeing across time. Not a rep
 
 We think the deepest form of understanding anything — a person, a place, an idea, a world — is understanding how it came to be.
 
+The story of the past is never finished. Every generation discovers more, understands more, preserves more, and asks new questions of what came before. And every generation inherits the answers of the one before it — a tradition as old as the first person who looked up at the stars, noticed a pattern, and decided it was worth remembering. To record what you understand, and to hand it on, is to become a link in that chain. Time Traveler exists so the journey can continue.
+
 Everything has a history.
 
 Come find it. Come make it visible.
-
-The story of the past is never finished. Every generation discovers more, understands more, preserves more, and asks new questions of what came before. Time Traveler exists so that journey can continue.
 
 ---
 
