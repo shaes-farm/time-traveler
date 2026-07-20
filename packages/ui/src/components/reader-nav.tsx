@@ -41,8 +41,11 @@ import {
 export interface ReaderNavItem {
   label: string;
   href: string;
-  /** Optional leading icon (e.g. lucide `Search`), decorative only. */
-  icon?: ComponentType<{ className?: string }>;
+  /**
+   * Optional leading icon (e.g. lucide `Search`). Rendered decorative — the
+   * nav passes `aria-hidden`, so the icon must accept and forward it.
+   */
+  icon?: ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
 }
 
 export interface ReaderNavProps {

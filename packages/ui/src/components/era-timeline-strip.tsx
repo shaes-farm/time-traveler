@@ -40,12 +40,20 @@ const SPAN = 85;
  * Horizontal position (% from left) of a moment `yearsAgo` before present.
  * Log scale gives each power of ten equal width; linear crushes all of human
  * history into the right edge — which is the point the toggle demonstrates.
+ *
+ * `markers` is a public prop, so `yearsAgo` is clamped to the plotted span:
+ * without it, a value beyond the Big Bang (or a non-finite one) computes a
+ * negative/NaN offset and pushes the marker off the strip.
  */
 export const computeMarkerLeft = (
   scale: EraScale,
   yearsAgo: number,
 ): number => {
-  const ya = Math.max(yearsAgo, 1);
+  // Clamping handles ±Infinity on its own; only NaN needs the fallback,
+  // since every NaN comparison is false.
+  const ya = Number.isNaN(yearsAgo)
+    ? 1
+    : Math.min(Math.max(yearsAgo, 1), MAX_YEARS_AGO);
   const fraction =
     scale === "log"
       ? Math.log10(ya) / Math.log10(MAX_YEARS_AGO)
@@ -259,7 +267,8 @@ export const EraTimelineStrip = ({
           );
           return (
             <div
-              key={marker.name}
+              // Names alone aren't guaranteed unique across a caller's markers.
+              key={`${marker.era}-${marker.yearsAgo}-${marker.name}`}
               className="absolute inset-y-0 flex -translate-x-1/2 flex-col items-center transition-[left] duration-slow ease-standard"
               style={{
                 left: `${computeMarkerLeft(scale, marker.yearsAgo).toFixed(2)}%`,

@@ -23,6 +23,22 @@ describe("computeMarkerLeft", () => {
     expect(computeMarkerLeft("linear", -5)).toBeCloseTo(92, 1);
   });
 
+  it("clamps beyond-the-Big-Bang values to the left edge, never off-strip", () => {
+    for (const scale of ["log", "linear"] as const) {
+      expect(computeMarkerLeft(scale, 1e20)).toBeCloseTo(7);
+      expect(computeMarkerLeft(scale, Infinity)).toBeCloseTo(7);
+    }
+  });
+
+  it("keeps non-finite input on the strip instead of emitting NaN", () => {
+    for (const scale of ["log", "linear"] as const) {
+      const left = computeMarkerLeft(scale, Number.NaN);
+      expect(Number.isFinite(left)).toBe(true);
+      expect(left).toBeGreaterThanOrEqual(7);
+      expect(left).toBeLessThanOrEqual(92);
+    }
+  });
+
   it("spreads deep time on the log scale but crushes it on linear", () => {
     const logPyramid = computeMarkerLeft("log", 4586);
     const linearPyramid = computeMarkerLeft("linear", 4586);
