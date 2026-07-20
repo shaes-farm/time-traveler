@@ -1,85 +1,85 @@
 # The Time Traveler Manifesto
 
-**Version 0.1** | July 2026  
-**Status:** MVP Specification  
-**Target Audience:** Developers, Technical Reference
-
-## Preamble
-
-Human beings have always looked to the past in search of understanding.
-
-Long before the first cities were built, our ancestors watched the movement of the Sun and the Moon. They observed the changing seasons, recognized repeating patterns, and passed their knowledge from one generation to the next. Those observations became stories. Stories became traditions. Traditions became history.
-
-Every generation has inherited this same pursuit: to understand where we came from, how the world became what it is, and how our own place within it fits into the larger story.
-
-That pursuit gave rise to libraries, archives, museums, observatories, universities, and countless works of scholarship. Each preserves a fragment of humanity's collective memory. Together, they represent one of our greatest achievements: the ongoing effort to understand ourselves through time.
-
-Time Traveler exists in service of that same tradition.
-
-It is founded on the belief that history is not merely a collection of dates, documents, or isolated events. History is the record of change. It is the story of how people, places, ideas, discoveries, civilizations, and cultures continually shape one another across time.
-
-Understanding history is therefore not simply an act of remembering the past. It is an act of discovering relationships.
+**Draft** | July 2026
 
 ---
 
-## The Problem
+## Everything has a history
 
-The knowledge we inherit is extraordinary, but the way we experience it is often fragmented.
+The chair you are sitting on has a history. So does the language you are reading, the country you were born in, the number zero, the color blue, the idea of childhood, the shape of the continents, and the atoms in your left hand — most of which were forged inside stars that died before the Earth existed.
 
-A book tells one story.
+Nothing arrived from nowhere. Everything you can point to is the visible end of a long chain of causes: inventions, migrations, collisions, arguments, accidents, extinctions, and quiet afternoons in which someone noticed something no one had noticed before.
 
-A biography follows one life.
-
-A documentary presents one perspective.
-
-A museum exhibit explores one collection.
-
-An encyclopedia answers one question.
-
-A timeline arranges events in chronological order.
-
-Each of these is valuable. None is complete.
-
-History did not unfold as separate documents. Scientific discoveries influenced political decisions. Trade carried ideas between civilizations. Languages evolved alongside migration. Art reflected religion, philosophy, and technology. Every event emerged from countless others and, in turn, shaped what followed.
-
-The past is not a sequence of isolated moments.
-
-It is an interconnected web of causes, consequences, observations, decisions, discoveries, and human experiences stretching across billions of years.
-
-This interconnectedness is one of history's defining characteristics, yet it is often the most difficult to see.
+Time Traveler exists to make those chains visible.
 
 ---
 
-## Our Belief
+## History is not a hallway
 
-Time Traveler begins with a simple idea.
+We are taught history as a corridor: a single line of dates, walked in one direction, with the important rooms already chosen for us.
+
+But history is not a hallway. It is a landscape — vast, layered, and connected in every direction. The invention of the mechanical clock touches astronomy, and astronomy touches navigation, and navigation touches trade, migration, conquest, and cuisine. Pull on any thread and the whole fabric moves.
+
+A book must choose one path through that landscape. A documentary must choose one. A museum gallery must choose one. These choices are the great gift of scholarship — and also its necessary limitation.
+
+Time Traveler is built for the moment a path is not enough. The moment you stop asking _what happened next_ and start asking _what else was happening_, _who else was there_, _where did this come from_, and _what did it become_. In Time Traveler, every event is a doorway. Every person is the center of another story. Curiosity chooses the path.
+
+---
+
+## All of time, not some of it
+
+Most timelines begin where written records begin, as if the previous 13.8 billion years were a preface.
+
+We refuse the preface.
+
+Time Traveler treats the whole span of time as one continuous, navigable space — from the first second of the universe, through the drifting of continents and the rise and fall of species, into recorded history, the present day, and the futures we can only imagine. Zoom out until a billion years is a hand's width. Zoom in until a single afternoon fills the horizon. The formation of the Moon and the signing of a treaty live on the same axis, because they do.
+
+Deep time is not a different subject from history.
+
+It is history, further back.
+
+---
+
+## Honest about what we don't know
+
+Here is a quiet lie told by almost every timeline ever drawn: the tick marks. Neat, evenly spaced, confidently placed — as if the past held still to be measured.
+
+It didn't. Some dates are certain to the second. Some are known to the decade, the century, the geological epoch. Some are the subject of live scholarly argument, and some are educated guesses that the next excavation may overturn.
+
+Time Traveler records that honestly. Every date in the system carries its own confession: how precisely it is known, how it was determined, and how much it might be wrong. _Circa_ is not a decoration here. Uncertainty is not an embarrassment to be hidden — it is information, and often it is the most interesting information there is. We believe you can be rigorous and humble at the same time. In fact, we believe you can't be rigorous any other way.
+
+---
+
+## The imagined past is also a past
+
+Sherlock Holmes has a biography. Olympus has a genealogy. Middle-earth has an archaeology. Every myth, novel, faith, and invented world carries its own internal history — and those histories have shaped the real one as surely as any battle.
+
+Time Traveler does not fence off the factual from the imagined. Gods and racehorses, corporations and fictional detectives, artifacts and ancestors — anything with a story across time can live here, clearly on its own terms. The historian and the novelist use the same instrument, the way the astronomer and the poet share the same sky.
+
+---
+
+## History is made twice
+
+Once when it happens. Again when someone takes the trouble to record it, connect it, and pass it on.
+
+Time Traveler does not contain the history of the world. Nobody's database does. What it offers is a loom — and the fabric is woven by people: the teacher mapping a century for her students, the investigator laying events side by side until a pattern surfaces, the grandchild tracing a family across three continents, the paleontologist giving a vanished species the dignity of a life story, the writer building a world one dated moment at a time.
+
+Their work is the point. The chains of cause and consequence do not make themselves visible.
+
+Someone makes them visible.
+
+---
+
+## An invitation
+
+So this is what we are building: an instrument for seeing across time. Not a replacement for books, archives, museums, or scholarship, but a place where their threads can finally touch.
+
+We think the deepest form of understanding anything — a person, a place, an idea, a world — is understanding how it came to be.
 
 Everything has a history.
 
-Every mountain.
-
-Every civilization.
-
-Every language.
-
-Every scientific theory.
-
-Every instrument.
-
-Every tradition.
-
-Every person.
-
-Every idea.
-
-To understand any one of them is to understand the journey that brought it into existence and the influence it has had on everything that followed.
-
-History is not a collection of disconnected stories.
-
-It is one story, viewed from countless perspectives.
-
-No single narrative can contain all of it.
-
-But every narrative can reveal another path waiting to be explored.
+Come find it. Come make it visible.
 
 ---
+
+_— The Time Traveler Project_
