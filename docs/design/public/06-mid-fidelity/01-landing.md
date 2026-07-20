@@ -1,5 +1,11 @@
 # 01 — Landing / Discovery (mid-fidelity)
 
+> **Drift note (2026-07-19):** the hi-fi final
+> (`../08-high-fidelity/Time_Traveler_Landing_Final.html`, implemented in
+> `apps/reader/app/page.tsx`) replaces the featured/recent rails below with an
+> interactive era timeline strip + marketing sections. Divergences tracked in
+> [#395](https://github.com/shaes-farm/time-traveler/issues/395).
+
 Builds on: [04 wireframe — Landing](../04-wireframes/01-landing.md) · [README visual-system reference](README.md#reader-visual-system-reference) · [motion-spec](motion-spec.md) · [accessibility-spec](accessibility-spec.md)
 Route: `/` · Flows: F1, F3 ([03](../03-user-flows.md))
 

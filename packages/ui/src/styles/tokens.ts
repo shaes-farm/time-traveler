@@ -31,10 +31,10 @@ export const colors = {
   border: "oklch(0.274 0.006 286.033)", // zinc-800
   borderMuted: "oklch(0.21 0.006 285.885)", // zinc-900 — fainter dividers
 
-  // Primary accent — placeholder; finalized when Batch B (temporal primitive)
-  // crystallizes the accent role.
-  primary: "oklch(0.985 0 0)", // zinc-50 (high contrast)
-  primaryForeground: "oklch(0.141 0.005 285.823)", // zinc-950
+  // Primary accent — warm amber, finalized per ADR-0038 (from the public
+  // reader hi-fi landing design). Ring stays foreground-based.
+  primary: "oklch(0.8 0.12 66)", // warm amber
+  primaryForeground: "oklch(0.17 0.02 66)", // near-black warm ink
 
   // Destructive — only fresh value introduced by the shadcn primitive layer.
   // Mirrors Tailwind 4 red-500 in OKLCH for delete/dangerous actions.

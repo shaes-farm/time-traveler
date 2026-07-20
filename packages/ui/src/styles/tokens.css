@@ -28,9 +28,10 @@
   --color-border: oklch(0.274 0.006 286.033); /* zinc-800 */
   --color-border-muted: oklch(0.21 0.006 285.885); /* zinc-900 */
 
-  /* Primary accent — placeholder; finalized in Batch B */
-  --color-primary: oklch(0.985 0 0); /* zinc-50 (high contrast) */
-  --color-primary-foreground: oklch(0.141 0.005 285.823); /* zinc-950 */
+  /* Primary accent — warm amber, finalized per ADR-0038 (from the public
+     reader hi-fi landing design). Ring stays foreground-based. */
+  --color-primary: oklch(0.8 0.12 66); /* warm amber */
+  --color-primary-foreground: oklch(0.17 0.02 66); /* near-black warm ink */
 
   /* Destructive — fresh value introduced for delete/dangerous actions */
   --color-destructive: oklch(0.62 0.15 25); /* muted red — subdued from red-500 */

@@ -1,4 +1,5 @@
-import { Hourglass } from "lucide-react";
+import type { ComponentType } from "react";
+import { Clock } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import {
   DefaultReaderLink,
@@ -21,9 +22,14 @@ import {
  * at launch). Entity types (periods/characters/events) are reached via
  * contextual cross-links, never the global nav (00-app-shell annotation 2).
  *
- * The single "Sign in" affordance is a low-emphasis, right-aligned deep-link
- * OUT to the admin/auth surface; it gates nothing (annotation 3). It renders as
- * a plain anchor because it leaves the reader app entirely.
+ * The single "Sign in" affordance is a right-aligned deep-link OUT to the
+ * admin/auth surface; it gates nothing (annotation 3). It renders as a plain
+ * anchor because it leaves the reader app entirely.
+ *
+ * Brand mark, item icons, and the amber sign-in arrow follow the hi-fi landing
+ * design (docs/design/public/08-high-fidelity/Time_Traveler_Landing_Final.html;
+ * amber primary per ADR-0038). The live dot stays static — never a pulse
+ * (motion-spec §2.5), regardless of the mockup's animation.
  *
  * Presentational + server-renderable: active state comes from the `currentPath`
  * prop, so the shell can resolve `usePathname()` in a thin client wrapper.
@@ -35,6 +41,8 @@ import {
 export interface ReaderNavItem {
   label: string;
   href: string;
+  /** Optional leading icon (e.g. lucide `Search`), decorative only. */
+  icon?: ComponentType<{ className?: string }>;
 }
 
 export interface ReaderNavProps {
@@ -73,7 +81,11 @@ export const ReaderNav = ({
             aria-current={brandActive ? "page" : undefined}
             className="flex items-center gap-2 font-display text-lg leading-none text-foreground transition-colors hover:text-foreground"
           >
-            <Hourglass className="h-5 w-5 shrink-0" aria-hidden />
+            <Clock
+              className="h-5 w-5 shrink-0 text-primary"
+              strokeWidth={1.6}
+              aria-hidden
+            />
             <span className="hidden sm:inline">Time Traveler</span>
           </LinkComponent>
           <ReaderLiveDot state={liveState} />
@@ -90,12 +102,15 @@ export const ReaderNav = ({
                     href={item.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "border-b-2 pb-0.5 text-sm transition-colors",
+                      "inline-flex items-center gap-1.5 border-b-2 pb-0.5 text-sm transition-colors",
                       active
                         ? "border-foreground text-foreground"
                         : "border-transparent text-foreground-muted hover:text-foreground",
                     )}
                   >
+                    {item.icon ? (
+                      <item.icon className="h-4 w-4" aria-hidden />
+                    ) : null}
                     {item.label}
                   </LinkComponent>
                 </li>
@@ -104,12 +119,15 @@ export const ReaderNav = ({
           </ul>
         </nav>
 
-        {/* Single, quiet sign-in deep-link OUT to admin/auth. */}
+        {/* Single sign-in deep-link OUT to admin/auth. */}
         <a
           href={signInHref}
-          className="shrink-0 text-xs text-foreground-muted transition-colors hover:text-foreground"
+          className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-foreground transition-colors hover:text-primary"
         >
           Sign in
+          <span aria-hidden className="text-primary">
+            →
+          </span>
         </a>
       </div>
     </header>
