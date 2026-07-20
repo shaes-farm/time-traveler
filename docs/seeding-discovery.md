@@ -31,6 +31,13 @@ The script uses delete-and-recreate behavior for this dataset scope:
 
 > **Note:** The slug prefix `seed-electricity-` is intentionally preserved from v1 so that re-running the script cleans up the original electricity-only dataset as well.
 
+## Prerequisite: the admin user must already exist
+
+This script no longer creates or updates the admin account — it only looks
+one up by email and seeds data under that user's id. Run
+[`pnpm db:seed:admin`](./seeding-admin.md) first. If the lookup fails, the
+script exits with an error telling you to do so.
+
 ## Required environment variables
 
 - `SUPABASE_SERVICE_ROLE_KEY`: service key used for insert/delete operations
@@ -39,8 +46,8 @@ Optional:
 
 - `SUPABASE_URL` (default `http://127.0.0.1:54321`)
 - `NEXT_PUBLIC_SUPABASE_URL` used as fallback if `SUPABASE_URL` is not set
-- `SEED_ADMIN_EMAIL` (default `admin@timetraveler.local`)
-- `SEED_ADMIN_PASSWORD` (default `Admin123!`)
+- `SEED_ADMIN_EMAIL` (default `admin@timetraveler.local`) — used only to look
+  up the existing admin user, not to create one
 
 ## Usage
 
@@ -48,6 +55,12 @@ Start Supabase first:
 
 ```bash
 pnpm run db:start
+```
+
+Ensure the admin user exists (see [seeding-admin.md](./seeding-admin.md)):
+
+```bash
+pnpm run db:seed:admin
 ```
 
 Run seed script:
@@ -61,14 +74,14 @@ The command assumes `SUPABASE_SERVICE_ROLE_KEY` (and optionally `SUPABASE_URL`) 
 You can also pass values directly as CLI args:
 
 ```bash
-pnpm run db:seed:discovery -- --service-role-key=<service-role-key> --admin-email=admin@timetraveler.local --admin-password='Admin123!' --url=http://127.0.0.1:54321
+pnpm run db:seed:discovery -- --service-role-key=<service-role-key> --admin-email=admin@timetraveler.local --url=http://127.0.0.1:54321
 ```
 
 ## Notes
 
-- The script creates `admin@timetraveler.local` if missing.
-- If the admin user already exists, the script updates that account password to `Admin123!` by default.
-- The script sets the matching profile role to `admin`.
+- This script expects the admin user to already exist — run
+  `pnpm db:seed:admin` first. It no longer creates or updates the admin
+  account or its password.
 - The seed dataset is tagged in `metadata` with:
   - `seed_dataset: scientific_discoveries`
   - `seed_version: v2`
