@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: oklch(0.155 0.006 285);
+    color: oklch(0.96 0.004 285);
+    font-family: 'Inter Tight', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: oklch(0.78 0.14 260); text-decoration: none; }
+  a:hover { color: oklch(0.85 0.14 300); }
+  ::selection { background: oklch(0.72 0.185 320 / 0.35); }
+  @keyframes ttspin { to { transform: rotate(360deg); } }
+  .tt-spin { animation-name: ttspin; animation-timing-function: linear; animation-iteration-count: infinite; transform-origin: 50% 50%; }
+  @media (prefers-reduced-motion: reduce) { .tt-spin { animation: none !important; } }
+</style>
+</helmet>
+
+<div style="max-width: 1180px; margin: 0 auto; padding: 0 40px 140px;">
+
+  <!-- top bar -->
+  <div style="display:flex; align-items:center; justify-content:space-between; padding: 34px 0 0; font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.2em; text-transform:uppercase; color:oklch(0.62 0.01 285);">
+    <span>Time Traveler</span>
+    <span>Identity System · v1</span>
+  </div>
+
+  <!-- HERO -->
+  <section style="display:flex; flex-direction:column; align-items:center; text-align:center; padding: 96px 0 40px;">
+    <div style="width: 320px; height: 320px; filter: drop-shadow(0 0 48px oklch(0.6 0.2 300 / 0.18));">{{ marks.hero }}</div>
+    <h1 style="font-family:'Fraunces',serif; font-weight:400; font-size: clamp(48px, 9vw, 92px); line-height:0.98; letter-spacing:-0.02em; margin: 48px 0 0;">Time Traveler</h1>
+    <p style="font-family:'JetBrains Mono',monospace; font-size:13px; letter-spacing:0.42em; text-transform:uppercase; color:oklch(0.66 0.02 285); margin: 22px 0 0;">history rhymes</p>
+  </section>
+
+  <hr style="border:none; border-top:1px solid oklch(1 0 0 / 0.08); margin: 80px 0;">
+
+  <!-- 01 THE IDEA -->
+  <section style="display:grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items:center;">
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.22em; text-transform:uppercase; color:oklch(0.6 0.13 320); margin-bottom:20px;">01 — The idea</div>
+      <h2 style="font-family:'Fraunces',serif; font-weight:400; font-size: 40px; line-height:1.06; letter-spacing:-0.015em; margin:0 0 24px;">A logarithmic spiral</h2>
+      <p style="font-size:17px; line-height:1.66; color:oklch(0.78 0.008 285); max-width:52ch; margin:0 0 18px;">Time doesn't repeat — it rhymes. The mark is a true logarithmic spiral: the same self-similar curve as a nautilus shell, a galaxy, a hurricane. It looks like itself at every scale, so the story it tells at 16&nbsp;pixels is the story it tells on a billboard.</p>
+      <p style="font-size:17px; line-height:1.66; color:oklch(0.78 0.008 285); max-width:52ch; margin:0;">Each dot is a moment. The arm winds outward from a vanishing point in deep time, growing but never breaking its rhythm — cycles that widen without ever losing their shape.</p>
+    </div>
+    <div style="display:flex; justify-content:center;">
+      <div style="position:relative; width: 340px; height: 340px;">
+        <div style="position:absolute; inset:0;">{{ marks.anatomy }}</div>
+      </div>
+    </div>
+  </section>
+
+  <hr style="border:none; border-top:1px solid oklch(1 0 0 / 0.08); margin: 80px 0;">
+
+  <!-- 02 WORDMARK -->
+  <section>
+    <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:36px; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.22em; text-transform:uppercase; color:oklch(0.6 0.13 320); margin-bottom:16px;">02 — Wordmark</div>
+        <h2 style="font-family:'Fraunces',serif; font-weight:400; font-size:40px; line-height:1.06; letter-spacing:-0.015em; margin:0;">The lockup</h2>
+      </div>
+      <p style="font-family:'JetBrains Mono',monospace; font-size:12px; color:oklch(0.6 0.01 285); max-width:30ch; margin:0;">Direction A · Horizontal · selected. B & C shown as alternates.</p>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr; gap:18px;">
+
+      <!-- Lockup A — SELECTED -->
+      <div style="position:relative; border:1px solid oklch(0.7 0.14 320 / 0.55); border-radius:16px; background:oklch(0.19 0.012 315); padding:56px 56px; display:flex; align-items:center; justify-content:space-between; gap:32px; flex-wrap:wrap; box-shadow: 0 0 0 1px oklch(0.7 0.14 320 / 0.15), 0 24px 60px oklch(0.5 0.15 320 / 0.14);">
+        <span style="position:absolute; top:-11px; left:32px; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:oklch(0.98 0.004 285); background:oklch(0.62 0.19 330); padding:5px 12px; border-radius:999px;">Selected · Primary lockup</span>
+        <div style="display:flex; align-items:center; gap:36px;">
+          <div style="width:104px; height:104px; flex:none;">{{ marks.wmA }}</div>
+          <span style="font-family:'Fraunces',serif; font-weight:400; font-size:56px; letter-spacing:-0.02em;">Time Traveler</span>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:oklch(0.72 0.06 320);">A · Horizontal · Fraunces</span>
+      </div>
+
+      <!-- Lockup B + C row — alternates -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px; opacity:0.62;">
+        <div style="border:1px solid oklch(1 0 0 / 0.09); border-radius:16px; background:oklch(0.185 0.005 285); padding:48px; display:flex; flex-direction:column; align-items:center; gap:26px; text-align:center;">
+          <div style="width:76px; height:76px;">{{ marks.wmB }}</div>
+          <div>
+            <div style="font-family:'Inter Tight',sans-serif; font-weight:600; font-size:22px; letter-spacing:0.24em; text-transform:uppercase; padding-left:0.24em;">Time Traveler</div>
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.3em; text-transform:uppercase; color:oklch(0.6 0.12 300); margin-top:12px;">history rhymes</div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:oklch(0.58 0.01 285); margin-top:6px;">B · Stacked · Inter Tight</span>
+        </div>
+
+        <div style="border:1px solid oklch(1 0 0 / 0.09); border-radius:16px; background:oklch(0.185 0.005 285); padding:48px; display:flex; flex-direction:column; align-items:center; gap:26px; text-align:center;">
+          <div style="width:76px; height:76px;">{{ marks.wmC }}</div>
+          <div style="display:flex; align-items:baseline; gap:12px;">
+            <span style="font-family:'Fraunces',serif; font-style:italic; font-weight:400; font-size:38px; letter-spacing:-0.01em;">Time</span>
+            <span style="font-family:'JetBrains Mono',monospace; font-weight:500; font-size:19px; letter-spacing:0.22em; text-transform:uppercase; color:oklch(0.86 0.01 285); padding-left:0.22em;">Traveler</span>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:oklch(0.58 0.01 285); margin-top:6px;">C · Mixed · Fraunces + Mono</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr style="border:none; border-top:1px solid oklch(1 0 0 / 0.08); margin: 80px 0;">
+
+  <!-- 03 SPIRAL STUDIES -->
+  <section>
+    <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.22em; text-transform:uppercase; color:oklch(0.6 0.13 320); margin-bottom:16px;">03 — The mark</div>
+    <h2 style="font-family:'Fraunces',serif; font-weight:400; font-size:40px; line-height:1.06; letter-spacing:-0.015em; margin:0 0 36px;">Spiral studies</h2>
+
+    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:18px;">
+      <div style="border:1px solid oklch(1 0 0 / 0.09); border-radius:16px; background:oklch(0.13 0.006 285); padding:40px 40px 32px; text-align:center; opacity:0.5;">
+        <div style="width:190px; height:190px; margin:0 auto 28px;">{{ marks.studySingle }}</div>
+        <div style="font-family:'Inter Tight',sans-serif; font-weight:600; font-size:16px; margin-bottom:8px;">The Arm <span style="color:oklch(0.6 0.12 320); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em;">i</span></div>
+        <p style="font-size:14px; line-height:1.55; color:oklch(0.68 0.008 285); margin:0;">A single spiral, refined. The primary mark — one continuous line of time.</p>
+      </div>
+      <div style="border:1px solid oklch(1 0 0 / 0.09); border-radius:16px; background:oklch(0.13 0.006 285); padding:40px 40px 32px; text-align:center; opacity:0.5;">
+        <div style="width:190px; height:190px; margin:0 auto 28px;">{{ marks.studyDouble }}</div>
+        <div style="font-family:'Inter Tight',sans-serif; font-weight:600; font-size:16px; margin-bottom:8px;">The Rhyme <span style="color:oklch(0.6 0.12 320); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em;">ii</span></div>
+        <p style="font-size:14px; line-height:1.55; color:oklch(0.68 0.008 285); margin:0;">Two arms, offset. History answering itself across the turn — the same shape, echoed.</p>
+      </div>
+      <div style="position:relative; border:1px solid oklch(0.7 0.14 320 / 0.55); border-radius:16px; background:oklch(0.15 0.012 315); padding:40px 40px 32px; text-align:center; box-shadow: 0 0 0 1px oklch(0.7 0.14 320 / 0.15), 0 24px 60px oklch(0.5 0.15 320 / 0.14);">
+        <span style="position:absolute; top:-11px; left:50%; transform:translateX(-50%); font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.18em; text-transform:uppercase; color:oklch(0.98 0.004 285); background:oklch(0.62 0.19 330); padding:5px 12px; border-radius:999px; white-space:nowrap;">Selected mark</span>
+        <div style="width:190px; height:190px; margin:0 auto 28px;">{{ marks.studyVortex }}</div>
+        <div style="font-family:'Inter Tight',sans-serif; font-weight:600; font-size:16px; margin-bottom:8px;">The Vortex <span style="color:oklch(0.6 0.12 320); font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.12em;">iii</span></div>
+        <p style="font-size:14px; line-height:1.55; color:oklch(0.68 0.008 285); margin:0;">Denser, tighter turns. The pull of deep time — a tunnel toward the vanishing point.</p>
+      </div>
+    </div>
+  </section>
+
+  <hr style="border:none; border-top:1px solid oklch(1 0 0 / 0.08); margin: 80px 0;">
+
+  <!-- 04 COLOR -->
+  <section>
+    <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.22em; text-transform:uppercase; color:oklch(0.6 0.13 320); margin-bottom:16px;">04 — Color</div>
+    <h2 style="font-family:'Fraunces',serif; font-weight:400; font-size:40px; line-height:1.06; letter-spacing:-0.015em; margin:0 0 20px;">Drawn from deep time</h2>
+    <p style="font-size:17px; line-height:1.66; color:oklch(0.78 0.008 285); max-width:62ch; margin:0 0 40px;">The gradient is lifted straight from the product's era palette — magenta at the far reach of deep time, through blue, to teal as history nears the present. The brand and the interface speak the same chromatic language.</p>
+
+    <div style="height:64px; border-radius:999px; margin-bottom:34px; background: linear-gradient(90deg, oklch(0.72 0.185 330), oklch(0.72 0.18 300), oklch(0.72 0.16 262), oklch(0.72 0.14 222), oklch(0.73 0.15 196));"></div>
+
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:18px;">
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="width:44px; height:44px; border-radius:50%; flex:none; background:oklch(0.72 0.185 330);"></div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.1em; color:oklch(0.9 0.01 285);">BYA · deep past</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.58 0.01 285); margin-top:4px;">oklch(.72 .185 330)</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="width:44px; height:44px; border-radius:50%; flex:none; background:oklch(0.72 0.16 262);"></div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.1em; color:oklch(0.9 0.01 285);">MYA · midway</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.58 0.01 285); margin-top:4px;">oklch(.72 .16 262)</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div style="width:44px; height:44px; border-radius:50%; flex:none; background:oklch(0.73 0.15 196);"></div>
+        <div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.1em; color:oklch(0.9 0.01 285);">KYA · near present</div>
+          <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.58 0.01 285); margin-top:4px;">oklch(.73 .15 196)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr style="border:none; border-top:1px solid oklch(1 0 0 / 0.08); margin: 80px 0;">
+
+  <!-- 05 SCALE -->
+  <section>
+    <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.22em; text-transform:uppercase; color:oklch(0.6 0.13 320); margin-bottom:16px;">05 — Scale</div>
+    <h2 style="font-family:'Fraunces',serif; font-weight:400; font-size:40px; line-height:1.06; letter-spacing:-0.015em; margin:0 0 12px;">Two tiers, every size</h2>
+    <p style="font-size:17px; line-height:1.66; color:oklch(0.78 0.008 285); max-width:58ch; margin:0 0 44px;">The micro mark sheds dots as it shrinks so the spiral never turns to mud. The primary mark keeps every turn for large-scale and marketing use.</p>
+
+    <div style="display:grid; grid-template-columns: 1.1fr 1fr; gap:56px; align-items:center;">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.18em; text-transform:uppercase; color:oklch(0.62 0.01 285); margin-bottom:28px;">Micro mark</div>
+        <div style="display:flex; align-items:flex-end; gap:44px;">
+          <div style="text-align:center;">
+            <div style="width:16px; height:16px; margin:0 auto 16px; outline:1px dashed oklch(1 0 0 / 0.14); outline-offset:6px;">{{ marks.s16 }}</div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.58 0.01 285);">16px</span>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:24px; height:24px; margin:0 auto 16px; outline:1px dashed oklch(1 0 0 / 0.14); outline-offset:6px;">{{ marks.s24 }}</div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.58 0.01 285);">24px</span>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:32px; height:32px; margin:0 auto 16px; outline:1px dashed oklch(1 0 0 / 0.14); outline-offset:6px;">{{ marks.s32 }}</div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.58 0.01 285);">32px</span>
+          </div>
+          <div style="text-align:center;">
+            <div style="width:48px; height:48px; margin:0 auto 16px; outline:1px dashed oklch(1 0 0 / 0.14); outline-offset:6px;">{{ marks.s48 }}</div>
+            <span style="font-family:'JetBrains Mono',monospace; font-size:11px; color:oklch(0.58 0.01 285);">48px</span>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.18em; text-transform:uppercase; color:oklch(0.62 0.01 285); margin-bottom:20px;">Primary mark</div>
+        <div style="width:220px; height:220px; margin:0 auto;">{{ marks.primary }}</div>
+      </div>
+    </div>
+  </section>
+
+  <hr style="border:none; border-top:1px solid oklch(1 0 0 / 0.08); margin: 80px 0;">
+
+  <!-- 06 APPLICATIONS -->
+  <section>
+    <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.22em; text-transform:uppercase; color:oklch(0.6 0.13 320); margin-bottom:16px;">06 — Applications</div>
+    <h2 style="font-family:'Fraunces',serif; font-weight:400; font-size:40px; line-height:1.06; letter-spacing:-0.015em; margin:0 0 40px;">In the world</h2>
+
+    <div style="display:grid; grid-template-columns: repeat(4,1fr); gap:20px;">
+      <div style="text-align:center;">
+        <div style="width:112px; height:112px; margin:0 auto 18px; border-radius:26px; background:oklch(0.1 0.006 285); border:1px solid oklch(1 0 0 / 0.08); display:flex; align-items:center; justify-content:center; box-shadow: 0 20px 40px oklch(0 0 0 / 0.5);">
+          <div style="width:72px; height:72px;">{{ marks.appIcon }}</div>
+        </div>
+        <span style="font-family:'Inter Tight',sans-serif; font-size:14px; color:oklch(0.72 0.008 285);">App icon</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:112px; height:112px; margin:0 auto 18px; border-radius:50%; background:oklch(0.1 0.006 285); border:1px solid oklch(1 0 0 / 0.08); display:flex; align-items:center; justify-content:center;">
+          <div style="width:62px; height:62px;">{{ marks.appIcon }}</div>
+        </div>
+        <span style="font-family:'Inter Tight',sans-serif; font-size:14px; color:oklch(0.72 0.008 285);">Favicon</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="width:112px; height:112px; margin:0 auto 18px; border-radius:16px; background: linear-gradient(160deg, oklch(0.22 0.02 320), oklch(0.14 0.01 260)); display:flex; align-items:center; justify-content:center;">
+          <div style="width:70px; height:70px;">{{ marks.appIcon }}</div>
+        </div>
+        <span style="font-family:'Inter Tight',sans-serif; font-size:14px; color:oklch(0.72 0.008 285);">Social avatar</span>
+      </div>
+      <div style="text-align:center;">
+        <div style="position:relative; width:112px; height:112px; margin:0 auto 18px; border-radius:50%; background:oklch(0.1 0.006 285); border:1px solid oklch(1 0 0 / 0.08); display:flex; align-items:center; justify-content:center;">
+          <div style="width:60px; height:60px;">{{ marks.appIcon }}</div>
+          <span style="position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:oklch(0.7 0.2 330); box-shadow:0 0 0 4px oklch(0.155 0.006 285);"></span>
+        </div>
+        <span style="font-family:'Inter Tight',sans-serif; font-size:14px; color:oklch(0.72 0.008 285);">Notification</span>
+      </div>
+    </div>
+  </section>
+
+  <div style="margin-top:96px; padding-top:28px; border-top:1px solid oklch(1 0 0 / 0.08); display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.16em; text-transform:uppercase; color:oklch(0.5 0.01 285);">
+    <span>Time Traveler · Identity</span>
+    <span>{{ motionLabel }}</span>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;spinSeconds&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:44,&quot;min&quot;:16,&quot;max&quot;:90,&quot;step&quot;:2,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Motion&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Rendering&quot;}}">
+class Component extends DCLogic {
+  spiral(opts) {
+    const {
+      size = '100%', spin = false, spinSeconds = 44,
+      count = 60, turns = 3.6, arms = 1,
+      dotK = 0.135, ratio = 78, startAngle = -1.15,
+      hueOuter = 330, hueInner = 196,
+      chroma = 0.185, light = 0.72, glow = true, minDot = 0.42,
+    } = opts;
+
+    const cx = 50, cy = 50, maxR = 46;
+    const thetaMax = turns * 2 * Math.PI;
+    const b = Math.log(ratio) / thetaMax;
+
+    let body = '';
+    for (let a = 0; a < arms; a++) {
+      const armPhase = a * (2 * Math.PI / arms);
+      for (let i = 0; i < count; i++) {
+        const t = count === 1 ? 0 : i / (count - 1);   // 0 = outer, 1 = center
+        const theta = thetaMax * (1 - t);
+        const r = maxR * Math.exp(b * (theta - thetaMax));
+        const ang = theta + armPhase + startAngle;
+        const x = cx + r * Math.cos(ang);
+        const y = cy + r * Math.sin(ang);
+        const hue = hueOuter + (hueInner - hueOuter) * t;
+        const rad = Math.max(minDot, dotK * r);
+        const op = 0.3 + 0.7 * Math.pow(r / maxR, 0.55);
+        const col = `oklch(${light} ${chroma} ${hue.toFixed(1)})`;
+        if (glow && rad > 1.1) {
+          body += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${(rad * 2.2).toFixed(2)}" fill="${col}" opacity="${(op * 0.14).toFixed(3)}"/>`;
+        }
+        body += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${rad.toFixed(2)}" fill="${col}" opacity="${op.toFixed(3)}"/>`;
+      }
+    }
+
+    const cls = spin ? 'tt-spin' : '';
+    const anim = spin ? `animation-duration:${spinSeconds}s;` : '';
+    const svg = `<svg class="${cls}" style="${anim}width:100%;height:100%;display:block;overflow:visible;" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">${body}</svg>`;
+
+    return React.createElement('div', {
+      style: { width: size, height: size, display: 'block' },
+      dangerouslySetInnerHTML: { __html: svg },
+    });
+  }
+
+  renderVals() {
+    const spin = this.props.animate ?? true;
+    const spinSeconds = this.props.spinSeconds ?? 44;
+    const glow = this.props.glow ?? true;
+
+    const base = { glow };
+    // Chosen mark: iii — The Vortex. Denser, tighter turns, deeper ratio.
+    const V = { turns: 5.2, ratio: 120, dotK: 0.1 };
+
+    return {
+      motionLabel: spin ? 'Motion · continuous · reduced-motion safe' : 'Motion · static',
+      marks: {
+        hero:       this.spiral({ ...base, ...V, spin, spinSeconds, count: 78 }),
+        anatomy:    this.spiral({ ...base, ...V, spin, spinSeconds: spinSeconds * 1.25, count: 74, chroma: 0.16 }),
+        wmA:        this.spiral({ ...base, ...V, count: 46 }),
+        wmB:        this.spiral({ ...base, ...V, count: 44 }),
+        wmC:        this.spiral({ ...base, ...V, count: 44 }),
+        studySingle:this.spiral({ ...base, count: 46, turns: 3.3, dotK: 0.135 }),
+        studyDouble:this.spiral({ ...base, count: 30, turns: 3.0, arms: 2, dotK: 0.115 }),
+        studyVortex:this.spiral({ ...base, ...V, count: 72 }),
+        primary:    this.spiral({ ...base, ...V, count: 76 }),
+        s16:        this.spiral({ glow: false, count: 13, turns: 2.4, dotK: 0.13, ratio: 90, minDot: 0.66 }),
+        s24:        this.spiral({ glow: false, count: 17, turns: 3.0, dotK: 0.12, ratio: 100, minDot: 0.58 }),
+        s32:        this.spiral({ glow: false, count: 23, turns: 3.6, dotK: 0.115, ratio: 110, minDot: 0.5 }),
+        s48:        this.spiral({ ...base, ...V, count: 34 }),
+        appIcon:    this.spiral({ ...base, ...V, count: 40 }),
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>
