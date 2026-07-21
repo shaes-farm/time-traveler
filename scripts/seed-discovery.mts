@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { config as dotenvConfig } from "dotenv";
+import { findAdminUser } from "./seed-admin.mts";
 
 type TemporalData = {
   year: number;
@@ -66,15 +67,6 @@ type RestRequestOptions = {
   returnRepresentation?: boolean;
 };
 
-type AuthAdminUser = {
-  id: string;
-  email?: string;
-};
-
-type AuthAdminUsersResponse = {
-  users: AuthAdminUser[];
-};
-
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 dotenvConfig({ path: path.resolve(SCRIPT_DIR, "../.env.local") });
 
@@ -86,7 +78,6 @@ const SEED_PREFIX = "seed-electricity";
 const DATASET_NAME = "scientific_discoveries";
 const DATASET_VERSION = "v2";
 const DEFAULT_ADMIN_EMAIL = "admin@timetraveler.local";
-const DEFAULT_ADMIN_PASSWORD = "Admin123!";
 
 // ─── Parent period ───────────────────────────────────────────────────────────
 
@@ -1434,89 +1425,6 @@ async function restRequest<T>(
   return JSON.parse(text) as T;
 }
 
-async function authAdminRequest<T>(
-  baseUrl: string,
-  serviceRoleKey: string,
-  path: string,
-  method: "GET" | "POST" | "PUT",
-  body?: unknown,
-): Promise<T> {
-  const url = `${baseUrl.replace(/\/$/, "")}/auth/v1/admin/${path}`;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(
-      `Auth admin ${method} ${path} failed (${response.status} ${response.statusText}): ${text}`,
-    );
-  }
-
-  return (await response.json()) as T;
-}
-
-async function ensureAdminUser(
-  baseUrl: string,
-  serviceRoleKey: string,
-  email: string,
-  password: string,
-): Promise<AuthAdminUser> {
-  const usersResponse = await authAdminRequest<AuthAdminUsersResponse>(
-    baseUrl,
-    serviceRoleKey,
-    "users?page=1&per_page=1000",
-    "GET",
-  );
-
-  const existingUser = usersResponse.users.find(
-    (user) => user.email?.toLowerCase() === email.toLowerCase(),
-  );
-
-  const ensuredUser = existingUser
-    ? await authAdminRequest<AuthAdminUser>(
-        baseUrl,
-        serviceRoleKey,
-        `users/${existingUser.id}`,
-        "PUT",
-        {
-          password,
-          email_confirm: true,
-          user_metadata: {
-            first_name: "Admin",
-            last_name: "User",
-          },
-        },
-      )
-    : await authAdminRequest<AuthAdminUser>(
-        baseUrl,
-        serviceRoleKey,
-        "users",
-        "POST",
-        {
-          email,
-          password,
-          email_confirm: true,
-          user_metadata: {
-            first_name: "Admin",
-            last_name: "User",
-          },
-        },
-      );
-
-  if (!ensuredUser.id) {
-    throw new Error("Could not resolve admin user id from Auth Admin API.");
-  }
-
-  return ensuredUser;
-}
-
 function encodeIn(values: string[]): string {
   return `(${values.map((value) => `"${value}"`).join(",")})`;
 }
@@ -1533,10 +1441,6 @@ async function main(): Promise<void> {
     parseArg("admin-email") ||
     process.env.SEED_ADMIN_EMAIL ||
     DEFAULT_ADMIN_EMAIL;
-  const adminPassword =
-    parseArg("admin-password") ||
-    process.env.SEED_ADMIN_PASSWORD ||
-    DEFAULT_ADMIN_PASSWORD;
 
   // Validate temporal integers up front so we fail fast before any DB writes.
   assertTemporalData(PERIOD.temporal_data);
@@ -1553,23 +1457,13 @@ async function main(): Promise<void> {
     assertTemporalData(event.temporal_data);
   }
 
-  const adminUser = await ensureAdminUser(
-    baseUrl,
-    serviceRoleKey,
-    adminEmail,
-    adminPassword,
-  );
+  const adminUser = await findAdminUser(baseUrl, serviceRoleKey, adminEmail);
+  if (!adminUser) {
+    throw new Error(
+      `Admin user "${adminEmail}" not found. Run 'pnpm db:seed:admin' first.`,
+    );
+  }
   const userId = adminUser.id;
-
-  await restRequest<unknown>(baseUrl, serviceRoleKey, "profiles", {
-    method: "PATCH",
-    query: `id=eq.${userId}`,
-    body: {
-      first_name: "Admin",
-      last_name: "User",
-      role: "admin",
-    },
-  });
 
   console.log("Seeding dataset:", `${DATASET_NAME}:${DATASET_VERSION}`);
   console.log("Target user:", userId);
