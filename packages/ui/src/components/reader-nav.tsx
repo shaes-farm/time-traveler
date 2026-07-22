@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
-import { Clock } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
+import { BrandMark } from "@repo/ui/components/brand-mark";
 import {
   DefaultReaderLink,
   type ReaderLinkComponent,
@@ -84,11 +84,7 @@ export const ReaderNav = ({
             aria-current={brandActive ? "page" : undefined}
             className="flex items-center gap-2 font-display text-lg leading-none text-foreground transition-colors hover:text-foreground"
           >
-            <Clock
-              className="h-5 w-5 shrink-0 text-primary"
-              strokeWidth={1.6}
-              aria-hidden
-            />
+            <BrandMark className="h-5 w-5 shrink-0" aria-hidden />
             <span className="hidden sm:inline">Time Traveler</span>
           </LinkComponent>
           <ReaderLiveDot state={liveState} />
