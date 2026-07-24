@@ -6,7 +6,7 @@ const PERSONAS = [
   {
     label: "Educators",
     accent: "text-era-ce",
-    body: "Turn any era into an explorable map — from a war down to a single decision.",
+    body: "Turn any era into an explorable map — from an invention down to a single discovery.",
   },
   {
     label: "Researchers",

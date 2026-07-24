@@ -5,9 +5,9 @@
 const FEATURES = [
   {
     number: "01",
-    title: "Fractal zoom",
+    title: "Everything connects",
     accent: "border-era-ce",
-    body: "Billion-year scales down to a single afternoon. Each level reveals the right detail; a breadcrumb keeps you oriented.",
+    body: "Every historical event is a doorway. Pull any thread — an invention, a migration, a discovery — and the whole tapestry of history moves with it.",
   },
   {
     number: "02",
@@ -17,15 +17,15 @@ const FEATURES = [
   },
   {
     number: "03",
-    title: "Characters",
+    title: "Honest about doubt",
     accent: "border-era-kya",
-    body: "Gods and racehorses, detectives and dynasties — seven types, with lifespans, relationships, and roles in the events they shaped.",
+    body: "Every date carries its confession — how precisely it is known. Circa is not a decoration; uncertainty is information. Humility is as important as rigor.",
   },
   {
     number: "04",
-    title: "Stories",
+    title: "History is made twice",
     accent: "border-era-bya",
-    body: "The same event, many tellings. Narrative layers over the record — narrator, perspective, order — without overwriting it.",
+    body: "Once when it happens, again when someone records it. The connections do not make themselves visible: someone has to reveal them.",
   },
 ] as const;
 
@@ -60,9 +60,9 @@ export function HowItWorks() {
             <p className="text-[15px] leading-relaxed text-foreground-muted">
               {feature.body ?? (
                 <>
-                  Every date carries its own confession: its era —{" "}
-                  {eraCode("13.8 BYA")} or {eraCode("44 BCE")} — how precisely
-                  it&apos;s known, and how it came to be known.
+                  One coherent axis from the first second to the futures we
+                  imagine. {eraCode("13.8 BYA")} and {eraCode("44 BCE")} live
+                  together in the same landscape.
                 </>
               )}
             </p>
