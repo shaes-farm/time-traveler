@@ -23,15 +23,16 @@ export function Hero() {
           </h1>
           <p className="mb-6 text-lg leading-relaxed text-foreground-muted">
             History is not a hallway — it is a landscape, vast and connected in
-            every direction. An instrument for seeing across all of it:
-            cosmology to last afternoon, real pasts and imagined ones alike.
+            every direction. Time Traveler is an instrument for seeing across
+            all of it: cosmology to last afternoon, real pasts and imagined ones
+            alike.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Link
               href="/explore"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Explore the timeline
+              Explore timelines
               <span aria-hidden>→</span>
             </Link>
             <Link

@@ -1,27 +1,29 @@
 /**
- * FAQ — native <details>/<summary>, no JS. Copy verbatim from the hi-fi
- * landing design. Lives inside the "Get started" band per the mockup.
+ * FAQ — native <details>/<summary>, no JS. Content is verbatim from the hi-fi
+ * landing design, but styled as its own closing section (dark band, section-
+ * level heading) rather than nested under "Get started" — the shared
+ * bg-surface/30 band and missing divider made it read as a subsection.
  */
 const FAQS = [
   {
-    question: "Do I need an account?",
-    answer:
-      "No — reading and exploring is completely open. An account is only for authoring your own content.",
-  },
-  {
     question: "How far back does it go?",
     answer:
-      "13.8 billion years — Big Bang to present, and into speculative futures. Every date carries its era and precision.",
+      "To the first second of the universe. Time Traveler recognizes no boundary between cosmology, geology, biology, and recorded history — they are chapters of the same story.",
   },
   {
-    question: "Timeline vs. story?",
+    question: "What about uncertain dates?",
     answer:
-      "A timeline is the zoomable map of events; a story is a narrative telling laid over them — narrator, perspective, and its own order.",
+      "Uncertainty is a first-class citizen. Every date shows how precisely it is known — exact, circa, or an estimated range — never hidden behind confident tick marks.",
   },
   {
-    question: "What is fractal navigation?",
+    question: "Can I build my own timelines?",
     answer:
-      "Any event opens into its own sub-timeline. Zoom into a war, find the battles; zoom into a battle, find the hours.",
+      "Yes. History is made twice — once when it happens, again when someone records it. Authoring lives in the studio, exploring published work lives here where it is discovered.",
+  },
+  {
+    question: "Does everything have to be factual?",
+    answer:
+      "No. The imagined past, present, or future is also supported. Gods and racehorses, corporations and fictional detectives — anything with a story across time can live here, clearly on its own terms.",
   },
 ] as const;
 
@@ -29,15 +31,15 @@ export function Faq() {
   return (
     <section
       aria-labelledby="faq-heading"
-      className="bg-surface/30 px-4 pb-16 pt-6 sm:px-10 lg:px-16"
+      className="border-t border-border-muted bg-background px-4 py-16 sm:px-10 lg:px-16"
     >
-      <h3
+      <h2
         id="faq-heading"
-        className="mb-2 font-display text-2xl font-medium text-foreground"
+        className="mb-10 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl"
       >
         Questions
-      </h3>
-      <div className="mt-4 grid border-t border-border-muted lg:grid-cols-2 lg:gap-x-10">
+      </h2>
+      <div className="border-t border-border-muted">
         {FAQS.map((faq) => (
           <details
             key={faq.question}
