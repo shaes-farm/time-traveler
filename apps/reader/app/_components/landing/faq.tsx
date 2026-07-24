@@ -31,15 +31,15 @@ export function Faq() {
   return (
     <section
       aria-labelledby="faq-heading"
-      className="bg-surface/30 px-4 pb-16 pt-6 sm:px-10 lg:px-16"
+      className="border-t border-border-muted bg-background px-4 py-16 sm:px-10 lg:px-16"
     >
-      <h3
+      <h2
         id="faq-heading"
-        className="mb-2 font-display text-2xl font-medium text-foreground"
+        className="mb-10 font-display text-3xl font-medium tracking-tight text-foreground sm:text-4xl"
       >
         Questions
-      </h3>
-      <div className="mt-4 grid border-t border-border-muted lg:grid-cols-2 lg:gap-x-10">
+      </h2>
+      <div className="border-t border-border-muted">
         {FAQS.map((faq) => (
           <details
             key={faq.question}
