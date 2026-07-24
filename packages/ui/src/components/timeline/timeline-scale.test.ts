@@ -50,6 +50,22 @@ describe("createTimeScale — log", () => {
   it("resolves a non-finite sort value to the present (right) edge", () => {
     expect(scale.position(Number.NaN)).toBe(1000);
   });
+
+  it("pins all-future events to the present edge instead of collapsing the domain", () => {
+    // An all-future event set widens to domain [PRESENT, 3000], which put
+    // both log-scale endpoints at years-before-present = 1 and collapsed
+    // the axis to a single point (every position resolving to the range
+    // midpoint rather than a real pixel).
+    const futureScale = createTimeScale({
+      mode: "log",
+      domain: domainFromSortYears([3000], PRESENT),
+      range: RANGE,
+      presentYear: PRESENT,
+    });
+    expect(futureScale.position(PRESENT)).toBe(1000);
+    expect(futureScale.position(2500)).toBe(1000);
+    expect(futureScale.position(3000)).toBe(1000);
+  });
 });
 
 describe("createTimeScale — linear", () => {

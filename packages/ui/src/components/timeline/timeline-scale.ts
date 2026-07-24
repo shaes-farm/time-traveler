@@ -58,8 +58,16 @@ export function createTimeScale(options: TimelineScaleOptions): TimelineScale {
 
   if (mode === "log") {
     // Oldest (max years-before-present) → left edge; present (ybp 1) → right.
-    const oldestYbp = yearsBeforePresent(minSort, presentYear);
+    const oldestYbpRaw = yearsBeforePresent(minSort, presentYear);
     const newestYbp = yearsBeforePresent(maxSort, presentYear);
+    // Guard against a degenerate domain: when the whole (present-widened)
+    // domain falls at or after `presentYear` — e.g. an all-future/
+    // speculative event set — both endpoints clamp to the same
+    // years-before-present value (1) and scaleLog's domain collapses to a
+    // single point, which resolves every position to the range midpoint
+    // instead of a real pixel. Widen the oldest edge by one unit so present
+    // and future values consistently pin to the right (present) edge.
+    const oldestYbp = oldestYbpRaw > newestYbp ? oldestYbpRaw : newestYbp + 1;
     const scale = scaleLog()
       .domain([oldestYbp, newestYbp])
       .range([leftPx, rightPx])
@@ -104,10 +112,19 @@ export function domainFromSortYears(
   sortYears: readonly number[],
   presentYear: number = DEFAULT_PRESENT_YEAR,
 ): [number, number] {
-  const finite = sortYears.filter((y) => Number.isFinite(y));
-  if (finite.length === 0) return [presentYear - 1, presentYear];
-  const min = Math.min(...finite, presentYear);
-  const max = Math.max(...finite, presentYear);
+  // Reduce in a single pass rather than `Math.min(...finite)` — spreading a
+  // large event array as call arguments risks a call-stack RangeError once
+  // the array exceeds the engine's argument-list limit.
+  let min = presentYear;
+  let max = presentYear;
+  let hasFinite = false;
+  for (const y of sortYears) {
+    if (!Number.isFinite(y)) continue;
+    hasFinite = true;
+    if (y < min) min = y;
+    if (y > max) max = y;
+  }
+  if (!hasFinite) return [presentYear - 1, presentYear];
   // Guard against a zero-width domain (single event at the present).
   return min === max ? [min - 1, max] : [min, max];
 }
