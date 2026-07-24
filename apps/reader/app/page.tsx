@@ -1,25 +1,31 @@
+import { Hero } from "./_components/landing/hero";
+import { EraStripSection } from "./_components/landing/era-strip-section";
+import { HowItWorks } from "./_components/landing/how-it-works";
+import { WhoItsFor } from "./_components/landing/who-its-for";
+import { GetStarted } from "./_components/landing/get-started";
+import { Faq } from "./_components/landing/faq";
+
 /**
- * Reader landing placeholder. The persistent chrome (nav, footer, skip-link)
- * is supplied by the shell in `app/layout.tsx`; this route only renders the
- * `main` content. The full landing screen (featured/recent rails) is a
- * separate ticket. The `h1` is the focus target on navigation.
+ * Reader landing — implements the hi-fi design
+ * (docs/design/public/08-high-fidelity/Time_Traveler_Landing_Final.html).
+ * The persistent chrome (nav, footer, skip-link) is supplied by the shell;
+ * the hero's `h1` is the focus target on navigation.
+ *
+ * The bleed wrapper cancels the shell `main` padding (`px-4 py-8 sm:px-6` in
+ * reader-shell.tsx — keep in sync) so section bands and border rules span the
+ * full container width; each section owns its own padding. The mid-fi spec's
+ * featured/recent rails were dropped by the hi-fi final — divergence tracked
+ * in #395.
  */
 export default function ReaderHomePage() {
   return (
-    <div className="mx-auto max-w-2xl space-y-4 py-16 text-center">
-      <p className="font-mono text-xs uppercase tracking-wider text-foreground-subtle">
-        Public reader
-      </p>
-      <h1
-        tabIndex={-1}
-        className="font-display text-4xl text-foreground outline-none"
-      >
-        Time Traveler
-      </h1>
-      <p className="font-body text-sm text-foreground-muted">
-        Explore published timelines, stories, and the people, places, and events
-        that shaped them — across the full span of time.
-      </p>
+    <div className="-mx-4 -my-8 sm:-mx-6">
+      <Hero />
+      <EraStripSection />
+      <HowItWorks />
+      <WhoItsFor />
+      <GetStarted />
+      <Faq />
     </div>
   );
 }

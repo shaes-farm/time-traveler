@@ -1,8 +1,13 @@
+import { Clock } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import {
   DefaultReaderLink,
   type ReaderLinkComponent,
 } from "@repo/ui/components/reader-link";
+import {
+  ReaderLiveDot,
+  type ReaderLiveState,
+} from "@repo/ui/components/reader-live-dot";
 
 /**
  * ReaderFooter — the minimal reader `contentinfo` footer: a brand line plus
@@ -11,6 +16,10 @@ import {
  *
  * The "Sign in" link deep-links OUT to admin/auth (plain anchor); About/Legal
  * are in-app routes resolved through `LinkComponent`.
+ *
+ * Brand mark + optional live dot follow the hi-fi landing design
+ * (docs/design/public/08-high-fidelity/Time_Traveler_Landing_Final.html; amber
+ * primary per ADR-0038). The dot is static — never a pulse (motion-spec §2.5).
  */
 export interface ReaderFooterLink {
   label: string;
@@ -23,6 +32,8 @@ export interface ReaderFooterProps {
   links: ReaderFooterLink[];
   /** Brand tagline shown beside the wordmark. */
   tagline?: string;
+  /** Realtime indicator state; `hidden` (default) until a screen drives it. */
+  liveState?: ReaderLiveState;
   LinkComponent?: ReaderLinkComponent;
   className?: string;
 }
@@ -30,6 +41,7 @@ export interface ReaderFooterProps {
 export const ReaderFooter = ({
   links,
   tagline = "An immersive temporal reader",
+  liveState = "hidden",
   LinkComponent = DefaultReaderLink,
   className,
 }: ReaderFooterProps) => (
@@ -38,11 +50,17 @@ export const ReaderFooter = ({
     className={cn("border-t border-border-muted bg-background", className)}
   >
     <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-4 py-6 text-sm text-foreground-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <p className="font-display text-foreground">
+      <p className="flex items-center gap-2 font-display text-foreground">
+        <Clock
+          className="h-4 w-4 shrink-0 text-primary"
+          strokeWidth={1.6}
+          aria-hidden
+        />
         Time Traveler{" "}
         <span className="font-body text-xs text-foreground-muted">
           · {tagline}
         </span>
+        <ReaderLiveDot state={liveState} />
       </p>
       <ul className="flex flex-wrap items-center gap-4">
         {links.map((link) => (

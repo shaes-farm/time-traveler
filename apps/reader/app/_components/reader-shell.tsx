@@ -7,7 +7,12 @@ import { ReaderFooter } from "@repo/ui/components/reader-footer";
 import { SkipLink } from "@repo/ui/components/skip-link";
 import { StaleContentBanner } from "@repo/ui/components/stale-content-banner";
 import { ReaderLink } from "../../components/reader-link";
-import { READER_NAV_ITEMS, FOOTER_LINKS, SIGN_IN_HREF } from "../../lib/nav";
+import {
+  READER_NAV_ITEMS,
+  FOOTER_LINKS,
+  SIGN_IN_HREF,
+  TAGLINE,
+} from "../../lib/nav";
 
 /**
  * ReaderShell — the persistent public-reader chrome that wraps every route.
@@ -66,7 +71,11 @@ export function ReaderShell({ children }: { children: ReactNode }) {
       >
         {children}
       </main>
-      <ReaderFooter links={FOOTER_LINKS} LinkComponent={ReaderLink} />
+      <ReaderFooter
+        links={FOOTER_LINKS}
+        tagline={TAGLINE}
+        LinkComponent={ReaderLink}
+      />
     </div>
   );
 }

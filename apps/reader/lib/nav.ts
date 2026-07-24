@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import type { ReaderNavItem } from "@repo/ui/components/reader-nav";
 import type { ReaderFooterLink } from "@repo/ui/components/reader-footer";
 
@@ -12,8 +13,12 @@ import type { ReaderFooterLink } from "@repo/ui/components/reader-footer";
 export const READER_NAV_ITEMS: ReaderNavItem[] = [
   { label: "Explore", href: "/explore" },
   { label: "Stories", href: "/stories" },
-  { label: "Search", href: "/search" },
+  { label: "Search", href: "/search", icon: Search },
 ];
+
+/** Brand tagline (landing hi-fi / manifesto) shown in the footer. */
+export const TAGLINE =
+  "Everything has a history, and every history deserves to be explored.";
 
 /**
  * Base URL of the admin/auth surface the reader deep-links OUT to. The reader
@@ -24,6 +29,7 @@ export const READER_NAV_ITEMS: ReaderNavItem[] = [
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? "http://localhost:3000";
 
 export const SIGN_IN_HREF = `${ADMIN_URL}/auth/login`;
+export const REGISTER_HREF = `${ADMIN_URL}/auth/register`;
 
 export const FOOTER_LINKS: ReaderFooterLink[] = [
   { label: "About", href: "/about" },

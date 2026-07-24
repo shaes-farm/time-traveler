@@ -2,10 +2,14 @@ import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ReaderNav, type ReaderNavItem } from "./reader-nav";
 
+const SearchIcon = ({ className }: { className?: string }) => (
+  <svg data-testid="search-icon" className={className} />
+);
+
 const ITEMS: ReaderNavItem[] = [
   { label: "Explore", href: "/explore" },
   { label: "Stories", href: "/stories" },
-  { label: "Search", href: "/search" },
+  { label: "Search", href: "/search", icon: SearchIcon },
 ];
 
 const renderNav = (currentPath = "/explore") =>
@@ -69,6 +73,21 @@ describe("ReaderNav", () => {
       "href",
       "https://admin.example/auth/login",
     );
+  });
+
+  it("marks the sign-in arrow decorative so the accessible name stays clean", () => {
+    renderNav();
+    const signIn = screen.getByRole("link", { name: "Sign in" });
+    const arrow = signIn.querySelector("span[aria-hidden]");
+    expect(arrow).toHaveTextContent("→");
+  });
+
+  it("renders an item's leading icon when provided", () => {
+    renderNav();
+    const search = screen.getByRole("link", { name: "Search" });
+    expect(within(search).getByTestId("search-icon")).toBeInTheDocument();
+    const explore = screen.getByRole("link", { name: "Explore" });
+    expect(explore.querySelector("svg")).toBeNull();
   });
 
   it("hides the live dot by default", () => {

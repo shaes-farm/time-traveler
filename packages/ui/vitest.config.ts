@@ -16,6 +16,7 @@ export default defineConfig({
       include: [
         "src/components/autosave-indicator.tsx",
         "src/components/data-table.tsx",
+        "src/components/era-timeline-strip.tsx",
         "src/components/filter-rail.tsx",
         "src/components/media-card.tsx",
         "src/components/media-grid.tsx",

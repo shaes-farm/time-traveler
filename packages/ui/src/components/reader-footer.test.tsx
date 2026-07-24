@@ -39,4 +39,29 @@ describe("ReaderFooter", () => {
       "https://admin.example/auth/login",
     );
   });
+
+  it("accepts a custom tagline", () => {
+    render(
+      <ReaderFooter
+        links={LINKS}
+        tagline="Everything has a history, and every history deserves to be explored."
+      />,
+    );
+    expect(
+      screen.getByText(/every history deserves to be explored/i),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the live dot hidden by default and shows it when driven", () => {
+    const { container, rerender } = render(<ReaderFooter links={LINKS} />);
+    expect(container.querySelector("span[data-state]")).toHaveAttribute(
+      "data-state",
+      "hidden",
+    );
+    rerender(<ReaderFooter links={LINKS} liveState="subscribed" />);
+    expect(container.querySelector("span[data-state]")).toHaveAttribute(
+      "data-state",
+      "subscribed",
+    );
+  });
 });
