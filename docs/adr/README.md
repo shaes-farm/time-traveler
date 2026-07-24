@@ -76,6 +76,7 @@ model); the next new ADR is the next free number (`0029` onward), per the
 | [0036](adr-0036-e2e-testing-strategy.md)                   | E2E strategy: Playwright, local-first, off the PR gate; smoke deferred           | Accepted         | —                                          |
 | [0037](adr-0037-global-unsaved-changes-shell-guard.md)     | Global unsaved-changes guard for app-shell nav (`onNavigate` + Zustand registry) | Accepted         | —                                          |
 | [0038](adr-0038-amber-primary-accent.md)                   | Amber primary accent — `--color-primary` finalized (Batch B)                     | Accepted         | —                                          |
+| [0039](adr-0039-reader-timeline-renderer-d3-strategy.md)   | Reader timeline renderer: D3 submodules as math/behavior engine, React owns SVG  | Accepted         | —                                          |
 
 † ADR `0006` supersedes the original event-to-event `parent_event_id` nesting
 approach, which was never given its own ADR; it is documented inside `0006` as
