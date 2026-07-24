@@ -32,6 +32,8 @@ export default defineConfig({
         "src/components/slug-field.tsx",
         "src/components/temporal-display.tsx",
         "src/components/temporal-input.tsx",
+        "src/components/timeline/timeline-renderer.tsx",
+        "src/components/timeline/timeline-scale.ts",
         "src/hooks/use-categories.tsx",
         "src/hooks/use-character-relationships.tsx",
         "src/hooks/use-characters.tsx",
