@@ -8,7 +8,7 @@ export function EraStripSection() {
   return (
     <section
       aria-label="All of time at a glance"
-      className="px-4 pb-16 pt-3 sm:px-10 lg:px-16"
+      className="px-4 pb-19 pt-3 sm:px-10 lg:px-18"
     >
       <EraTimelineStrip />
     </section>

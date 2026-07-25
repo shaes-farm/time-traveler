@@ -75,16 +75,16 @@ export const ReaderNav = ({
       role="banner"
       className="sticky top-0 z-40 border-b border-border-muted bg-background"
     >
-      <div className="mx-auto flex h-14 max-w-[1200px] items-center gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-11">
         {/* Brand / home + ambient-presence live dot */}
         <div className="flex items-center gap-2">
           <LinkComponent
             href="/"
             aria-label="Time Traveler — home"
             aria-current={brandActive ? "page" : undefined}
-            className="flex items-center gap-2 font-display text-lg leading-none text-foreground transition-colors hover:text-foreground"
+            className="flex items-center gap-2 font-display text-xl leading-none text-foreground transition-colors hover:text-foreground"
           >
-            <BrandMark className="h-5 w-5 shrink-0" aria-hidden />
+            <BrandMark className="h-6 w-6 shrink-0" aria-hidden />
             <span className="hidden sm:inline">Time Traveler</span>
           </LinkComponent>
           <ReaderLiveDot state={liveState} />
@@ -92,7 +92,7 @@ export const ReaderNav = ({
 
         {/* Primary destinations */}
         <nav aria-label="Primary" className="flex flex-1 items-center">
-          <ul className="flex items-center gap-4 sm:gap-6">
+          <ul className="flex items-center gap-4 sm:gap-6 lg:gap-7.5">
             {items.map((item) => {
               const active = isActive(currentPath, item.href);
               return (
