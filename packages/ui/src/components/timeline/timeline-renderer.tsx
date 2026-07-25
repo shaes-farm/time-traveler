@@ -130,6 +130,9 @@ export const TimelineRenderer = ({
     });
   }, [scale, domain, width, presentYear]);
 
+  // Era-aware axis ticks — structural chrome, recomputed with the scale.
+  const ticks = useMemo(() => timeScale?.ticks() ?? [], [timeScale]);
+
   const setActive = useCallback(
     (id: string | null) => {
       setActiveId(id);
@@ -173,6 +176,26 @@ export const TimelineRenderer = ({
             className="stroke-border"
             strokeWidth={1}
           />
+
+          {/* Axis ticks + era labels — decorative chrome (the SR help text
+              already describes the axis), so hidden from the a11y tree. */}
+          {ticks.map((tick) => (
+            <g
+              key={`tick-${tick.sortYears}`}
+              data-testid="timeline-tick"
+              transform={`translate(${tick.px}, ${axisY})`}
+              aria-hidden
+            >
+              <line y1={0} y2={6} className="stroke-border" strokeWidth={1} />
+              <text
+                y={18}
+                textAnchor="middle"
+                className="fill-foreground-subtle font-mono text-[10px]"
+              >
+                {tick.label}
+              </text>
+            </g>
+          ))}
 
           {events.map((event) => {
             const x = timeScale.position(event.sortYears);
