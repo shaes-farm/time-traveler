@@ -130,3 +130,124 @@ describe("domainFromSortYears", () => {
     expect(max).toBe(DEFAULT_PRESENT_YEAR);
   });
 });
+
+describe("createTimeScale — ticks (log, whole history)", () => {
+  const scale = createTimeScale({
+    mode: "log",
+    domain: DOMAIN,
+    range: RANGE,
+    presentYear: PRESENT,
+  });
+
+  it("generates ascending, non-overlapping ticks across the domain", () => {
+    const ticks = scale.ticks();
+    expect(ticks.length).toBeGreaterThan(3);
+    for (let i = 1; i < ticks.length; i++) {
+      expect(ticks[i]!.px).toBeGreaterThan(ticks[i - 1]!.px);
+    }
+  });
+
+  it("labels ticks per era across the deep-time span", () => {
+    const labels = scale.ticks(20).map((t) => t.label);
+    expect(labels.some((l) => l.endsWith(" BYA"))).toBe(true);
+    expect(labels.some((l) => l.endsWith(" MYA"))).toBe(true);
+    expect(labels.some((l) => l.endsWith(" KYA"))).toBe(true);
+    // The recent edge lands in the calendar (CE) band, not a "years ago" era.
+    expect(labels.some((l) => l.endsWith(" CE"))).toBe(true);
+  });
+
+  it("keeps each tick's px consistent with position(sortYears)", () => {
+    for (const tick of scale.ticks()) {
+      expectNear(scale.position(tick.sortYears), tick.px, 1);
+    }
+  });
+
+  it("never emits a tick at the non-existent year zero", () => {
+    for (const tick of scale.ticks(40)) {
+      expect(tick.sortYears).not.toBe(0);
+      expect(tick.label).not.toMatch(/(^|\s)0\s(CE|BCE)$/);
+    }
+  });
+
+  it("honours a custom minimum spacing", () => {
+    const ticks = scale.ticks(40, 80);
+    for (let i = 1; i < ticks.length; i++) {
+      expect(ticks[i]!.px - ticks[i - 1]!.px).toBeGreaterThanOrEqual(80);
+    }
+  });
+
+  it("produces sensible sub-millennium ticks for a narrow near-present domain", () => {
+    const recent = createTimeScale({
+      mode: "log",
+      domain: [1000, PRESENT],
+      range: RANGE,
+      presentYear: PRESENT,
+    });
+    const labels = recent.ticks().map((t) => t.label);
+    expect(labels.length).toBeGreaterThan(0);
+    // Everything within the last millennium reads as a calendar CE year.
+    expect(labels.every((l) => l.endsWith(" CE"))).toBe(true);
+  });
+});
+
+describe("createTimeScale — ticks (BCE/CE boundary + collision)", () => {
+  it("crosses the BCE/CE boundary without a year-zero tick", () => {
+    const scale = createTimeScale({
+      mode: "linear",
+      domain: [-2000, 2000],
+      range: RANGE,
+      presentYear: PRESENT,
+    });
+    const ticks = scale.ticks();
+
+    // No tick sits at the non-existent year zero…
+    expect(ticks.every((t) => t.sortYears !== 0)).toBe(true);
+    // …and BCE/CE ticks order correctly on either side of the boundary.
+    for (let i = 1; i < ticks.length; i++) {
+      expect(ticks[i]!.sortYears).toBeGreaterThan(ticks[i - 1]!.sortYears);
+      expect(ticks[i]!.px).toBeGreaterThan(ticks[i - 1]!.px);
+    }
+    const labels = ticks.map((t) => t.label);
+    expect(labels.some((l) => l.endsWith(" BCE"))).toBe(true);
+    expect(labels.some((l) => l.endsWith(" CE"))).toBe(true);
+    // Oldest is BCE (left), newest is CE (right).
+    expect(ticks[0]!.label).toMatch(/ BCE$/);
+    expect(ticks[ticks.length - 1]!.label).toMatch(/ CE$/);
+  });
+
+  it("rounds CE/BCE labels to whole years on a narrow linear domain", () => {
+    // d3-array's ticks() picks fractional "nice" steps (e.g. 2025.5) when the
+    // domain span is small relative to the tick count — labels must still
+    // read as whole calendar years.
+    const scale = createTimeScale({
+      mode: "linear",
+      domain: [2025, 2026],
+      range: RANGE,
+      presentYear: PRESENT,
+    });
+    const ticks = scale.ticks(2);
+
+    // Sanity: this domain/count actually produces a fractional candidate
+    // (2025.5) — otherwise the assertion below wouldn't exercise the bug.
+    expect(ticks.some((t) => !Number.isInteger(t.sortYears))).toBe(true);
+    for (const tick of ticks) {
+      expect(tick.label).toMatch(/^\d+ (CE|BCE)$/);
+    }
+  });
+
+  it("culls colliding ticks down to the spacing floor", () => {
+    const scale = createTimeScale({
+      mode: "linear",
+      domain: [-2000, 2000],
+      range: RANGE,
+      presentYear: PRESENT,
+    });
+    // Same candidate set, tighter vs. looser spacing.
+    const dense = scale.ticks(50, 1);
+    const sparse = scale.ticks(50, 300);
+    expect(sparse.length).toBeLessThan(dense.length);
+    for (let i = 1; i < sparse.length; i++) {
+      expect(sparse[i]!.px - sparse[i - 1]!.px).toBeGreaterThanOrEqual(300);
+    }
+  });
+});

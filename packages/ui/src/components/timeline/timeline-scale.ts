@@ -22,6 +22,12 @@ import type { TimelineScaleMode } from "./types";
 /** Fallback "present" year when the caller doesn't pin one (matches the strip). */
 export const DEFAULT_PRESENT_YEAR = 2026;
 
+/** Default spacing floor between axis ticks, in px, for readability. */
+export const MIN_TICK_SPACING_PX = 56;
+
+/** Approx. px budget per tick when a caller doesn't pass a target count. */
+const PX_PER_TICK = 120;
+
 export interface TimelineScaleOptions {
   mode: TimelineScaleMode;
   /** Temporal domain as `[minSortYears, maxSortYears]` (oldest, newest). */
@@ -32,17 +38,99 @@ export interface TimelineScaleOptions {
   presentYear?: number;
 }
 
+/**
+ * A generated axis tick: a labelled reference position along the timeline.
+ * `sortYears` is the mode-agnostic temporal coordinate, `px` is where it lands
+ * for the scale that produced it, and `label` is the era-aware display string.
+ */
+export interface AxisTick {
+  readonly sortYears: number;
+  readonly px: number;
+  readonly label: string;
+}
+
 export interface TimelineScale {
   readonly mode: TimelineScaleMode;
   /** Pixel position along the axis for a signed sortable-year value. */
   position(sortYears: number): number;
   /** Inverse of {@link position}: the sortable-year value at a pixel offset. */
   invert(px: number): number;
+  /**
+   * Readable, collision-free axis ticks across the current domain. Ticks land
+   * on human-friendly values (powers of ten and their 2/5 multiples in log
+   * mode), carry an era-aware label, and are culled so no two sit closer than
+   * `minSpacingPx`. `targetCount` defaults to a width-derived estimate.
+   */
+  ticks(targetCount?: number, minSpacingPx?: number): AxisTick[];
 }
 
 /** Years before `presentYear` for a signed sort-year value, clamped to ≥1. */
 function yearsBeforePresent(sortYears: number, presentYear: number): number {
   return Math.max(1, presentYear - sortYears);
+}
+
+/** One decimal, dropping a trailing ".0", with thousands grouping. */
+function trimScaled(n: number): string {
+  return Number(n.toFixed(1)).toLocaleString("en-US");
+}
+
+/**
+ * Era-aware label for an axis tick at a signed sortable-year value.
+ *
+ * Deep time reads as "<n> KYA/MYA/BYA", keyed off years-before-present — the
+ * same "years ago" framing as the landing strip's era bands (`computeLogBands`
+ * in `era-timeline-strip.tsx`) — while the recent band (within ~10k years of
+ * the present, and anything in the future) reads as a calendar "<year> CE/BCE".
+ * The KYA cutoff sits at 10,000 ybp so antiquity (e.g. 2560 BCE) labels as a
+ * calendar year, matching how the seed data records those eras.
+ *
+ * There is no year zero (BCE year N → -N, CE year N → N), so a sort value that
+ * rounds to 0 is treated as 1 CE.
+ */
+function formatTickLabel(sortYears: number, presentYear: number): string {
+  const ybp = presentYear - sortYears;
+  if (ybp >= 1_000_000_000) return `${trimScaled(ybp / 1_000_000_000)} BYA`;
+  if (ybp >= 1_000_000) return `${trimScaled(ybp / 1_000_000)} MYA`;
+  if (ybp >= 10_000) return `${trimScaled(ybp / 1_000)} KYA`;
+  const year = Math.round(sortYears) || 1;
+  return year > 0 ? `${year} CE` : `${-year} BCE`;
+}
+
+/** Width-derived tick target when the caller doesn't pin one. */
+function defaultTickCount(leftPx: number, rightPx: number): number {
+  return Math.max(2, Math.round(Math.abs(rightPx - leftPx) / PX_PER_TICK));
+}
+
+/**
+ * Maps raw sort-year candidates to labelled, positioned ticks and culls them
+ * so no two sit closer than `minSpacingPx`. A single greedy left-to-right pass
+ * over px-sorted candidates handles both exact collisions (out-of-range values
+ * clamped to the same edge) and merely-too-close ticks. Raw ticks at the
+ * non-existent year zero are snapped to 1 CE before positioning.
+ */
+function assembleTicks(
+  rawSortYears: readonly number[],
+  presentYear: number,
+  position: (sortYears: number) => number,
+  minSpacingPx: number,
+): AxisTick[] {
+  const candidates = rawSortYears
+    .map((raw) => {
+      const sortYears = raw === 0 ? 1 : raw;
+      return {
+        sortYears,
+        px: position(sortYears),
+        label: formatTickLabel(sortYears, presentYear),
+      };
+    })
+    .sort((a, b) => a.px - b.px);
+
+  const kept: AxisTick[] = [];
+  for (const tick of candidates) {
+    const last = kept[kept.length - 1];
+    if (last == null || tick.px - last.px >= minSpacingPx) kept.push(tick);
+  }
+  return kept;
 }
 
 /**
@@ -73,14 +161,26 @@ export function createTimeScale(options: TimelineScaleOptions): TimelineScale {
       .range([leftPx, rightPx])
       .clamp(true);
 
+    const position = (sortYears: number): number => {
+      if (!Number.isFinite(sortYears)) return rightPx;
+      return scale(yearsBeforePresent(sortYears, presentYear));
+    };
+
     return {
       mode,
-      position(sortYears: number): number {
-        if (!Number.isFinite(sortYears)) return rightPx;
-        return scale(yearsBeforePresent(sortYears, presentYear));
-      },
+      position,
       invert(px: number): number {
         return presentYear - scale.invert(px);
+      },
+      ticks(
+        targetCount?: number,
+        minSpacingPx: number = MIN_TICK_SPACING_PX,
+      ): AxisTick[] {
+        const count = targetCount ?? defaultTickCount(leftPx, rightPx);
+        // d3 log ticks live in years-before-present space; map each back to a
+        // signed sort-year so labels and positions share one coordinate.
+        const rawSortYears = scale.ticks(count).map((ybp) => presentYear - ybp);
+        return assembleTicks(rawSortYears, presentYear, position, minSpacingPx);
       },
     };
   }
@@ -91,14 +191,29 @@ export function createTimeScale(options: TimelineScaleOptions): TimelineScale {
     .range([leftPx, rightPx])
     .clamp(true);
 
+  const position = (sortYears: number): number => {
+    if (!Number.isFinite(sortYears)) return rightPx;
+    return scale(sortYears);
+  };
+
   return {
     mode,
-    position(sortYears: number): number {
-      if (!Number.isFinite(sortYears)) return rightPx;
-      return scale(sortYears);
-    },
+    position,
     invert(px: number): number {
       return scale.invert(px);
+    },
+    ticks(
+      targetCount?: number,
+      minSpacingPx: number = MIN_TICK_SPACING_PX,
+    ): AxisTick[] {
+      const count = targetCount ?? defaultTickCount(leftPx, rightPx);
+      // Linear ticks are already in signed sort-year space.
+      return assembleTicks(
+        scale.ticks(count),
+        presentYear,
+        position,
+        minSpacingPx,
+      );
     },
   };
 }

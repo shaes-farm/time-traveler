@@ -183,4 +183,56 @@ describe("TimelineRenderer", () => {
       globalThis.ResizeObserver = original;
     }
   });
+
+  it("renders era-labelled axis ticks", () => {
+    renderWithWidth();
+    const ticks = screen.getAllByTestId("timeline-tick");
+    expect(ticks.length).toBeGreaterThan(0);
+    // Ticks are decorative chrome, hidden from the a11y tree.
+    for (const t of ticks) expect(t).toHaveAttribute("aria-hidden");
+  });
+
+  it("shows more axis ticks as the axis widens", () => {
+    const { rerender } = render(
+      <TimelineRenderer events={EVENTS} width={320} />,
+    );
+    const narrow = screen.getAllByTestId("timeline-tick").length;
+    rerender(<TimelineRenderer events={EVENTS} width={1600} />);
+    const wide = screen.getAllByTestId("timeline-tick").length;
+    expect(wide).toBeGreaterThan(narrow);
+  });
+
+  it("labels axis ticks across the BCE/CE boundary", () => {
+    render(
+      <TimelineRenderer
+        width={1000}
+        scale="linear"
+        events={[
+          {
+            id: "a",
+            label: "Founding",
+            sortYears: -2000,
+            eventType: "milestone",
+            eraCode: "BCE",
+            displayValue: "2000 BCE",
+          },
+          {
+            id: "b",
+            label: "Now",
+            sortYears: 2000,
+            eventType: "milestone",
+            eraCode: "CE",
+            displayValue: "2000 CE",
+          },
+        ]}
+      />,
+    );
+    const labels = screen
+      .getAllByTestId("timeline-tick")
+      .map((t) => t.textContent ?? "");
+    expect(labels.some((l) => l.endsWith("BCE"))).toBe(true);
+    expect(labels.some((l) => l.endsWith(" CE"))).toBe(true);
+    // No tick at the non-existent year zero.
+    expect(labels.some((l) => l === "0 CE" || l === "0 BCE")).toBe(false);
+  });
 });

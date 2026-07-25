@@ -126,6 +126,53 @@ const PERF_EVENTS: TimelineEventDatum[] = Array.from(
   },
 );
 
+/**
+ * A near-present set straddling the BCE/CE boundary — exercises the calendar
+ * (CE/BCE) tick labels and confirms no tick lands on the non-existent year zero.
+ */
+const RECENT_EVENTS: TimelineEventDatum[] = [
+  {
+    id: "rome",
+    label: "Rome founded",
+    sortYears: -753,
+    eventType: "milestone",
+    eraCode: "BCE",
+    displayValue: "753 BCE",
+  },
+  {
+    id: "caesar",
+    label: "Julius Caesar",
+    sortYears: -44,
+    eventType: "milestone",
+    eraCode: "BCE",
+    displayValue: "44 BCE",
+  },
+  {
+    id: "printing",
+    label: "Printing press",
+    sortYears: 1440,
+    eventType: "discovery",
+    eraCode: "CE",
+    displayValue: "1440 CE",
+  },
+  {
+    id: "moon",
+    label: "Moon landing",
+    sortYears: 1969,
+    eventType: "milestone",
+    eraCode: "CE",
+    displayValue: "1969 CE",
+  },
+  {
+    id: "today",
+    label: "Today",
+    sortYears: 2026,
+    eventType: "milestone",
+    eraCode: "CE",
+    displayValue: "2026 CE",
+  },
+];
+
 const meta = {
   title: "Components/TimelineRenderer",
   component: TimelineRenderer,
@@ -146,6 +193,22 @@ export const Logarithmic: Story = {};
 
 export const Linear: Story = {
   args: { scale: "linear" },
+};
+
+/**
+ * Full Big-Bang-to-today span at a wide, fixed width — the axis shows one era
+ * label per order of magnitude (BYA → MYA → KYA → CE), culled for legibility.
+ */
+export const AxisTicksWide: Story = {
+  args: { width: 1200 },
+};
+
+/**
+ * Recent era on a linear scale — calendar CE/BCE ticks straddle the boundary
+ * with no year-zero tick.
+ */
+export const RecentEraLinear: Story = {
+  args: { events: RECENT_EVENTS, scale: "linear", width: 1000 },
 };
 
 export const PerformanceBaseline: Story = {
