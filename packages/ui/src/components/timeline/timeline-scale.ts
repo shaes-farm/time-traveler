@@ -84,15 +84,15 @@ function trimScaled(n: number): string {
  * The KYA cutoff sits at 10,000 ybp so antiquity (e.g. 2560 BCE) labels as a
  * calendar year, matching how the seed data records those eras.
  *
- * There is no year zero (BCE year N → -N, CE year N → N), so a sort value of 0
- * is treated as 1 CE.
+ * There is no year zero (BCE year N → -N, CE year N → N), so a sort value that
+ * rounds to 0 is treated as 1 CE.
  */
 function formatTickLabel(sortYears: number, presentYear: number): string {
-  const year = sortYears === 0 ? 1 : sortYears;
-  const ybp = presentYear - year;
+  const ybp = presentYear - sortYears;
   if (ybp >= 1_000_000_000) return `${trimScaled(ybp / 1_000_000_000)} BYA`;
   if (ybp >= 1_000_000) return `${trimScaled(ybp / 1_000_000)} MYA`;
   if (ybp >= 10_000) return `${trimScaled(ybp / 1_000)} KYA`;
+  const year = Math.round(sortYears) || 1;
   return year > 0 ? `${year} CE` : `${-year} BCE`;
 }
 

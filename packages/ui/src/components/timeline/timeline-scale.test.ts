@@ -215,6 +215,26 @@ describe("createTimeScale — ticks (BCE/CE boundary + collision)", () => {
     expect(ticks[ticks.length - 1]!.label).toMatch(/ CE$/);
   });
 
+  it("rounds CE/BCE labels to whole years on a narrow linear domain", () => {
+    // d3-array's ticks() picks fractional "nice" steps (e.g. 2025.5) when the
+    // domain span is small relative to the tick count — labels must still
+    // read as whole calendar years.
+    const scale = createTimeScale({
+      mode: "linear",
+      domain: [2025, 2026],
+      range: RANGE,
+      presentYear: PRESENT,
+    });
+    const ticks = scale.ticks(2);
+
+    // Sanity: this domain/count actually produces a fractional candidate
+    // (2025.5) — otherwise the assertion below wouldn't exercise the bug.
+    expect(ticks.some((t) => !Number.isInteger(t.sortYears))).toBe(true);
+    for (const tick of ticks) {
+      expect(tick.label).toMatch(/^\d+ (CE|BCE)$/);
+    }
+  });
+
   it("culls colliding ticks down to the spacing floor", () => {
     const scale = createTimeScale({
       mode: "linear",
