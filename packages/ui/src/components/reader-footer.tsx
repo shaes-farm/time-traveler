@@ -49,7 +49,7 @@ export const ReaderFooter = ({
     role="contentinfo"
     className={cn("border-t border-border-muted bg-background", className)}
   >
-    <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-4 py-6 text-sm text-foreground-muted sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-foreground-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-11 lg:py-10">
       <p className="flex items-center gap-2 font-display text-foreground">
         <Clock
           className="h-4 w-4 shrink-0 text-primary"
@@ -62,7 +62,7 @@ export const ReaderFooter = ({
         </span>
         <ReaderLiveDot state={liveState} />
       </p>
-      <ul className="flex flex-wrap items-center gap-4">
+      <ul className="flex flex-wrap items-center gap-4 lg:gap-6">
         {links.map((link) => (
           <li key={link.href}>
             {link.external ? (

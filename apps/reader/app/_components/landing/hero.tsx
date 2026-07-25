@@ -9,7 +9,7 @@ import { BrandMark } from "@repo/ui/components/brand-mark";
  */
 export function Hero() {
   return (
-    <header className="px-4 pb-10 pt-14 sm:px-10 lg:px-16 lg:pt-18">
+    <header className="px-4 pb-10 pt-14 sm:px-10 lg:px-18 lg:pt-18">
       <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12">
         <div>
           <p className="mb-5 font-mono text-xs uppercase tracking-[0.22em] text-era-mya">

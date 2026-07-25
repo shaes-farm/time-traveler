@@ -67,7 +67,7 @@ export function ReaderShell({ children }: { children: ReactNode }) {
         id="main-content"
         ref={mainRef}
         tabIndex={-1}
-        className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-8 outline-none sm:px-6"
+        className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 outline-none sm:px-6 lg:px-11"
       >
         {children}
       </main>
