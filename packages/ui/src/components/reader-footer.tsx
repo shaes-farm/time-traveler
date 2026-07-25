@@ -1,4 +1,3 @@
-import { Clock } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import {
   DefaultReaderLink,
@@ -17,9 +16,11 @@ import {
  * The "Sign in" link deep-links OUT to admin/auth (plain anchor); About/Legal
  * are in-app routes resolved through `LinkComponent`.
  *
- * Brand mark + optional live dot follow the hi-fi landing design
- * (docs/design/public/08-high-fidelity/Time_Traveler_Landing_Final.html; amber
- * primary per ADR-0038). The dot is static — never a pulse (motion-spec §2.5).
+ * The brand line intentionally borrows the hi-fi mockup's eyebrow/kicker
+ * typographic device (uppercase JetBrains Mono, wide tracking — see the hero
+ * kicker and "who's for" persona labels) rather than the mockup's own footer
+ * markup, which still uses serif + a clock icon. Optional live dot is static
+ * — never a pulse (motion-spec §2.5); amber primary per ADR-0038.
  */
 export interface ReaderFooterLink {
   label: string;
@@ -50,14 +51,9 @@ export const ReaderFooter = ({
     className={cn("border-t border-border-muted bg-background", className)}
   >
     <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-foreground-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-11 lg:py-10">
-      <p className="flex items-center gap-2 font-display text-foreground">
-        <Clock
-          className="h-4 w-4 shrink-0 text-primary"
-          strokeWidth={1.6}
-          aria-hidden
-        />
+      <p className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.12em] text-foreground">
         Time Traveler{" "}
-        <span className="font-body text-xs text-foreground-muted">
+        <span className="font-mono text-[8px] uppercase tracking-[0.12em] text-foreground-muted">
           · {tagline}
         </span>
         <ReaderLiveDot state={liveState} />
