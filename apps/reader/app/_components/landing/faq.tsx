@@ -31,7 +31,7 @@ export function Faq() {
   return (
     <section
       aria-labelledby="faq-heading"
-      className="border-t border-border-muted bg-background px-4 py-16 sm:px-10 lg:px-16"
+      className="border-t border-border-muted bg-background px-4 py-16 sm:px-10 lg:px-18 lg:py-18"
     >
       <h2
         id="faq-heading"

@@ -10,7 +10,7 @@ export function GetStarted() {
   return (
     <section
       aria-labelledby="get-started-heading"
-      className="border-t border-border-muted bg-surface/30 px-4 py-16 sm:px-10 lg:px-16"
+      className="border-t border-border-muted bg-surface/30 px-4 py-16 sm:px-10 lg:px-18 lg:py-18"
     >
       <h2
         id="get-started-heading"
