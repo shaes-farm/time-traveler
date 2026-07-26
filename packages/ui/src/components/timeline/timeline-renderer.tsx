@@ -56,7 +56,11 @@ function eraFill(eraCode: string): string {
 export interface TimelineRendererProps {
   /** Events to plot. Marker positions derive from each event's `sortYears`. */
   events: readonly TimelineEventDatum[];
-  /** Axis scale — log (default) or linear. Toggle UI arrives in #67. */
+  /**
+   * Axis scale — log (default) or linear. The renderer is controlled: the
+   * `ScaleModeControl` toggle (#67) owns the mode and passes it here, re-running
+   * the position mapping without any renderer-side state.
+   */
   scale?: TimelineScaleMode;
   /** Year treated as "now" for the years-before-present log mapping. */
   presentYear?: number;
