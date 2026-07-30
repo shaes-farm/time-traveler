@@ -2,7 +2,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(32);
+select plan(33);
 
 -- ============================================================================
 -- Tables exist (1 relationship + 11 junction)
@@ -97,6 +97,16 @@ select lives_ok(
            (select id from characters where slug='b'),
            'professional'$$,
   'same character pair allowed with different relationship_type'
+);
+
+-- A causal type added in 00029_extend_relationship_types.sql is accepted.
+select lives_ok(
+  $$insert into character_relationships (user_id, character_id, related_character_id, relationship_type)
+    select 'cccccccc-cccc-cccc-cccc-cccccccccccc',
+           (select id from characters where slug='a'),
+           (select id from characters where slug='b'),
+           'superseded'$$,
+  'extended relationship_type (superseded) accepted by CHECK'
 );
 
 -- ============================================================================

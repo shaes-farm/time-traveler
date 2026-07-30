@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { temporalDataSchema, compareTemporal } from "./temporal";
 
-// NOTE: The relationship types below match the DB CHECK constraint in
-// supabase/migrations/00002_relationships_junctions.sql. Issue #32 lists a
-// different set of 16 types; the schema governs. See:
-// DECISION NEEDED: reconcile issue #32 relationship_type list with the DB
-// CHECK constraint values before adding new types.
+// NOTE: The relationship types below match the DB CHECK constraint. The
+// original 11 interpersonal types are defined in
+// supabase/migrations/00002_relationships_junctions.sql; the 21 causal /
+// derivational / attitudinal types are added in
+// supabase/migrations/00029_extend_relationship_types.sql. The schema governs.
+// Issue #32's earlier 16-type list is superseded by this 32-type vocabulary;
+// see docs/adr/adr-0037-extend-relationship-vocabulary.md for the reconciliation.
 export const relationshipTypeEnum = z.enum([
+  // Original 11 (00002) — interpersonal/social.
   "family",
   "professional",
   "friendship",
@@ -18,6 +21,28 @@ export const relationshipTypeEnum = z.enum([
   "collaboration",
   "enemy",
   "mentor_student",
+  // Added in 00029 (ADR-0037) — causal / derivational / attitudinal.
+  "observed",
+  "influenced",
+  "improved",
+  "standardized",
+  "enabled",
+  "superseded",
+  "derived_from",
+  "challenged",
+  "inspired",
+  "succeeded",
+  "contradicted",
+  "copied",
+  "predicted",
+  "calculated",
+  "measured",
+  "named",
+  "patented",
+  "adopted",
+  "rejected",
+  "forgotten",
+  "rediscovered",
 ]);
 
 // Sub-role taxonomy per issue #119 (see also

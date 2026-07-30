@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(18);
 
 -- ============================================================================
 -- Column presence + type
@@ -202,6 +202,38 @@ select throws_ok(
   23505,
   null,
   'duplicate NULL-role row blocked by NULLS NOT DISTINCT'
+);
+
+-- ============================================================================
+-- Extended vocabulary (00029) participates in the role CHECKs unchanged:
+-- a causal type takes no sub-role, so NULL is accepted and any non-NULL role
+-- is rejected by relationship_role_null_for_other_types.
+-- ============================================================================
+
+select lives_ok(
+  $$
+    insert into public.character_relationships
+      (user_id, character_id, related_character_id, relationship_type, relationship_role)
+      values ('00000000-0000-0000-0000-000000000000',
+              (select id from public.characters where slug = 'char-a-119'),
+              (select id from public.characters where slug = 'char-b-119'),
+              'superseded', null);
+  $$,
+  'extended type (superseded) accepts NULL role'
+);
+
+select throws_ok(
+  $$
+    insert into public.character_relationships
+      (user_id, character_id, related_character_id, relationship_type, relationship_role)
+      values ('00000000-0000-0000-0000-000000000000',
+              (select id from public.characters where slug = 'char-a-119'),
+              (select id from public.characters where slug = 'char-b-119'),
+              'patented', 'parent');
+  $$,
+  23514,
+  null,
+  'extended type (patented) rejects a non-NULL role'
 );
 
 -- ============================================================================
