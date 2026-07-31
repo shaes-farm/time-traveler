@@ -1,0 +1,172 @@
+{
+  "dataset": "Human Discovery of Time",
+  "description": "Reference seed corpus outline for Time Traveler.",
+  "root_timeline": [
+    {
+      "id": "T1",
+      "title": "Universe Creates Time",
+      "children": [
+        "Cosmology",
+        "Solar System",
+        "Earth-Moon"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Earth Creates Cycles",
+      "children": [
+        "Rotation",
+        "Orbit",
+        "Moon",
+        "Seasons"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Life Adapts to Time",
+      "children": [
+        "Circadian",
+        "Migration",
+        "Evolution"
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Humans Observe Time",
+      "children": [
+        "Sky",
+        "Shadow",
+        "Stars",
+        "Moon"
+      ]
+    },
+    {
+      "id": "T5",
+      "title": "Humans Predict Time",
+      "children": [
+        "Calendrics",
+        "Eclipses",
+        "Astronomy"
+      ]
+    },
+    {
+      "id": "T6",
+      "title": "Humans Record Time",
+      "children": [
+        "Writing",
+        "Calendars"
+      ]
+    },
+    {
+      "id": "T7",
+      "title": "Humans Measure Time",
+      "children": [
+        "Sundials",
+        "Water Clocks",
+        "Mechanical",
+        "Atomic"
+      ]
+    },
+    {
+      "id": "T8",
+      "title": "Humans Standardize Time",
+      "children": [
+        "Julian",
+        "Gregorian",
+        "Time Zones",
+        "UTC"
+      ]
+    },
+    {
+      "id": "T9",
+      "title": "Humans Synchronize Time",
+      "children": [
+        "Telegraph",
+        "Railroad",
+        "NTP",
+        "PTP",
+        "GPS"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "Future Time",
+      "children": [
+        "Optical Clocks",
+        "Relativistic Time",
+        "Interplanetary"
+      ]
+    }
+  ],
+  "event_allocation": {
+    "Universe Creates Time": 35,
+    "Earth Creates Cycles": 25,
+    "Life Adapts to Time": 20,
+    "Humans Observe Time": 45,
+    "Humans Predict Time": 40,
+    "Humans Record Time": 55,
+    "Humans Measure Time": 95,
+    "Humans Standardize Time": 55,
+    "Humans Synchronize Time": 50,
+    "Future Time": 30,
+    "total": 450
+  },
+  "overlays": [
+    "Civilizations",
+    "Astronomy",
+    "Mathematics",
+    "Navigation",
+    "Religion",
+    "Technology",
+    "Metrology",
+    "Standards",
+    "Physics",
+    "Computing"
+  ],
+  "main_character_types": {
+    "People": [
+      "Astronomers",
+      "Mathematicians",
+      "Engineers",
+      "Navigators",
+      "Clockmakers",
+      "Physicists"
+    ],
+    "Artifacts": [
+      "Sundial",
+      "Astrolabe",
+      "Water Clock",
+      "Hourglass",
+      "Pendulum Clock",
+      "Marine Chronometer",
+      "Quartz Clock",
+      "Atomic Clock"
+    ],
+    "Concepts": [
+      "Day",
+      "Hour",
+      "Minute",
+      "Second",
+      "Calendar",
+      "Longitude",
+      "UTC"
+    ],
+    "Organizations": [
+      "Observatories",
+      "Royal Society",
+      "BIPM",
+      "ITU",
+      "IERS",
+      "NIST"
+    ],
+    "Observations": [
+      "Solstice",
+      "Equinox",
+      "Eclipse",
+      "Planetary Motion",
+      "Precession",
+      "Tides"
+    ]
+  },
+  "fractal_rule": "Any event that supports a coherent narrative of observations, people, artifacts, concepts, and consequences receives its own child timeline."
+}
