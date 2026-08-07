@@ -7,7 +7,7 @@ tags: ["architecture", "decision", "data-model", "relationships"]
 supersedes: ""
 superseded_by: ""
 amends: ""
-amended_by: "ADR-0009 (relationship_role sub-roles, #119); ADR-0040 (causal/derivational vocabulary)"
+amended_by: "ADR-0009 (relationship_role sub-roles, #119); ADR-0040 (vocabulary as reference data — CHECK replaced by FK)"
 ---
 
 # ADR-0008: Character Relationships as Directed Pairs with Application-Layer Symmetry

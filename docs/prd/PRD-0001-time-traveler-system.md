@@ -1983,7 +1983,7 @@ Relationships connect characters across time, enabling network analysis and biog
 | `user_id`              | UUID         | Yes      | References auth.users              | Owner of the relationship   |
 | `character_id`         | UUID         | Yes      | References characters(id), CASCADE | Source character            |
 | `related_character_id` | UUID         | Yes      | References characters(id), CASCADE | Target character            |
-| `relationship_type`    | VARCHAR(100) | Yes      | Enum: see 4.5.2                    | Type of relationship        |
+| `relationship_type`    | VARCHAR(100) | Yes      | FK → relationship_types(key)       | Type of relationship        |
 | `description`          | TEXT         | No       | -                                  | Context and details         |
 | `start_temporal`       | JSONB        | No       | Valid TemporalData object          | When relationship began     |
 | `end_temporal`         | JSONB        | No       | Valid TemporalData object          | When relationship ended     |
@@ -1992,6 +1992,10 @@ Relationships connect characters across time, enabling network analysis and biog
 | `updated_at`           | TIMESTAMPTZ  | Yes      | Auto-updated                       | Last modification timestamp |
 
 #### 4.5.2 Relationship Types
+
+The relationship vocabulary is **reference data, not a fixed enum** ([ADR-0040](../adr/adr-0040-relationship-vocabulary-reference-data.md)). `relationship_type` is a foreign key into `relationship_types`, so administrators extend the vocabulary through the admin app rather than by schema migration. The table below is the seeded baseline — the foundational ontology, not an exhaustive or closed list.
+
+Each type also carries the metadata that drives behaviour and presentation: `is_symmetric` / `inverse_key` decide whether saving creates a reciprocal row, `direction_verb` and `symmetric_noun` supply the narrative line on a relationship card, and `category_key` / `sort_order` group and order it in the picker.
 
 | Type               | Description                | Examples                                             |
 | ------------------ | -------------------------- | ---------------------------------------------------- |
@@ -2014,7 +2018,7 @@ Relationships are **directed** from `character_id` to `related_character_id`. Th
 - "Caesar → Brutus: enemy" (from Caesar's perspective)
 - "Brutus → Caesar: betrayal" (from Brutus's perspective)
 
-For symmetric relationships (friendship, collaboration), the application can query in both directions or create reciprocal relationship records.
+Whether a reciprocal record is created is a property of the type, held in `relationship_types`: a symmetric type mirrors the row, a type naming an `inverse_key` writes the reciprocal under that other type, and a type with neither is stored as a single directed assertion.
 
 #### 4.5.4 Temporal Scope
 

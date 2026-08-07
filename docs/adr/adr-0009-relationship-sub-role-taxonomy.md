@@ -7,7 +7,7 @@ tags: ["architecture", "decision", "data-model", "relationships"]
 supersedes: ""
 superseded_by: ""
 amends: "ADR-0008 (character relationships directed pairs, #119)"
-amended_by: ""
+amended_by: "ADR-0040 (role CHECKs replaced by a composite FK to relationship_roles)"
 ---
 
 # ADR-0009: Relationship Sub-Role Taxonomy (relationship_role)
