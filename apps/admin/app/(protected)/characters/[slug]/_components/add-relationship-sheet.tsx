@@ -142,21 +142,21 @@ export function AddRelationshipSheet({
     }
   }
 
-  // The vocabulary may still be loading when the sheet opens, in which case
-  // `defaultType` was "". Adopt the real default as soon as it arrives.
-  if (!isEdit && type === "" && defaultType !== "") {
-    setType(defaultType);
-  }
+  // The vocabulary may still be loading when the sheet opens, so the reset above
+  // may have stored "". Derive the effective value rather than patching state
+  // during render: `type` holds an explicit choice once the user makes one, and
+  // `defaultType` fills in until then. Everything below reads `selectedType`.
+  const selectedType = type === "" ? defaultType : type;
 
   // Other-character ids already linked by the *currently chosen* type — exclude
   // them from the picker so we never trip the (chars, type) unique index.
   const excludedIds = React.useMemo(() => {
     const ids = new Set<string>([focalCharacterId]);
     for (const link of existingLinks) {
-      if (link.type === type) ids.add(link.otherId);
+      if (link.type === selectedType) ids.add(link.otherId);
     }
     return ids;
-  }, [existingLinks, type, focalCharacterId]);
+  }, [existingLinks, selectedType, focalCharacterId]);
 
   const isPending = createRel.isPending || updateRel.isPending;
 
@@ -170,7 +170,7 @@ export function AddRelationshipSheet({
         {
           id: editing.id,
           data: {
-            relationship_type: type,
+            relationship_type: selectedType,
             relationship_role: role,
             description: description.trim() || undefined,
             start_temporal: start ?? undefined,
@@ -193,7 +193,7 @@ export function AddRelationshipSheet({
       {
         character_id: focalCharacterId,
         related_character_id: other!.id,
-        relationship_type: type,
+        relationship_type: selectedType,
         relationship_role: role,
         description: description.trim() || undefined,
         start_temporal: start ?? undefined,
@@ -262,7 +262,7 @@ export function AddRelationshipSheet({
               </p>
             ) : (
               <RelationshipTypeSelector
-                type={type}
+                type={selectedType}
                 role={role}
                 categories={categories}
                 vocabulary={vocabulary}

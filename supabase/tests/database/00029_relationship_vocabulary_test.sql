@@ -43,8 +43,12 @@ select fk_ok(
   'public', 'relationship_roles',      array['type_key', 'key'],
   'composite (relationship_type, relationship_role) -> relationship_roles');
 
-select hasnt_index('public', 'character_relationships',
-  'character_relationships_relationship_type_check',
+-- A CHECK is a constraint, not an index, so this has to query pg_constraint —
+-- hasnt_index() would pass vacuously whether or not the constraint survived.
+select is_empty(
+  $$select conname from pg_constraint
+    where conrelid = 'public.character_relationships'::regclass
+      and conname = 'character_relationships_relationship_type_check'$$,
   'the 00002 relationship_type CHECK is gone');
 
 select has_index('public', 'character_relationships',

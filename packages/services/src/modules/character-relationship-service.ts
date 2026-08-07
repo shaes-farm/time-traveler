@@ -359,7 +359,9 @@ export async function createRelationship(
   // insert is best-effort: if it fails, the primary stays committed and the
   // caller is told to retry. This matches the multi-step pattern documented
   // in system-design §5.3.
-  const vocabulary = await fetchRelationshipVocabulary(client);
+  const vocabulary = await fetchRelationshipVocabulary(client, {
+    activeOnly: false,
+  });
   const reciprocal = computeReciprocalRow(primary, vocabulary);
   if (reciprocal !== null) {
     const { error: recipError } = await client
@@ -424,7 +426,9 @@ export async function updateRelationship(
 
   // The vocabulary drives both the pre-flight (type, role) check below and the
   // reciprocal transitions further down. Fetched once per update.
-  const vocabulary = await fetchRelationshipVocabulary(client);
+  const vocabulary = await fetchRelationshipVocabulary(client, {
+    activeOnly: false,
+  });
 
   // Cross-validate the resulting (type, role) combination before hitting the
   // DB. The Zod mutable schema (used above) cannot run the cross-field
@@ -766,7 +770,7 @@ export async function deleteRelationship(
     await deleteReciprocalRow(
       client,
       current,
-      await fetchRelationshipVocabulary(client),
+      await fetchRelationshipVocabulary(client, { activeOnly: false }),
     );
   } catch (e) {
     // Re-throw with the deleteRelationship context so callers see where
