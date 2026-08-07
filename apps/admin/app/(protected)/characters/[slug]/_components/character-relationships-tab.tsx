@@ -21,6 +21,7 @@ import {
   useCharacterRelationships,
   useDeleteRelationship,
 } from "@repo/ui/hooks/use-character-relationships";
+import { useRelationshipVocabulary } from "@repo/ui/hooks/use-relationship-types";
 import type { RelationshipType } from "@repo/ui/components/relationship-type-selector";
 import {
   directionLabel,
@@ -100,9 +101,18 @@ export function CharacterRelationshipsTab({
     return map;
   }, [otherChars]);
 
+  // Grouping and the narrative direction lines are both driven by the
+  // relationship vocabulary (#419) rather than hard-coded maps.
+  const { vocabulary, categories } = useRelationshipVocabulary(client);
+
   const groups = React.useMemo(
-    () => groupRelationshipsByFamily(relationships as RelationshipLike[]),
-    [relationships],
+    () =>
+      groupRelationshipsByFamily(
+        relationships as RelationshipLike[],
+        categories,
+        vocabulary,
+      ),
+    [relationships, categories, vocabulary],
   );
 
   // Collapsible group state — all expanded by default.
@@ -296,10 +306,11 @@ export function CharacterRelationshipsTab({
                             (rel.end_temporal as TemporalData | null) ?? null
                           }
                           description={rel.description}
-                          directionLabel={directionLabel(rel, {
-                            subjectName,
-                            objectName,
-                          })}
+                          directionLabel={directionLabel(
+                            rel,
+                            { subjectName, objectName },
+                            vocabulary,
+                          )}
                           onEdit={canEdit ? () => openEdit(rel) : undefined}
                           onDuplicate={
                             canEdit ? () => openDuplicate(rel) : undefined

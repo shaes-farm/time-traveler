@@ -3,9 +3,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   characterRelationshipSchema,
   characterRelationshipBaseSchema,
-  relationshipTypeEnum,
   validateTypeRoleCombination,
+  type RelationshipTypeKey,
 } from "../schemas/character-relationship";
+import type { RelationshipVocabulary } from "../schemas/relationship-vocabulary";
+import { fetchRelationshipVocabulary } from "./relationship-type-service";
 import type { Database } from "../supabase/types";
 
 type CharacterRelationshipRow =
@@ -27,7 +29,7 @@ type CharacterNetworkViewRow =
 export type { CharacterNetworkRow };
 
 export interface RelationshipFilters {
-  relationshipType?: z.infer<typeof relationshipTypeEnum>;
+  relationshipType?: RelationshipTypeKey;
   page?: number;
   pageSize?: number;
 }
@@ -85,65 +87,78 @@ function assertNoError(
   }
 }
 
+/**
+ * Turn a 23503 (foreign_key_violation) from a relationship write into a message
+ * that names the actual problem.
+ *
+ * Since 00029 the vocabulary is enforced by two FKs rather than CHECKs, so an
+ * unrecognized type and a mismatched (type, role) pair both arrive as 23503 and
+ * are only distinguishable by constraint name. Without this they surface as raw
+ * PostgREST text mentioning constraints the caller has never heard of.
+ */
+function describeVocabularyViolation(
+  error: { message: string; details?: string | null },
+  type: string,
+  role: string | null | undefined,
+): string {
+  const haystack = `${error.message} ${error.details ?? ""}`;
+  if (haystack.includes("character_relationships_role_fkey")) {
+    return `"${role}" is not a valid sub-role of relationship type "${type}"`;
+  }
+  if (haystack.includes("character_relationships_relationship_type_fkey")) {
+    return `unknown relationship type "${type}" — add it to the relationship vocabulary first`;
+  }
+  // Some other FK on the row (character_id, user_id); pass the original through.
+  return error.message;
+}
+
 // ---------------------------------------------------------------------------
 // Reciprocal-edge support (#119 / Batch 2 design)
 // ---------------------------------------------------------------------------
 
 /**
- * Relationship types that store direction by type alone — no reciprocal row
- * is created or expected. For these, "Marie mentors Pierre" is a single row;
- * "Pierre mentors Marie" would be a separate, independent assertion the user
- * must opt into explicitly. See `06-relationships-editor.md` for the
- * design rationale.
+ * The relationship_type the reciprocal row should carry, or null when no
+ * reciprocal applies. Reads the vocabulary rather than a hard-coded set — see
+ * `relationship_types.is_symmetric` / `.inverse_key` in
+ * `00029_relationship_vocabulary.sql`:
+ *
+ *   is_symmetric      → reciprocal carries the SAME type ("A and B are friends")
+ *   inverse_key set   → reciprocal carries THAT type
+ *   neither           → single directed row ("Marie mentors Pierre"); the
+ *                       reverse is a separate assertion the author opts into
+ *
+ * An unknown key yields null: a type this client has never seen is treated as
+ * directed rather than silently generating a reverse claim. That is the safe
+ * default, and it is why the previously hard-coded ASYMMETRIC_TYPES set was a
+ * latent bug — every type absent from it defaulted to symmetric.
  */
-const ASYMMETRIC_TYPES: ReadonlySet<string> = new Set([
-  "mentor_student",
-  "owner_pet",
-  "trainer_trainee",
-  "creator_creation",
-  "worship",
-]);
+function reciprocalTypeFor(
+  type: string,
+  vocabulary: RelationshipVocabulary,
+): string | null {
+  const meta = vocabulary.get(type);
+  if (meta === undefined) return null;
+  return meta.is_symmetric ? type : meta.inverse_key;
+}
 
 /**
- * Maps each sub-role to the role its reciprocal row should carry. Paired
- * roles invert (parent ↔ child); symmetric roles map to themselves
- * (spouse ↔ spouse). Roles not in this map are treated as "no role on
- * reciprocal" — i.e., the reciprocal carries `relationship_role = null`.
+ * The relationship_role the reciprocal row should carry. Paired roles invert
+ * (parent ↔ child), symmetric roles map to themselves (spouse ↔ spouse), and a
+ * role with no declared inverse yields null. Sourced from
+ * `relationship_roles.inverse_key`, replacing the hard-coded ROLE_INVERSE map.
+ *
+ * Roles are looked up under the *original* type: every role-bearing type in the
+ * taxonomy is symmetric, so the reciprocal shares its role set.
  */
-const ROLE_INVERSE: Readonly<Record<string, string>> = {
-  // Paired (asymmetric within type)
-  parent: "child",
-  child: "parent",
-  grandparent: "grandchild",
-  grandchild: "grandparent",
-  aunt_uncle: "niece_nephew",
-  niece_nephew: "aunt_uncle",
-  step_parent: "step_child",
-  step_child: "step_parent",
-  adoptive_parent: "adoptive_child",
-  adoptive_child: "adoptive_parent",
-  employer: "employee",
-  employee: "employer",
-  supervisor: "subordinate",
-  subordinate: "supervisor",
-  client: "vendor",
-  vendor: "client",
-  // Symmetric sub-roles (map to themselves)
-  spouse: "spouse",
-  sibling: "sibling",
-  cousin: "cousin",
-  in_law: "in_law",
-  step_sibling: "step_sibling",
-  colleague: "colleague",
-  business_partner: "business_partner",
-  co_author: "co_author",
-  co_founder: "co_founder",
-  research_partner: "research_partner",
-  performance_partner: "performance_partner",
-  band_member: "band_member",
-  creative_partner: "creative_partner",
-  other: "other",
-};
+function reciprocalRoleFor(
+  type: string,
+  role: string | null | undefined,
+  vocabulary: RelationshipVocabulary,
+): string | null {
+  if (role === null || role === undefined) return null;
+  const meta = vocabulary.get(type);
+  return meta?.roles.find((r) => r.key === role)?.inverse_key ?? null;
+}
 
 type RelationshipInsert =
   Database["public"]["Tables"]["character_relationships"]["Insert"];
@@ -152,39 +167,51 @@ type RelationshipInsert =
  * Given a freshly-inserted (or fetched) relationship row, compute the
  * reciprocal insert payload — or return `null` if no reciprocal applies.
  *
- * - Asymmetric types (`mentor_student`, etc.) return null: single-row by design.
+ * Semantics come entirely from the vocabulary (`reciprocalTypeFor` /
+ * `reciprocalRoleFor`), so a type added through the admin UI behaves correctly
+ * with no code change:
+ *
+ * - Directed types (`mentor_student`, `superseded`, …) return null: single row
+ *   by design. The reverse is a separate assertion the author opts into.
+ * - Types with an `inverse_key` produce a reciprocal carrying that other type.
+ * - Symmetric types swap the characters and carry the type through, inverting
+ *   the sub-role where one is declared.
  * - Self-relationships return null defensively (the DB also rejects them).
- * - For paired or symmetric sub-roles, characters swap and the role inverts via `ROLE_INVERSE`.
- * - For symmetric type-only (`friendship`, `rivalry`, `enemy`, and `professional`/`collaboration` without role), characters swap and type/role carry through unchanged.
+ * - Types unknown to this client return null — see `reciprocalTypeFor`.
  *
  * `description` is intentionally NOT carried to the reciprocal — each card holds
  * its own perspective text per Batch 2 Q1.
  */
-export function computeReciprocalRow(row: {
-  user_id: string;
-  character_id: string;
-  related_character_id: string;
-  relationship_type: string;
-  relationship_role: string | null;
-  start_temporal: unknown;
-  end_temporal: unknown;
-  metadata?: unknown;
-}): RelationshipInsert | null {
-  if (ASYMMETRIC_TYPES.has(row.relationship_type)) {
+export function computeReciprocalRow(
+  row: {
+    user_id: string;
+    character_id: string;
+    related_character_id: string;
+    relationship_type: string;
+    relationship_role: string | null;
+    start_temporal: unknown;
+    end_temporal: unknown;
+    metadata?: unknown;
+  },
+  vocabulary: RelationshipVocabulary,
+): RelationshipInsert | null {
+  const reciprocalType = reciprocalTypeFor(row.relationship_type, vocabulary);
+  if (reciprocalType === null) {
     return null;
   }
   if (row.character_id === row.related_character_id) {
     return null;
   }
-  const reverseRole =
-    row.relationship_role !== null
-      ? (ROLE_INVERSE[row.relationship_role] ?? null)
-      : null;
+  const reverseRole = reciprocalRoleFor(
+    row.relationship_type,
+    row.relationship_role,
+    vocabulary,
+  );
   return {
     user_id: row.user_id,
     character_id: row.related_character_id,
     related_character_id: row.character_id,
-    relationship_type: row.relationship_type,
+    relationship_type: reciprocalType,
     relationship_role: reverseRole,
     start_temporal: (row.start_temporal ??
       null) as RelationshipInsert["start_temporal"],
@@ -314,6 +341,15 @@ export async function createRelationship(
         "CharacterRelationshipService.createRelationship: a character cannot have a relationship with itself",
       );
     }
+    if (insertError.code === "23503") {
+      throw new Error(
+        `CharacterRelationshipService.createRelationship: ${describeVocabularyViolation(
+          insertError,
+          validated.relationship_type,
+          validated.relationship_role,
+        )}`,
+      );
+    }
     assertNoError(insertError, "createRelationship");
   }
 
@@ -323,7 +359,8 @@ export async function createRelationship(
   // insert is best-effort: if it fails, the primary stays committed and the
   // caller is told to retry. This matches the multi-step pattern documented
   // in system-design §5.3.
-  const reciprocal = computeReciprocalRow(primary);
+  const vocabulary = await fetchRelationshipVocabulary(client);
+  const reciprocal = computeReciprocalRow(primary, vocabulary);
   if (reciprocal !== null) {
     const { error: recipError } = await client
       .from("character_relationships")
@@ -385,21 +422,29 @@ export async function updateRelationship(
     .single();
   assertNoError(fetchError, "updateRelationship.fetchCurrent");
 
+  // The vocabulary drives both the pre-flight (type, role) check below and the
+  // reciprocal transitions further down. Fetched once per update.
+  const vocabulary = await fetchRelationshipVocabulary(client);
+
   // Cross-validate the resulting (type, role) combination before hitting the
   // DB. The Zod mutable schema (used above) cannot run the cross-field
   // refinement because Zod v4 doesn't support .pick() on refined schemas; so
   // an invalid combination like (professional, parent) would otherwise pass
-  // Zod and surface as an opaque 23514 from the DB CHECK. Compute the
+  // Zod and surface as an opaque 23503 from the composite FK. Compute the
   // effective values (new fields if provided, current values otherwise),
   // skipping `undefined` so it means "not provided" rather than "clear".
   if (current !== null) {
-    const effectiveType = (validated.relationship_type ??
-      current.relationship_type) as z.infer<typeof relationshipTypeEnum>;
+    const effectiveType =
+      validated.relationship_type ?? current.relationship_type;
     const effectiveRole =
       validated.relationship_role !== undefined
         ? validated.relationship_role
         : current.relationship_role;
-    const roleError = validateTypeRoleCombination(effectiveType, effectiveRole);
+    const roleError = validateTypeRoleCombination(
+      effectiveType,
+      effectiveRole,
+      vocabulary,
+    );
     if (roleError !== null) {
       throw new Error(
         `CharacterRelationshipService.updateRelationship: ${roleError}`,
@@ -423,6 +468,15 @@ export async function updateRelationship(
       `CharacterRelationshipService.updateRelationship: a ${typeLabel}relationship between these characters already exists`,
     );
   }
+  if (error !== null && error.code === "23503") {
+    throw new Error(
+      `CharacterRelationshipService.updateRelationship: ${describeVocabularyViolation(
+        error,
+        effectiveTypeForError ?? "",
+        validated.relationship_role,
+      )}`,
+    );
+  }
   assertNoError(error, "updateRelationship");
 
   // Handle the reciprocal based on the type-transition between current and
@@ -431,27 +485,32 @@ export async function updateRelationship(
   //
   //   1. wasReciprocal && willBeReciprocal  → sync existing reciprocal
   //   2. wasReciprocal && !willBeReciprocal → delete the orphan reciprocal
-  //                                           (transition to asymmetric)
+  //                                           (transition to directed)
   //   3. !wasReciprocal && willBeReciprocal → create a new reciprocal
-  //                                           (transition from asymmetric)
+  //                                           (transition from directed)
   //   4. !wasReciprocal && !willBeReciprocal → no reciprocal in either state
+  //
+  // "Reciprocal-producing" is now a vocabulary property rather than membership
+  // of a hard-coded set — see reciprocalTypeFor.
   //
   // Skip entirely if the fetch returned no row (legacy / test mocks).
   if (current !== null) {
-    const effectiveType = (validated.relationship_type ??
-      current.relationship_type) as z.infer<typeof relationshipTypeEnum>;
+    const effectiveType =
+      validated.relationship_type ?? current.relationship_type;
     const effectiveRole =
       validated.relationship_role !== undefined
         ? validated.relationship_role
         : current.relationship_role;
-    const wasReciprocal = !ASYMMETRIC_TYPES.has(current.relationship_type);
-    const willBeReciprocal = !ASYMMETRIC_TYPES.has(effectiveType);
+    const wasReciprocal =
+      reciprocalTypeFor(current.relationship_type, vocabulary) !== null;
+    const willBeReciprocal =
+      reciprocalTypeFor(effectiveType, vocabulary) !== null;
 
     if (wasReciprocal && willBeReciprocal) {
-      await syncReciprocalUpdate(client, current, validated);
+      await syncReciprocalUpdate(client, current, validated, vocabulary);
     } else if (wasReciprocal && !willBeReciprocal) {
-      // Transition to asymmetric — the old reciprocal row is now an orphan.
-      await deleteReciprocalRow(client, current);
+      // Transition to a directed type — the old reciprocal row is now an orphan.
+      await deleteReciprocalRow(client, current, vocabulary);
     } else if (!wasReciprocal && willBeReciprocal) {
       // Transition from asymmetric — primary became a reciprocal-producing
       // type, but no reciprocal existed before. Create one now using the
@@ -462,6 +521,7 @@ export async function updateRelationship(
         effectiveType,
         effectiveRole,
         validated,
+        vocabulary,
       );
     }
     // 4th case (!wasReciprocal && !willBeReciprocal): nothing to do.
@@ -471,26 +531,37 @@ export async function updateRelationship(
 }
 
 /**
- * Delete the reciprocal row that pairs with `current`. The lookup uses
- * `current.relationship_type` and the inverted `current.relationship_role`.
+ * Delete the reciprocal row that pairs with `current`. The lookup uses the
+ * reciprocal's type (the same type for symmetric vocabulary, the declared
+ * `inverse_key` otherwise) and the inverted `current.relationship_role`.
  * Missing reciprocal is silently ignored — legacy single-row data and orphan
  * states stay safe.
  */
 async function deleteReciprocalRow(
   client: SupabaseClient<Database>,
   current: CharacterRelationshipRow,
+  vocabulary: RelationshipVocabulary,
 ): Promise<void> {
-  const reciprocalRole =
-    current.relationship_role !== null
-      ? (ROLE_INVERSE[current.relationship_role] ?? null)
-      : null;
+  // Fall back to the same type when the vocabulary says this type produces no
+  // reciprocal. deleteRelationship relies on that: it deletes by actual
+  // presence rather than expected presence, so a stray reciprocal left by an
+  // earlier buggy write still gets cleaned up. The lookup is a harmless no-op
+  // when no such row exists.
+  const reciprocalType =
+    reciprocalTypeFor(current.relationship_type, vocabulary) ??
+    current.relationship_type;
+  const reciprocalRole = reciprocalRoleFor(
+    current.relationship_type,
+    current.relationship_role,
+    vocabulary,
+  );
 
   let query = client
     .from("character_relationships")
     .delete()
     .eq("character_id", current.related_character_id)
     .eq("related_character_id", current.character_id)
-    .eq("relationship_type", current.relationship_type);
+    .eq("relationship_type", reciprocalType);
 
   query =
     reciprocalRole === null
@@ -518,31 +589,35 @@ async function deleteReciprocalRow(
 async function createReciprocalForUpdatedPrimary(
   client: SupabaseClient<Database>,
   current: CharacterRelationshipRow,
-  effectiveType: z.infer<typeof relationshipTypeEnum>,
+  effectiveType: string,
   effectiveRole: string | null | undefined,
   partial: Partial<{
     start_temporal: unknown;
     end_temporal: unknown;
     metadata: unknown;
   }>,
+  vocabulary: RelationshipVocabulary,
 ): Promise<void> {
-  const reciprocal = computeReciprocalRow({
-    user_id: current.user_id,
-    character_id: current.character_id,
-    related_character_id: current.related_character_id,
-    relationship_type: effectiveType,
-    relationship_role: effectiveRole ?? null,
-    start_temporal:
-      partial.start_temporal !== undefined
-        ? partial.start_temporal
-        : current.start_temporal,
-    end_temporal:
-      partial.end_temporal !== undefined
-        ? partial.end_temporal
-        : current.end_temporal,
-    metadata:
-      partial.metadata !== undefined ? partial.metadata : current.metadata,
-  });
+  const reciprocal = computeReciprocalRow(
+    {
+      user_id: current.user_id,
+      character_id: current.character_id,
+      related_character_id: current.related_character_id,
+      relationship_type: effectiveType,
+      relationship_role: effectiveRole ?? null,
+      start_temporal:
+        partial.start_temporal !== undefined
+          ? partial.start_temporal
+          : current.start_temporal,
+      end_temporal:
+        partial.end_temporal !== undefined
+          ? partial.end_temporal
+          : current.end_temporal,
+      metadata:
+        partial.metadata !== undefined ? partial.metadata : current.metadata,
+    },
+    vocabulary,
+  );
   if (reciprocal === null) {
     // Defensive: caller only invokes this when willBeReciprocal is true.
     return;
@@ -578,6 +653,7 @@ async function syncReciprocalUpdate(
     end_temporal: unknown;
     metadata: unknown;
   }>,
+  vocabulary: RelationshipVocabulary,
 ): Promise<void> {
   // For each potentially-synced field, distinguish "not provided" (undefined)
   // from "explicitly cleared" (null). PostgREST drops undefined keys when
@@ -589,9 +665,15 @@ async function syncReciprocalUpdate(
     syncFields.relationship_type = partial.relationship_type;
   }
   if (partial.relationship_role !== undefined) {
-    const newRole = partial.relationship_role;
-    syncFields.relationship_role =
-      newRole !== null ? (ROLE_INVERSE[newRole] ?? null) : null;
+    // The new role is inverted under the type the row will carry after this
+    // update, which may differ from the current one.
+    const roleOwnerType =
+      partial.relationship_type ?? current.relationship_type;
+    syncFields.relationship_role = reciprocalRoleFor(
+      roleOwnerType,
+      partial.relationship_role,
+      vocabulary,
+    );
   }
   if (partial.start_temporal !== undefined) {
     syncFields.start_temporal = partial.start_temporal;
@@ -607,10 +689,15 @@ async function syncReciprocalUpdate(
     // (or only contained explicit undefineds, which are no-ops).
   }
 
-  const oldReciprocalRole =
-    current.relationship_role !== null
-      ? (ROLE_INVERSE[current.relationship_role] ?? null)
-      : null;
+  const oldReciprocalRole = reciprocalRoleFor(
+    current.relationship_type,
+    current.relationship_role,
+    vocabulary,
+  );
+  // Locate the existing reciprocal by the type it currently carries.
+  const oldReciprocalType =
+    reciprocalTypeFor(current.relationship_type, vocabulary) ??
+    current.relationship_type;
 
   type RelationshipUpdate =
     Database["public"]["Tables"]["character_relationships"]["Update"];
@@ -620,7 +707,7 @@ async function syncReciprocalUpdate(
     .update(syncFields as RelationshipUpdate)
     .eq("character_id", current.related_character_id)
     .eq("related_character_id", current.character_id)
-    .eq("relationship_type", current.relationship_type);
+    .eq("relationship_type", oldReciprocalType);
 
   query =
     oldReciprocalRole === null
@@ -676,7 +763,11 @@ export async function deleteRelationship(
   if (!deleteReciprocal) return;
   if (current === null) return;
   try {
-    await deleteReciprocalRow(client, current);
+    await deleteReciprocalRow(
+      client,
+      current,
+      await fetchRelationshipVocabulary(client),
+    );
   } catch (e) {
     // Re-throw with the deleteRelationship context so callers see where
     // they were in the flow.

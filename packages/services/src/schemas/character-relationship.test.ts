@@ -1,45 +1,135 @@
 import { describe, it, expect } from "vitest";
 import {
-  relationshipTypeEnum,
-  familyRoleEnum,
-  professionalRoleEnum,
-  collaborationRoleEnum,
+  relationshipTypeKeySchema,
   typeAcceptsRole,
   validateTypeRoleCombination,
   characterRelationshipSchema,
   characterRelationshipBaseSchema,
+  makeCharacterRelationshipSchema,
 } from "./character-relationship";
+import { toVocabulary } from "./relationship-vocabulary";
+import type {
+  RelationshipCategoryMeta,
+  RelationshipRoleMeta,
+  RelationshipTypeMeta,
+} from "./relationship-vocabulary";
 
 // ---------------------------------------------------------------------------
-// relationshipTypeEnum
+// Vocabulary fixture
+//
+// The legal type set is reference data now, so these tests build a small
+// vocabulary rather than asserting against a compiled-in enum.
 // ---------------------------------------------------------------------------
 
-describe("relationshipTypeEnum", () => {
-  const validTypes = [
+const mkRole = (
+  type_key: string,
+  key: string,
+  inverse_key: string | null,
+): RelationshipRoleMeta => ({
+  type_key,
+  key,
+  label: key,
+  inverse_key,
+  sort_order: 0,
+  is_active: true,
+});
+
+const mkType = (
+  key: string,
+  category_key: string,
+  overrides: Partial<RelationshipTypeMeta> = {},
+): RelationshipTypeMeta => ({
+  key,
+  label: key,
+  category_key,
+  sort_order: 0,
+  is_symmetric: true,
+  inverse_key: null,
+  direction_verb: null,
+  symmetric_noun: null,
+  description: null,
+  is_active: true,
+  roles: [],
+  ...overrides,
+});
+
+const CATEGORIES: RelationshipCategoryMeta[] = [
+  {
+    key: "social",
+    label: "Social",
+    description: null,
+    sort_order: 10,
+    is_active: true,
+    types: [
+      mkType("family", "social", {
+        roles: [
+          mkRole("family", "parent", "child"),
+          mkRole("family", "child", "parent"),
+          mkRole("family", "spouse", "spouse"),
+        ],
+      }),
+      mkType("professional", "social", {
+        roles: [
+          mkRole("professional", "employer", "employee"),
+          mkRole("professional", "employee", "employer"),
+        ],
+      }),
+      mkType("collaboration", "social", {
+        roles: [mkRole("collaboration", "co_author", "co_author")],
+      }),
+      mkType("friendship", "social", { symmetric_noun: "friends" }),
+    ],
+  },
+  {
+    key: "asymmetric",
+    label: "Asymmetric",
+    description: null,
+    sort_order: 20,
+    is_active: true,
+    types: [
+      mkType("mentor_student", "asymmetric", {
+        is_symmetric: false,
+        direction_verb: "mentors",
+      }),
+    ],
+  },
+];
+
+const VOCABULARY = toVocabulary(CATEGORIES);
+
+// ---------------------------------------------------------------------------
+// relationshipTypeKeySchema — shape only; membership is the database's job
+// ---------------------------------------------------------------------------
+
+describe("relationshipTypeKeySchema", () => {
+  it.each([
     "family",
     "professional",
     "friendship",
-    "rivalry",
-    "owner_pet",
-    "trainer_trainee",
-    "creator_creation",
-    "worship",
-    "collaboration",
-    "enemy",
     "mentor_student",
-  ] as const;
-
-  it.each(validTypes)("accepts valid type: %s", (type) => {
-    expect(() => relationshipTypeEnum.parse(type)).not.toThrow();
+    "derived_from",
+  ])("accepts a well-formed key: %s", (key) => {
+    expect(() => relationshipTypeKeySchema.parse(key)).not.toThrow();
   });
 
-  it("rejects an invalid relationship type", () => {
-    expect(() => relationshipTypeEnum.parse("ally")).toThrow();
+  it("accepts a key it has never seen — the vocabulary is data, not code", () => {
+    // The whole point of #419: a type added through the admin UI must validate
+    // without any code change here.
+    expect(() =>
+      relationshipTypeKeySchema.parse("some_brand_new_verb"),
+    ).not.toThrow();
   });
 
   it("rejects an empty string", () => {
-    expect(() => relationshipTypeEnum.parse("")).toThrow();
+    expect(() => relationshipTypeKeySchema.parse("")).toThrow();
   });
+
+  it.each(["Family", "has spaces", "1leading_digit", "trailing-hyphen"])(
+    "rejects a malformed key: %s",
+    (key) => {
+      expect(() => relationshipTypeKeySchema.parse(key)).toThrow();
+    },
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -118,11 +208,20 @@ describe("characterRelationshipSchema", () => {
     ).toThrow();
   });
 
-  it("rejects an invalid relationship_type", () => {
+  it("accepts an unknown relationship_type — the FK is the authority", () => {
     expect(() =>
       characterRelationshipSchema.parse({
         ...base,
         relationship_type: "acquaintance",
+      }),
+    ).not.toThrow();
+  });
+
+  it("still rejects a malformed relationship_type", () => {
+    expect(() =>
+      characterRelationshipSchema.parse({
+        ...base,
+        relationship_type: "Not A Key",
       }),
     ).toThrow();
   });
@@ -161,202 +260,166 @@ describe("characterRelationshipSchema", () => {
     ).not.toThrow();
   });
 });
-
 // ---------------------------------------------------------------------------
-// Sub-role enums (#119)
-// ---------------------------------------------------------------------------
-
-describe("familyRoleEnum", () => {
-  it.each([
-    "spouse",
-    "parent",
-    "child",
-    "sibling",
-    "grandparent",
-    "grandchild",
-    "aunt_uncle",
-    "niece_nephew",
-    "cousin",
-    "in_law",
-    "step_parent",
-    "step_child",
-    "step_sibling",
-    "adoptive_parent",
-    "adoptive_child",
-    "other",
-  ])("accepts %s", (role) => {
-    expect(() => familyRoleEnum.parse(role)).not.toThrow();
-  });
-
-  it("rejects unknown role", () => {
-    expect(() => familyRoleEnum.parse("ally")).toThrow();
-  });
-});
-
-describe("professionalRoleEnum", () => {
-  it.each([
-    "employer",
-    "employee",
-    "colleague",
-    "supervisor",
-    "subordinate",
-    "business_partner",
-    "client",
-    "vendor",
-    "other",
-  ])("accepts %s", (role) => {
-    expect(() => professionalRoleEnum.parse(role)).not.toThrow();
-  });
-
-  it("rejects family-only role", () => {
-    expect(() => professionalRoleEnum.parse("spouse")).toThrow();
-  });
-});
-
-describe("collaborationRoleEnum", () => {
-  it.each([
-    "co_author",
-    "co_founder",
-    "research_partner",
-    "performance_partner",
-    "band_member",
-    "creative_partner",
-    "other",
-  ])("accepts %s", (role) => {
-    expect(() => collaborationRoleEnum.parse(role)).not.toThrow();
-  });
-
-  it("rejects professional-only role", () => {
-    expect(() => collaborationRoleEnum.parse("employer")).toThrow();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// typeAcceptsRole / validateTypeRoleCombination helpers
+// typeAcceptsRole / validateTypeRoleCombination — now vocabulary-driven
 // ---------------------------------------------------------------------------
 
 describe("typeAcceptsRole", () => {
-  it("returns true for the three sub-roled types", () => {
-    expect(typeAcceptsRole("family")).toBe(true);
-    expect(typeAcceptsRole("professional")).toBe(true);
-    expect(typeAcceptsRole("collaboration")).toBe(true);
+  it("is true for types that declare sub-roles", () => {
+    expect(typeAcceptsRole("family", VOCABULARY)).toBe(true);
+    expect(typeAcceptsRole("professional", VOCABULARY)).toBe(true);
+    expect(typeAcceptsRole("collaboration", VOCABULARY)).toBe(true);
   });
 
-  it("returns false for the other 8 types", () => {
-    for (const t of [
-      "friendship",
-      "rivalry",
-      "enemy",
-      "mentor_student",
-      "owner_pet",
-      "trainer_trainee",
-      "creator_creation",
-      "worship",
-    ] as const) {
-      expect(typeAcceptsRole(t)).toBe(false);
-    }
+  it("is false for types with no sub-roles", () => {
+    expect(typeAcceptsRole("friendship", VOCABULARY)).toBe(false);
+    expect(typeAcceptsRole("mentor_student", VOCABULARY)).toBe(false);
+  });
+
+  it("is false for a type absent from the vocabulary", () => {
+    expect(typeAcceptsRole("not_in_vocabulary", VOCABULARY)).toBe(false);
   });
 });
 
 describe("validateTypeRoleCombination", () => {
   it("returns null when role is null or undefined", () => {
-    expect(validateTypeRoleCombination("family", null)).toBeNull();
-    expect(validateTypeRoleCombination("family", undefined)).toBeNull();
-    expect(validateTypeRoleCombination("mentor_student", null)).toBeNull();
-  });
-
-  it("accepts valid (type, role) pairs", () => {
-    expect(validateTypeRoleCombination("family", "parent")).toBeNull();
-    expect(validateTypeRoleCombination("professional", "employer")).toBeNull();
+    expect(validateTypeRoleCombination("family", null, VOCABULARY)).toBeNull();
     expect(
-      validateTypeRoleCombination("collaboration", "co_author"),
+      validateTypeRoleCombination("family", undefined, VOCABULARY),
+    ).toBeNull();
+    expect(
+      validateTypeRoleCombination("mentor_student", null, VOCABULARY),
     ).toBeNull();
   });
 
-  it("rejects role for types that do not accept sub-roles", () => {
-    expect(validateTypeRoleCombination("friendship", "spouse")).toMatch(
-      /must be null/,
-    );
-    expect(validateTypeRoleCombination("mentor_student", "parent")).toMatch(
-      /must be null/,
-    );
+  it("accepts valid (type, role) pairs", () => {
+    expect(
+      validateTypeRoleCombination("family", "parent", VOCABULARY),
+    ).toBeNull();
+    expect(
+      validateTypeRoleCombination("professional", "employer", VOCABULARY),
+    ).toBeNull();
+    expect(
+      validateTypeRoleCombination("collaboration", "co_author", VOCABULARY),
+    ).toBeNull();
   });
 
-  it("rejects role from a different type's enum", () => {
-    expect(validateTypeRoleCombination("family", "employer")).toMatch(
-      /not a valid family sub-role/,
-    );
-    expect(validateTypeRoleCombination("professional", "spouse")).toMatch(
-      /not a valid professional sub-role/,
-    );
-    expect(validateTypeRoleCombination("collaboration", "parent")).toMatch(
-      /not a valid collaboration sub-role/,
-    );
+  it("rejects a role on a type that declares none", () => {
+    expect(
+      validateTypeRoleCombination("friendship", "spouse", VOCABULARY),
+    ).toMatch(/must be null/);
+    expect(
+      validateTypeRoleCombination("mentor_student", "parent", VOCABULARY),
+    ).toMatch(/must be null/);
+  });
+
+  it("rejects a role belonging to a different type", () => {
+    expect(
+      validateTypeRoleCombination("family", "employer", VOCABULARY),
+    ).toMatch(/not a valid sub-role of "family"/);
+    expect(
+      validateTypeRoleCombination("professional", "spouse", VOCABULARY),
+    ).toMatch(/not a valid sub-role of "professional"/);
+  });
+
+  it("defers to the database for a type it has never seen", () => {
+    // A stale client must not block a write the database would accept.
+    expect(
+      validateTypeRoleCombination("added_yesterday", "some_role", VOCABULARY),
+    ).toBeNull();
   });
 });
 
 // ---------------------------------------------------------------------------
-// characterRelationshipSchema with role validation
+// makeCharacterRelationshipSchema — opt-in, vocabulary-aware validation
 // ---------------------------------------------------------------------------
 
-describe("characterRelationshipSchema role refinement (#119)", () => {
-  const base = {
+describe("makeCharacterRelationshipSchema", () => {
+  const scoped = makeCharacterRelationshipSchema(VOCABULARY);
+  const pair = {
     character_id: "11111111-1111-4111-8111-111111111111",
     related_character_id: "22222222-2222-4222-8222-222222222222",
   };
 
-  it("accepts family with a valid family sub-role", () => {
+  it("accepts a valid (type, role) pair", () => {
     expect(() =>
-      characterRelationshipSchema.parse({
-        ...base,
+      scoped.parse({
+        ...pair,
         relationship_type: "family",
         relationship_role: "parent",
       }),
     ).not.toThrow();
   });
 
-  it("accepts family with null role (backwards compat)", () => {
+  it("accepts a null role for any type", () => {
     expect(() =>
-      characterRelationshipSchema.parse({
-        ...base,
+      scoped.parse({
+        ...pair,
         relationship_type: "family",
         relationship_role: null,
       }),
     ).not.toThrow();
+    expect(() =>
+      scoped.parse({ ...pair, relationship_type: "friendship" }),
+    ).not.toThrow();
   });
 
-  it("rejects family with a professional sub-role", () => {
+  it("rejects a role from another type", () => {
+    // ZodError.message is the JSON-serialized issue list, so the quotes around
+    // the type name arrive escaped — match without them.
     expect(() =>
-      characterRelationshipSchema.parse({
-        ...base,
+      scoped.parse({
+        ...pair,
         relationship_type: "family",
         relationship_role: "employer",
       }),
-    ).toThrow(/not a valid family sub-role/);
+    ).toThrow(/is not a valid sub-role of/);
   });
 
-  it("rejects friendship with any non-null sub-role", () => {
+  it("rejects a role on a type that declares none", () => {
     expect(() =>
-      characterRelationshipSchema.parse({
-        ...base,
+      scoped.parse({
+        ...pair,
         relationship_type: "friendship",
         relationship_role: "spouse",
       }),
     ).toThrow(/must be null/);
   });
 
-  it("accepts friendship with null role (or omitted)", () => {
+  it("still enforces temporal ordering", () => {
     expect(() =>
-      characterRelationshipSchema.parse({
-        ...base,
+      scoped.parse({
+        ...pair,
         relationship_type: "friendship",
+        start_temporal: { era: "CE", year: 1900, precision: "approximate" },
+        end_temporal: { era: "CE", year: 1800, precision: "approximate" },
       }),
+    ).toThrow("start_temporal must not be later than end_temporal");
+  });
+
+  it("lets an unknown type through to the database", () => {
+    expect(() =>
+      scoped.parse({ ...pair, relationship_type: "added_yesterday" }),
     ).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The default schema does no value-level checking
+// ---------------------------------------------------------------------------
+
+describe("characterRelationshipSchema (shape-only)", () => {
+  const pair = {
+    character_id: "11111111-1111-4111-8111-111111111111",
+    related_character_id: "22222222-2222-4222-8222-222222222222",
+  };
+
+  it("does not reject a (type, role) mismatch — the composite FK does", () => {
     expect(() =>
       characterRelationshipSchema.parse({
-        ...base,
+        ...pair,
         relationship_type: "friendship",
-        relationship_role: null,
+        relationship_role: "spouse",
       }),
     ).not.toThrow();
   });

@@ -19,6 +19,8 @@ import {
   CommandList,
 } from "@repo/ui/components/command";
 import { Label } from "@repo/ui/components/label";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { useRelationshipVocabulary } from "@repo/ui/hooks/use-relationship-types";
 import {
   Popover,
   PopoverContent,
@@ -96,8 +98,18 @@ export function AddRelationshipSheet({
   const createRel = useCreateRelationship(client);
   const updateRel = useUpdateRelationship(client);
 
+  // The vocabulary is reference data fetched at runtime (#419), so the default
+  // type is the first one the data offers rather than a hard-coded "family".
+  const {
+    vocabulary,
+    categories,
+    isPending: vocabularyPending,
+    isError: vocabularyError,
+  } = useRelationshipVocabulary(client);
+  const defaultType = categories[0]?.types[0]?.key ?? "";
+
   const [other, setOther] = React.useState<OtherCharacter | null>(null);
-  const [type, setType] = React.useState<RelationshipType>("family");
+  const [type, setType] = React.useState<RelationshipType>("");
   const [role, setRole] = React.useState<string | null>(null);
   const [description, setDescription] = React.useState("");
   const [start, setStart] = React.useState<TemporalData | null>(null);
@@ -121,13 +133,19 @@ export function AddRelationshipSheet({
         setEnd(editing.endTemporal);
       } else {
         setOther(initialOther ?? null);
-        setType("family");
+        setType(defaultType);
         setRole(null);
         setDescription("");
         setStart(null);
         setEnd(null);
       }
     }
+  }
+
+  // The vocabulary may still be loading when the sheet opens, in which case
+  // `defaultType` was "". Adopt the real default as soon as it arrives.
+  if (!isEdit && type === "" && defaultType !== "") {
+    setType(defaultType);
   }
 
   // Other-character ids already linked by the *currently chosen* type — exclude
@@ -236,14 +254,24 @@ export function AddRelationshipSheet({
               inverse. The directional-control fidelity is deferred to #335. */}
           <div className="space-y-1.5">
             <Label>Type</Label>
-            <RelationshipTypeSelector
-              type={type}
-              role={role}
-              onChange={(next) => {
-                setType(next.type);
-                setRole(next.role);
-              }}
-            />
+            {vocabularyPending ? (
+              <Skeleton className="h-24 w-full" />
+            ) : vocabularyError ? (
+              <p className="text-sm text-destructive">
+                Could not load relationship types. Try again.
+              </p>
+            ) : (
+              <RelationshipTypeSelector
+                type={type}
+                role={role}
+                categories={categories}
+                vocabulary={vocabulary}
+                onChange={(next) => {
+                  setType(next.type);
+                  setRole(next.role);
+                }}
+              />
+            )}
           </div>
 
           {/* Temporal range */}

@@ -1,143 +1,89 @@
 import { z } from "zod";
 import { temporalDataSchema, compareTemporal } from "./temporal";
+import {
+  vocabularyKeySchema,
+  type RelationshipVocabulary,
+} from "./relationship-vocabulary";
 
-// NOTE: The relationship types below match the DB CHECK constraint. The
-// original 11 interpersonal types are defined in
-// supabase/migrations/00002_relationships_junctions.sql; the 21 causal /
-// derivational / attitudinal types are added in
-// supabase/migrations/00029_extend_relationship_types.sql. The schema governs.
-// Issue #32's earlier 16-type list is superseded by this 32-type vocabulary;
-// see docs/adr/adr-0037-extend-relationship-vocabulary.md for the reconciliation.
-export const relationshipTypeEnum = z.enum([
-  // Original 11 (00002) — interpersonal/social.
-  "family",
-  "professional",
-  "friendship",
-  "rivalry",
-  "owner_pet",
-  "trainer_trainee",
-  "creator_creation",
-  "worship",
-  "collaboration",
-  "enemy",
-  "mentor_student",
-  // Added in 00029 (ADR-0037) — causal / derivational / attitudinal.
-  "observed",
-  "influenced",
-  "improved",
-  "standardized",
-  "enabled",
-  "superseded",
-  "derived_from",
-  "challenged",
-  "inspired",
-  "succeeded",
-  "contradicted",
-  "copied",
-  "predicted",
-  "calculated",
-  "measured",
-  "named",
-  "patented",
-  "adopted",
-  "rejected",
-  "forgotten",
-  "rediscovered",
-]);
+// ---------------------------------------------------------------------------
+// relationship_type is reference data, not an enum
+// ---------------------------------------------------------------------------
+//
+// The legal set of relationship types lives in the `relationship_types` table
+// (supabase/migrations/00029_relationship_vocabulary.sql) and is extended by
+// admins at runtime — adding a type is an INSERT, not a migration. Membership is
+// enforced by the FK on character_relationships.relationship_type; a bad value
+// comes back from PostgREST as 23503, which the service maps to a readable
+// error.
+//
+// So this schema validates the *shape* of a key and nothing more, matching how
+// every other FK-referenced field in this package is handled (category.ts,
+// event.ts and timeline.ts all validate `z.string().uuid()` and let the FK
+// decide existence). Enumerating the values here would relocate the problem
+// #419 set out to solve from SQL into TypeScript.
+//
+// Callers holding the fetched vocabulary can opt into value-level checking via
+// `makeCharacterRelationshipSchema(vocabulary)` for pre-flight editor errors.
+// That check is advisory: a client whose cache predates a newly added type must
+// never block a write the database would accept.
+//
+// Directionality note (closes the long-standing #32 `is_bidirectional`
+// question): symmetry is per-TYPE vocabulary metadata, not a per-row column.
+// `relationship_types.is_symmetric` and `.inverse_key` decide whether a
+// reciprocal row is written; see `computeReciprocalRow`.
+//
+// See docs/adr/adr-0040-relationship-vocabulary-reference-data.md.
 
-// Sub-role taxonomy per issue #119 (see also
-// docs/design/admin/02-wireframes/06-relationships-editor.md). Only three of
-// the eleven relationship_type values accept a sub-role; the other eight
-// must have relationship_role = NULL.
-export const familyRoleEnum = z.enum([
-  "spouse",
-  "parent",
-  "child",
-  "sibling",
-  "grandparent",
-  "grandchild",
-  "aunt_uncle",
-  "niece_nephew",
-  "cousin",
-  "in_law",
-  "step_parent",
-  "step_child",
-  "step_sibling",
-  "adoptive_parent",
-  "adoptive_child",
-  "other",
-]);
-
-export const professionalRoleEnum = z.enum([
-  "employer",
-  "employee",
-  "colleague",
-  "supervisor",
-  "subordinate",
-  "business_partner",
-  "client",
-  "vendor",
-  "other",
-]);
-
-export const collaborationRoleEnum = z.enum([
-  "co_author",
-  "co_founder",
-  "research_partner",
-  "performance_partner",
-  "band_member",
-  "creative_partner",
-  "other",
-]);
+export const relationshipTypeKeySchema = vocabularyKeySchema;
 
 /**
- * Returns true if `relationship_type` accepts a `relationship_role` sub-role.
- * The three sub-roled types are: family, professional, collaboration.
+ * A relationship type key. Deliberately an open string: the closed set is data,
+ * so a union type here would assert knowledge the code does not have.
+ */
+export type RelationshipTypeKey = string;
+
+/**
+ * Returns true if `type` accepts a sub-role. Derived data — a type accepts a
+ * role iff it has `relationship_roles` rows. Unknown types accept none.
  */
 export function typeAcceptsRole(
-  type: z.infer<typeof relationshipTypeEnum>,
+  type: string,
+  vocabulary: RelationshipVocabulary,
 ): boolean {
-  return (
-    type === "family" || type === "professional" || type === "collaboration"
-  );
+  const meta = vocabulary.get(type);
+  return meta !== undefined && meta.roles.length > 0;
 }
 
 /**
- * Validates a (type, role) pair. Returns null if valid, or a human-readable
- * error message describing the mismatch. NULL role is always valid.
+ * Validates a (type, role) pair against the fetched vocabulary. Returns null if
+ * valid, or a human-readable error. A NULL role is always valid — mirroring the
+ * composite FK, where a NULL in any referencing column skips the check.
+ *
+ * Mirrors `character_relationships_role_fkey` so the editor can surface a typed
+ * error before a round trip; the database remains the authority.
  */
 export function validateTypeRoleCombination(
-  type: z.infer<typeof relationshipTypeEnum>,
+  type: string,
   role: string | null | undefined,
+  vocabulary: RelationshipVocabulary,
 ): string | null {
   if (role === null || role === undefined) {
     return null;
   }
-  if (type === "family") {
-    return familyRoleEnum.safeParse(role).success
-      ? null
-      : `relationship_role "${role}" is not a valid family sub-role`;
+  const meta = vocabulary.get(type);
+  if (meta === undefined) {
+    // Unknown to this client — possibly a type added since the vocabulary was
+    // fetched. Defer to the database rather than rejecting a legal write.
+    return null;
   }
-  if (type === "professional") {
-    return professionalRoleEnum.safeParse(role).success
-      ? null
-      : `relationship_role "${role}" is not a valid professional sub-role`;
+  if (meta.roles.length === 0) {
+    return `relationship_role must be null for relationship_type "${type}"`;
   }
-  if (type === "collaboration") {
-    return collaborationRoleEnum.safeParse(role).success
-      ? null
-      : `relationship_role "${role}" is not a valid collaboration sub-role`;
-  }
-  return `relationship_role must be null for relationship_type "${type}"`;
+  return meta.roles.some((r) => r.key === role)
+    ? null
+    : `relationship_role "${role}" is not a valid sub-role of "${type}"`;
 }
 
-// NOTE: Issue #32 references an `is_bidirectional` column. That column does
-// not exist in the actual schema. Directionality is implicit in column
-// position (character_id vs related_character_id) and is handled in query
-// logic via OR filters.
-// DECISION NEEDED: determine whether an is_bidirectional column should be
-// added via a future migration, or whether the current implicit model is
-// intentional.
 // Base object schema without cross-field refinements — needed separately
 // because Zod v4 does not support .pick() or .partial() on refined schemas.
 // Use characterRelationshipBaseSchema when you need to derive a sub-schema;
@@ -145,7 +91,7 @@ export function validateTypeRoleCombination(
 export const characterRelationshipBaseSchema = z.object({
   character_id: z.string().uuid(),
   related_character_id: z.string().uuid(),
-  relationship_type: relationshipTypeEnum,
+  relationship_type: relationshipTypeKeySchema,
   relationship_role: z.string().nullable().optional(),
   description: z.string().optional(),
   start_temporal: temporalDataSchema.optional(),
@@ -153,25 +99,47 @@ export const characterRelationshipBaseSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const characterRelationshipSchema =
-  characterRelationshipBaseSchema.superRefine((data, ctx) => {
-    // Enforce temporal ordering when both bounds are provided.
-    // The DB has no CHECK constraint for this, so validation lives here.
-    if (data.start_temporal !== undefined && data.end_temporal !== undefined) {
-      if (compareTemporal(data.start_temporal, data.end_temporal) > 0) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "start_temporal must not be later than end_temporal",
-          path: ["end_temporal"],
-        });
-      }
+/**
+ * Shared temporal-ordering refinement. The DB has no CHECK for this, so
+ * validation lives here.
+ */
+function refineTemporalOrder(
+  data: z.infer<typeof characterRelationshipBaseSchema>,
+  ctx: z.RefinementCtx,
+): void {
+  if (data.start_temporal !== undefined && data.end_temporal !== undefined) {
+    if (compareTemporal(data.start_temporal, data.end_temporal) > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "start_temporal must not be later than end_temporal",
+        path: ["end_temporal"],
+      });
     }
-    // Enforce type/role consistency. Mirrors the DB CHECK constraints from
-    // migration 00014; validates early so the editor gets typed errors before
-    // hitting PostgREST.
+  }
+}
+
+/**
+ * Default schema: shape only. Used by the service on every write; type and
+ * (type, role) validity are enforced by the database FKs.
+ */
+export const characterRelationshipSchema =
+  characterRelationshipBaseSchema.superRefine(refineTemporalOrder);
+
+/**
+ * Vocabulary-aware variant, for callers that have already fetched the
+ * vocabulary — the admin editor — so an invalid (type, role) pair surfaces as a
+ * field error instead of a round trip. Unknown types deliberately pass through
+ * to the database; see `validateTypeRoleCombination`.
+ */
+export function makeCharacterRelationshipSchema(
+  vocabulary: RelationshipVocabulary,
+) {
+  return characterRelationshipBaseSchema.superRefine((data, ctx) => {
+    refineTemporalOrder(data, ctx);
     const roleError = validateTypeRoleCombination(
       data.relationship_type,
       data.relationship_role,
+      vocabulary,
     );
     if (roleError !== null) {
       ctx.addIssue({
@@ -181,6 +149,7 @@ export const characterRelationshipSchema =
       });
     }
   });
+}
 
 export type CharacterRelationshipInput = z.infer<
   typeof characterRelationshipSchema

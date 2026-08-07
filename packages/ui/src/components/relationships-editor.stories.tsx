@@ -12,6 +12,8 @@ import {
   Users,
 } from "lucide-react";
 import type { TemporalData } from "@repo/services/schemas/temporal";
+import { toVocabulary } from "@repo/services/schemas/relationship-vocabulary";
+import type { RelationshipCategoryMeta } from "@repo/services/schemas/relationship-vocabulary";
 import { useUiStore } from "@repo/ui/stores";
 
 import { Button } from "./button";
@@ -444,6 +446,8 @@ function AddRelationshipSheet({
             <RelationshipTypeSelector
               type={form.type}
               role={form.role}
+              categories={STORY_CATEGORIES}
+              vocabulary={STORY_VOCABULARY}
               onChange={(next) => {
                 set("type", next.type);
                 set("role", next.role);
@@ -629,6 +633,96 @@ function RelationshipsEditorPage({
 }
 
 // ─── Meta ────────────────────────────────────────────────────────────────────
+
+// The selector renders whatever the vocabulary tables contain (#419); these
+// stories stand in for a fetched vocabulary.
+const STORY_CATEGORIES: RelationshipCategoryMeta[] = [
+  {
+    key: "family",
+    label: "Family",
+    description: null,
+    sort_order: 10,
+    is_active: true,
+    types: [
+      {
+        key: "family",
+        label: "Family",
+        category_key: "family",
+        sort_order: 10,
+        is_symmetric: true,
+        inverse_key: null,
+        direction_verb: null,
+        symmetric_noun: "relatives",
+        description: null,
+        is_active: true,
+        roles: [
+          {
+            type_key: "family",
+            key: "spouse",
+            label: "Spouse",
+            inverse_key: "spouse",
+            sort_order: 10,
+            is_active: true,
+          },
+          {
+            type_key: "family",
+            key: "parent",
+            label: "Parent",
+            inverse_key: "child",
+            sort_order: 20,
+            is_active: true,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    key: "social",
+    label: "Social / Personal",
+    description: null,
+    sort_order: 20,
+    is_active: true,
+    types: [
+      {
+        key: "friendship",
+        label: "Friendship",
+        category_key: "social",
+        sort_order: 10,
+        is_symmetric: true,
+        inverse_key: null,
+        direction_verb: null,
+        symmetric_noun: "friends",
+        description: null,
+        is_active: true,
+        roles: [],
+      },
+    ],
+  },
+  {
+    key: "asymmetric",
+    label: "Asymmetric",
+    description: null,
+    sort_order: 30,
+    is_active: true,
+    types: [
+      {
+        key: "mentor_student",
+        label: "Mentor / student",
+        category_key: "asymmetric",
+        sort_order: 10,
+        is_symmetric: false,
+        inverse_key: null,
+        direction_verb: "mentors",
+        symmetric_noun: null,
+        description: null,
+        is_active: true,
+        roles: [],
+      },
+    ],
+  },
+];
+
+const STORY_VOCABULARY = toVocabulary(STORY_CATEGORIES);
 
 const meta: Meta = {
   title: "Pages/Relationships Editor",
