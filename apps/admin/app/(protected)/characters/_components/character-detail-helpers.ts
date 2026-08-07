@@ -33,8 +33,13 @@ export interface RelationshipLike {
  */
 export type RelationshipFamilyKey = string;
 
-/** Bucket for relationships whose type is absent from the vocabulary. */
-export const UNGROUPED_FAMILY_KEY = "other";
+/**
+ * Bucket for relationships whose type is absent from the vocabulary. Reserved
+ * rather than a plausible word: category keys are admin-authored (#428), and a
+ * real category keyed "other" would collide here — duplicate React keys and one
+ * collapse toggle driving two groups. Never rendered; the legend is "Other".
+ */
+export const UNGROUPED_FAMILY_KEY = "__ungrouped__";
 
 /**
  * Category key for a relationship type. Types the vocabulary doesn't know about

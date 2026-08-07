@@ -308,7 +308,15 @@ export function AddRelationshipSheet({
           >
             Cancel
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isPending}>
+          {/* Also gated on the vocabulary: until it loads there is no type to
+              save, and submitting an empty one surfaces a raw ZodError. */}
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={
+              isPending || vocabularyPending || vocabularyError || !selectedType
+            }
+          >
             {isPending ? "Saving…" : "Save"}
           </Button>
         </SheetFooter>

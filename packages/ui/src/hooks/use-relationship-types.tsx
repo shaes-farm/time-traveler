@@ -67,6 +67,7 @@ export function useRelationshipVocabulary(
   isPending: boolean;
   isError: boolean;
   error: unknown;
+  refetch: () => void;
 } {
   const query = useRelationshipCategories(client, options);
   const categories = useMemo(() => query.data ?? [], [query.data]);
@@ -78,6 +79,9 @@ export function useRelationshipVocabulary(
     isPending: query.isPending,
     isError: query.isError,
     error: query.error,
+    // Exposed so a consumer showing an error state can offer Retry for the
+    // vocabulary itself, not just for whatever entity query sits alongside it.
+    refetch: () => void query.refetch(),
   };
 }
 

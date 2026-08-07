@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
@@ -126,5 +126,20 @@ describe("useRelationshipVocabulary", () => {
 
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.vocabulary.size).toBe(0);
+  });
+
+  it("exposes refetch so an error state can offer Retry", async () => {
+    listRelationshipCategories.mockRejectedValueOnce(new Error("boom"));
+    const { result } = renderHook(() => useRelationshipVocabulary(fakeClient), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    act(() => result.current.refetch());
+
+    await waitFor(() => expect(result.current.isError).toBe(false));
+    expect(result.current.categories).toEqual(CATEGORIES);
   });
 });

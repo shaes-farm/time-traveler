@@ -103,7 +103,16 @@ export function CharacterRelationshipsTab({
 
   // Grouping and the narrative direction lines are both driven by the
   // relationship vocabulary (#419) rather than hard-coded maps.
-  const { vocabulary, categories } = useRelationshipVocabulary(client);
+  // Without the vocabulary there is no grouping and no direction text, so the
+  // tab shares the relationships query's loading and error states rather than
+  // rendering every row under a bare "Other" heading.
+  const {
+    vocabulary,
+    categories,
+    isPending: vocabularyPending,
+    isError: vocabularyError,
+    refetch: refetchVocabulary,
+  } = useRelationshipVocabulary(client);
 
   const groups = React.useMemo(
     () =>
@@ -199,7 +208,7 @@ export function CharacterRelationshipsTab({
     });
   }
 
-  if (isPending) {
+  if (isPending || vocabularyPending) {
     return (
       <div className="space-y-2 p-1">
         {[1, 2, 3].map((step) => (
@@ -209,16 +218,25 @@ export function CharacterRelationshipsTab({
     );
   }
 
-  if (isError) {
+  if (isError || vocabularyError) {
     return (
       <div
         role="alert"
         className="flex flex-col items-center gap-3 rounded-md border border-destructive/30 bg-destructive/10 p-8 text-center"
       >
         <p className="text-sm text-destructive">
-          Failed to load relationships.
+          {isError
+            ? "Failed to load relationships."
+            : "Failed to load relationship types."}
         </p>
-        <Button variant="secondary" size="sm" onClick={() => void refetch()}>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => {
+            if (isError) void refetch();
+            if (vocabularyError) refetchVocabulary();
+          }}
+        >
           Retry
         </Button>
       </div>

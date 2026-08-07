@@ -321,6 +321,14 @@ export async function createRelationship(
 
   const validated = characterRelationshipSchema.parse(data);
 
+  // Fetched before the primary insert deliberately. The vocabulary is only
+  // needed for the reciprocal below, but a failure here must not leave a
+  // committed primary behind an error message that says nothing about it —
+  // the caller would retry and hit 23505 on the row it already wrote.
+  const vocabulary = await fetchRelationshipVocabulary(client, {
+    activeOnly: false,
+  });
+
   const { data: row, error: insertError } = await client
     .from("character_relationships")
     .insert({
@@ -359,9 +367,6 @@ export async function createRelationship(
   // insert is best-effort: if it fails, the primary stays committed and the
   // caller is told to retry. This matches the multi-step pattern documented
   // in system-design §5.3.
-  const vocabulary = await fetchRelationshipVocabulary(client, {
-    activeOnly: false,
-  });
   const reciprocal = computeReciprocalRow(primary, vocabulary);
   if (reciprocal !== null) {
     const { error: recipError } = await client
@@ -459,6 +464,12 @@ export async function updateRelationship(
   // Update primary.
   const effectiveTypeForError =
     validated.relationship_type ?? current?.relationship_type;
+  // A patch that omits the role leaves the stored one in place, so the error
+  // must name that rather than reporting "undefined".
+  const effectiveRoleForError =
+    validated.relationship_role !== undefined
+      ? validated.relationship_role
+      : current?.relationship_role;
   const { data: updated, error } = await client
     .from("character_relationships")
     .update(validated as unknown as RelationshipUpdate)
@@ -477,7 +488,7 @@ export async function updateRelationship(
       `CharacterRelationshipService.updateRelationship: ${describeVocabularyViolation(
         error,
         effectiveTypeForError ?? "",
-        validated.relationship_role,
+        effectiveRoleForError,
       )}`,
     );
   }
@@ -666,7 +677,15 @@ async function syncReciprocalUpdate(
   // explicit values (null included) are synced.
   const syncFields: Record<string, unknown> = {};
   if (partial.relationship_type !== undefined) {
-    syncFields.relationship_type = partial.relationship_type;
+    // The reciprocal carries the *inverse* of the primary's new type, not the
+    // type itself: symmetric types map to themselves, a directed type with an
+    // `inverse_key` maps to that key. Writing the primary's type verbatim would
+    // make the reciprocal assert the same directed claim ("A supersedes B" on
+    // both rows). Falls back to the type itself when the vocabulary declares no
+    // reciprocal, matching `oldReciprocalType` below and `deleteReciprocalRow`.
+    syncFields.relationship_type =
+      reciprocalTypeFor(partial.relationship_type, vocabulary) ??
+      partial.relationship_type;
   }
   if (partial.relationship_role !== undefined) {
     // The new role is inverted under the type the row will carry after this

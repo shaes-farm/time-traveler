@@ -167,15 +167,43 @@ const ALL_TYPE_KEYS = VOCABULARY_CATEGORIES.flatMap((c) =>
 );
 
 /**
+ * An inverse-declaring pair. Kept out of VOCABULARY_CATEGORIES on purpose: the
+ * exhaustive loops above assert that every directed type there yields no
+ * reciprocal, which is only true while none of them declares an inverse.
+ */
+const INVERSE_PAIR_CATEGORIES: RelationshipCategoryMeta[] = [
+  {
+    key: "derivational",
+    label: "Derivational",
+    description: null,
+    sort_order: 10,
+    is_active: true,
+    types: [
+      mkType("supersedes", {
+        category_key: "derivational",
+        is_symmetric: false,
+        inverse_key: "superseded_by",
+      }),
+      mkType("superseded_by", {
+        category_key: "derivational",
+        is_symmetric: false,
+        inverse_key: "supersedes",
+      }),
+    ],
+  },
+];
+
+/**
  * Route `relationship_categories` reads to the vocabulary fixture and every
  * other table to the caller's builder.
  */
 function withVocabulary(
   fromImpl: (table: string) => unknown,
+  categories: RelationshipCategoryMeta[] = VOCABULARY_CATEGORIES,
 ): (table: string) => unknown {
   return (table: string) =>
     table === "relationship_categories"
-      ? makeBuilder({ data: VOCABULARY_CATEGORIES, error: null })
+      ? makeBuilder({ data: categories, error: null })
       : fromImpl(table);
 }
 
@@ -903,27 +931,7 @@ describe("computeReciprocalRow", () => {
   });
 
   it("uses inverse_key when a directed type declares one", () => {
-    const withInverse = toVocabulary([
-      {
-        key: "derivational",
-        label: "Derivational",
-        description: null,
-        sort_order: 10,
-        is_active: true,
-        types: [
-          mkType("supersedes", {
-            category_key: "derivational",
-            is_symmetric: false,
-            inverse_key: "superseded_by",
-          }),
-          mkType("superseded_by", {
-            category_key: "derivational",
-            is_symmetric: false,
-            inverse_key: "supersedes",
-          }),
-        ],
-      },
-    ]);
+    const withInverse = toVocabulary(INVERSE_PAIR_CATEGORIES);
     const recip = computeReciprocalRow(
       { ...base, relationship_type: "supersedes", relationship_role: null },
       withInverse,
@@ -1319,6 +1327,51 @@ describe("updateRelationship reciprocal sync", () => {
     });
     // The reciprocal lookup filters by INVERTED role (child).
     expect(builder.eq).toHaveBeenCalledWith("relationship_role", "child");
+  });
+
+  it("syncs the INVERSE type to the reciprocal, not the primary's new type", async () => {
+    // A directed type that declares an inverse: the reciprocal must flip to
+    // that inverse, otherwise both rows assert the same direction ("A
+    // supersedes B" twice) instead of a claim and its converse. Nothing in the
+    // seeded vocabulary sets inverse_key yet, so this guards the path an admin
+    // opens the moment they add such a type (ADR-0040).
+    const supersedesRow = {
+      ...sampleRelationship,
+      relationship_type: "supersedes",
+      relationship_role: null,
+    };
+    const builder = {
+      ...makeBuilder({ data: supersedesRow, error: null }),
+    };
+    const client = {
+      from: vi.fn(withVocabulary(() => builder, INVERSE_PAIR_CATEGORIES)),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await updateRelationship(client, "rel-1", {
+      relationship_type: "superseded_by",
+    });
+
+    // First .update() is the primary; second is the reciprocal sync.
+    expect(builder.update).toHaveBeenCalledTimes(2);
+    const reciprocalSyncFields = builder.update.mock.calls[1]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(reciprocalSyncFields).toEqual({
+      relationship_type: "supersedes",
+    });
+    // The existing reciprocal is located by the type it currently carries.
+    expect(builder.eq).toHaveBeenCalledWith(
+      "relationship_type",
+      "superseded_by",
+    );
   });
 
   it("skips reciprocal sync for asymmetric types", async () => {
