@@ -102,6 +102,14 @@ insert into event_characters (event_id, character_id, role, significance) values
     'secondary'
   );
 
+-- Vocabulary fixture: 00029 replaced the relationship_type CHECK with an FK to
+-- relationship_types, which 00029 leaves empty (content ships in 00030).
+insert into relationship_categories (key, label) values ('social', 'Social')
+  on conflict (key) do nothing;
+insert into relationship_types (key, label, category_key) values
+  ('rivalry', 'Rivalry', 'social')
+  on conflict (key) do nothing;
+
 insert into character_relationships (
   user_id, character_id, related_character_id, relationship_type, description,
   start_temporal, end_temporal

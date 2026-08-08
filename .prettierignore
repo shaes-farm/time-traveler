@@ -3,6 +3,9 @@
 coverage/
 .next/
 node_modules/
+# Scratch files written by `supabase start`; git-ignores via supabase/.gitignore,
+# but prettier walks it and fails format:check whenever the local stack is up.
+supabase/.temp/
 pnpm-lock.yaml
 test-results/
 playwright-report/

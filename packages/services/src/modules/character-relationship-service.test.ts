@@ -12,13 +12,13 @@ import {
   getMutualRelationships,
   computeReciprocalRow,
 } from "./character-relationship-service";
-import {
-  relationshipTypeEnum,
-  familyRoleEnum,
-  professionalRoleEnum,
-  collaborationRoleEnum,
-  validateTypeRoleCombination,
-} from "../schemas/character-relationship";
+import { validateTypeRoleCombination } from "../schemas/character-relationship";
+import { toVocabulary } from "../schemas/relationship-vocabulary";
+import type {
+  RelationshipCategoryMeta,
+  RelationshipRoleMeta,
+  RelationshipTypeMeta,
+} from "../schemas/relationship-vocabulary";
 
 // ---------------------------------------------------------------------------
 // Mock builder helpers
@@ -43,6 +43,170 @@ function makeBuilder(result: { data: unknown; error: unknown }) {
   return builder;
 }
 
+// ---------------------------------------------------------------------------
+// Vocabulary fixture
+//
+// Since #419 the reciprocal rules live in `relationship_types` rather than in a
+// hard-coded set, so the service reads the vocabulary during create/update/
+// delete. Mock clients therefore have to answer the relationship_categories
+// query as well as the relationship one.
+// ---------------------------------------------------------------------------
+
+const mkRole = (
+  type_key: string,
+  key: string,
+  inverse_key: string | null,
+): RelationshipRoleMeta => ({
+  type_key,
+  key,
+  label: key,
+  inverse_key,
+  sort_order: 0,
+  is_active: true,
+});
+
+const mkType = (
+  key: string,
+  overrides: Partial<RelationshipTypeMeta> = {},
+): RelationshipTypeMeta => ({
+  key,
+  label: key,
+  category_key: "social",
+  sort_order: 0,
+  is_symmetric: true,
+  inverse_key: null,
+  direction_verb: null,
+  symmetric_noun: null,
+  description: null,
+  is_active: true,
+  roles: [],
+  ...overrides,
+});
+
+const FAMILY_ROLES = [
+  mkRole("family", "parent", "child"),
+  mkRole("family", "child", "parent"),
+  mkRole("family", "spouse", "spouse"),
+  mkRole("family", "sibling", "sibling"),
+  mkRole("family", "step_parent", "step_child"),
+  mkRole("family", "step_child", "step_parent"),
+  mkRole("family", "other", "other"),
+];
+const PROFESSIONAL_ROLES = [
+  mkRole("professional", "employer", "employee"),
+  mkRole("professional", "employee", "employer"),
+  mkRole("professional", "colleague", "colleague"),
+  mkRole("professional", "client", "vendor"),
+  mkRole("professional", "vendor", "client"),
+  mkRole("professional", "other", "other"),
+];
+const COLLABORATION_ROLES = [
+  mkRole("collaboration", "co_author", "co_author"),
+  mkRole("collaboration", "co_founder", "co_founder"),
+  mkRole("collaboration", "other", "other"),
+];
+
+/** Symmetric social types plus the directed ones, mirroring the seeded shape. */
+const VOCABULARY_CATEGORIES: RelationshipCategoryMeta[] = [
+  {
+    key: "social",
+    label: "Social",
+    description: null,
+    sort_order: 10,
+    is_active: true,
+    types: [
+      mkType("family", { roles: FAMILY_ROLES }),
+      mkType("professional", { roles: PROFESSIONAL_ROLES }),
+      mkType("collaboration", { roles: COLLABORATION_ROLES }),
+      mkType("friendship", { symmetric_noun: "friends" }),
+      mkType("rivalry", { symmetric_noun: "rivals" }),
+      mkType("enemy", { symmetric_noun: "enemies" }),
+    ],
+  },
+  {
+    key: "asymmetric",
+    label: "Asymmetric",
+    description: null,
+    sort_order: 20,
+    is_active: true,
+    types: [
+      mkType("mentor_student", {
+        category_key: "asymmetric",
+        is_symmetric: false,
+        direction_verb: "mentors",
+      }),
+      mkType("owner_pet", {
+        category_key: "asymmetric",
+        is_symmetric: false,
+        direction_verb: "owns",
+      }),
+      mkType("trainer_trainee", {
+        category_key: "asymmetric",
+        is_symmetric: false,
+        direction_verb: "trains",
+      }),
+      mkType("creator_creation", {
+        category_key: "asymmetric",
+        is_symmetric: false,
+        direction_verb: "created",
+      }),
+      mkType("worship", {
+        category_key: "asymmetric",
+        is_symmetric: false,
+        direction_verb: "worships",
+      }),
+    ],
+  },
+];
+
+const VOCABULARY = toVocabulary(VOCABULARY_CATEGORIES);
+
+/** Every type the fixture knows about, for exhaustive loops. */
+const ALL_TYPE_KEYS = VOCABULARY_CATEGORIES.flatMap((c) =>
+  c.types.map((t) => t.key),
+);
+
+/**
+ * An inverse-declaring pair. Kept out of VOCABULARY_CATEGORIES on purpose: the
+ * exhaustive loops above assert that every directed type there yields no
+ * reciprocal, which is only true while none of them declares an inverse.
+ */
+const INVERSE_PAIR_CATEGORIES: RelationshipCategoryMeta[] = [
+  {
+    key: "derivational",
+    label: "Derivational",
+    description: null,
+    sort_order: 10,
+    is_active: true,
+    types: [
+      mkType("supersedes", {
+        category_key: "derivational",
+        is_symmetric: false,
+        inverse_key: "superseded_by",
+      }),
+      mkType("superseded_by", {
+        category_key: "derivational",
+        is_symmetric: false,
+        inverse_key: "supersedes",
+      }),
+    ],
+  },
+];
+
+/**
+ * Route `relationship_categories` reads to the vocabulary fixture and every
+ * other table to the caller's builder.
+ */
+function withVocabulary(
+  fromImpl: (table: string) => unknown,
+  categories: RelationshipCategoryMeta[] = VOCABULARY_CATEGORIES,
+): (table: string) => unknown {
+  return (table: string) =>
+    table === "relationship_categories"
+      ? makeBuilder({ data: categories, error: null })
+      : fromImpl(table);
+}
+
 function makeClient(overrides: {
   fromResult?: { data: unknown; error: unknown };
   rpcResult?: { data: unknown; error: unknown };
@@ -54,8 +218,12 @@ function makeClient(overrides: {
     authUser,
   } = overrides;
 
+  // One builder instance for every non-vocabulary table, so tests can grab it
+  // via client.from(...) and stage `mockResolvedValueOnce` sequences on it.
+  const sharedBuilder = makeBuilder(fromResult);
+
   const client = {
-    from: vi.fn().mockReturnValue(makeBuilder(fromResult)),
+    from: vi.fn(withVocabulary(() => sharedBuilder)),
     rpc: vi.fn().mockResolvedValue(rpcResult),
     auth: {
       getUser: vi
@@ -230,7 +398,7 @@ function makeCreateClient(insertResult: { data: unknown; error: unknown }) {
     insert: vi.fn().mockReturnValue(insertBuilder),
   };
   const client = {
-    from: vi.fn().mockReturnValue(builder),
+    from: vi.fn(withVocabulary(() => builder)),
     rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
     auth: {
       getUser: vi.fn().mockResolvedValue({
@@ -313,13 +481,24 @@ describe("createRelationship", () => {
     );
   });
 
-  it("rejects invalid relationship_type at schema parse", async () => {
+  it("accepts a well-formed type the client has never seen (#419)", async () => {
+    // The vocabulary is data: a type added through the admin UI must reach the
+    // database rather than being rejected by a compiled-in enum.
+    const client = makeCreateClient({ data: sampleRelationship, error: null });
+    await expect(
+      createRelationship(client, {
+        ...validInput,
+        relationship_type: "added_yesterday",
+      }),
+    ).resolves.toEqual(sampleRelationship);
+  });
+
+  it("still rejects a malformed relationship_type at schema parse", async () => {
     const client = makeCreateClient({ data: null, error: null });
     await expect(
       createRelationship(client, {
         ...validInput,
-        // @ts-expect-error intentionally invalid type
-        relationship_type: "ally",
+        relationship_type: "Not A Key",
       }),
     ).rejects.toThrow();
   });
@@ -353,12 +532,11 @@ describe("updateRelationship", () => {
     );
   });
 
-  it("rejects invalid relationship_type in update", async () => {
+  it("still rejects a malformed relationship_type in update", async () => {
     const client = makeClient({ fromResult: { data: null, error: null } });
     await expect(
       updateRelationship(client, "rel-1", {
-        // @ts-expect-error intentionally invalid
-        relationship_type: "acquaintance",
+        relationship_type: "Not A Key",
       }),
     ).rejects.toThrow();
   });
@@ -592,11 +770,14 @@ describe("computeReciprocalRow", () => {
   };
 
   it("inverts paired family sub-role (parent → child)", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      relationship_type: "family",
-      relationship_role: "parent",
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        relationship_type: "family",
+        relationship_role: "parent",
+      },
+      VOCABULARY,
+    );
     expect(recip).not.toBeNull();
     expect(recip).toMatchObject({
       character_id: UUID_B,
@@ -607,11 +788,14 @@ describe("computeReciprocalRow", () => {
   });
 
   it("keeps symmetric family sub-role unchanged (spouse → spouse)", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      relationship_type: "family",
-      relationship_role: "spouse",
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        relationship_type: "family",
+        relationship_role: "spouse",
+      },
+      VOCABULARY,
+    );
     expect(recip).toMatchObject({
       character_id: UUID_B,
       related_character_id: UUID_A,
@@ -621,29 +805,38 @@ describe("computeReciprocalRow", () => {
   });
 
   it("inverts professional pair (employer → employee)", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      relationship_type: "professional",
-      relationship_role: "employer",
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        relationship_type: "professional",
+        relationship_role: "employer",
+      },
+      VOCABULARY,
+    );
     expect(recip?.relationship_role).toBe("employee");
   });
 
   it("keeps collaboration sub-role symmetric (co_author → co_author)", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      relationship_type: "collaboration",
-      relationship_role: "co_author",
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        relationship_type: "collaboration",
+        relationship_role: "co_author",
+      },
+      VOCABULARY,
+    );
     expect(recip?.relationship_role).toBe("co_author");
   });
 
   it("returns swapped row with null role for friendship", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      relationship_type: "friendship",
-      relationship_role: null,
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        relationship_type: "friendship",
+        relationship_role: null,
+      },
+      VOCABULARY,
+    );
     expect(recip).toMatchObject({
       character_id: UUID_B,
       related_character_id: UUID_A,
@@ -653,42 +846,54 @@ describe("computeReciprocalRow", () => {
   });
 
   it("returns null for mentor_student (asymmetric type, no reciprocal)", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      relationship_type: "mentor_student",
-      relationship_role: null,
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        relationship_type: "mentor_student",
+        relationship_role: null,
+      },
+      VOCABULARY,
+    );
     expect(recip).toBeNull();
   });
 
   it.each(["owner_pet", "trainer_trainee", "creator_creation", "worship"])(
     "returns null for asymmetric type %s",
     (type) => {
-      const recip = computeReciprocalRow({
-        ...base,
-        relationship_type: type,
-        relationship_role: null,
-      });
+      const recip = computeReciprocalRow(
+        {
+          ...base,
+          relationship_type: type,
+          relationship_role: null,
+        },
+        VOCABULARY,
+      );
       expect(recip).toBeNull();
     },
   );
 
   it("returns null defensively for a self-relationship", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      related_character_id: UUID_A,
-      relationship_type: "friendship",
-      relationship_role: null,
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        related_character_id: UUID_A,
+        relationship_type: "friendship",
+        relationship_role: null,
+      },
+      VOCABULARY,
+    );
     expect(recip).toBeNull();
   });
 
   it("does not carry description to the reciprocal (per Batch 2 Q1)", () => {
-    const recip = computeReciprocalRow({
-      ...base,
-      relationship_type: "family",
-      relationship_role: "spouse",
-    });
+    const recip = computeReciprocalRow(
+      {
+        ...base,
+        relationship_type: "family",
+        relationship_role: "spouse",
+      },
+      VOCABULARY,
+    );
     expect(recip).not.toHaveProperty("description");
   });
 
@@ -698,45 +903,62 @@ describe("computeReciprocalRow", () => {
   // 00008_database_functions_test.sql) — not re-tested here via mocked RPC
   // responses.
 
-  it("produces a reciprocal row for every reciprocal-producing type and null for every asymmetric type", () => {
-    const asymmetric = new Set([
-      "mentor_student",
-      "owner_pet",
-      "trainer_trainee",
-      "creator_creation",
-      "worship",
-    ]);
-    for (const type of relationshipTypeEnum.options) {
-      const recip = computeReciprocalRow({
-        ...base,
-        relationship_type: type,
-        relationship_role: null,
-      });
-      if (asymmetric.has(type)) {
-        expect(recip).toBeNull();
-      } else {
+  it("mirrors every symmetric type and returns null for every directed type", () => {
+    for (const type of ALL_TYPE_KEYS) {
+      const recip = computeReciprocalRow(
+        { ...base, relationship_type: type, relationship_role: null },
+        VOCABULARY,
+      );
+      if (VOCABULARY.get(type)?.is_symmetric) {
         expect(recip).not.toBeNull();
+        expect(recip?.relationship_type).toBe(type);
+      } else {
+        expect(recip).toBeNull();
       }
     }
   });
 
-  it("has a valid reciprocal role for every role in the resolved sub-role taxonomy (family/professional/collaboration)", () => {
+  it("returns null for a type absent from the vocabulary", () => {
+    // Previously every type outside the hard-coded ASYMMETRIC_TYPES set
+    // defaulted to symmetric, so a directed verb like `superseded` silently
+    // generated a reverse claim. Unknown now means "no reciprocal".
+    expect(
+      computeReciprocalRow(
+        { ...base, relationship_type: "superseded", relationship_role: null },
+        VOCABULARY,
+      ),
+    ).toBeNull();
+  });
+
+  it("uses inverse_key when a directed type declares one", () => {
+    const withInverse = toVocabulary(INVERSE_PAIR_CATEGORIES);
+    const recip = computeReciprocalRow(
+      { ...base, relationship_type: "supersedes", relationship_role: null },
+      withInverse,
+    );
+    expect(recip?.relationship_type).toBe("superseded_by");
+  });
+
+  it("has a valid reciprocal role for every role in the sub-role taxonomy", () => {
     const cases = [
-      ["family", familyRoleEnum.options],
-      ["professional", professionalRoleEnum.options],
-      ["collaboration", collaborationRoleEnum.options],
+      ["family", FAMILY_ROLES],
+      ["professional", PROFESSIONAL_ROLES],
+      ["collaboration", COLLABORATION_ROLES],
     ] as const;
     for (const [type, roles] of cases) {
       for (const role of roles) {
-        const recip = computeReciprocalRow({
-          ...base,
-          relationship_type: type,
-          relationship_role: role,
-        });
+        const recip = computeReciprocalRow(
+          { ...base, relationship_type: type, relationship_role: role.key },
+          VOCABULARY,
+        );
         expect(recip).not.toBeNull();
         expect(recip?.relationship_role).not.toBeNull();
         expect(
-          validateTypeRoleCombination(type, recip?.relationship_role ?? null),
+          validateTypeRoleCombination(
+            type,
+            recip?.relationship_role ?? null,
+            VOCABULARY,
+          ),
         ).toBeNull();
       }
     }
@@ -761,7 +983,7 @@ describe("createRelationship reciprocal-edge insertion", () => {
       insert: vi.fn().mockReturnValue(insertBuilder),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -873,37 +1095,72 @@ describe("createRelationship reciprocal-edge insertion", () => {
     expect(reciprocalArg.description).toBeUndefined();
   });
 
-  it("rejects family with a professional sub-role at Zod parse", async () => {
+  // Since #419 the (type, role) pair is enforced by the composite FK rather
+  // than by a compiled-in enum, so an invalid pair reaches the database and
+  // comes back as 23503. The service translates that into a readable message
+  // instead of leaking the constraint name.
+
+  it("maps a 23503 on the role FK to a readable sub-role error", async () => {
     const { client } = makeCreateClientWithBuilder({
       data: null,
-      error: null,
+      error: {
+        code: "23503",
+        message:
+          'insert or update on table "character_relationships" violates foreign key constraint "character_relationships_role_fkey"',
+        details:
+          'Key (relationship_type, relationship_role)=(family, employer) is not present in table "relationship_roles".',
+      },
     });
     await expect(
       createRelationship(client, {
         character_id: UUID_A,
         related_character_id: UUID_B,
         relationship_type: "family",
-        // relationship_role is typed as `string | null | undefined`, so the
-        // (family, employer) combination is only rejected at Zod parse time.
         relationship_role: "employer",
       }),
-    ).rejects.toThrow(/not a valid family sub-role/);
+    ).rejects.toThrow(
+      /"employer" is not a valid sub-role of relationship type "family"/,
+    );
   });
 
-  it("rejects friendship with a non-null role at Zod parse", async () => {
+  it("maps a 23503 on the type FK to a readable unknown-type error", async () => {
     const { client } = makeCreateClientWithBuilder({
       data: null,
-      error: null,
+      error: {
+        code: "23503",
+        message:
+          'insert or update on table "character_relationships" violates foreign key constraint "character_relationships_relationship_type_fkey"',
+        details:
+          'Key (relationship_type)=(nonesuch) is not present in table "relationship_types".',
+      },
+    });
+    await expect(
+      createRelationship(client, {
+        character_id: UUID_A,
+        related_character_id: UUID_B,
+        relationship_type: "nonesuch",
+      }),
+    ).rejects.toThrow(/unknown relationship type "nonesuch"/);
+  });
+
+  it("passes an unrelated FK violation through unchanged", async () => {
+    const { client } = makeCreateClientWithBuilder({
+      data: null,
+      error: {
+        code: "23503",
+        message:
+          'violates foreign key constraint "character_relationships_character_id_fkey"',
+        details:
+          'Key (character_id)=(...) is not present in table "characters".',
+      },
     });
     await expect(
       createRelationship(client, {
         character_id: UUID_A,
         related_character_id: UUID_B,
         relationship_type: "friendship",
-        // friendship/spouse passes TypeScript but Zod rejects it.
-        relationship_role: "spouse",
       }),
-    ).rejects.toThrow(/must be null/);
+    ).rejects.toThrow(/character_relationships_character_id_fkey/);
   });
 
   it("swallows 23505 on reciprocal insert (reciprocal already exists)", async () => {
@@ -931,7 +1188,7 @@ describe("createRelationship reciprocal-edge insertion", () => {
       insert: vi.fn().mockReturnValue(insertBuilder),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -975,7 +1232,7 @@ describe("createRelationship reciprocal-edge insertion", () => {
       insert: vi.fn().mockReturnValue(insertBuilder),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1016,7 +1273,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1045,7 +1302,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1072,6 +1329,51 @@ describe("updateRelationship reciprocal sync", () => {
     expect(builder.eq).toHaveBeenCalledWith("relationship_role", "child");
   });
 
+  it("syncs the INVERSE type to the reciprocal, not the primary's new type", async () => {
+    // A directed type that declares an inverse: the reciprocal must flip to
+    // that inverse, otherwise both rows assert the same direction ("A
+    // supersedes B" twice) instead of a claim and its converse. Nothing in the
+    // seeded vocabulary sets inverse_key yet, so this guards the path an admin
+    // opens the moment they add such a type (ADR-0040).
+    const supersedesRow = {
+      ...sampleRelationship,
+      relationship_type: "supersedes",
+      relationship_role: null,
+    };
+    const builder = {
+      ...makeBuilder({ data: supersedesRow, error: null }),
+    };
+    const client = {
+      from: vi.fn(withVocabulary(() => builder, INVERSE_PAIR_CATEGORIES)),
+      rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: "user-123" } },
+          error: null,
+        }),
+      },
+    } as unknown as SupabaseClient<Database>;
+
+    await updateRelationship(client, "rel-1", {
+      relationship_type: "superseded_by",
+    });
+
+    // First .update() is the primary; second is the reciprocal sync.
+    expect(builder.update).toHaveBeenCalledTimes(2);
+    const reciprocalSyncFields = builder.update.mock.calls[1]?.[0] as Record<
+      string,
+      unknown
+    >;
+    expect(reciprocalSyncFields).toEqual({
+      relationship_type: "supersedes",
+    });
+    // The existing reciprocal is located by the type it currently carries.
+    expect(builder.eq).toHaveBeenCalledWith(
+      "relationship_type",
+      "superseded_by",
+    );
+  });
+
   it("skips reciprocal sync for asymmetric types", async () => {
     const mentorRow = {
       ...sampleRelationship,
@@ -1082,7 +1384,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: mentorRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1104,8 +1406,8 @@ describe("updateRelationship reciprocal sync", () => {
     // professional without updating the role. The base schema's .partial()
     // doesn't run the cross-field superRefine, so without explicit
     // cross-validation this would slip past Zod and surface as an opaque
-    // 23514 from the DB. Verify the descriptive error fires before any
-    // primary update is attempted.
+    // 23503 from the composite FK. Verify the descriptive error fires before
+    // any primary update is attempted.
     const familyParentRow = {
       ...sampleRelationship,
       relationship_type: "family",
@@ -1115,7 +1417,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1129,7 +1431,7 @@ describe("updateRelationship reciprocal sync", () => {
       updateRelationship(client, "rel-1", {
         relationship_type: "professional",
       }),
-    ).rejects.toThrow(/not a valid professional sub-role/);
+    ).rejects.toThrow(/"parent" is not a valid sub-role of "professional"/);
 
     // No primary update should have been attempted.
     expect(builder.update).not.toHaveBeenCalled();
@@ -1146,7 +1448,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1177,7 +1479,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1217,7 +1519,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: familySpouseRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1251,7 +1553,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: mentorRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1291,7 +1593,7 @@ describe("updateRelationship reciprocal sync", () => {
       ...makeBuilder({ data: mentorRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1326,7 +1628,7 @@ describe("deleteRelationship reciprocal delete", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1352,7 +1654,7 @@ describe("deleteRelationship reciprocal delete", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1384,7 +1686,7 @@ describe("deleteRelationship reciprocal delete", () => {
       ...makeBuilder({ data: mentorRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({
@@ -1410,7 +1712,7 @@ describe("deleteRelationship reciprocal delete", () => {
       ...makeBuilder({ data: familyParentRow, error: null }),
     };
     const client = {
-      from: vi.fn().mockReturnValue(builder),
+      from: vi.fn(withVocabulary(() => builder)),
       rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
       auth: {
         getUser: vi.fn().mockResolvedValue({

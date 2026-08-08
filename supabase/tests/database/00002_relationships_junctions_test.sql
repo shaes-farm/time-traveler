@@ -63,6 +63,16 @@ insert into characters (user_id, slug, name, character_type) values
   ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'a', 'A', 'human'),
   ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'b', 'B', 'human');
 
+-- Vocabulary fixtures. Since 00029 replaced the relationship_type CHECK with an
+-- FK to relationship_types and seeds no rows (content ships in 00030), every
+-- suite that creates a relationship must supply the types it uses.
+insert into relationship_categories (key, label) values ('social', 'Social')
+  on conflict (key) do nothing;
+insert into relationship_types (key, label, category_key) values
+  ('family', 'Family', 'social'),
+  ('professional', 'Professional', 'social')
+  on conflict (key) do nothing;
+
 select throws_ok(
   $$insert into character_relationships (user_id, character_id, related_character_id, relationship_type)
     select 'cccccccc-cccc-cccc-cccc-cccccccccccc', id, id, 'family'

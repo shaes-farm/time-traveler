@@ -543,12 +543,10 @@ CREATE TABLE character_relationships (
   user_id UUID REFERENCES auth.users NOT NULL,
   character_id UUID REFERENCES characters(id) ON DELETE CASCADE NOT NULL,
   related_character_id UUID REFERENCES characters(id) ON DELETE CASCADE NOT NULL,
+  -- Vocabulary is reference data, not an enum — see 3.3.1 and ADR-0040.
   relationship_type VARCHAR(100) NOT NULL
-    CHECK (relationship_type IN (
-      'family', 'professional', 'friendship', 'rivalry',
-      'owner_pet', 'trainer_trainee', 'creator_creation',
-      'worship', 'collaboration', 'enemy', 'mentor_student'
-    )),
+    REFERENCES relationship_types(key) ON UPDATE CASCADE ON DELETE RESTRICT,
+  relationship_role VARCHAR(100),
   description TEXT,
   start_temporal JSONB,
   end_temporal JSONB,
@@ -556,14 +554,80 @@ CREATE TABLE character_relationships (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
 
+  -- Under the default MATCH SIMPLE this check is skipped when
+  -- relationship_role IS NULL, so a role is always optional; a non-NULL role
+  -- must exist for the given type.
+  FOREIGN KEY (relationship_type, relationship_role)
+    REFERENCES relationship_roles(type_key, key)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+
   CHECK (character_id != related_character_id)
 );
 
 CREATE UNIQUE INDEX char_rels_unique ON character_relationships
-  (character_id, related_character_id, relationship_type);
+  (character_id, related_character_id, relationship_type, relationship_role)
+  NULLS NOT DISTINCT;
 ```
 
-> **Note on relationship directionality:** Relationships are stored as directed pairs. For bidirectional relationships (e.g., friendship), the application layer can query in both directions. A unique index on `(character_id, related_character_id, relationship_type)` prevents duplicates while allowing the same pair to have multiple relationship types.
+> **Note on relationship directionality:** Relationships are stored as directed pairs. For bidirectional relationships (e.g., friendship), the application layer can query in both directions. A unique index on `(character_id, related_character_id, relationship_type, relationship_role)` prevents duplicates while allowing the same pair to have multiple relationship types.
+
+#### 3.3.1 Relationship vocabulary (reference data)
+
+The set of legal `relationship_type` values is **data, not schema** ([ADR-0040](adr/adr-0040-relationship-vocabulary-reference-data.md)). Adding a relationship type is an `INSERT`, not a migration. Three tables form the ontology, created in `00029_relationship_vocabulary.sql` and populated by `00030_seed_relationship_vocabulary.sql`:
+
+```sql
+CREATE TABLE relationship_categories (
+  key VARCHAR(50) PRIMARY KEY,          -- 'derivational'
+  label TEXT NOT NULL, description TEXT,
+  sort_order INTEGER NOT NULL DEFAULT 0,  -- orders the GROUPS
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE relationship_types (
+  key VARCHAR(100) PRIMARY KEY,         -- 'superseded'
+  label TEXT NOT NULL,
+  category_key VARCHAR(50) NOT NULL REFERENCES relationship_categories(key)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  sort_order INTEGER NOT NULL DEFAULT 0,  -- orders types WITHIN a group
+
+  -- Reciprocal-edge semantics (ADR-0008 application-layer symmetry):
+  --   is_symmetric    -> reciprocal row carries the SAME type
+  --   inverse_key set -> reciprocal row carries THAT type
+  --   neither         -> single directed row, no reciprocal
+  is_symmetric BOOLEAN NOT NULL DEFAULT true,
+  inverse_key VARCHAR(100) REFERENCES relationship_types(key)
+    ON UPDATE CASCADE ON DELETE SET NULL,
+
+  direction_verb TEXT,    -- 'mentors'  -> "Marie mentors Pierre"
+  symmetric_noun TEXT,    -- 'friends'  -> "Marie and Pierre are friends"
+  description TEXT,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now(), updated_at TIMESTAMPTZ DEFAULT now(),
+
+  CONSTRAINT relationship_types_symmetric_has_no_inverse
+    CHECK (NOT (is_symmetric AND inverse_key IS NOT NULL))
+);
+
+CREATE TABLE relationship_roles (
+  type_key VARCHAR(100) NOT NULL REFERENCES relationship_types(key)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  key VARCHAR(100) NOT NULL,
+  label TEXT NOT NULL,
+  inverse_key VARCHAR(100),   -- parent <-> child, spouse <-> spouse
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  PRIMARY KEY (type_key, key)   -- also the composite FK target
+);
+```
+
+Consequences worth knowing when working in this area:
+
+- **Two levels of `sort_order`.** Categories order the groups; types order within a group. The picker sorts `ORDER BY c.sort_order, t.sort_order, t.label` and holds no ordering knowledge itself.
+- **Sub-roles are derived.** A type accepts a sub-role iff it has `relationship_roles` rows — `typeAcceptsRole()` is a lookup, not a hard-coded set.
+- **The app layer does not enumerate values.** `relationship_type` is validated as a shape (`/^[a-z][a-z0-9_]*$/`), the same way UUID FK columns are validated; membership is the FK's job. An unknown value surfaces as `23503`, which the service maps to a readable error.
+- **Vocabulary tables are globally readable, admin-writable** (`USING (true)` read, `is_admin()` writes), like `categories`.
+- **`00029` and `00030` are not independently deployable.** Between them the vocabulary is empty and no relationship can be created.
 
 ### 3.4 Junction Tables
 

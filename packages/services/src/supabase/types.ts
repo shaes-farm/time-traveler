@@ -73,11 +73,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "categories_parent_category_id_fkey";
-            columns: ["parent_category_id"];
+            foreignKeyName: "categories_parent_same_owner_fkey";
+            columns: ["user_id", "parent_category_id"];
             isOneToOne: false;
             referencedRelation: "categories";
-            referencedColumns: ["id"];
+            referencedColumns: ["user_id", "id"];
           },
         ];
       };
@@ -234,6 +234,20 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "characters";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "character_relationships_relationship_type_fkey";
+            columns: ["relationship_type"];
+            isOneToOne: false;
+            referencedRelation: "relationship_types";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "character_relationships_role_fkey";
+            columns: ["relationship_type", "relationship_role"];
+            isOneToOne: false;
+            referencedRelation: "relationship_roles";
+            referencedColumns: ["type_key", "key"];
           },
         ];
       };
@@ -801,11 +815,11 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "periods_parent_period_id_fkey";
-            columns: ["parent_period_id"];
+            foreignKeyName: "periods_parent_same_owner_fkey";
+            columns: ["user_id", "parent_period_id"];
             isOneToOne: false;
             referencedRelation: "periods";
-            referencedColumns: ["id"];
+            referencedColumns: ["user_id", "id"];
           },
         ];
       };
@@ -850,6 +864,131 @@ export type Database = {
           website?: string | null;
         };
         Relationships: [];
+      };
+      relationship_categories: {
+        Row: {
+          created_at: string | null;
+          description: string | null;
+          is_active: boolean;
+          key: string;
+          label: string;
+          sort_order: number;
+          updated_at: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          description?: string | null;
+          is_active?: boolean;
+          key: string;
+          label: string;
+          sort_order?: number;
+          updated_at?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string | null;
+          is_active?: boolean;
+          key?: string;
+          label?: string;
+          sort_order?: number;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
+      relationship_roles: {
+        Row: {
+          inverse_key: string | null;
+          is_active: boolean;
+          key: string;
+          label: string;
+          sort_order: number;
+          type_key: string;
+        };
+        Insert: {
+          inverse_key?: string | null;
+          is_active?: boolean;
+          key: string;
+          label: string;
+          sort_order?: number;
+          type_key: string;
+        };
+        Update: {
+          inverse_key?: string | null;
+          is_active?: boolean;
+          key?: string;
+          label?: string;
+          sort_order?: number;
+          type_key?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "relationship_roles_type_key_fkey";
+            columns: ["type_key"];
+            isOneToOne: false;
+            referencedRelation: "relationship_types";
+            referencedColumns: ["key"];
+          },
+        ];
+      };
+      relationship_types: {
+        Row: {
+          category_key: string;
+          created_at: string | null;
+          description: string | null;
+          direction_verb: string | null;
+          inverse_key: string | null;
+          is_active: boolean;
+          is_symmetric: boolean;
+          key: string;
+          label: string;
+          sort_order: number;
+          symmetric_noun: string | null;
+          updated_at: string | null;
+        };
+        Insert: {
+          category_key: string;
+          created_at?: string | null;
+          description?: string | null;
+          direction_verb?: string | null;
+          inverse_key?: string | null;
+          is_active?: boolean;
+          is_symmetric?: boolean;
+          key: string;
+          label: string;
+          sort_order?: number;
+          symmetric_noun?: string | null;
+          updated_at?: string | null;
+        };
+        Update: {
+          category_key?: string;
+          created_at?: string | null;
+          description?: string | null;
+          direction_verb?: string | null;
+          inverse_key?: string | null;
+          is_active?: boolean;
+          is_symmetric?: boolean;
+          key?: string;
+          label?: string;
+          sort_order?: number;
+          symmetric_noun?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "relationship_types_category_key_fkey";
+            columns: ["category_key"];
+            isOneToOne: false;
+            referencedRelation: "relationship_categories";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "relationship_types_inverse_key_fkey";
+            columns: ["inverse_key"];
+            isOneToOne: false;
+            referencedRelation: "relationship_types";
+            referencedColumns: ["key"];
+          },
+        ];
       };
       stories: {
         Row: {
@@ -1290,7 +1429,22 @@ export type Database = {
           relationship_type: string | null;
           start_temporal: Json | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "character_relationships_relationship_type_fkey";
+            columns: ["relationship_type"];
+            isOneToOne: false;
+            referencedRelation: "relationship_types";
+            referencedColumns: ["key"];
+          },
+          {
+            foreignKeyName: "character_relationships_role_fkey";
+            columns: ["relationship_type", "relationship_role"];
+            isOneToOne: false;
+            referencedRelation: "relationship_roles";
+            referencedColumns: ["type_key", "key"];
+          },
+        ];
       };
       character_timeline_view: {
         Row: {

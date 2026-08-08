@@ -97,6 +97,15 @@ insert into characters (id, user_id, slug, name, character_type) values
   ('cccccccc-0004-0000-0000-000000000003'::uuid,
    'cccccccc-0000-0000-0000-cccccccccccc', 'ally', 'Ally', 'human');
 
+-- Vocabulary fixture: 00029 replaced the relationship_type CHECK with an FK to
+-- relationship_types, which 00029 leaves empty (content ships in 00030).
+insert into relationship_categories (key, label) values ('social', 'Social')
+  on conflict (key) do nothing;
+insert into relationship_types (key, label, category_key) values
+  ('rivalry', 'Rivalry', 'social'),
+  ('friendship', 'Friendship', 'social')
+  on conflict (key) do nothing;
+
 -- Chain: Hero -> Rival, Rival -> Ally (for character_network depth tests)
 insert into character_relationships (user_id, character_id, related_character_id, relationship_type)
 values

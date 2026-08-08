@@ -87,6 +87,14 @@ insert into event_categories (event_id, category_id) values
   ('aaaaaaaa-0002-0000-0000-000000000001', 'aaaaaaaa-0006-0000-0000-000000000001'),
   ('aaaaaaaa-0002-0000-0000-000000000002', 'aaaaaaaa-0006-0000-0000-000000000001');
 
+-- Vocabulary fixture: 00029 replaced the relationship_type CHECK with an FK to
+-- relationship_types, which 00029 leaves empty (content ships in 00030).
+insert into relationship_categories (key, label) values ('social', 'Social')
+  on conflict (key) do nothing;
+insert into relationship_types (key, label, category_key) values
+  ('family', 'Family', 'social')
+  on conflict (key) do nothing;
+
 insert into character_relationships (user_id, character_id, related_character_id, relationship_type)
 values ('11111111-1111-1111-1111-111111111111',
         'aaaaaaaa-0004-0000-0000-000000000001',

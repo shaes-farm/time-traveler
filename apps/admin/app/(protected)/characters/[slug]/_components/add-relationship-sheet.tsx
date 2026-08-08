@@ -19,6 +19,8 @@ import {
   CommandList,
 } from "@repo/ui/components/command";
 import { Label } from "@repo/ui/components/label";
+import { Skeleton } from "@repo/ui/components/skeleton";
+import { useRelationshipVocabulary } from "@repo/ui/hooks/use-relationship-types";
 import {
   Popover,
   PopoverContent,
@@ -96,8 +98,18 @@ export function AddRelationshipSheet({
   const createRel = useCreateRelationship(client);
   const updateRel = useUpdateRelationship(client);
 
+  // The vocabulary is reference data fetched at runtime (#419), so the default
+  // type is the first one the data offers rather than a hard-coded "family".
+  const {
+    vocabulary,
+    categories,
+    isPending: vocabularyPending,
+    isError: vocabularyError,
+  } = useRelationshipVocabulary(client);
+  const defaultType = categories[0]?.types[0]?.key ?? "";
+
   const [other, setOther] = React.useState<OtherCharacter | null>(null);
-  const [type, setType] = React.useState<RelationshipType>("family");
+  const [type, setType] = React.useState<RelationshipType>("");
   const [role, setRole] = React.useState<string | null>(null);
   const [description, setDescription] = React.useState("");
   const [start, setStart] = React.useState<TemporalData | null>(null);
@@ -121,7 +133,7 @@ export function AddRelationshipSheet({
         setEnd(editing.endTemporal);
       } else {
         setOther(initialOther ?? null);
-        setType("family");
+        setType(defaultType);
         setRole(null);
         setDescription("");
         setStart(null);
@@ -130,15 +142,21 @@ export function AddRelationshipSheet({
     }
   }
 
+  // The vocabulary may still be loading when the sheet opens, so the reset above
+  // may have stored "". Derive the effective value rather than patching state
+  // during render: `type` holds an explicit choice once the user makes one, and
+  // `defaultType` fills in until then. Everything below reads `selectedType`.
+  const selectedType = type === "" ? defaultType : type;
+
   // Other-character ids already linked by the *currently chosen* type — exclude
   // them from the picker so we never trip the (chars, type) unique index.
   const excludedIds = React.useMemo(() => {
     const ids = new Set<string>([focalCharacterId]);
     for (const link of existingLinks) {
-      if (link.type === type) ids.add(link.otherId);
+      if (link.type === selectedType) ids.add(link.otherId);
     }
     return ids;
-  }, [existingLinks, type, focalCharacterId]);
+  }, [existingLinks, selectedType, focalCharacterId]);
 
   const isPending = createRel.isPending || updateRel.isPending;
 
@@ -152,7 +170,7 @@ export function AddRelationshipSheet({
         {
           id: editing.id,
           data: {
-            relationship_type: type,
+            relationship_type: selectedType,
             relationship_role: role,
             description: description.trim() || undefined,
             start_temporal: start ?? undefined,
@@ -175,7 +193,7 @@ export function AddRelationshipSheet({
       {
         character_id: focalCharacterId,
         related_character_id: other!.id,
-        relationship_type: type,
+        relationship_type: selectedType,
         relationship_role: role,
         description: description.trim() || undefined,
         start_temporal: start ?? undefined,
@@ -236,14 +254,24 @@ export function AddRelationshipSheet({
               inverse. The directional-control fidelity is deferred to #335. */}
           <div className="space-y-1.5">
             <Label>Type</Label>
-            <RelationshipTypeSelector
-              type={type}
-              role={role}
-              onChange={(next) => {
-                setType(next.type);
-                setRole(next.role);
-              }}
-            />
+            {vocabularyPending ? (
+              <Skeleton className="h-24 w-full" />
+            ) : vocabularyError ? (
+              <p className="text-sm text-destructive">
+                Could not load relationship types. Try again.
+              </p>
+            ) : (
+              <RelationshipTypeSelector
+                type={selectedType}
+                role={role}
+                categories={categories}
+                vocabulary={vocabulary}
+                onChange={(next) => {
+                  setType(next.type);
+                  setRole(next.role);
+                }}
+              />
+            )}
           </div>
 
           {/* Temporal range */}
@@ -280,7 +308,15 @@ export function AddRelationshipSheet({
           >
             Cancel
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isPending}>
+          {/* Also gated on the vocabulary: until it loads there is no type to
+              save, and submitting an empty one surfaces a raw ZodError. */}
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={
+              isPending || vocabularyPending || vocabularyError || !selectedType
+            }
+          >
             {isPending ? "Saving…" : "Save"}
           </Button>
         </SheetFooter>

@@ -10,17 +10,20 @@ Per `character_relationships`:
 
 - character_id (the focal character — set by context, not user-editable)
 - related_character_id (the other party)
-- relationship_type (11-enum)
+- relationship_type (FK → `relationship_types`; the vocabulary is reference data, not a fixed enum — see ADR-0040)
+- relationship_role (optional; FK → `relationship_roles` for the chosen type)
 - description
 - start_temporal (optional)
 - end_temporal (optional)
 - metadata (optional, JSONB)
 
-Unique constraint: `(character_id, related_character_id, relationship_type)` — a pair can have multiple types but not duplicate type+direction.
+Unique constraint: `(character_id, related_character_id, relationship_type, relationship_role)` with `NULLS NOT DISTINCT` — a pair can have multiple types but not duplicate type+role+direction.
 
 ## Directionality semantics
 
-Per system-design §3.3, relationships are stored as **directed pairs** in the database. The application layer is responsible for treating some types as symmetric. The 11 types split:
+Per system-design §3.3, relationships are stored as **directed pairs** in the database. The application layer is responsible for treating some types as symmetric.
+
+Since [ADR-0040](../../../adr/adr-0040-relationship-vocabulary-reference-data.md) this is **a property of each type in the vocabulary**, not a hard-coded list: `relationship_types.is_symmetric` and `.inverse_key` decide whether a reciprocal row is written, and the editor reads them. The seeded baseline splits as follows — but the picker renders whatever the vocabulary contains, so a type added later behaves correctly with no design or code change.
 
 | Type               | Semantics                                             | Reciprocal?                                                 |
 | ------------------ | ----------------------------------------------------- | ----------------------------------------------------------- |
@@ -36,11 +39,11 @@ Per system-design §3.3, relationships are stored as **directed pairs** in the d
 | `worship`          | **Asymmetric**                                        | No                                                          |
 | `mentor_student`   | **Asymmetric**                                        | No                                                          |
 
-This means the editor must distinguish symmetric and asymmetric types and behave differently for each. For asymmetric types the convention is "focal character is the subject of the verb" — the row is always stored from the perspective of whichever character's editor is being used. Cards then surface direction via narrative text ("Marie _mentors_ Pierre" instead of "Marie ↔ Pierre"). Symmetric types create a reciprocal row automatically (paired sub-roles get the inverted role; symmetric sub-roles and symmetric flat types keep the same role).
+This means the editor must distinguish symmetric and asymmetric types and behave differently for each. For asymmetric types the convention is "focal character is the subject of the verb" — the row is always stored from the perspective of whichever character's editor is being used. Cards then surface direction via narrative text ("Marie _mentors_ Pierre" instead of "Marie ↔ Pierre"). Symmetric types create a reciprocal row automatically (paired sub-roles get the inverted role from `relationship_roles.inverse_key`; symmetric sub-roles and symmetric flat types keep the same role). A type declaring an `inverse_key` writes its reciprocal under that other type. A type with neither is stored as a single row.
 
 ## Sub-role taxonomy (Batch 2 decision)
 
-Per [#119](https://github.com/shaes-farm/time-traveler/issues/119), three of the eleven types accept an optional `relationship_role` sub-role; the other eight must have NULL role. Sub-roles refine direction within a type.
+Per [#119](https://github.com/shaes-farm/time-traveler/issues/119), some types accept an optional `relationship_role` sub-role; the rest must have NULL role. Sub-roles refine direction within a type. Which types accept one is now derived data — a type accepts a sub-role iff it has `relationship_roles` rows — so the taxonomy below describes the seeded baseline rather than a closed rule.
 
 - **family** — `spouse` (sym), `parent`/`child` (paired), `sibling` (sym), `grandparent`/`grandchild` (paired), `aunt_uncle`/`niece_nephew` (paired), `cousin` (sym), `in_law` (loosely paired), `step_parent`/`step_child` (paired), `step_sibling` (sym), `adoptive_parent`/`adoptive_child` (paired), `other`
 - **professional** — `employer`/`employee` (paired), `colleague` (sym), `supervisor`/`subordinate` (paired), `business_partner` (sym), `client`/`vendor` (paired), `other`
