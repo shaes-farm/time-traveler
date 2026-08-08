@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  cleanupFractalTimeline,
   seedFractalTimeline,
   type FractalFixture,
 } from "../support/fractal-fixture";
@@ -19,6 +20,12 @@ test.describe("fractal drill-down", () => {
   test.beforeAll(async () => {
     const userId = await seedTestUser();
     fx = await seedFractalTimeline(userId);
+  });
+
+  test.afterAll(async () => {
+    if (fx) {
+      await cleanupFractalTimeline(fx.stamp);
+    }
   });
 
   test("Tree view marks the expandable event and drills into it", async ({

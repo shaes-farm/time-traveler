@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { sweepCrudLeftovers } from "../support/cleanup";
 import { saveForm } from "../support/crud-helpers";
 
 /**
@@ -57,6 +58,17 @@ async function openDeleteDialog(page: Page): Promise<Locator> {
 }
 
 test.describe("category CRUD spine", () => {
+  /**
+   * Safety net for a test that doesn't reach its delete step (#355). Each test
+   * records only the slugs it created, so a worker's `afterAll` can't delete a
+   * category another worker is still using — `fullyParallel` splits these five
+   * tests across workers, and `afterAll` runs once per worker.
+   */
+  const slugPatterns: string[] = [];
+  test.afterAll(async () => {
+    await sweepCrudLeftovers("categories", slugPatterns);
+  });
+
   test.beforeEach(async ({ page }) => {
     // The TanStack Query Devtools launcher (dev-only) floats in the corner and
     // overlaps the inspector's footer Save/Delete buttons, intercepting clicks.
@@ -81,6 +93,7 @@ test.describe("category CRUD spine", () => {
     page,
   }) => {
     const stamp = Date.now();
+    slugPatterns.push(`e2e-category-${stamp}%`);
     const title = `E2E Category ${stamp}`;
     const editedTitle = `${title} (edited)`;
 
@@ -123,6 +136,7 @@ test.describe("category CRUD spine", () => {
     page,
   }) => {
     const stamp = Date.now();
+    slugPatterns.push(`e2e-parent-${stamp}%`, `e2e-child-${stamp}%`);
     const parentTitle = `E2E Parent ${stamp}`;
     const childTitle = `E2E Child ${stamp}`;
 
@@ -181,6 +195,7 @@ test.describe("category CRUD spine", () => {
     page,
   }) => {
     const stamp = Date.now();
+    slugPatterns.push(`e2e-deeplink-${stamp}%`);
     const title = `E2E Deeplink ${stamp}`;
 
     await page.goto("/categories/new");
@@ -217,6 +232,7 @@ test.describe("category CRUD spine", () => {
     page,
   }) => {
     const stamp = Date.now();
+    slugPatterns.push(`e2e-guard-${stamp}%`);
     const title = `E2E Guard ${stamp}`;
 
     // Regression guard: confirming discard must not push during render (which
@@ -274,6 +290,7 @@ test.describe("category CRUD spine", () => {
     page,
   }) => {
     const stamp = Date.now();
+    slugPatterns.push(`e2e-shell-${stamp}%`);
     const title = `E2E Shell ${stamp}`;
 
     // Same render-phase regression guard as the in-manager case: the global

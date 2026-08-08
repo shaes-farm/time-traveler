@@ -63,10 +63,24 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
       // Anonymous suite only — skip the setup file and authenticated specs.
       testIgnore: [/\/support\//, /\/authenticated\//],
+      // These specs create throwaway auth accounts, and this project does not
+      // depend on `setup` (see above), so it needs its own reference to the
+      // teardown to be covered by it.
+      teardown: "cleanup",
     },
     {
       name: "setup",
       testMatch: /support\/auth\.setup\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+      teardown: "cleanup",
+    },
+    {
+      // Sweeps e2e rows and throwaway accounts once every project that
+      // references it has finished (#355). Skipped under `--no-deps`; the
+      // entry sweep in auth.setup.ts is the backstop for that and for a
+      // killed run.
+      name: "cleanup",
+      testMatch: /support\/cleanup\.teardown\.ts$/,
       use: { ...devices["Desktop Chrome"] },
     },
     {

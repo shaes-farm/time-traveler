@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { sweepCrudLeftovers } from "../support/cleanup";
 
 /**
  * Media CRUD spine — external-URL path.
@@ -14,10 +15,23 @@ import { expect, test } from "@playwright/test";
  * Runs under the `authenticated` project (starts signed in).
  */
 test.describe("media CRUD spine (external URL)", () => {
+  // Safety net for the run that doesn't reach its delete step (#355). The
+  // media slug derives from the URL's last path segment minus its extension
+  // (`createExternalMedia`), so `https://example.com/e2e-<stamp>.jpg` lands
+  // as `e2e-<stamp>` — the trailing `%` also covers a collision suffix.
+  const stamps: number[] = [];
+  test.afterAll(async () => {
+    await sweepCrudLeftovers(
+      "media",
+      stamps.map((s) => `e2e-${s}%`),
+    );
+  });
+
   test("add external media, view, edit its metadata, then delete", async ({
     page,
   }) => {
     const stamp = Date.now();
+    stamps.push(stamp);
     const alt = `E2E Media ${stamp}`;
     const editedAlt = `${alt} (edited)`;
 
