@@ -106,26 +106,44 @@ export async function sweepCrudLeftovers(
   }
 }
 
+/** Options for {@link sweepE2eAuthUsers}. */
+export interface AuthSweepOptions {
+  /**
+   * Only delete accounts older than this. The entry sweep passes an hour
+   * because the anonymous `chromium` project does **not** depend on `setup`
+   * (ADR-0036) and so runs concurrently with it — without an age floor the
+   * sweep could delete an account an in-flight auth-flow spec had just
+   * created. Anything a live spec owns is seconds old. The teardown sweep runs
+   * after the specs and leaves this at `0`.
+   */
+  minAgeMs?: number;
+  /**
+   * Also delete {@link TEST_USER}. Teardown-only: the specs are finished, so
+   * nothing is signed in as it any more, and `seedTestUser` recreates the
+   * account (and its `profiles` row, via the `handle_new_user` trigger) at the
+   * start of the next run before signing in and rewriting `storageState`.
+   *
+   * The entry sweep must never set this — `setup` seeds the account moments
+   * before the `authenticated` project signs in as it.
+   */
+  includeTestUser?: boolean;
+}
+
 /**
  * Delete the throwaway auth accounts the anonymous auth-flow specs create
- * (`e2e-register-…`, `e2e-magic-…`, `e2e-reset-rt-…`, `e2e-logout-…`).
+ * (`e2e-register-…`, `e2e-magic-…`, `e2e-reset-rt-…`, `e2e-logout-…`), and —
+ * when `includeTestUser` is set — the seeded editor account itself.
  * `ON DELETE CASCADE` from `auth.users` takes each account's `profiles` row —
  * and any content it owns — with it.
  *
- * {@link TEST_USER} is always preserved: the `authenticated` project's saved
- * `storageState` points at it, and deleting it mid-run would invalidate every
- * signed-in spec. Any account outside the `e2e-…@timetraveler.test` shape
- * (notably `admin@timetraveler.local`, which owns the seeded datasets) is left
+ * Any account outside the `e2e-…@timetraveler.test` shape (notably
+ * `admin@timetraveler.local`, which owns the seeded datasets) is always left
  * alone.
- *
- * @param minAgeMs Only delete accounts older than this. The entry sweep passes
- *   an hour because the anonymous `chromium` project does **not** depend on
- *   `setup` (ADR-0036) and so runs concurrently with it — without an age floor
- *   the sweep could delete an account an in-flight auth-flow spec had just
- *   created. Anything a live spec owns is seconds old. The teardown sweep runs
- *   after the specs and passes `0`.
  */
-export async function sweepE2eAuthUsers(minAgeMs = 0): Promise<void> {
+export async function sweepE2eAuthUsers(
+  options: AuthSweepOptions = {},
+): Promise<void> {
+  const { minAgeMs = 0, includeTestUser = false } = options;
   const admin = createServiceRoleClient();
   const cutoff = Date.now() - minAgeMs;
 
@@ -140,7 +158,17 @@ export async function sweepE2eAuthUsers(minAgeMs = 0): Promise<void> {
     }
     for (const user of data.users) {
       const email = user.email ?? "";
-      if (email === TEST_USER.email || !E2E_EMAIL_PATTERN.test(email)) {
+      if (!E2E_EMAIL_PATTERN.test(email)) {
+        continue;
+      }
+      if (email === TEST_USER.email) {
+        // The age floor guards against deleting an account an in-flight anon
+        // spec just created; TEST_USER is never that. Exempt it, or the
+        // teardown — which seeds it moments earlier — could skip it whenever
+        // the database clock runs marginally ahead of this process's.
+        if (includeTestUser) {
+          doomed.push(user.id);
+        }
         continue;
       }
       if (Date.parse(user.created_at) > cutoff) {

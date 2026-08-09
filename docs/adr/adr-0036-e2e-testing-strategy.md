@@ -174,7 +174,10 @@ Concrete decisions:
     this is what makes a crash or `Ctrl-C` recoverable;
   - **on exit**, from a `cleanup` teardown project referenced by both `setup`
     and the anonymous `chromium` project (`chromium` needs its own reference,
-    since decision 3 deliberately leaves it independent of `setup`).
+    since decision 3 deliberately leaves it independent of `setup`). This pass
+    also deletes the seeded editor account, so a completed run leaves no e2e
+    residue in `auth.users` or `profiles`; `seedTestUser` recreates it (and,
+    via the migration-00004 trigger, its profile) at the start of the next run.
 
   Two rules any cleanup must follow. **Delete events before timelines**:
   `events.timeline_id` and `events.detail_timeline_id` are both

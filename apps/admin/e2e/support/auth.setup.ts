@@ -25,7 +25,9 @@ setup("authenticate", async ({ page }) => {
   // the `authenticated` project creates content rows, and it is gated behind
   // this project via `dependencies`.
   await sweepE2eContent(userId);
-  await sweepE2eAuthUsers(ONE_HOUR_MS);
+  // Never `includeTestUser` here — we just seeded that account and are about
+  // to sign in as it.
+  await sweepE2eAuthUsers({ minAgeMs: ONE_HOUR_MS });
 
   await page.goto("/auth/login");
   await page.getByLabel("Email").fill(TEST_USER.email);
