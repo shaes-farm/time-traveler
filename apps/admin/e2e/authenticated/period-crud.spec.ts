@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { sweepCrudLeftovers } from "../support/cleanup";
 import {
   deleteViaDangerZone,
   expectDetailAndReadSlug,
@@ -15,8 +16,18 @@ import {
  * Runs under the `authenticated` project (starts signed in).
  */
 test.describe("period CRUD spine", () => {
+  // Safety net for the run that doesn't reach its delete step (#355).
+  const stamps: number[] = [];
+  test.afterAll(async () => {
+    await sweepCrudLeftovers(
+      "periods",
+      stamps.map((s) => `e2e-crud-period-${s}%`),
+    );
+  });
+
   test("create, view, edit, then delete a period", async ({ page }) => {
     const stamp = Date.now();
+    stamps.push(stamp);
     const title = `E2E CRUD Period ${stamp}`;
     const editedTitle = `${title} (edited)`;
 

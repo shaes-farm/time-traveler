@@ -165,6 +165,30 @@ Concrete decisions:
   regressions during refactors; the smoke job (once added) turns red on a
   broken deploy and is actually watched. If a non-gating check is chronically
   red and ignored, remove it rather than let it erode trust in CI.
+- **IMP-004**: **Test-data lifecycle** (#355). Per-fixture `afterAll` cleanups
+  key on an in-memory `Date.now()` stamp, so an interrupted run takes the stamp
+  with it and strands its rows for good. Two prefix-wide sweeps
+  (`e2e/support/cleanup.ts`) backstop them, extending decision 3's
+  project-dependency mechanism rather than reaching for `globalTeardown`:
+  - **on entry**, from the `setup` project, reclaiming the previous run's rows —
+    this is what makes a crash or `Ctrl-C` recoverable;
+  - **on exit**, from a `cleanup` teardown project referenced by both `setup`
+    and the anonymous `chromium` project (`chromium` needs its own reference,
+    since decision 3 deliberately leaves it independent of `setup`). This pass
+    also deletes the seeded editor account, so a completed run leaves no e2e
+    residue in `auth.users` or `profiles`; `seedTestUser` recreates it (and,
+    via the migration-00004 trigger, its profile) at the start of the next run.
+
+  Two rules any cleanup must follow. **Delete events before timelines**:
+  `events.timeline_id` and `events.detail_timeline_id` are both
+  `ON DELETE SET NULL` (migrations 00001, 00017 — so deleting a sub-timeline
+  detaches a drill-down instead of cascading), which means deleting a timeline
+  first strands its events with both columns nulled rather than removing them.
+  **Scope a sweep to what its own worker created**: `fullyParallel` runs
+  `beforeAll`/`afterAll` once per worker and splits a multi-test spec across
+  them, so a blanket prefix delete from one worker can pull a record out from
+  under another. The entry sweep's auth-user pass carries an age floor for the
+  same reason — the anonymous project runs concurrently with `setup`.
 
 ## References
 

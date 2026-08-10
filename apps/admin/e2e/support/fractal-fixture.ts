@@ -1,6 +1,8 @@
 import { createServiceRoleClient } from "./supabase-admin";
 
 export interface FractalFixture {
+  /** Timestamp baked into every seeded slug — pass to {@link cleanupFractalTimeline}. */
+  stamp: number;
   /** UUID primary key — the timeline detail route keys on this (#234). */
   timelineId: string;
   timelineSlug: string;
@@ -22,8 +24,9 @@ export interface FractalFixture {
  *     not — so the Tree view shows exactly one drill-down marker.
  *
  * Slugs are timestamped so repeated local runs don't collide on the per-user
- * slug uniqueness constraint. Rows are left behind (throwaway local DB); no
- * teardown — see the cleanup note on the tracking issue (#355).
+ * slug uniqueness constraint. Pair with {@link cleanupFractalTimeline} in an
+ * `afterAll` (#355) — note this seeds once per worker, since Playwright runs
+ * `beforeAll` per worker and `fullyParallel` splits the suite's tests.
  */
 export async function seedFractalTimeline(
   userId: string,
@@ -91,6 +94,7 @@ export async function seedFractalTimeline(
   }
 
   return {
+    stamp,
     timelineId: parentId,
     timelineSlug,
     timelineTitle,
@@ -100,4 +104,33 @@ export async function seedFractalTimeline(
     plainEventSlug,
     plainEventTitle,
   };
+}
+
+/**
+ * Delete everything seeded under `stamp`. Idempotent; call from `afterAll`.
+ *
+ * **Events first, then timelines.** This is the one fixture that populates
+ * `events.detail_timeline_id`, and both that column and `events.timeline_id`
+ * are `ON DELETE SET NULL` (migrations 00017 and 00001) — so deleting the
+ * timelines first would not remove the events, it would strand them with both
+ * columns nulled and no slug-scoped sweep left to catch them.
+ */
+export async function cleanupFractalTimeline(stamp: number): Promise<void> {
+  const admin = createServiceRoleClient();
+
+  const { error: eventError } = await admin
+    .from("events")
+    .delete()
+    .ilike("slug", `e2e-fractal-event-%-${stamp}`);
+  if (eventError) {
+    throw eventError;
+  }
+
+  const { error: timelineError } = await admin
+    .from("timelines")
+    .delete()
+    .ilike("slug", `e2e-fractal-%-${stamp}`);
+  if (timelineError) {
+    throw timelineError;
+  }
 }
