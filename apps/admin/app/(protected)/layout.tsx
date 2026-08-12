@@ -29,5 +29,9 @@ export default async function ProtectedLayout({
     email: user.email,
   };
 
-  return <ProtectedShell user={shellUser}>{children}</ProtectedShell>;
+  return (
+    <ProtectedShell user={shellUser} role={profile?.role ?? "editor"}>
+      {children}
+    </ProtectedShell>
+  );
 }

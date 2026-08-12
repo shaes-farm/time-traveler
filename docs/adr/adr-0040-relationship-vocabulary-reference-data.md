@@ -15,7 +15,7 @@ tags:
 supersedes: ""
 superseded_by: ""
 amends: "ADR-0008 (character relationships as directed pairs); ADR-0009 (relationship_role sub-role taxonomy)"
-amended_by: ""
+amended_by: "ADR-0041 (admin CRUD surface; key rename withheld from the UI)"
 ---
 
 # ADR-0040: Relationship vocabulary as reference data
@@ -190,8 +190,11 @@ re-running never clobbers vocabulary an admin has since curated.
 - **NEG-006**: Directionality remains implicit in column order
   (`character_id → related_character_id`), inherited from ADR-0008. `inverse_key` documents
   intent but no DB guard forces correct authoring order for asymmetric verbs.
-- **NEG-007**: Until admin CRUD ships (#428), "managed through the admin UI" is true only via
-  SQL.
+- **NEG-007**: ~~Until admin CRUD ships (#428), "managed through the admin UI" is true only via
+  SQL.~~ **Resolved** by #428: the vocabulary manager ships at
+  `/admin/relationship-vocabulary`. One narrowing survives — renaming a `key` is deliberately
+  withheld from the UI and remains a SQL operation, per
+  [ADR-0041](adr-0041-admin-only-surfaces-and-immutable-vocabulary-keys.md).
 
 ## Alternatives Considered
 
@@ -248,7 +251,13 @@ re-running never clobbers vocabulary an admin has since curated.
   reload — reproducing at runtime the staleness this ADR removes.
 - **IMP-004**: `23503` is mapped in both write paths, branching on constraint name to
   distinguish an unknown type from an invalid (type, role) pair.
-- **IMP-005**: Admin CRUD for the three tables is tracked in #428.
+- **IMP-005**: ~~Admin CRUD for the three tables is tracked in #428.~~ **Shipped** in #428.
+  Every mutation hook in `use-relationship-types.tsx` invalidates
+  `relationshipTypeKeys.all` (satisfying IMP-003), and
+  `e2e/admin-authenticated/relationship-vocabulary-crud.spec.ts` asserts the consequence
+  end-to-end: a type added in the manager is selectable in the relationship editor after a
+  client-side navigation, with no reload. See
+  [ADR-0041](adr-0041-admin-only-surfaces-and-immutable-vocabulary-keys.md) for the access model.
 
 ## References
 

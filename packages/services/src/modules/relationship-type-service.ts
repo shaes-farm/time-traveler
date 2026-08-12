@@ -1,10 +1,28 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  assertSymmetryInvariant,
+  relationshipCategoryCreateSchema,
+  relationshipCategoryUpdateSchema,
+  relationshipRoleCreateSchema,
+  relationshipRoleUpdateSchema,
+  relationshipTypeCreateSchema,
+  relationshipTypeUpdateSchema,
   toVocabulary,
+  type RelationshipCategoryCreateInput,
   type RelationshipCategoryMeta,
+  type RelationshipCategoryUpdateInput,
+  type RelationshipRoleCreateInput,
+  type RelationshipRoleUpdateInput,
+  type RelationshipTypeCreateInput,
+  type RelationshipTypeUpdateInput,
   type RelationshipVocabulary,
 } from "../schemas/relationship-vocabulary";
 import type { Database } from "../supabase/types";
+import {
+  describePostgresError,
+  PG_UNIQUE_VIOLATION,
+  type PostgresErrorLike,
+} from "../utils/postgres-errors";
 
 /**
  * Reads the relationship vocabulary — the three reference tables introduced in
@@ -107,4 +125,347 @@ function bySortOrderThenLabel(
   b: { sort_order: number; label: string },
 ): number {
   return a.sort_order - b.sort_order || a.label.localeCompare(b.label);
+}
+
+/* ===================================================================== *
+ * Writes (issue #428 — the admin CRUD surface)
+ *
+ * RLS gates every write below on `is_admin()` (00029 lines 166-198), so a
+ * non-admin's write fails at the database regardless of what the UI offers.
+ * These functions add the *legibility* layer: the four ways this schema bites
+ * (delete-in-use, key rename cascading, the symmetry CHECK, duplicate keys) all
+ * arrive as bare SQLSTATEs, and each is turned into a sentence here.
+ *
+ * `key` is absent from every update input by construction. The FKs are
+ * ON UPDATE CASCADE, so renaming a key rewrites `relationship_type` on every
+ * referencing relationship row; ADR-0041 keeps that a SQL operation.
+ * ===================================================================== */
+
+type RelationshipCategoryRow =
+  Database["public"]["Tables"]["relationship_categories"]["Row"];
+type RelationshipTypeRow =
+  Database["public"]["Tables"]["relationship_types"]["Row"];
+type RelationshipRoleRow =
+  Database["public"]["Tables"]["relationship_roles"]["Row"];
+
+/** Rethrow a write error as a described, context-prefixed Error. */
+function assertNoWriteError(
+  error: PostgresErrorLike | null,
+  context: string,
+  options: Parameters<typeof describePostgresError>[1],
+): asserts error is null {
+  if (error !== null) {
+    throw new Error(
+      `RelationshipTypeService.${context}: ${describePostgresError(error, options)}`,
+    );
+  }
+}
+
+/* ---------------------------------------------------------------- *
+ * Categories
+ * ---------------------------------------------------------------- */
+
+const CATEGORY_WRITE_ERRORS = {
+  constraints: [
+    {
+      constraint: "relationship_types_category_key_fkey",
+      message:
+        "This group still has relationship types in it. Move or remove them first, or deactivate the group instead.",
+    },
+  ],
+  byCode: {
+    [PG_UNIQUE_VIOLATION]: "A group with that key already exists.",
+  },
+} as const;
+
+export async function createRelationshipCategory(
+  client: SupabaseClient<Database>,
+  input: RelationshipCategoryCreateInput,
+): Promise<RelationshipCategoryRow> {
+  const values = relationshipCategoryCreateSchema.parse(input);
+
+  const { data, error } = await client
+    .from("relationship_categories")
+    .insert(values)
+    .select()
+    .single();
+
+  assertNoWriteError(
+    error,
+    "createRelationshipCategory",
+    CATEGORY_WRITE_ERRORS,
+  );
+  return data;
+}
+
+export async function updateRelationshipCategory(
+  client: SupabaseClient<Database>,
+  key: string,
+  patch: RelationshipCategoryUpdateInput,
+): Promise<RelationshipCategoryRow> {
+  const values = relationshipCategoryUpdateSchema.parse(patch);
+
+  const { data, error } = await client
+    .from("relationship_categories")
+    .update(values)
+    .eq("key", key)
+    .select()
+    .single();
+
+  assertNoWriteError(
+    error,
+    "updateRelationshipCategory",
+    CATEGORY_WRITE_ERRORS,
+  );
+  return data;
+}
+
+/**
+ * Delete a category. `relationship_types.category_key` is ON DELETE RESTRICT,
+ * so this fails while the group still holds any type — including inactive ones,
+ * which the UI hides from editors but the FK still counts.
+ */
+export async function deleteRelationshipCategory(
+  client: SupabaseClient<Database>,
+  key: string,
+): Promise<void> {
+  const { error } = await client
+    .from("relationship_categories")
+    .delete()
+    .eq("key", key);
+
+  assertNoWriteError(
+    error,
+    "deleteRelationshipCategory",
+    CATEGORY_WRITE_ERRORS,
+  );
+}
+
+/* ---------------------------------------------------------------- *
+ * Types
+ * ---------------------------------------------------------------- */
+
+const TYPE_WRITE_ERRORS = {
+  constraints: [
+    {
+      constraint: "character_relationships_relationship_type_fkey",
+      message:
+        "Relationships still use this type, so it can't be deleted. Deactivate it instead — existing relationships keep working and it stops being offered for new ones.",
+    },
+    {
+      constraint: "relationship_types_category_key_fkey",
+      message: "That group doesn't exist. Pick an existing group.",
+    },
+    {
+      constraint: "relationship_types_inverse_key_fkey",
+      message: "The inverse type doesn't exist. Pick an existing type.",
+    },
+    {
+      constraint: "relationship_types_symmetric_has_no_inverse",
+      message:
+        "A symmetric type cannot have an inverse — its reciprocal carries the same type.",
+    },
+  ],
+  byCode: {
+    [PG_UNIQUE_VIOLATION]: "A relationship type with that key already exists.",
+  },
+} as const;
+
+export async function createRelationshipType(
+  client: SupabaseClient<Database>,
+  input: RelationshipTypeCreateInput,
+): Promise<RelationshipTypeRow> {
+  const values = relationshipTypeCreateSchema.parse(input);
+
+  const { data, error } = await client
+    .from("relationship_types")
+    .insert(values)
+    .select()
+    .single();
+
+  assertNoWriteError(error, "createRelationshipType", TYPE_WRITE_ERRORS);
+  return data;
+}
+
+/**
+ * Update a type.
+ *
+ * The symmetry invariant is checked against the *merged* row, not the patch: a
+ * patch that sets only `is_symmetric: true` is individually harmless but
+ * illegal against a row that already carries an inverse. Reading first costs a
+ * round trip and is worth it — the alternative is surfacing a bare 23514 for a
+ * field the user never touched.
+ */
+export async function updateRelationshipType(
+  client: SupabaseClient<Database>,
+  key: string,
+  patch: RelationshipTypeUpdateInput,
+): Promise<RelationshipTypeRow> {
+  const values = relationshipTypeUpdateSchema.parse(patch);
+
+  if (values.is_symmetric !== undefined || values.inverse_key !== undefined) {
+    const { data: current, error: readError } = await client
+      .from("relationship_types")
+      .select("is_symmetric, inverse_key")
+      .eq("key", key)
+      .single();
+
+    assertNoError(readError, "updateRelationshipType");
+    assertSymmetryInvariant({
+      is_symmetric: values.is_symmetric ?? current.is_symmetric,
+      inverse_key:
+        values.inverse_key !== undefined
+          ? values.inverse_key
+          : current.inverse_key,
+    });
+  }
+
+  const { data, error } = await client
+    .from("relationship_types")
+    .update(values)
+    .eq("key", key)
+    .select()
+    .single();
+
+  assertNoWriteError(error, "updateRelationshipType", TYPE_WRITE_ERRORS);
+  return data;
+}
+
+/**
+ * Delete a type. `character_relationships.relationship_type` is ON DELETE
+ * RESTRICT, so this fails whenever any relationship still uses it; its own
+ * roles are ON DELETE CASCADE and go with it.
+ *
+ * Callers should check {@link countRelationshipTypeUsage} first and steer the
+ * user to deactivation — reaching this error is the fallback for a row that
+ * came into use between the check and the delete.
+ */
+export async function deleteRelationshipType(
+  client: SupabaseClient<Database>,
+  key: string,
+): Promise<void> {
+  const { error } = await client
+    .from("relationship_types")
+    .delete()
+    .eq("key", key);
+
+  assertNoWriteError(error, "deleteRelationshipType", TYPE_WRITE_ERRORS);
+}
+
+/* ---------------------------------------------------------------- *
+ * Roles
+ * ---------------------------------------------------------------- */
+
+const ROLE_WRITE_ERRORS = {
+  constraints: [
+    {
+      constraint: "character_relationships_role_fkey",
+      message:
+        "Relationships still use this sub-role, so it can't be deleted. Deactivate it instead.",
+    },
+    {
+      constraint: "relationship_roles_type_key_fkey",
+      message: "That relationship type doesn't exist.",
+    },
+  ],
+  byCode: {
+    [PG_UNIQUE_VIOLATION]:
+      "That type already has a sub-role with that key. Sub-role keys must be unique within a type.",
+  },
+} as const;
+
+export async function createRelationshipRole(
+  client: SupabaseClient<Database>,
+  input: RelationshipRoleCreateInput,
+): Promise<RelationshipRoleRow> {
+  const values = relationshipRoleCreateSchema.parse(input);
+
+  const { data, error } = await client
+    .from("relationship_roles")
+    .insert(values)
+    .select()
+    .single();
+
+  assertNoWriteError(error, "createRelationshipRole", ROLE_WRITE_ERRORS);
+  return data;
+}
+
+/** Roles have a composite PK, so both halves are needed to address one. */
+export async function updateRelationshipRole(
+  client: SupabaseClient<Database>,
+  typeKey: string,
+  key: string,
+  patch: RelationshipRoleUpdateInput,
+): Promise<RelationshipRoleRow> {
+  const values = relationshipRoleUpdateSchema.parse(patch);
+
+  const { data, error } = await client
+    .from("relationship_roles")
+    .update(values)
+    .eq("type_key", typeKey)
+    .eq("key", key)
+    .select()
+    .single();
+
+  assertNoWriteError(error, "updateRelationshipRole", ROLE_WRITE_ERRORS);
+  return data;
+}
+
+export async function deleteRelationshipRole(
+  client: SupabaseClient<Database>,
+  typeKey: string,
+  key: string,
+): Promise<void> {
+  const { error } = await client
+    .from("relationship_roles")
+    .delete()
+    .eq("type_key", typeKey)
+    .eq("key", key);
+
+  assertNoWriteError(error, "deleteRelationshipRole", ROLE_WRITE_ERRORS);
+}
+
+/* ---------------------------------------------------------------- *
+ * Usage counts — the blast radius behind the delete guard rails
+ * ---------------------------------------------------------------- */
+
+/**
+ * How many relationships across *all* owners use this type.
+ *
+ * Globally correct for an admin: `read_character_relationships` is
+ * `USING (user_id = auth.uid() OR is_admin())` (00011 lines 518-519), so an
+ * admin's count spans every user. A non-admin calling this sees only their own
+ * rows — harmless, since they cannot reach the delete UI anyway.
+ *
+ * `head: true` with an exact count is one cheap COUNT(*) with no rows returned,
+ * so this is fetched lazily when a confirm dialog opens rather than eagerly for
+ * every row in the tree.
+ */
+export async function countRelationshipTypeUsage(
+  client: SupabaseClient<Database>,
+  typeKey: string,
+): Promise<number> {
+  const { count, error } = await client
+    .from("character_relationships")
+    .select("*", { count: "exact", head: true })
+    .eq("relationship_type", typeKey);
+
+  assertNoError(error, "countRelationshipTypeUsage");
+  return count ?? 0;
+}
+
+/** As {@link countRelationshipTypeUsage}, for one sub-role of a type. */
+export async function countRelationshipRoleUsage(
+  client: SupabaseClient<Database>,
+  typeKey: string,
+  roleKey: string,
+): Promise<number> {
+  const { count, error } = await client
+    .from("character_relationships")
+    .select("*", { count: "exact", head: true })
+    .eq("relationship_type", typeKey)
+    .eq("relationship_role", roleKey);
+
+  assertNoError(error, "countRelationshipRoleUsage");
+  return count ?? 0;
 }

@@ -68,6 +68,186 @@ export const relationshipCategoryMetaSchema = z.object({
   types: z.array(relationshipTypeMetaSchema),
 });
 
+/* ------------------------------------------------------------------ *
+ * Write inputs (issue #428 — the admin CRUD surface)
+ *
+ * These mirror the DB constraints in `00029_relationship_vocabulary.sql`
+ * exactly, and nothing more. Softer editorial rules — "a directed type ought
+ * to carry a direction_verb" — are form-level concerns and live with the admin
+ * form mappers, so a SQL-side or script-side caller is never blocked by a
+ * preference the database does not actually enforce.
+ *
+ * Update schemas omit `key` (and `type_key`) deliberately. The FKs are
+ * ON UPDATE CASCADE, so renaming a key silently rewrites `relationship_type`
+ * on every referencing relationship row; ADR-0041 withholds that from the UI
+ * and keeps it a SQL operation. Omitting the field here makes the restriction
+ * a type error rather than a convention.
+ * ------------------------------------------------------------------ */
+
+/**
+ * `relationship_categories.key` is VARCHAR(50) while types and roles are
+ * VARCHAR(100). {@link vocabularyKeySchema} allows the wider bound, so the
+ * category schema tightens it — otherwise a 51-character key passes validation
+ * and fails at the database with a truncation error.
+ */
+export const categoryKeySchema = vocabularyKeySchema.max(50);
+
+/**
+ * Field definitions carry **no defaults**, and the create schemas re-apply them
+ * per field below.
+ *
+ * This split is load-bearing, not stylistic. `.partial()` does not strip a
+ * `.default()` — it only makes the key optional, and an absent key still
+ * resolves to its default. So a `.partial()` of a defaulted shape turns
+ * `update(key, { label: "x" })` into a patch that also writes
+ * `description: null, sort_order: 0, is_active: true`, silently resetting three
+ * columns the caller never mentioned. Deriving updates from the defaults-free
+ * shape keeps a patch to exactly the fields it names.
+ */
+const categoryFieldsSchema = z.object({
+  key: categoryKeySchema,
+  label: z.string().min(1, "Label is required"),
+  description: z.string().nullable(),
+  sort_order: z.number().int(),
+  is_active: z.boolean(),
+});
+
+export const relationshipCategoryCreateSchema = categoryFieldsSchema.extend({
+  description: categoryFieldsSchema.shape.description.default(null),
+  sort_order: categoryFieldsSchema.shape.sort_order.default(0),
+  is_active: categoryFieldsSchema.shape.is_active.default(true),
+});
+
+export const relationshipCategoryUpdateSchema = categoryFieldsSchema
+  .omit({ key: true })
+  .partial();
+
+/**
+ * Reciprocal-edge semantics are three-way (see {@link relationshipTypeMetaSchema}),
+ * and the database rejects exactly one of the four combinations via
+ * `relationship_types_symmetric_has_no_inverse`. Mirroring it here turns a
+ * `23514` into a field-level validation message.
+ *
+ * Note the constraint is one-directional: `is_symmetric = false` with a NULL
+ * `inverse_key` is legal — a directed assertion with no reciprocal row.
+ */
+const symmetryRefinement = (
+  value: { is_symmetric: boolean; inverse_key: string | null },
+  ctx: z.RefinementCtx,
+): void => {
+  if (value.is_symmetric && value.inverse_key !== null) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["inverse_key"],
+      message:
+        "A symmetric type cannot have an inverse — its reciprocal carries the same type.",
+    });
+  }
+};
+
+/**
+ * Unrefined, defaults-free base — see {@link categoryFieldsSchema} for why the
+ * defaults live on the create schema only. Zod 4 also stores refinements inside
+ * the schema and rejects `.omit()` on one that carries them, so the create and
+ * update schemas both derive from here rather than from one another.
+ */
+const typeFieldsSchema = z.object({
+  key: vocabularyKeySchema,
+  label: z.string().min(1, "Label is required"),
+  category_key: categoryKeySchema,
+  sort_order: z.number().int(),
+  is_symmetric: z.boolean(),
+  inverse_key: vocabularyKeySchema.nullable(),
+  direction_verb: z.string().nullable(),
+  symmetric_noun: z.string().nullable(),
+  description: z.string().nullable(),
+  is_active: z.boolean(),
+});
+
+export const relationshipTypeCreateSchema = typeFieldsSchema
+  .extend({
+    sort_order: typeFieldsSchema.shape.sort_order.default(0),
+    is_symmetric: typeFieldsSchema.shape.is_symmetric.default(true),
+    inverse_key: typeFieldsSchema.shape.inverse_key.default(null),
+    direction_verb: typeFieldsSchema.shape.direction_verb.default(null),
+    symmetric_noun: typeFieldsSchema.shape.symmetric_noun.default(null),
+    description: typeFieldsSchema.shape.description.default(null),
+    is_active: typeFieldsSchema.shape.is_active.default(true),
+  })
+  .superRefine(symmetryRefinement);
+
+/**
+ * Partial update. The symmetry check deliberately does *not* live here: a
+ * refinement sees the patch, not the merged row, so a patch setting only
+ * `is_symmetric: true` has no `inverse_key` to test against and would pass
+ * while still producing an illegal row. The service applies
+ * {@link assertSymmetryInvariant} to the merged result instead.
+ */
+export const relationshipTypeUpdateSchema = typeFieldsSchema
+  .omit({ key: true })
+  .partial();
+
+/**
+ * `relationship_roles.inverse_key` is deliberately not an FK in the schema —
+ * it names a sibling role within the same type, validated by pgTAP and the app
+ * rather than by the database. It stays a plain nullable string here to match.
+ */
+const roleFieldsSchema = z.object({
+  type_key: vocabularyKeySchema,
+  key: vocabularyKeySchema,
+  label: z.string().min(1, "Label is required"),
+  inverse_key: z.string().nullable(),
+  sort_order: z.number().int(),
+  is_active: z.boolean(),
+});
+
+export const relationshipRoleCreateSchema = roleFieldsSchema.extend({
+  inverse_key: roleFieldsSchema.shape.inverse_key.default(null),
+  sort_order: roleFieldsSchema.shape.sort_order.default(0),
+  is_active: roleFieldsSchema.shape.is_active.default(true),
+});
+
+export const relationshipRoleUpdateSchema = roleFieldsSchema
+  .omit({ type_key: true, key: true })
+  .partial();
+
+/**
+ * Guard the symmetry invariant on a merged type row. Used by the update path,
+ * where the patch alone is not enough to decide (see
+ * {@link relationshipTypeUpdateSchema}).
+ *
+ * @throws if the row is both symmetric and carries an inverse.
+ */
+export function assertSymmetryInvariant(row: {
+  is_symmetric: boolean;
+  inverse_key: string | null;
+}): void {
+  if (row.is_symmetric && row.inverse_key !== null) {
+    throw new Error(
+      "A symmetric type cannot have an inverse — its reciprocal carries the same type.",
+    );
+  }
+}
+
+export type RelationshipCategoryCreateInput = z.input<
+  typeof relationshipCategoryCreateSchema
+>;
+export type RelationshipCategoryUpdateInput = z.infer<
+  typeof relationshipCategoryUpdateSchema
+>;
+export type RelationshipTypeCreateInput = z.input<
+  typeof relationshipTypeCreateSchema
+>;
+export type RelationshipTypeUpdateInput = z.infer<
+  typeof relationshipTypeUpdateSchema
+>;
+export type RelationshipRoleCreateInput = z.input<
+  typeof relationshipRoleCreateSchema
+>;
+export type RelationshipRoleUpdateInput = z.infer<
+  typeof relationshipRoleUpdateSchema
+>;
+
 export type RelationshipRoleMeta = z.infer<typeof relationshipRoleMetaSchema>;
 export type RelationshipTypeMeta = z.infer<typeof relationshipTypeMetaSchema>;
 export type RelationshipCategoryMeta = z.infer<

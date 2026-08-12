@@ -6,7 +6,11 @@
 /* eslint-disable turbo/no-undeclared-env-vars */
 import { existsSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
-import { BASE_URL, STORAGE_STATE } from "./e2e/support/env";
+import {
+  ADMIN_STORAGE_STATE,
+  BASE_URL,
+  STORAGE_STATE,
+} from "./e2e/support/env";
 
 /**
  * Load `apps/admin/.env.local` into `process.env` so the setup project can
@@ -32,9 +36,18 @@ if (existsSync(localEnv)) {
  *                        `setup`/seed step (no seeded user needed). The app
  *                        and its Supabase config still run — the proxy calls
  *                        `getUser()` on every request.
- *   - `setup`          — seeds the test user and saves an authenticated
+ *   - `setup`          — seeds the editor test user and saves an authenticated
  *                        storage state (see e2e/support/auth.setup.ts).
- *   - `authenticated`  — specs that start signed in; depends on `setup`.
+ *   - `authenticated`  — specs that start signed in as an editor; depends on
+ *                        `setup`.
+ *   - `admin-setup`    — seeds the admin-role account and saves its own storage
+ *                        state (see e2e/support/admin-auth.setup.ts).
+ *   - `admin-authenticated` — specs for admin-only surfaces; depends on
+ *                        `admin-setup`.
+ *
+ * The two signed-in projects deliberately use different accounts: the editor
+ * session is what proves the `/admin` role gate turns a non-admin away, so it
+ * must stay non-admin.
  *
  * Run everything with `pnpm test:e2e`, or a single project with
  * `pnpm test:e2e --project=chromium` (the anon suite — skips the seed step).
@@ -61,8 +74,12 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
-      // Anonymous suite only — skip the setup file and authenticated specs.
-      testIgnore: [/\/support\//, /\/authenticated\//],
+      // Anonymous suite only — skip the setup files and every signed-in spec.
+      testIgnore: [
+        /\/support\//,
+        /\/authenticated\//,
+        /\/admin-authenticated\//,
+      ],
       // These specs create throwaway auth accounts, and this project does not
       // depend on `setup` (see above), so it needs its own reference to the
       // teardown to be covered by it.
@@ -88,6 +105,21 @@ export default defineConfig({
       testMatch: /\/authenticated\/.*\.spec\.ts$/,
       dependencies: ["setup"],
       use: { ...devices["Desktop Chrome"], storageState: STORAGE_STATE },
+    },
+    {
+      // Seeds the admin-role account. Separate from `setup` because the two
+      // sessions must not be the same account: `authenticated` runs as an
+      // editor precisely so it can prove the admin gate turns it away.
+      name: "admin-setup",
+      testMatch: /support\/admin-auth\.setup\.ts$/,
+      use: { ...devices["Desktop Chrome"] },
+      teardown: "cleanup",
+    },
+    {
+      name: "admin-authenticated",
+      testMatch: /\/admin-authenticated\/.*\.spec\.ts$/,
+      dependencies: ["admin-setup"],
+      use: { ...devices["Desktop Chrome"], storageState: ADMIN_STORAGE_STATE },
     },
   ],
 

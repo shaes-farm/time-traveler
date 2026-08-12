@@ -18,3 +18,11 @@ export const BASE_URL = `http://localhost:${PORT}`;
  * specs start already signed in. Gitignored — regenerated each run.
  */
 export const STORAGE_STATE = path.resolve(here, "../.auth/user.json");
+
+/**
+ * Storage state for the seeded **admin** account, written by the `admin-setup`
+ * project and loaded by `admin-authenticated`. Kept separate from
+ * {@link STORAGE_STATE} so the editor session stays non-admin — that account is
+ * what proves the admin gate blocks anyone. Gitignored alongside it.
+ */
+export const ADMIN_STORAGE_STATE = path.resolve(here, "../.auth/admin.json");

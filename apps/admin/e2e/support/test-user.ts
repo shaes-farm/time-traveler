@@ -18,6 +18,31 @@ export const TEST_USER = {
 } as const;
 
 /**
+ * The seeded **admin** account, for specs that exercise admin-only surfaces
+ * (the relationship vocabulary manager, #428).
+ *
+ * Separate from {@link TEST_USER} rather than promoting it: the editor account
+ * is what proves the admin gate actually blocks someone, so at least one
+ * account must stay non-admin.
+ */
+export const ADMIN_TEST_USER = {
+  email: process.env.E2E_ADMIN_EMAIL ?? "e2e-admin@timetraveler.test",
+  password: process.env.E2E_ADMIN_PASSWORD ?? "e2e-Password-123!",
+  firstName: "Grace",
+  lastName: "Hopper",
+} as const;
+
+/**
+ * Every account this suite seeds and signs in as. {@link sweepE2eAuthUsers}
+ * exempts these from its age floor and only removes them when explicitly told
+ * to, so an entry sweep cannot delete an account a project is about to use.
+ */
+export const SEEDED_ACCOUNT_EMAILS: readonly string[] = [
+  TEST_USER.email,
+  ADMIN_TEST_USER.email,
+];
+
+/**
  * Idempotently create {@link TEST_USER} via the Supabase admin API and
  * return its auth id (callers seed fixtures owned by that id).
  *
@@ -27,16 +52,23 @@ export const TEST_USER = {
  * call on every run: a user left over from a previous run is looked up
  * rather than treated as a failure.
  */
-export async function seedTestUser(): Promise<string> {
+export async function seedTestUser(
+  account: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  } = TEST_USER,
+): Promise<string> {
   const admin = createServiceRoleClient();
 
   const { data, error } = await admin.auth.admin.createUser({
-    email: TEST_USER.email,
-    password: TEST_USER.password,
+    email: account.email,
+    password: account.password,
     email_confirm: true,
     user_metadata: {
-      first_name: TEST_USER.firstName,
-      last_name: TEST_USER.lastName,
+      first_name: account.firstName,
+      last_name: account.lastName,
     },
   });
 
@@ -70,7 +102,7 @@ export async function seedTestUser(): Promise<string> {
     if (listError) {
       throw listError;
     }
-    const existing = list.users.find((u) => u.email === TEST_USER.email);
+    const existing = list.users.find((u) => u.email === account.email);
     if (existing) {
       return existing.id;
     }
@@ -78,5 +110,34 @@ export async function seedTestUser(): Promise<string> {
       break;
     }
   }
-  throw new Error(`Test user ${TEST_USER.email} not found after createUser`);
+  throw new Error(`Test user ${account.email} not found after createUser`);
+}
+
+/**
+ * Seed {@link ADMIN_TEST_USER} and promote it to `role = 'admin'`.
+ *
+ * The promotion is a separate step because `handle_new_user` (migration 00004)
+ * provisions every new profile as an `editor` — there is no way to ask the auth
+ * admin API for an admin. Written with the service-role client, which bypasses
+ * RLS; `is_admin()` reads this column, so an editor could not grant it.
+ *
+ * Idempotent, like {@link seedTestUser}: a re-run re-asserts the role rather
+ * than failing on the existing account.
+ */
+export async function seedAdminTestUser(): Promise<string> {
+  const userId = await seedTestUser(ADMIN_TEST_USER);
+  const admin = createServiceRoleClient();
+
+  const { error } = await admin
+    .from("profiles")
+    .update({ role: "admin" })
+    .eq("id", userId);
+
+  if (error) {
+    throw new Error(
+      `seedAdminTestUser failed to promote ${ADMIN_TEST_USER.email}: ${error.message}`,
+    );
+  }
+
+  return userId;
 }

@@ -20,7 +20,13 @@ export default defineConfig({
       // untested app boilerplate). Expand this list as app test coverage grows.
       include: [
         "lib/use-register-unsaved-changes.ts",
+        "lib/nav.ts",
         "components/shell-link.tsx",
+        "app/**/relationship-vocabulary/_components/delete-vocabulary-dialog.tsx",
+        "app/**/relationship-vocabulary/_components/vocabulary-form-mappers.ts",
+        "app/**/relationship-vocabulary/_components/vocabulary-manager-shell.tsx",
+        "app/**/relationship-vocabulary/_components/vocabulary-tree-utils.ts",
+        "app/**/relationship-vocabulary/_components/type-inspector.tsx",
         "app/**/_components/media/attach-media-dialog.tsx",
         "app/**/_components/media/media-library.tsx",
         "app/**/_components/media/media-section.tsx",
