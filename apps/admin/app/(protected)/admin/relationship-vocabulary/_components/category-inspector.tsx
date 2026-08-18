@@ -23,6 +23,7 @@ import {
 } from "@repo/ui/hooks/use-relationship-types";
 import type { RelationshipCategoryMeta } from "@repo/services/schemas/relationship-vocabulary";
 
+import { useReportEditorDirty } from "../../../../../lib/editor-guard-context";
 import { DeactivateDialog } from "./deactivate-dialog";
 import { DeleteVocabularyDialog } from "./delete-vocabulary-dialog";
 import {
@@ -68,6 +69,7 @@ export function CategoryInspector({
   const deleteMut = useDeleteRelationshipCategory(client);
 
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [formErrorTitle, setFormErrorTitle] = React.useState("Couldn’t save");
   const [showDeactivate, setShowDeactivate] = React.useState(false);
   const [showDelete, setShowDelete] = React.useState(false);
 
@@ -78,6 +80,7 @@ export function CategoryInspector({
       ? mapCategoryToFormValues(category)
       : blankCategory(defaultSortOrder),
   });
+  useReportEditorDirty(form.formState.isDirty);
 
   const onSubmit = async (values: CategoryFormValues) => {
     setFormError(null);
@@ -97,6 +100,7 @@ export function CategoryInspector({
         onSaved(row.key);
       }
     } catch (error) {
+      setFormErrorTitle("Couldn’t save");
       setFormError(
         error instanceof Error ? error.message : "Failed to save the group.",
       );
@@ -104,7 +108,9 @@ export function CategoryInspector({
   };
 
   // Deactivation is a single-field update, so it reuses the update mutation
-  // rather than a bespoke endpoint.
+  // rather than a bespoke endpoint. Only reachable through DeactivateDialog —
+  // the is_active switch in the form below is disabled in edit mode, so this
+  // is the one path that can flip it.
   const toggleActive = async () => {
     if (!category) return;
     try {
@@ -121,6 +127,9 @@ export function CategoryInspector({
       setShowDeactivate(false);
     } catch (error) {
       setShowDeactivate(false);
+      setFormErrorTitle(
+        category.is_active ? "Couldn’t deactivate" : "Couldn’t reactivate",
+      );
       setFormError(
         error instanceof Error ? error.message : "Failed to update the group.",
       );
@@ -136,6 +145,7 @@ export function CategoryInspector({
       onDeleted();
     } catch (error) {
       setShowDelete(false);
+      setFormErrorTitle("Couldn’t delete");
       setFormError(
         error instanceof Error ? error.message : "Failed to delete the group.",
       );
@@ -164,7 +174,7 @@ export function CategoryInspector({
           className="flex flex-1 flex-col overflow-hidden"
         >
           <div className="flex-1 space-y-4 overflow-auto p-4">
-            <InspectorError message={formError} />
+            <InspectorError message={formError} title={formErrorTitle} />
 
             <Controller
               control={form.control}
@@ -236,7 +246,12 @@ export function CategoryInspector({
                   name="category-is-active"
                   checked={field.value}
                   onChange={field.onChange}
-                  description="Inactive groups and everything in them are hidden from the relationship type picker."
+                  disabled={isEdit}
+                  description={
+                    isEdit
+                      ? "Use Deactivate in the overflow menu to change this — it explains what disappears first."
+                      : "Inactive groups and everything in them are hidden from the relationship type picker."
+                  }
                 />
               )}
             />
@@ -260,6 +275,7 @@ export function CategoryInspector({
             entryLabel={category.label}
             level="category"
             affectedTypeCount={category.types.length}
+            affectedTypeLabels={category.types.map((type) => type.label)}
             reactivating={!category.is_active}
           />
           <DeleteVocabularyDialog
@@ -274,9 +290,13 @@ export function CategoryInspector({
             entryLabel={category.label}
             level="category"
             // A category's blast radius is already in hand — the tree carries
-            // its types — so no count query is needed here.
+            // its types — so no count query, loading state or error state is
+            // needed here.
             blockingCount={category.types.length}
             blockingNoun="relationship type"
+            isLoading={false}
+            isError={false}
+            onRetry={() => {}}
           />
         </>
       )}

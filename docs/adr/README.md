@@ -79,6 +79,7 @@ model); the next new ADR is the next free number (`0029` onward), per the
 | [0039](adr-0039-reader-timeline-renderer-d3-strategy.md)              | Reader timeline renderer: D3 submodules as math/behavior engine, React owns SVG    | Accepted         | —                                          |
 | [0040](adr-0040-relationship-vocabulary-reference-data.md)            | Relationship vocabulary as reference data (`relationship_types` + FK, not CHECK)   | Accepted         | amends 0008, 0009 (vocabulary mechanism)   |
 | [0041](adr-0041-admin-only-surfaces-and-immutable-vocabulary-keys.md) | Admin surfaces are `/admin`-prefixed + role-gated; vocabulary keys immutable in UI | Accepted         | amends 0040 (key rename withheld from UI)  |
+| [0042](adr-0042-relationship-role-inverse-integrity.md)               | Role inverses: composite self-FK + explicit pairing RPC (no trigger, no CHECK)     | Accepted         | amends 0040 (role-level involution)        |
 
 † ADR `0006` supersedes the original event-to-event `parent_event_id` nesting
 approach, which was never given its own ADR; it is documented inside `0006` as

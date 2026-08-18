@@ -922,6 +922,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "relationship_roles_inverse_key_fkey";
+            columns: ["type_key", "inverse_key"];
+            isOneToOne: false;
+            referencedRelation: "relationship_roles";
+            referencedColumns: ["type_key", "key"];
+          },
+          {
             foreignKeyName: "relationship_roles_type_key_fkey";
             columns: ["type_key"];
             isOneToOne: false;
@@ -1483,6 +1490,30 @@ export type Database = {
           target_name: string;
         }[];
       };
+      create_relationship_role: {
+        Args: {
+          p_inverse_key: string;
+          p_is_active: boolean;
+          p_key: string;
+          p_label: string;
+          p_sort_order: number;
+          p_type_key: string;
+        };
+        Returns: {
+          inverse_key: string | null;
+          is_active: boolean;
+          key: string;
+          label: string;
+          sort_order: number;
+          type_key: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "relationship_roles";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       delete_category_reparenting_children: {
         Args: { p_category_id: string };
         Returns: undefined;
@@ -1584,6 +1615,34 @@ export type Database = {
       is_timeline_collab_editor: { Args: { t_id: string }; Returns: boolean };
       is_timeline_collaborator: { Args: { t_id: string }; Returns: boolean };
       is_timeline_owner: { Args: { t_id: string }; Returns: boolean };
+      pair_relationship_role_inverse: {
+        Args: { p_inverse_key: string; p_key: string; p_type_key: string };
+        Returns: undefined;
+      };
+      set_relationship_role: {
+        Args: {
+          p_inverse_key: string;
+          p_is_active: boolean;
+          p_key: string;
+          p_label: string;
+          p_sort_order: number;
+          p_type_key: string;
+        };
+        Returns: {
+          inverse_key: string | null;
+          is_active: boolean;
+          key: string;
+          label: string;
+          sort_order: number;
+          type_key: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "relationship_roles";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       story_has_collaborating_event: {
         Args: { s_id: string };
         Returns: boolean;

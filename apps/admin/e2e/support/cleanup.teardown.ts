@@ -19,15 +19,23 @@ import { seedTestUser } from "./test-user";
  *
  * `seedTestUser` resolves the owner id for the content sweep, re-creating the
  * account if a previous teardown already removed it — a cheap no-op call that
- * keeps this the same one-liner as everywhere else. Deleting the account last
- * cascades anything the slug-scoped sweep missed.
+ * keeps this the same one-liner as everywhere else.
+ *
+ * Accounts before vocabulary, not after. The in-use fixture
+ * (`relationship-vocabulary-crud.spec.ts`) creates its `character_relationships`
+ * row under the *admin* account, which the editor-scoped content sweep above
+ * never reaches. `character_relationships.user_id` is `ON DELETE CASCADE` off
+ * `auth.users` (`00002_relationships_junctions.sql`), so deleting both seeded
+ * accounts — which this sweep does — takes any such row with it. Vocabulary
+ * FKs are `ON DELETE RESTRICT`, so sweeping it first, while a stranded relationship
+ * from a killed run still points at an `e2e_` type, would fail with `23503` and
+ * leave teardown unable to clean the very state it exists to recover.
  */
 teardown("sweep e2e data", async () => {
   const userId = await seedTestUser();
   await sweepE2eContent(userId);
-  // Vocabulary is global reference data with no owner, so it is swept by key
-  // prefix rather than by user — and it must go before the accounts, since
-  // deleting an admin account does not cascade to rows it created.
-  await sweepE2eVocabulary();
   await sweepE2eAuthUsers({ includeTestUser: true });
+  // Vocabulary is global reference data with no owner, so it is swept by key
+  // prefix rather than by user.
+  await sweepE2eVocabulary();
 });

@@ -28,6 +28,7 @@ import {
 } from "@repo/ui/hooks/use-categories";
 import type { CategoryNode } from "@repo/services/category-service";
 
+import { useReportEditorDirty } from "../../../../lib/editor-guard-context";
 import {
   categoryFormSchema,
   mapNodeToFormValues,
@@ -40,7 +41,6 @@ import { CategoryColorField } from "./category-color-field";
 import { CategoryIconField } from "./category-icon-field";
 import { CategoryParentPicker } from "./category-parent-picker";
 import { DeleteCategoryDialog } from "./delete-category-dialog";
-import { useReportEditorDirty } from "./editor-guard-context";
 
 export type InspectorSelection =
   | { mode: "create"; parentId: string | null }

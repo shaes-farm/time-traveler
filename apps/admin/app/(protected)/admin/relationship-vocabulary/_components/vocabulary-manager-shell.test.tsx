@@ -25,6 +25,12 @@ vi.mock("@repo/services/relationship-type-service", () => ({
   deleteRelationshipRole: vi.fn(),
   countRelationshipTypeUsage: vi.fn().mockResolvedValue(0),
   countRelationshipRoleUsage: vi.fn().mockResolvedValue(0),
+  countRelationshipTypeInverseReferences: vi.fn().mockResolvedValue(0),
+  countRelationshipRoleInverseReferences: vi.fn().mockResolvedValue(0),
+  bySortOrderThenLabel: (
+    a: { sort_order: number; label: string },
+    b: { sort_order: number; label: string },
+  ) => a.sort_order - b.sort_order || a.label.localeCompare(b.label),
 }));
 
 vi.mock("../../../../../lib/auth/browser-client", () => ({
@@ -220,6 +226,71 @@ describe("VocabularyManagerShell — selection", () => {
     expect(
       await screen.findByText(/Select a relationship type first/),
     ).toBeInTheDocument();
+  });
+});
+
+describe("VocabularyManagerShell — a stale or mistyped deep link", () => {
+  it("shows not-found for a category key that doesn't resolve, not a blank create form", async () => {
+    searchParams = new URLSearchParams({ level: "category", key: "ghost" });
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    renderShell();
+
+    expect(
+      await screen.findByText("This group no longer exists."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "New group" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows not-found for a type key that doesn't resolve", async () => {
+    searchParams = new URLSearchParams({ level: "type", key: "ghost" });
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    renderShell();
+
+    expect(
+      await screen.findByText("This relationship type no longer exists."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows not-found when the role's parent type no longer resolves", async () => {
+    searchParams = new URLSearchParams({
+      level: "role",
+      key: "parent",
+      parent: "ghost_type",
+    });
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    renderShell();
+
+    expect(
+      await screen.findByText("This relationship type no longer exists."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows not-found for a role key that doesn't resolve under a real type", async () => {
+    searchParams = new URLSearchParams({
+      level: "role",
+      key: "ghost_role",
+      parent: "parent_child",
+    });
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    renderShell();
+
+    expect(
+      await screen.findByText("This sub-role no longer exists."),
+    ).toBeInTheDocument();
+  });
+
+  it("offers a way back from a not-found state", async () => {
+    const user = userEvent.setup();
+    searchParams = new URLSearchParams({ level: "category", key: "ghost" });
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    renderShell();
+
+    await user.click(
+      await screen.findByRole("button", { name: "Back to the list" }),
+    );
+    expect(replace).toHaveBeenCalledWith("/admin/relationship-vocabulary");
   });
 });
 

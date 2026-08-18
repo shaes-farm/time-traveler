@@ -25,9 +25,9 @@ import {
  * This supersedes the former `app/(admin)/layout.tsx`, which guarded a route
  * group that never held a page. See ADR-0041.
  *
- * `getServerUser` / `getServerSupabaseClient` are React-`cache()`d and the
- * parent `(protected)` layout has already called both, so the redundant checks
- * here cost no extra round trip.
+ * `getServerUser`, `getServerSupabaseClient` and `getProfile` are all
+ * React-`cache()`d, and the parent `(protected)` layout has already called
+ * all three, so the redundant checks here cost no extra round trip.
  */
 export default async function AdminLayout({
   children,

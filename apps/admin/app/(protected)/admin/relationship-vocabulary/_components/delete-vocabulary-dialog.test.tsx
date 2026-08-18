@@ -18,6 +18,9 @@ function renderDialog(
       level="type"
       blockingCount={0}
       blockingNoun="relationship"
+      isLoading={false}
+      isError={false}
+      onRetry={vi.fn()}
       {...props}
     />,
   );
@@ -73,7 +76,7 @@ describe("DeleteVocabularyDialog", () => {
   it("disables the action while the count is still loading", () => {
     // Enabling delete before the count lands would let an impatient click
     // race straight into the 23503 this dialog exists to prevent.
-    renderDialog({ blockingCount: undefined });
+    renderDialog({ isLoading: true, blockingCount: undefined });
 
     expect(
       screen.getByText(/Checking what uses this type/),
@@ -81,6 +84,70 @@ describe("DeleteVocabularyDialog", () => {
     expect(
       screen.getByRole("button", { name: "Delete permanently" }),
     ).toBeDisabled();
+  });
+
+  it("disables the action while a cached count is being refreshed in the background", () => {
+    // `blockingCount` alone can't distinguish "no data yet" from "stale data,
+    // refetching" — a cached 0 must not enable deletion mid-refetch.
+    renderDialog({ isLoading: true, blockingCount: 0 });
+
+    expect(
+      screen.getByRole("button", { name: "Delete permanently" }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByText(/Nothing uses this type/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows an error state with a retry action when the count request fails", async () => {
+    const onRetry = vi.fn();
+    const user = userEvent.setup();
+    renderDialog({ isError: true, blockingCount: undefined, onRetry });
+
+    expect(
+      screen.getByText(/Couldn’t check what uses this type/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Delete permanently" }),
+    ).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(onRetry).toHaveBeenCalled();
+  });
+
+  it("prefers the loading state over a stale error while retrying", () => {
+    renderDialog({ isLoading: true, isError: true, blockingCount: undefined });
+
+    expect(
+      screen.getByText(/Checking what uses this type/),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Couldn’t check what uses this type/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("surfaces other types that name this one as their inverse", () => {
+    renderDialog({
+      blockingCount: 0,
+      inverseReferenceCount: 2,
+      inverseReferenceNoun: "type",
+    });
+
+    expect(
+      screen.getByText(/2 other types name this as their inverse/),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show inverse-reference copy when nothing references this entry", () => {
+    renderDialog({
+      blockingCount: 0,
+      inverseReferenceCount: 0,
+      inverseReferenceNoun: "type",
+    });
+
+    expect(
+      screen.queryByText(/name this as their inverse/),
+    ).not.toBeInTheDocument();
   });
 
   it("disables both actions while a mutation is in flight", () => {

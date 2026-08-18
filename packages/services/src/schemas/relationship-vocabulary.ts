@@ -188,9 +188,14 @@ export const relationshipTypeUpdateSchema = typeFieldsSchema
   .partial();
 
 /**
- * `relationship_roles.inverse_key` is deliberately not an FK in the schema —
- * it names a sibling role within the same type, validated by pgTAP and the app
- * rather than by the database. It stays a plain nullable string here to match.
+ * `relationship_roles.inverse_key` names a sibling role within the same type.
+ * Since `00031_relationship_role_inverse_integrity.sql` (ADR-0042) it is a
+ * composite self-FK `(type_key, inverse_key) -> (type_key, key)`, so an unknown
+ * or cross-type inverse is rejected by the database rather than by this schema.
+ * Involution (`inverse(inverse(x)) = x`) is kept by the `set_relationship_role`
+ * / `create_relationship_role` RPCs, not by a constraint — a role write that
+ * bypasses them can still leave a pairing one-sided. A self-inverse role is
+ * legal and is how a symmetric role (spouse ↔ spouse) is expressed.
  */
 const roleFieldsSchema = z.object({
   type_key: vocabularyKeySchema,

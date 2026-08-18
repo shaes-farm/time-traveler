@@ -14,6 +14,8 @@ const updateRelationshipRole = vi.fn();
 const deleteRelationshipRole = vi.fn();
 const countRelationshipTypeUsage = vi.fn();
 const countRelationshipRoleUsage = vi.fn();
+const countRelationshipTypeInverseReferences = vi.fn();
+const countRelationshipRoleInverseReferences = vi.fn();
 
 vi.mock("@repo/services/relationship-type-service", () => ({
   listRelationshipCategories: vi.fn().mockResolvedValue([]),
@@ -34,6 +36,10 @@ vi.mock("@repo/services/relationship-type-service", () => ({
     countRelationshipTypeUsage(...a),
   countRelationshipRoleUsage: (...a: unknown[]) =>
     countRelationshipRoleUsage(...a),
+  countRelationshipTypeInverseReferences: (...a: unknown[]) =>
+    countRelationshipTypeInverseReferences(...a),
+  countRelationshipRoleInverseReferences: (...a: unknown[]) =>
+    countRelationshipRoleInverseReferences(...a),
 }));
 
 const {
@@ -44,7 +50,9 @@ const {
   useDeleteRelationshipCategory,
   useDeleteRelationshipRole,
   useDeleteRelationshipType,
+  useRelationshipRoleInverseReferences,
   useRelationshipRoleUsage,
+  useRelationshipTypeInverseReferences,
   useRelationshipTypeUsage,
   useUpdateRelationshipCategory,
   useUpdateRelationshipRole,
@@ -258,5 +266,53 @@ describe("usage-count hooks", () => {
     expect(relationshipTypeKeys.usage("family", "parent")).not.toEqual(
       relationshipTypeKeys.usage("family"),
     );
+  });
+});
+
+describe("inverse-reference hooks", () => {
+  it("does not fetch until enabled", () => {
+    const { wrapper } = createWrapper();
+    renderHook(
+      () =>
+        useRelationshipTypeInverseReferences(client, "parent_child", {
+          enabled: false,
+        }),
+      { wrapper },
+    );
+    expect(countRelationshipTypeInverseReferences).not.toHaveBeenCalled();
+  });
+
+  it("fetches how many other types name this one as their inverse", async () => {
+    countRelationshipTypeInverseReferences.mockResolvedValue(2);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useRelationshipTypeInverseReferences(client, "parent_child"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toBe(2));
+    expect(countRelationshipTypeInverseReferences).toHaveBeenCalledWith(
+      client,
+      "parent_child",
+    );
+  });
+
+  it("keys role inverse references separately, scoped to the type", async () => {
+    countRelationshipRoleInverseReferences.mockResolvedValue(1);
+    const { wrapper } = createWrapper();
+    const { result } = renderHook(
+      () => useRelationshipRoleInverseReferences(client, "family", "parent"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.data).toBe(1));
+    expect(countRelationshipRoleInverseReferences).toHaveBeenCalledWith(
+      client,
+      "family",
+      "parent",
+    );
+    expect(
+      relationshipTypeKeys.inverseReferences("family", "parent"),
+    ).not.toEqual(relationshipTypeKeys.inverseReferences("family"));
   });
 });

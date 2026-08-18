@@ -1,12 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Network, Plus } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { Alert, AlertDescription, AlertTitle } from "@repo/ui/components/alert";
 import { Button } from "@repo/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +30,9 @@ import {
 } from "@repo/ui/hooks/use-relationship-types";
 import type { RelationshipCategoryMeta } from "@repo/services/schemas/relationship-vocabulary";
 import { getBrowserSupabaseClient } from "../../../../../lib/auth/browser-client";
+import { EditorGuardProvider } from "../../../../../lib/editor-guard-context";
+import { useRegisterUnsavedChanges } from "../../../../../lib/use-register-unsaved-changes";
+import { useUnsavedChangesGuard } from "../../../../../lib/use-unsaved-changes-guard";
 
 import { CategoryInspector } from "./category-inspector";
 import { RoleInspector } from "./role-inspector";
@@ -33,6 +44,7 @@ import {
   findType,
   nextSortOrder,
   swapSortOrder,
+  type SortOrderPatch,
   type VocabularySelection,
 } from "./vocabulary-tree-utils";
 
@@ -56,7 +68,6 @@ import {
  */
 export function VocabularyManagerShell() {
   const client = React.useMemo(() => getBrowserSupabaseClient(), []);
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const categoriesQuery = useRelationshipCategories(client, {
@@ -78,20 +89,33 @@ export function VocabularyManagerShell() {
   const updateCategory = updateCategoryMut.mutateAsync;
   const updateType = updateTypeMut.mutateAsync;
 
+  // The inspector reports its form's dirty state up via context; this shell
+  // owns the navigations that would lose those edits (switching tree
+  // rows/levels, "New"), so it routes them through the shared guard. `replace`
+  // because selection lives in this one route's query params — a `push` per
+  // row click would pile up a history entry for every selection.
+  const [isDirty, setIsDirty] = React.useState(false);
+  const setDirty = React.useCallback((dirty: boolean) => setIsDirty(dirty), []);
+  const guardValue = React.useMemo(() => ({ setDirty }), [setDirty]);
+  const guard = useUnsavedChangesGuard(isDirty, { replace: true });
+  useRegisterUnsavedChanges(isDirty);
+
   const selection = parseSelection(searchParams);
 
   const select = React.useCallback(
     (next: VocabularySelection | null) => {
       if (!next) {
-        router.replace("/admin/relationship-vocabulary");
+        guard.requestNavigate("/admin/relationship-vocabulary");
         return;
       }
       const params = new URLSearchParams({ level: next.level });
       if (next.key) params.set("key", next.key);
       if (next.parentKey) params.set("parent", next.parentKey);
-      router.replace(`/admin/relationship-vocabulary?${params.toString()}`);
+      guard.requestNavigate(
+        `/admin/relationship-vocabulary?${params.toString()}`,
+      );
     },
-    [router],
+    [guard],
   );
 
   const handleReorder = React.useCallback(
@@ -110,24 +134,43 @@ export function VocabularyManagerShell() {
       const patches = swapSortOrder(siblings, key, direction);
       if (!patches) return;
 
+      const originalByKey = new Map(
+        siblings.map((sibling) => [sibling.key, sibling.sort_order]),
+      );
+      const writeOne = (patch: SortOrderPatch) =>
+        level === "category"
+          ? updateCategory({
+              key: patch.key,
+              patch: { sort_order: patch.sort_order },
+            })
+          : updateType({
+              key: patch.key,
+              patch: { sort_order: patch.sort_order },
+            });
+
+      const written: SortOrderPatch[] = [];
       try {
-        // Sequential rather than parallel: the two writes are a swap, and
-        // issuing them together means a failure can leave both rows sharing one
-        // sort_order with no obvious way back.
+        // Sequential rather than parallel: a move can write more than two rows
+        // (a tied block gets renumbered as a unit), and issuing them together
+        // risks leaving rows sharing one sort_order with no obvious way back.
         for (const patch of patches) {
-          if (level === "category") {
-            await updateCategory({
-              key: patch.key,
-              patch: { sort_order: patch.sort_order },
-            });
-          } else {
-            await updateType({
-              key: patch.key,
-              patch: { sort_order: patch.sort_order },
-            });
-          }
+          await writeOne(patch);
+          written.push(patch);
         }
       } catch (error) {
+        // Compensating rollback: restore every row this move already wrote
+        // before the failure hit, rather than leaving a partial reorder (and
+        // its duplicate sort_order values) in place. Best-effort — if a
+        // rollback write itself fails, the original error is still what
+        // surfaces below; there is no RPC backing this swap to make it atomic.
+        await Promise.allSettled(
+          written.map((patch) => {
+            const original = originalByKey.get(patch.key);
+            return original === undefined
+              ? Promise.resolve()
+              : writeOne({ key: patch.key, sort_order: original });
+          }),
+        );
         toast.error(
           error instanceof Error
             ? error.message
@@ -261,15 +304,43 @@ export function VocabularyManagerShell() {
             never hydrate it once the data arrived.
           */}
           {categoriesQuery.isPending || categoriesQuery.isError ? null : (
-            <Inspector
-              client={client}
-              categories={categories}
-              selection={selection}
-              onSelect={select}
-            />
+            <EditorGuardProvider value={guardValue}>
+              <Inspector
+                client={client}
+                categories={categories}
+                selection={selection}
+                onSelect={select}
+              />
+            </EditorGuardProvider>
           )}
         </aside>
       </div>
+
+      {/* Discard-changes confirmation for shell-driven navigation. */}
+      <Dialog
+        open={guard.isConfirmOpen}
+        onOpenChange={(open) => {
+          if (!open) guard.cancelNavigation();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discard unsaved changes?</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes to this entry. Leaving now will lose
+              them.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={guard.cancelNavigation}>
+              Keep editing
+            </Button>
+            <Button variant="destructive" onClick={guard.confirmNavigation}>
+              Discard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -306,6 +377,12 @@ function Inspector({
     const category = selection.key
       ? findCategory(categories, selection.key)
       : undefined;
+    // A key was named but doesn't resolve — a stale or mistyped deep link, not
+    // an intentional "create new". Say so rather than silently opening a blank
+    // create form (which `category === undefined` would otherwise do).
+    if (selection.key && !category) {
+      return <NotFound level="group" onBack={() => onSelect(null)} />;
+    }
     return (
       <CategoryInspector
         key={`category:${selection.key ?? "new"}`}
@@ -323,6 +400,11 @@ function Inspector({
     const type = selection.key
       ? findType(categories, selection.key)
       : undefined;
+    if (selection.key && !type) {
+      return (
+        <NotFound level="relationship type" onBack={() => onSelect(null)} />
+      );
+    }
     const parentCategoryKey =
       type?.category_key ?? selection.parentKey ?? categories[0]?.key ?? "";
     const siblings = findCategory(categories, parentCategoryKey)?.types ?? [];
@@ -353,7 +435,7 @@ function Inspector({
   const parentType = parentTypeKey
     ? findType(categories, parentTypeKey)
     : undefined;
-  if (!parentType || !parentTypeKey) {
+  if (!parentTypeKey) {
     return (
       <div className="flex flex-1 items-center justify-center p-6 text-center">
         <p className="text-sm text-foreground-muted">
@@ -362,9 +444,23 @@ function Inspector({
       </div>
     );
   }
+  if (!parentType) {
+    // `parentTypeKey` was named but no longer resolves — the type it belonged
+    // to was deleted or renamed out from under this link. Distinct from the
+    // "nothing selected yet" case above, which the check order preserves.
+    return <NotFound level="relationship type" onBack={() => onSelect(null)} />;
+  }
   const role = selection.key
     ? findRole(categories, parentTypeKey, selection.key)
     : undefined;
+  if (selection.key && !role) {
+    return (
+      <NotFound
+        level="sub-role"
+        onBack={() => onSelect({ level: "type", key: parentTypeKey })}
+      />
+    );
+  }
 
   return (
     <RoleInspector
@@ -380,6 +476,22 @@ function Inspector({
       onDeleted={() => onSelect({ level: "type", key: parentTypeKey })}
       onCancel={() => onSelect(null)}
     />
+  );
+}
+
+/**
+ * A `key` named in the URL that no longer resolves — a stale bookmark, a typo,
+ * or a row deleted since the link was copied. Distinct from create mode (no
+ * `key` at all), which falls through to the inspector instead.
+ */
+function NotFound({ level, onBack }: { level: string; onBack: () => void }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-foreground-muted">
+      <p>This {level} no longer exists.</p>
+      <Button variant="secondary" size="sm" onClick={onBack}>
+        Back to the list
+      </Button>
+    </div>
   );
 }
 

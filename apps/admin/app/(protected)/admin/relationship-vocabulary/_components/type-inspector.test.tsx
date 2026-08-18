@@ -28,6 +28,8 @@ vi.mock("@repo/services/relationship-type-service", () => ({
   countRelationshipTypeUsage: (...a: unknown[]) =>
     countRelationshipTypeUsage(...a),
   countRelationshipRoleUsage: vi.fn().mockResolvedValue(0),
+  countRelationshipTypeInverseReferences: vi.fn().mockResolvedValue(0),
+  countRelationshipRoleInverseReferences: vi.fn().mockResolvedValue(0),
 }));
 
 const { TypeInspector } = await import("./type-inspector");
@@ -303,5 +305,33 @@ describe("TypeInspector — destructive actions", () => {
         "mentor_student",
       ),
     );
+  });
+
+  it("disables the Active switch in edit mode — deactivation only goes through the dialog", () => {
+    // Saving is_active directly would flip it without ever showing the
+    // blast-radius warning DeactivateDialog exists to surface.
+    renderInspector({ type: MENTOR });
+    expect(screen.getByRole("switch", { name: "Active" })).toBeDisabled();
+  });
+
+  it("leaves the Active switch editable while creating", () => {
+    renderInspector();
+    expect(screen.getByRole("switch", { name: "Active" })).toBeEnabled();
+  });
+
+  it("titles the error alert for the failing action, not always 'save'", async () => {
+    const user = userEvent.setup();
+    deleteRelationshipType.mockRejectedValue(new Error("Still in use."));
+    renderInspector({ type: MENTOR });
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "Delete permanently…" }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Delete permanently" }),
+    );
+
+    expect(await screen.findByText("Couldn’t delete")).toBeInTheDocument();
   });
 });

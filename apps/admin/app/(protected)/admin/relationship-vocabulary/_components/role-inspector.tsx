@@ -26,6 +26,7 @@ import { toast } from "@repo/ui/components/sonner";
 import {
   useCreateRelationshipRole,
   useDeleteRelationshipRole,
+  useRelationshipRoleInverseReferences,
   useRelationshipRoleUsage,
   useUpdateRelationshipRole,
 } from "@repo/ui/hooks/use-relationship-types";
@@ -34,6 +35,7 @@ import type {
   RelationshipTypeMeta,
 } from "@repo/services/schemas/relationship-vocabulary";
 
+import { useReportEditorDirty } from "../../../../../lib/editor-guard-context";
 import { DeactivateDialog } from "./deactivate-dialog";
 import { DeleteVocabularyDialog } from "./delete-vocabulary-dialog";
 import {
@@ -86,10 +88,18 @@ export function RoleInspector({
   const deleteMut = useDeleteRelationshipRole(client);
 
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [formErrorTitle, setFormErrorTitle] = React.useState("Couldn’t save");
   const [showDeactivate, setShowDeactivate] = React.useState(false);
   const [showDelete, setShowDelete] = React.useState(false);
 
   const usageQuery = useRelationshipRoleUsage(
+    client,
+    parentType.key,
+    role?.key ?? "",
+    { enabled: isEdit && showDelete },
+  );
+  // Only relevant to permanent delete — deactivating doesn't touch inverse_key.
+  const inverseRefsQuery = useRelationshipRoleInverseReferences(
     client,
     parentType.key,
     role?.key ?? "",
@@ -103,10 +113,12 @@ export function RoleInspector({
       ? mapRoleToFormValues(role)
       : blankRole(parentType.key, defaultSortOrder),
   });
+  useReportEditorDirty(form.formState.isDirty);
 
   // A role's inverse names a sibling role of the same type (parent ↔ child).
-  // It is not an FK in the schema, but offering a picker rather than a text box
-  // keeps it resolvable, which is what the pgTAP involution test asserts.
+  // Since 00031/ADR-0042 it's a composite FK, and the update/create RPCs keep
+  // the pairing two-sided — offering a picker rather than a text box just
+  // keeps the *input* resolvable, the same reasoning as before that migration.
   const siblingRoles = parentType.roles.filter(
     (candidate) => candidate.key !== role?.key,
   );
@@ -130,12 +142,15 @@ export function RoleInspector({
         onSaved(row.key);
       }
     } catch (error) {
+      setFormErrorTitle("Couldn’t save");
       setFormError(
         error instanceof Error ? error.message : "Failed to save the sub-role.",
       );
     }
   };
 
+  // Only reachable through DeactivateDialog — the is_active switch below is
+  // disabled in edit mode, so this is the one path that can flip it.
   const toggleActive = async () => {
     if (!role) return;
     try {
@@ -153,6 +168,9 @@ export function RoleInspector({
       setShowDeactivate(false);
     } catch (error) {
       setShowDeactivate(false);
+      setFormErrorTitle(
+        role.is_active ? "Couldn’t deactivate" : "Couldn’t reactivate",
+      );
       setFormError(
         error instanceof Error
           ? error.message
@@ -170,6 +188,7 @@ export function RoleInspector({
       onDeleted();
     } catch (error) {
       setShowDelete(false);
+      setFormErrorTitle("Couldn’t delete");
       setFormError(
         error instanceof Error
           ? error.message
@@ -200,7 +219,7 @@ export function RoleInspector({
           className="flex flex-1 flex-col overflow-hidden"
         >
           <div className="flex-1 space-y-4 overflow-auto p-4">
-            <InspectorError message={formError} />
+            <InspectorError message={formError} title={formErrorTitle} />
 
             <p className="text-xs text-foreground-muted">
               Sub-role of <strong>{parentType.label}</strong>.
@@ -265,6 +284,8 @@ export function RoleInspector({
                   <p className="text-xs text-foreground-muted">
                     The sub-role the reciprocal relationship carries — Parent ↔
                     Child. Leave as None for a role that is its own inverse.
+                    Saving also points the chosen sub-role back at this one —
+                    pairing is always kept two-sided.
                   </p>
                 </div>
               )}
@@ -292,7 +313,12 @@ export function RoleInspector({
                   name="role-is-active"
                   checked={field.value}
                   onChange={field.onChange}
-                  description="Inactive sub-roles stop being offered when editors pick this type."
+                  disabled={isEdit}
+                  description={
+                    isEdit
+                      ? "Use Deactivate in the overflow menu to change this."
+                      : "Inactive sub-roles stop being offered when editors pick this type."
+                  }
                 />
               )}
             />
@@ -330,6 +356,11 @@ export function RoleInspector({
             level="role"
             blockingCount={usageQuery.data}
             blockingNoun="relationship"
+            isLoading={usageQuery.isFetching}
+            isError={usageQuery.isError}
+            onRetry={() => void usageQuery.refetch()}
+            inverseReferenceCount={inverseRefsQuery.data}
+            inverseReferenceNoun="sub-role"
           />
         </>
       )}

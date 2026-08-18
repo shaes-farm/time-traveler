@@ -136,9 +136,9 @@ describe("lookup", () => {
 
 describe("swapSortOrder", () => {
   const siblings = [
-    { key: "a", sort_order: 10 },
-    { key: "b", sort_order: 20 },
-    { key: "c", sort_order: 30 },
+    { key: "a", label: "A", sort_order: 10 },
+    { key: "b", label: "B", sort_order: 20 },
+    { key: "c", label: "C", sort_order: 30 },
   ];
 
   it("swaps the two rows' sort_order values", () => {
@@ -172,9 +172,9 @@ describe("swapSortOrder", () => {
 
   it("orders by sort_order, not array position", () => {
     const unsorted = [
-      { key: "c", sort_order: 30 },
-      { key: "a", sort_order: 10 },
-      { key: "b", sort_order: 20 },
+      { key: "c", label: "C", sort_order: 30 },
+      { key: "a", label: "A", sort_order: 10 },
+      { key: "b", label: "B", sort_order: 20 },
     ];
     expect(swapSortOrder(unsorted, "a", "up")).toBeNull();
     expect(swapSortOrder(unsorted, "a", "down")).toEqual([
@@ -183,33 +183,64 @@ describe("swapSortOrder", () => {
     ]);
   });
 
-  it("nudges past a tied neighbour instead of swapping identical values", () => {
+  it("tie-breaks by label, matching the service's fetch order — not by key", () => {
+    // By label, "z_key" (Alpha) sorts first and "a_key" (Beta) second, so
+    // moving z_key down is a valid one-place move. A key-based tie-break
+    // would treat "z_key" as already last (z > a alphabetically) and return
+    // null here instead — this is what regresses if the comparator drifts
+    // from `bySortOrderThenLabel`.
+    const tied = [
+      { key: "z_key", label: "Alpha", sort_order: 10 },
+      { key: "a_key", label: "Beta", sort_order: 10 },
+    ];
+    expect(swapSortOrder(tied, "z_key", "down")).not.toBeNull();
+    expect(swapSortOrder(tied, "a_key", "up")).not.toBeNull();
+    expect(swapSortOrder(tied, "z_key", "up")).toBeNull();
+    expect(swapSortOrder(tied, "a_key", "down")).toBeNull();
+  });
+
+  it("renumbers a tied pair to unique values instead of swapping identical ones", () => {
     // Nothing enforces sort_order uniqueness, and swapping two equal values
     // would be a no-op the user reads as "the button is broken".
     const tied = [
-      { key: "a", sort_order: 10 },
-      { key: "b", sort_order: 10 },
+      { key: "a", label: "A", sort_order: 10 },
+      { key: "b", label: "B", sort_order: 10 },
     ];
-    expect(swapSortOrder(tied, "b", "up")).toEqual([
-      { key: "b", sort_order: 9 },
-      { key: "a", sort_order: 10 },
-    ]);
-    expect(swapSortOrder(tied, "a", "down")).toEqual([
-      { key: "a", sort_order: 11 },
-      { key: "b", sort_order: 10 },
-    ]);
+    const patches = swapSortOrder(tied, "b", "up");
+    const byKey = new Map(patches?.map((p) => [p.key, p.sort_order]));
+    expect(byKey.get("b")).toBeLessThan(byKey.get("a")!);
+  });
+
+  it("moves one place within a 3+ way tie without jumping the whole run", () => {
+    // Nudging only the moved row relative to its neighbour — the old
+    // behaviour — overshoots every other tied sibling once 3+ rows share a
+    // sort_order. Moving "c" up past its immediate neighbour "b" must leave
+    // "a", which the move never touched, still ahead of both.
+    const tied = [
+      { key: "a", label: "A", sort_order: 10 },
+      { key: "b", label: "B", sort_order: 10 },
+      { key: "c", label: "C", sort_order: 10 },
+    ];
+    const patches = swapSortOrder(tied, "c", "up");
+    const byKey = new Map(patches?.map((p) => [p.key, p.sort_order]));
+    const order = [...byKey.entries()]
+      .sort((x, y) => x[1] - y[1])
+      .map(([key]) => key);
+    expect(order).toEqual(["a", "c", "b"]);
   });
 
   it("handles a single-item and an empty list", () => {
-    expect(swapSortOrder([{ key: "a", sort_order: 10 }], "a", "up")).toBeNull();
+    expect(
+      swapSortOrder([{ key: "a", label: "A", sort_order: 10 }], "a", "up"),
+    ).toBeNull();
     expect(swapSortOrder([], "a", "up")).toBeNull();
   });
 });
 
 describe("isAtBoundary", () => {
   const siblings = [
-    { key: "a", sort_order: 10 },
-    { key: "b", sort_order: 20 },
+    { key: "a", label: "A", sort_order: 10 },
+    { key: "b", label: "B", sort_order: 20 },
   ];
 
   it("reports the ends", () => {
@@ -228,8 +259,8 @@ describe("nextSortOrder", () => {
   it("puts a new row one gap past the current maximum", () => {
     expect(
       nextSortOrder([
-        { key: "a", sort_order: 10 },
-        { key: "b", sort_order: 40 },
+        { key: "a", label: "A", sort_order: 10 },
+        { key: "b", label: "B", sort_order: 40 },
       ]),
     ).toBe(50);
   });
@@ -237,8 +268,8 @@ describe("nextSortOrder", () => {
   it("uses the maximum, not the last array element", () => {
     expect(
       nextSortOrder([
-        { key: "b", sort_order: 40 },
-        { key: "a", sort_order: 10 },
+        { key: "b", label: "B", sort_order: 40 },
+        { key: "a", label: "A", sort_order: 10 },
       ]),
     ).toBe(50);
   });

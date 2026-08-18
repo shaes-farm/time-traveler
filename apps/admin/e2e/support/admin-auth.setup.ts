@@ -1,5 +1,5 @@
 import { expect, test as setup } from "@playwright/test";
-import { sweepE2eVocabulary } from "./cleanup";
+import { sweepE2eContent, sweepE2eVocabulary } from "./cleanup";
 import { ADMIN_STORAGE_STATE } from "./env";
 import { ADMIN_TEST_USER, seedAdminTestUser } from "./test-user";
 
@@ -17,9 +17,16 @@ import { ADMIN_TEST_USER, seedAdminTestUser } from "./test-user";
  * run (`Ctrl-C`, a crash) never reaches the teardown project, and stranded
  * `e2e_` rows break the `00030` pgTAP row-count assertions on the next
  * `pnpm db:test` — a failure that looks nothing like its cause.
+ *
+ * The admin's own stray content is swept first, before the vocabulary. A
+ * killed prior run can leave this same admin account's `character_relationships`
+ * row (the in-use fixture in `relationship-vocabulary-crud.spec.ts`) pointing at
+ * an `e2e_` type; vocabulary FKs are `ON DELETE RESTRICT`, so sweeping it while
+ * that row still exists would abort this setup with `23503`.
  */
 setup("authenticate as admin", async ({ page }) => {
-  await seedAdminTestUser();
+  const adminUserId = await seedAdminTestUser();
+  await sweepE2eContent(adminUserId);
   await sweepE2eVocabulary();
 
   await page.goto("/auth/login");

@@ -77,11 +77,19 @@ export function InspectorHeader({
   );
 }
 
-export function InspectorError({ message }: { message: string | null }) {
+export function InspectorError({
+  message,
+  title = "Couldn’t save",
+}: {
+  message: string | null;
+  /** The three inspectors reuse one alert for save, deactivate and delete
+   * failures alike — default to the save-path wording, override for the other two. */
+  title?: string;
+}) {
   if (!message) return null;
   return (
     <Alert variant="destructive">
-      <AlertTitle>Couldn’t save</AlertTitle>
+      <AlertTitle>{title}</AlertTitle>
       <AlertDescription>{message}</AlertDescription>
     </Alert>
   );
@@ -203,17 +211,27 @@ export function SortOrderField({
   );
 }
 
-/** Shared active/inactive toggle, rendered as a labelled switch row. */
+/**
+ * Shared active/inactive toggle, rendered as a labelled switch row.
+ *
+ * `disabled` is set by every inspector in edit mode: saving this field
+ * directly would flip `is_active` without going through `DeactivateDialog`'s
+ * blast-radius warning, silently bypassing the one guard rail that exists for
+ * this state change. Deactivation only happens through the overflow menu.
+ * Stays interactive on create, where nothing references the row yet.
+ */
 export function ActiveField({
   checked,
   onChange,
   name,
   description,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   name: string;
   description: string;
+  disabled?: boolean;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 rounded-md border border-border p-3">
@@ -221,7 +239,12 @@ export function ActiveField({
         <Label htmlFor={name}>Active</Label>
         <p className="text-xs text-foreground-muted">{description}</p>
       </div>
-      <Switch id={name} checked={checked} onCheckedChange={onChange} />
+      <Switch
+        id={name}
+        checked={checked}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
     </div>
   );
 }

@@ -28,6 +28,7 @@ import { toast } from "@repo/ui/components/sonner";
 import {
   useCreateRelationshipType,
   useDeleteRelationshipType,
+  useRelationshipTypeInverseReferences,
   useRelationshipTypeUsage,
   useUpdateRelationshipType,
 } from "@repo/ui/hooks/use-relationship-types";
@@ -36,6 +37,7 @@ import type {
   RelationshipTypeMeta,
 } from "@repo/services/schemas/relationship-vocabulary";
 
+import { useReportEditorDirty } from "../../../../../lib/editor-guard-context";
 import { DeactivateDialog } from "./deactivate-dialog";
 import { DeleteVocabularyDialog } from "./delete-vocabulary-dialog";
 import {
@@ -86,6 +88,7 @@ export function TypeInspector({
   const deleteMut = useDeleteRelationshipType(client);
 
   const [formError, setFormError] = React.useState<string | null>(null);
+  const [formErrorTitle, setFormErrorTitle] = React.useState("Couldn’t save");
   const [showDeactivate, setShowDeactivate] = React.useState(false);
   const [showDelete, setShowDelete] = React.useState(false);
 
@@ -94,6 +97,14 @@ export function TypeInspector({
   const usageQuery = useRelationshipTypeUsage(client, type?.key ?? "", {
     enabled: isEdit && (showDelete || showDeactivate),
   });
+  // Only relevant to permanent delete: deactivating doesn't touch inverse_key
+  // (only the FK's ON DELETE SET NULL does), so this is not fetched for the
+  // deactivate dialog.
+  const inverseRefsQuery = useRelationshipTypeInverseReferences(
+    client,
+    type?.key ?? "",
+    { enabled: isEdit && showDelete },
+  );
 
   const form = useForm<TypeFormValues>({
     resolver: zodResolver(typeFormSchema) as Resolver<TypeFormValues>,
@@ -102,6 +113,7 @@ export function TypeInspector({
       ? mapTypeToFormValues(type)
       : blankType(defaultCategoryKey, defaultSortOrder),
   });
+  useReportEditorDirty(form.formState.isDirty);
 
   const symmetry = useWatch({ control: form.control, name: "symmetry" });
 
@@ -131,12 +143,15 @@ export function TypeInspector({
         onSaved(row.key);
       }
     } catch (error) {
+      setFormErrorTitle("Couldn’t save");
       setFormError(
         error instanceof Error ? error.message : "Failed to save the type.",
       );
     }
   };
 
+  // Only reachable through DeactivateDialog — the is_active switch below is
+  // disabled in edit mode, so this is the one path that can flip it.
   const toggleActive = async () => {
     if (!type) return;
     try {
@@ -153,6 +168,9 @@ export function TypeInspector({
       setShowDeactivate(false);
     } catch (error) {
       setShowDeactivate(false);
+      setFormErrorTitle(
+        type.is_active ? "Couldn’t deactivate" : "Couldn’t reactivate",
+      );
       setFormError(
         error instanceof Error ? error.message : "Failed to update the type.",
       );
@@ -168,6 +186,7 @@ export function TypeInspector({
       onDeleted();
     } catch (error) {
       setShowDelete(false);
+      setFormErrorTitle("Couldn’t delete");
       setFormError(
         error instanceof Error ? error.message : "Failed to delete the type.",
       );
@@ -196,7 +215,7 @@ export function TypeInspector({
           className="flex flex-1 flex-col overflow-hidden"
         >
           <div className="flex-1 space-y-4 overflow-auto p-4">
-            <InspectorError message={formError} />
+            <InspectorError message={formError} title={formErrorTitle} />
 
             <Controller
               control={form.control}
@@ -429,7 +448,12 @@ export function TypeInspector({
                   name="type-is-active"
                   checked={field.value}
                   onChange={field.onChange}
-                  description="Inactive types stop being offered for new relationships. Existing ones keep working."
+                  disabled={isEdit}
+                  description={
+                    isEdit
+                      ? "Use Deactivate in the overflow menu to change this — it shows how many relationships use this type first."
+                      : "Inactive types stop being offered for new relationships. Existing ones keep working."
+                  }
                 />
               )}
             />
@@ -468,6 +492,16 @@ export function TypeInspector({
             level="type"
             blockingCount={usageQuery.data}
             blockingNoun="relationship"
+            // `isFetching`, not `isPending`: staleTime is 0, so reopening this
+            // dialog with a cached count re-fetches in the background — using
+            // `isPending` (true only while there's no data at all) would let
+            // that stale cached count enable deletion for the moment before
+            // the fresh one lands.
+            isLoading={usageQuery.isFetching}
+            isError={usageQuery.isError}
+            onRetry={() => void usageQuery.refetch()}
+            inverseReferenceCount={inverseRefsQuery.data}
+            inverseReferenceNoun="type"
           />
         </>
       )}

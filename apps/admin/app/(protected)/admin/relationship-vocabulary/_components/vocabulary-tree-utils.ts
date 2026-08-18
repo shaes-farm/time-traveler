@@ -1,3 +1,4 @@
+import { bySortOrderThenLabel } from "@repo/services/relationship-type-service";
 import type {
   RelationshipCategoryMeta,
   RelationshipRoleMeta,
@@ -116,33 +117,33 @@ export interface SortOrderPatch {
 
 interface Sortable {
   key: string;
+  label: string;
   sort_order: number;
 }
 
 /**
- * The two patches that move `key` one place within its sibling list.
+ * The patches that move `key` one place within its sibling list.
  *
  * Returns null at the boundaries (already first when moving up, already last
  * when moving down) so the caller can disable the button rather than issue a
  * no-op write.
  *
- * Swaps the two rows' `sort_order` values rather than renumbering the list.
- * The #419 seed spaces siblings by 10 specifically so a group can be inserted
- * without touching its neighbours; a renumbering reorder would flatten those
- * gaps away on the first click.
+ * The common case swaps just the two rows' `sort_order` values rather than
+ * renumbering the list. The #419 seed spaces siblings by 10 specifically so a
+ * group can be inserted without touching its neighbours; a renumbering reorder
+ * would flatten those gaps away on the first click.
  *
- * When the two neighbours happen to share a `sort_order` — legal, since nothing
- * enforces uniqueness — swapping identical values would be a no-op, so the
- * moved row is nudged one past its neighbour instead.
+ * Ties — legal, since nothing enforces `sort_order` uniqueness — need more than
+ * a two-value swap. `ordered` here must sort the same way the service fetches
+ * siblings ({@link bySortOrderThenLabel}), or the arrows can act on a row other
+ * than the one visibly adjacent.
  */
 export function swapSortOrder(
   siblings: readonly Sortable[],
   key: string,
   direction: "up" | "down",
-): [SortOrderPatch, SortOrderPatch] | null {
-  const ordered = [...siblings].sort(
-    (a, b) => a.sort_order - b.sort_order || a.key.localeCompare(b.key),
-  );
+): SortOrderPatch[] | null {
+  const ordered = [...siblings].sort(bySortOrderThenLabel);
   const index = ordered.findIndex((item) => item.key === key);
   if (index === -1) return null;
 
@@ -151,23 +152,56 @@ export function swapSortOrder(
   const neighbour = ordered[neighbourIndex];
   if (!current || !neighbour) return null;
 
-  if (current.sort_order === neighbour.sort_order) {
+  if (current.sort_order !== neighbour.sort_order) {
     return [
-      {
-        key: current.key,
-        sort_order:
-          direction === "up"
-            ? neighbour.sort_order - 1
-            : neighbour.sort_order + 1,
-      },
-      { key: neighbour.key, sort_order: neighbour.sort_order },
+      { key: current.key, sort_order: neighbour.sort_order },
+      { key: neighbour.key, sort_order: current.sort_order },
     ];
   }
 
-  return [
-    { key: current.key, sort_order: neighbour.sort_order },
-    { key: neighbour.key, sort_order: current.sort_order },
-  ];
+  // Tied block. A plain swap of two equal values is a no-op, and nudging just
+  // `current` by ±1 relative to `neighbour` only works for a two-row tie — with
+  // 3+ rows sharing this sort_order, that nudge jumps `current` clear over the
+  // rest of the run instead of moving it one place. Renumber the whole run to
+  // unique, ascending values (in tie-break order) sandwiched between whatever
+  // bounds it in the full list, then swap `current` and `neighbour`'s
+  // *positions* within that renumbering. Self-healing: any reorder that
+  // touches a tied group leaves it fully unique going forward.
+  const tiedValue = current.sort_order;
+  const runStart = ordered.findIndex((item) => item.sort_order === tiedValue);
+  let runEnd = runStart;
+  while (
+    runEnd + 1 < ordered.length &&
+    ordered[runEnd + 1]!.sort_order === tiedValue
+  ) {
+    runEnd++;
+  }
+  const run = ordered.slice(runStart, runEnd + 1);
+
+  const before = ordered[runStart - 1];
+  const after = ordered[runEnd + 1];
+  const lowerBound = before ? before.sort_order : tiedValue - SORT_ORDER_GAP;
+  const upperBound = after
+    ? after.sort_order
+    : tiedValue + SORT_ORDER_GAP * run.length;
+  const step = Math.max(
+    1,
+    Math.floor((upperBound - lowerBound) / (run.length + 1)),
+  );
+
+  const renumbered: SortOrderPatch[] = run.map((item, i) => ({
+    key: item.key,
+    sort_order: lowerBound + step * (i + 1),
+  }));
+
+  const currentRunIndex = run.findIndex((item) => item.key === current.key);
+  const neighbourRunIndex = run.findIndex((item) => item.key === neighbour.key);
+  const currentValue = renumbered[currentRunIndex]!.sort_order;
+  const neighbourValue = renumbered[neighbourRunIndex]!.sort_order;
+  renumbered[currentRunIndex]!.sort_order = neighbourValue;
+  renumbered[neighbourRunIndex]!.sort_order = currentValue;
+
+  return renumbered;
 }
 
 /** True when `key` is already at the given end of its sibling list. */

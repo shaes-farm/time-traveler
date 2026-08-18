@@ -30,6 +30,9 @@ export function DeactivateDialog({
   level,
   /** Types in this category (categories only) — the group that will disappear. */
   affectedTypeCount,
+  /** The affected types' labels, named so the blast radius is visible before
+   * confirming rather than just counted. */
+  affectedTypeLabels,
   /** Relationships currently using this type; undefined while loading. */
   usageCount,
   /** Restoring rather than retiring — no warning needed. */
@@ -42,6 +45,7 @@ export function DeactivateDialog({
   entryLabel: string;
   level: "category" | "type" | "role";
   affectedTypeCount?: number;
+  affectedTypeLabels?: string[];
   usageCount?: number;
   reactivating?: boolean;
 }) {
@@ -71,13 +75,23 @@ export function DeactivateDialog({
                     This {noun} simply stops being offered for new ones.
                   </p>
                   {level === "category" && affectedTypeCount !== undefined && (
-                    <p className="font-medium text-foreground">
-                      {affectedTypeCount === 0
-                        ? "This group is empty, so no types are affected."
-                        : `All ${affectedTypeCount} type${
-                            affectedTypeCount === 1 ? "" : "s"
-                          } in this group will disappear from the relationship type picker.`}
-                    </p>
+                    <div className="font-medium text-foreground">
+                      <p>
+                        {affectedTypeCount === 0
+                          ? "This group is empty, so no types are affected."
+                          : `All ${affectedTypeCount} type${
+                              affectedTypeCount === 1 ? "" : "s"
+                            } in this group will disappear from the relationship type picker:`}
+                      </p>
+                      {affectedTypeLabels && affectedTypeLabels.length > 0 && (
+                        <p className="mt-1 font-normal text-foreground-muted">
+                          {affectedTypeLabels.slice(0, 8).join(", ")}
+                          {affectedTypeLabels.length > 8
+                            ? `, and ${affectedTypeLabels.length - 8} more`
+                            : ""}
+                        </p>
+                      )}
+                    </div>
                   )}
                   {level === "type" && usageCount !== undefined && (
                     <p className="font-medium text-foreground">

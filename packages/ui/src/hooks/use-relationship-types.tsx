@@ -18,7 +18,9 @@ import {
   type UseQueryOptions,
 } from "@tanstack/react-query";
 import {
+  countRelationshipRoleInverseReferences,
   countRelationshipRoleUsage,
+  countRelationshipTypeInverseReferences,
   countRelationshipTypeUsage,
   createRelationshipCategory,
   createRelationshipRole,
@@ -52,6 +54,13 @@ export const relationshipTypeKeys = {
     [...relationshipTypeKeys.all, "list", activeOnly] as const,
   usage: (typeKey: string, roleKey?: string) =>
     [...relationshipTypeKeys.all, "usage", typeKey, roleKey ?? null] as const,
+  inverseReferences: (typeKey: string, roleKey?: string) =>
+    [
+      ...relationshipTypeKeys.all,
+      "inverse-references",
+      typeKey,
+      roleKey ?? null,
+    ] as const,
 };
 
 /**
@@ -146,6 +155,42 @@ export function useRelationshipRoleUsage(
   return useQuery({
     queryKey: relationshipTypeKeys.usage(typeKey, roleKey),
     queryFn: () => countRelationshipRoleUsage(client, typeKey, roleKey),
+    enabled: options?.enabled ?? true,
+    staleTime: 0,
+  });
+}
+
+/**
+ * How many *other* types name this one as their inverse — informational, not
+ * blocking: unlike relationship usage, this never prevents deletion (the FK is
+ * `ON DELETE SET NULL`), but deleting still silently un-pairs the reciprocal
+ * relationship, which the delete/deactivate dialogs surface separately from
+ * {@link useRelationshipTypeUsage}'s blocking count.
+ */
+export function useRelationshipTypeInverseReferences(
+  client: ServiceClient,
+  typeKey: string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: relationshipTypeKeys.inverseReferences(typeKey),
+    queryFn: () => countRelationshipTypeInverseReferences(client, typeKey),
+    enabled: options?.enabled ?? true,
+    staleTime: 0,
+  });
+}
+
+/** As {@link useRelationshipTypeInverseReferences}, for one sub-role of a type. */
+export function useRelationshipRoleInverseReferences(
+  client: ServiceClient,
+  typeKey: string,
+  roleKey: string,
+  options?: { enabled?: boolean },
+) {
+  return useQuery({
+    queryKey: relationshipTypeKeys.inverseReferences(typeKey, roleKey),
+    queryFn: () =>
+      countRelationshipRoleInverseReferences(client, typeKey, roleKey),
     enabled: options?.enabled ?? true,
     staleTime: 0,
   });

@@ -12,6 +12,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@repo/ui/components/alert-dialog";
+import { Button } from "@repo/ui/components/button";
 
 /**
  * Permanent deletion, gated on usage.
@@ -39,6 +40,22 @@ export function DeleteVocabularyDialog({
   blockingCount,
   /** What the blocking rows are, for the explanatory sentence. */
   blockingNoun,
+  /**
+   * True only while the count query has neither cached nor fresh data — as
+   * opposed to `blockingCount === undefined`, which also reads true while a
+   * *stale cached* count is being silently refreshed in the background. Using
+   * that alone would let a stale "0" enable deletion for a moment before the
+   * refetch lands.
+   */
+  isLoading,
+  /** The count request itself failed — distinct from "still loading" so this
+   * doesn't spin forever with no way out. */
+  isError,
+  onRetry,
+  /** Other rows that name this one as their inverse — informational, not
+   * blocking: deletion is still safe, but it silently un-pairs them. */
+  inverseReferenceCount,
+  inverseReferenceNoun,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,11 +66,16 @@ export function DeleteVocabularyDialog({
   level: "category" | "type" | "role";
   blockingCount: number | undefined;
   blockingNoun: string;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  inverseReferenceCount?: number;
+  inverseReferenceNoun?: string;
 }) {
   const noun =
     level === "category" ? "group" : level === "type" ? "type" : "sub-role";
-  const isLoading = blockingCount === undefined;
-  const isBlocked = blockingCount !== undefined && blockingCount > 0;
+  const isBlocked = !isLoading && !isError && (blockingCount ?? 0) > 0;
+  const isSafe = !isLoading && !isError && blockingCount === 0;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -70,6 +92,14 @@ export function DeleteVocabularyDialog({
                   Checking what uses this {noun}…
                 </p>
               )}
+              {isError && !isLoading && (
+                <p className="flex items-center gap-3 text-destructive">
+                  Couldn’t check what uses this {noun}.
+                  <Button variant="secondary" size="sm" onClick={onRetry}>
+                    Retry
+                  </Button>
+                </p>
+              )}
               {isBlocked && (
                 <p className="font-medium text-foreground">
                   {blockingCount} {blockingNoun}
@@ -78,12 +108,22 @@ export function DeleteVocabularyDialog({
                   working and it stops being offered for new entries.
                 </p>
               )}
-              {blockingCount === 0 && (
+              {isSafe && (
                 <p>
                   Nothing uses this {noun}, so deleting it is safe. This cannot
                   be undone.
                 </p>
               )}
+              {isSafe &&
+                inverseReferenceCount !== undefined &&
+                inverseReferenceCount > 0 && (
+                  <p className="font-medium text-foreground">
+                    {inverseReferenceCount} other {inverseReferenceNoun}
+                    {inverseReferenceCount === 1 ? "" : "s"} name this as{" "}
+                    {inverseReferenceCount === 1 ? "its" : "their"} inverse.
+                    Deleting will silently clear that pairing.
+                  </p>
+                )}
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -95,7 +135,7 @@ export function DeleteVocabularyDialog({
             </AlertDialogAction>
           ) : (
             <AlertDialogAction
-              disabled={pending || isLoading}
+              disabled={pending || !isSafe}
               onClick={(event) => {
                 event.preventDefault();
                 onConfirm();

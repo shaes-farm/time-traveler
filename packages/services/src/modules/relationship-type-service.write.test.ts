@@ -82,6 +82,49 @@ function makeReadThenWriteClient(first: Result, second: Result) {
   };
 }
 
+/**
+ * A client with `.rpc()` only — what `createRelationshipRole` calls directly
+ * (00031/ADR-0042), no preceding read.
+ */
+function makeRpcClient(result: Result) {
+  const rpc = vi.fn().mockResolvedValue({
+    data: result.data ?? null,
+    error: result.error ?? null,
+  });
+  const client = { rpc };
+  return { client: client as unknown as SupabaseClient<Database>, rpc };
+}
+
+/**
+ * A client with `.from()` for the pre-write read and `.rpc()` for the write —
+ * the shape `updateRelationshipRole` uses to merge a partial patch onto the
+ * current row before calling `set_relationship_role`, since the RPC has no
+ * partial encoding for `inverse_key`.
+ */
+function makeRoleRpcClient(options: { read: Result; rpc: Result }) {
+  const readResolved = {
+    data: options.read.data ?? null,
+    error: options.read.error ?? null,
+  };
+  const builder = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue(readResolved),
+  };
+  const rpc = vi.fn().mockResolvedValue({
+    data: options.rpc.data ?? null,
+    error: options.rpc.error ?? null,
+  });
+  const from = vi.fn().mockReturnValue(builder);
+  const client = { from, rpc };
+  return {
+    client: client as unknown as SupabaseClient<Database>,
+    from,
+    builder,
+    rpc,
+  };
+}
+
 const CATEGORY_ROW = {
   key: "family",
   label: "Family",
@@ -372,59 +415,149 @@ describe("deleteRelationshipType", () => {
 // ---- roles ---------------------------------------------------------------
 
 describe("relationship roles", () => {
-  it("creates a role with its defaults", async () => {
-    const { client, from, builder } = makeClient({ data: ROLE_ROW });
+  describe("createRelationshipRole", () => {
+    it("creates a role with its defaults via the pairing RPC", async () => {
+      // 00031/ADR-0042: create_relationship_role inserts and pairs the named
+      // inverse in one transaction, rather than a plain insert that would
+      // leave a fresh pairing one-sided until something else touched it.
+      const { client, rpc } = makeRpcClient({ data: ROLE_ROW });
 
-    await createRelationshipRole(client, {
-      type_key: "family",
-      key: "parent",
-      label: "Parent",
-      inverse_key: "child",
-    });
-
-    expect(from).toHaveBeenCalledWith("relationship_roles");
-    expect(builder.insert).toHaveBeenCalledWith({
-      type_key: "family",
-      key: "parent",
-      label: "Parent",
-      inverse_key: "child",
-      sort_order: 0,
-      is_active: true,
-    });
-  });
-
-  it("addresses a role by both halves of its composite key", async () => {
-    const { client, builder } = makeClient({ data: ROLE_ROW });
-
-    await updateRelationshipRole(client, "family", "parent", {
-      label: "Parent or guardian",
-    });
-
-    expect(builder.eq).toHaveBeenCalledWith("type_key", "family");
-    expect(builder.eq).toHaveBeenCalledWith("key", "parent");
-    expect(builder.update).toHaveBeenCalledWith({
-      label: "Parent or guardian",
-    });
-  });
-
-  it("deletes by the composite key", async () => {
-    const { client, builder } = makeClient({});
-    await deleteRelationshipRole(client, "family", "parent");
-    expect(builder.eq).toHaveBeenCalledWith("type_key", "family");
-    expect(builder.eq).toHaveBeenCalledWith("key", "parent");
-  });
-
-  it("explains a duplicate sub-role key within a type", async () => {
-    const { client } = makeClient({
-      error: { code: "23505", message: "duplicate key value" },
-    });
-    await expect(
-      createRelationshipRole(client, {
+      await createRelationshipRole(client, {
         type_key: "family",
         key: "parent",
         label: "Parent",
-      }),
-    ).rejects.toThrow(/Sub-role keys must be unique within a type/);
+        inverse_key: "child",
+      });
+
+      expect(rpc).toHaveBeenCalledWith("create_relationship_role", {
+        p_type_key: "family",
+        p_key: "parent",
+        p_label: "Parent",
+        p_inverse_key: "child",
+        p_sort_order: 0,
+        p_is_active: true,
+      });
+    });
+
+    it("passes null through for a role with no inverse", async () => {
+      const { client, rpc } = makeRpcClient({ data: ROLE_ROW });
+
+      await createRelationshipRole(client, {
+        type_key: "family",
+        key: "only_child",
+        label: "Only child",
+      });
+
+      expect(rpc).toHaveBeenCalledWith(
+        "create_relationship_role",
+        expect.objectContaining({ p_inverse_key: null }),
+      );
+    });
+
+    it("explains a duplicate sub-role key within a type", async () => {
+      const { client } = makeRpcClient({
+        error: { code: "23505", message: "duplicate key value" },
+      });
+      await expect(
+        createRelationshipRole(client, {
+          type_key: "family",
+          key: "parent",
+          label: "Parent",
+        }),
+      ).rejects.toThrow(/Sub-role keys must be unique within a type/);
+    });
+
+    it("explains an unknown inverse role", async () => {
+      const { client } = makeRpcClient({
+        error: {
+          code: "23503",
+          message:
+            'insert or update on table "relationship_roles" violates foreign key constraint "relationship_roles_inverse_key_fkey"',
+        },
+      });
+      await expect(
+        createRelationshipRole(client, {
+          type_key: "family",
+          key: "parent",
+          label: "Parent",
+          inverse_key: "ghost",
+        }),
+      ).rejects.toThrow(/The inverse sub-role doesn.t exist/);
+    });
+  });
+
+  describe("updateRelationshipRole", () => {
+    it("merges a partial patch onto the current row before calling the RPC", async () => {
+      // toggleActive sends only `{ is_active }` — set_relationship_role has no
+      // partial encoding, so label/inverse_key/sort_order must come from the
+      // read, or a deactivate-only edit would wipe them.
+      const { client, from, rpc } = makeRoleRpcClient({
+        read: { data: ROLE_ROW },
+        rpc: { data: { ...ROLE_ROW, is_active: false } },
+      });
+
+      await updateRelationshipRole(client, "family", "parent", {
+        is_active: false,
+      });
+
+      expect(from).toHaveBeenCalledWith("relationship_roles");
+      expect(rpc).toHaveBeenCalledWith("set_relationship_role", {
+        p_type_key: "family",
+        p_key: "parent",
+        p_label: "Parent",
+        p_inverse_key: "child",
+        p_sort_order: 10,
+        p_is_active: false,
+      });
+    });
+
+    it("addresses a role by both halves of its composite key when reading the current row", async () => {
+      const { client, builder } = makeRoleRpcClient({
+        read: { data: ROLE_ROW },
+        rpc: { data: ROLE_ROW },
+      });
+
+      await updateRelationshipRole(client, "family", "parent", {
+        label: "Parent or guardian",
+      });
+
+      expect(builder.eq).toHaveBeenCalledWith("type_key", "family");
+      expect(builder.eq).toHaveBeenCalledWith("key", "parent");
+    });
+
+    it("contextualises a failure reading the current row", async () => {
+      const { client } = makeRoleRpcClient({
+        read: { error: { message: "row not found" } },
+        rpc: { data: ROLE_ROW },
+      });
+      await expect(
+        updateRelationshipRole(client, "family", "ghost", { label: "X" }),
+      ).rejects.toThrow(
+        "RelationshipTypeService.updateRelationshipRole: row not found",
+      );
+    });
+
+    it("maps an unresolved update target to a friendly message", async () => {
+      // set_relationship_role raises no_data_found (P0002) when the row it
+      // was told to update doesn't resolve — deleted between the read and the
+      // write, or invisible under RLS.
+      const { client } = makeRoleRpcClient({
+        read: { data: ROLE_ROW },
+        rpc: { error: { code: "P0002", message: "no_data_found" } },
+      });
+      await expect(
+        updateRelationshipRole(client, "family", "parent", { label: "X" }),
+      ).rejects.toThrow(/Couldn.t find that sub-role/);
+    });
+  });
+
+  describe("deleteRelationshipRole", () => {
+    it("deletes by the composite key", async () => {
+      const { client, builder } = makeClient({});
+      await deleteRelationshipRole(client, "family", "parent");
+      expect(builder.eq).toHaveBeenCalledWith("type_key", "family");
+      expect(builder.eq).toHaveBeenCalledWith("key", "parent");
+    });
   });
 });
 

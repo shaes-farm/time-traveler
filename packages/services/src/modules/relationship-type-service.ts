@@ -120,7 +120,12 @@ export async function fetchRelationshipVocabulary(
   return toVocabulary(await listRelationshipCategories(client, options));
 }
 
-function bySortOrderThenLabel(
+/**
+ * Exported so client-side reordering (`vocabulary-tree-utils.ts`) sorts
+ * siblings the same way this module fetches them — a mismatched tie-break
+ * makes the ▲▼ buttons act on a row other than the one visibly adjacent.
+ */
+export function bySortOrderThenLabel(
   a: { sort_order: number; label: string },
   b: { sort_order: number; label: string },
 ): number {
@@ -367,30 +372,62 @@ const ROLE_WRITE_ERRORS = {
       constraint: "relationship_roles_type_key_fkey",
       message: "That relationship type doesn't exist.",
     },
+    {
+      constraint: "relationship_roles_inverse_key_fkey",
+      message: "The inverse sub-role doesn't exist. Pick an existing one.",
+    },
   ],
   byCode: {
     [PG_UNIQUE_VIOLATION]:
       "That type already has a sub-role with that key. Sub-role keys must be unique within a type.",
+    // set_relationship_role raises this (00031/ADR-0042) when the row it was
+    // asked to update no longer resolves — deleted, or invisible under RLS.
+    P0002: "Couldn’t find that sub-role. It may have just been deleted.",
   },
 } as const;
 
+/**
+ * Create a role and pair its inverse in one transaction.
+ *
+ * Goes through `create_relationship_role` (00031/ADR-0042) rather than a plain
+ * insert: if `inverse_key` names an existing sibling, the RPC also points that
+ * sibling's `inverse_key` back — a plain insert would leave the pairing
+ * one-sided until something else touched the partner row.
+ */
 export async function createRelationshipRole(
   client: SupabaseClient<Database>,
   input: RelationshipRoleCreateInput,
 ): Promise<RelationshipRoleRow> {
   const values = relationshipRoleCreateSchema.parse(input);
 
-  const { data, error } = await client
-    .from("relationship_roles")
-    .insert(values)
-    .select()
-    .single();
+  const { data, error } = await client.rpc("create_relationship_role", {
+    p_type_key: values.type_key,
+    p_key: values.key,
+    p_label: values.label,
+    // The generated RPC arg type is `string`, not `string | null` — the
+    // Supabase generator never models nullable function parameters.
+    p_inverse_key: values.inverse_key as unknown as string,
+    p_sort_order: values.sort_order,
+    p_is_active: values.is_active,
+  });
 
   assertNoWriteError(error, "createRelationshipRole", ROLE_WRITE_ERRORS);
-  return data;
+  return data as RelationshipRoleRow;
 }
 
-/** Roles have a composite PK, so both halves are needed to address one. */
+/**
+ * Update a role and re-pair its inverse in one transaction.
+ *
+ * Roles have a composite PK, so both halves are needed to address one.
+ *
+ * `set_relationship_role` (00031/ADR-0042) takes the whole row: `inverse_key`
+ * has no "leave it alone" encoding distinguishable from "clear it" once it
+ * crosses into SQL, so a partial patch sent as-is would silently wipe every
+ * field the caller didn't mention — exactly what `toggleActive`'s
+ * `{ is_active }}`-only patch sends today. Read the current row and merge the
+ * patch on top before calling the RPC, the same shape
+ * {@link updateRelationshipType} already uses for the symmetry invariant.
+ */
 export async function updateRelationshipRole(
   client: SupabaseClient<Database>,
   typeKey: string,
@@ -399,16 +436,27 @@ export async function updateRelationshipRole(
 ): Promise<RelationshipRoleRow> {
   const values = relationshipRoleUpdateSchema.parse(patch);
 
-  const { data, error } = await client
+  const { data: current, error: readError } = await client
     .from("relationship_roles")
-    .update(values)
+    .select("label, inverse_key, sort_order, is_active")
     .eq("type_key", typeKey)
     .eq("key", key)
-    .select()
     .single();
+  assertNoError(readError, "updateRelationshipRole");
+
+  const merged = { ...current, ...values };
+
+  const { data, error } = await client.rpc("set_relationship_role", {
+    p_type_key: typeKey,
+    p_key: key,
+    p_label: merged.label,
+    p_inverse_key: merged.inverse_key as unknown as string,
+    p_sort_order: merged.sort_order,
+    p_is_active: merged.is_active,
+  });
 
   assertNoWriteError(error, "updateRelationshipRole", ROLE_WRITE_ERRORS);
-  return data;
+  return data as RelationshipRoleRow;
 }
 
 export async function deleteRelationshipRole(
@@ -467,5 +515,47 @@ export async function countRelationshipRoleUsage(
     .eq("relationship_role", roleKey);
 
   assertNoError(error, "countRelationshipRoleUsage");
+  return count ?? 0;
+}
+
+/**
+ * How many *other* types name this one as their `inverse_key`.
+ *
+ * `relationship_types.inverse_key` is `ON DELETE SET NULL` (00029), so
+ * deleting a type that other types point their inverse at never fails — it
+ * silently un-pairs them. `countRelationshipTypeUsage` alone can't see that:
+ * a type can be safe to delete by relationship usage and still break another
+ * type's reciprocal pairing. Callers surface this separately from the
+ * `character_relationships`-driven blocking count, since it's informational,
+ * not a reason deletion is refused.
+ */
+export async function countRelationshipTypeInverseReferences(
+  client: SupabaseClient<Database>,
+  typeKey: string,
+): Promise<number> {
+  const { count, error } = await client
+    .from("relationship_types")
+    .select("*", { count: "exact", head: true })
+    .eq("inverse_key", typeKey)
+    .neq("key", typeKey);
+
+  assertNoError(error, "countRelationshipTypeInverseReferences");
+  return count ?? 0;
+}
+
+/** As {@link countRelationshipTypeInverseReferences}, for one sub-role of a type. */
+export async function countRelationshipRoleInverseReferences(
+  client: SupabaseClient<Database>,
+  typeKey: string,
+  roleKey: string,
+): Promise<number> {
+  const { count, error } = await client
+    .from("relationship_roles")
+    .select("*", { count: "exact", head: true })
+    .eq("type_key", typeKey)
+    .eq("inverse_key", roleKey)
+    .neq("key", roleKey);
+
+  assertNoError(error, "countRelationshipRoleInverseReferences");
   return count ?? 0;
 }
