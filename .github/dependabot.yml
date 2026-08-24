@@ -34,6 +34,16 @@ updates:
         update-types:
           - minor
           - patch
+      # Radix primitives pin exact versions of their shared internals
+      # (react-dismissable-layer, react-focus-guards, …). Bumping one primitive
+      # alone installs two copies of a package that is only correct as a
+      # singleton — see #430. Move them together.
+      radix-ecosystem:
+        patterns:
+          - "@radix-ui/*"
+        update-types:
+          - minor
+          - patch
       typescript-toolchain:
         patterns:
           - "typescript"
