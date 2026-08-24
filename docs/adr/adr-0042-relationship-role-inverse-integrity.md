@@ -14,7 +14,10 @@ amended_by: ""
 
 ## Status
 
-**Accepted**
+**Accepted** — revised 2026-08-24, before merge: `set_relationship_role` changed
+from full replacement to a partial patch merged under its own lock. The FK, the
+helper, and `create_relationship_role` are unchanged. See NEG-003 for what
+prompted it.
 
 ## Context
 
@@ -103,12 +106,34 @@ from 00029 §RLS apply to every statement inside the function. A non-admin's
 not already have. `EXECUTE` is revoked from `PUBLIC`/`anon` and granted to
 `authenticated, service_role`, per ADR-0034 and the 00026 grant pattern.
 
-**Update is full replacement.** `set_relationship_role` takes every mutable
-column and writes all of them. `inverse_key` has no "leave it alone" encoding
-distinguishable from "clear it" — `NULL` is a meaningful value and plpgsql cannot
-see which arguments the caller omitted — so a partial patch could silently break
-a pairing. `type_key` and `key` address the row and are not editable; renaming a
-key remains a SQL operation per ADR-0041.
+**Update is a partial patch merged under the lock.** `set_relationship_role`
+takes each mutable column as an optional argument and merges the ones the caller
+stated against the row it reads _after_ acquiring the lock:
+
+```sql
+set_relationship_role(
+  p_type_key        VARCHAR(100),
+  p_key             VARCHAR(100),
+  p_label           TEXT         DEFAULT NULL,
+  p_inverse_key     VARCHAR(100) DEFAULT NULL,
+  p_set_inverse_key BOOLEAN      DEFAULT false,
+  p_sort_order      INTEGER      DEFAULT NULL,
+  p_is_active       BOOLEAN      DEFAULT NULL
+)
+```
+
+`label`, `sort_order` and `is_active` use `NULL` as the "unchanged" sentinel —
+none of the three has `NULL` as a legal value, so `COALESCE(p_x, current.x)` is
+unambiguous. `inverse_key` cannot use that trick, because `NULL` there is
+_meaningful_: it clears a pairing. `p_set_inverse_key` is the explicit "I am
+writing this column" flag; while it is false the function neither writes
+`inverse_key` nor runs `pair_relationship_role_inverse`, whatever `p_inverse_key`
+holds. `type_key` and `key` address the row and are not editable; renaming a key
+remains a SQL operation per ADR-0041.
+
+The merge belongs in the function because the lock is there. The first revision
+of this ADR made the update full replacement and left the merge to the caller;
+see NEG-003 for why that was wrong and how it was found.
 
 ## Consequences
 
@@ -128,6 +153,11 @@ key remains a SQL operation per ADR-0041.
   ADR-0041 preserved keeps working — verified against a type-key rename, which
   cascades `type_key` into all sixteen `family` roles without colliding with the
   self-FK's own cascade.
+- **POS-006**: Concurrent partial edits of one role no longer lose writes. The
+  read the merge needs happens after `FOR UPDATE`, inside the function's
+  transaction, so two admins editing different columns of the same role
+  serialize and both edits survive. Nothing outside the database ever holds a
+  merge base.
 
 ### Negative
 
@@ -140,9 +170,36 @@ key remains a SQL operation per ADR-0041.
   PostgREST update, RPC). The service layer has to pick correctly; a contributor
   reaching for `.from("relationship_roles").update()` gets the old behaviour with
   no warning.
-- **NEG-003**: Full-replacement update semantics mean the caller must send the
-  whole mutable row. A caller holding only a partial patch has to merge it
-  against the row it already has.
+- **NEG-003** _(as first written: superseded — the cost was worse than
+  estimated, and the design changed)_: "Full-replacement update semantics mean
+  the caller must send the whole mutable row. A caller holding only a partial
+  patch has to merge it against the row it already has."
+
+  That is exactly what happened, and it reopened the lost update the `FOR UPDATE`
+  lock was added to prevent. `updateRelationshipRole` held a partial patch (the
+  admin's `toggleActive` sends only `{ is_active }`), so it `SELECT`ed the row in
+  a **separate, unlocked round trip**, merged in TypeScript, and sent the whole
+  row to the RPC. The lock was then acquired _after_ the race window rather than
+  around it: two admins patching different columns of the same role each merged
+  the same pre-edit snapshot, and the later write silently reverted the earlier
+  one — no error to either. Caught by a GitHub Copilot review on PR #439.
+
+  Resolved by moving the merge inside the function, under the lock it already
+  takes (see Decision). `00031` was amended in place rather than patched by a
+  follow-up migration: it exists only on the unmerged PR branch, so nothing has
+  applied the full-replacement shape, and the function ships once, correctly.
+  The residual costs are smaller and stated as NEG-006 and NEG-007.
+
+- **NEG-006**: `inverse_key` now has two ways to say nothing: omitting
+  `p_inverse_key` and passing `p_set_inverse_key => false` with a value are the
+  same no-op. A caller that sets `p_inverse_key` and forgets the flag gets
+  silence, not an error — the pairing simply does not move. Asserted from both
+  sides in `00031_relationship_role_inverse_integrity_test.sql` so the
+  distinction is documented as behaviour rather than as prose.
+- **NEG-007**: The sentinel is `NULL`, so `label`, `sort_order` and `is_active`
+  can never be _set_ to `NULL` through the RPC. That is correct today — all
+  three are `NOT NULL` — and would need a second opt-in flag, like
+  `p_set_inverse_key`, if any of them ever became nullable.
 - **NEG-004**: `pair_relationship_role_inverse` is in `public`, so PostgREST
   exposes it to `authenticated`. It is harmless (RLS gates every statement in it,
   and it only ever writes `inverse_key`), but it is API surface that exists for
@@ -209,6 +266,22 @@ key remains a SQL operation per ADR-0041.
   overwrite of the existing role — a data-loss path on the most common create
   mistake. Two functions keep the insert's own error semantics intact.
 
+### Keep full replacement, add an optimistic version check
+
+- **ALT-011**: **Description**: Leave the merge in the service and pass the
+  `updated_at` (or a version column) the caller read with it; the function
+  compares it to the stored value and raises a conflict if the row moved,
+  turning the lost update into a visible `409` the admin UI retries.
+- **ALT-012**: **Rejection Reason**: It detects the collision instead of
+  preventing it, and only if every caller remembers to send the token — a
+  `PATCH` that omits it is silently back to last-write-wins. It also puts a
+  retry loop and a conflict state into the UI for two admins editing different
+  columns, which is not a real conflict at all. `relationship_roles` has no
+  `updated_at` (00029 adds the trigger to categories and types only), so it
+  would need a schema change as well. Merging under the lock removes the window
+  rather than reporting it; a version check remains available if
+  `relationship_roles` ever grows a genuine same-column conflict story.
+
 ## Implementation Notes
 
 - **IMP-001**: `supabase/migrations/00031_relationship_role_inverse_integrity.sql`.
@@ -224,16 +297,30 @@ key remains a SQL operation per ADR-0041.
   matches the shape the service already maps for types and an unknown inverse can
   be described in prose (`ROLE_WRITE_ERRORS` in `relationship-type-service.ts`).
 - **IMP-004**: `supabase/tests/database/00031_relationship_role_inverse_integrity_test.sql`
-  (33 assertions) covers involution after RPC writes, partner stealing, clearing,
+  (49 assertions) covers involution after RPC writes, partner stealing, clearing,
   self-inversion, `ON DELETE SET NULL`, cross-type inverse rejection, duplicate
-  create, not-found update, and both non-admin refusals.
+  create, not-found update, and both non-admin refusals. A dedicated
+  partial-patch section asserts that each single-column patch leaves the other
+  three columns byte-identical, that a patch stating no column at all writes
+  nothing, and that `p_set_inverse_key` gates `inverse_key` in both directions.
+  True concurrency is not reproducible in pgTAP (one backend, one transaction),
+  so "no column the caller did not name is ever written" stands in for it: with
+  no unstated write there is nothing to lose.
+- **IMP-007**: `create_relationship_role` keeps full-value arguments. An
+  `INSERT` has no prior row to merge against, so a sentinel would have nothing
+  to mean, and the service passes a complete, schema-defaulted create input
+  straight through — it never had the read-merge-write shape that NEG-003
+  describes.
 - **IMP-005**: The stale comment on `roleFieldsSchema` in
   `packages/services/src/schemas/relationship-vocabulary.ts` — "deliberately not
   an FK in the schema" — is corrected by this change.
-- **IMP-006**: The Supabase type generator does not model nullable function
-  arguments, so `p_inverse_key` appears as `string` in `Database["public"]
-["Functions"]["set_relationship_role"]["Args"]`. Callers passing `null` (the
-  "clear the pairing" case) need a cast at the boundary.
+- **IMP-006**: The Supabase type generator models a defaulted argument as
+  optional but not as nullable, so `p_inverse_key` appears as `p_inverse_key?:
+string` in
+  `Database["public"]["Functions"]["set_relationship_role"]["Args"]`. Callers
+  passing `null` (the "clear the pairing" case, always alongside
+  `p_set_inverse_key: true`) still need a cast at the boundary. Omitting an
+  argument, by contrast, is now expressible directly in TypeScript.
 
 ## References
 
@@ -252,4 +339,6 @@ key remains a SQL operation per ADR-0041.
   `search_path = ''` + revoke-from-anon shape copied here.
 - **REF-006**: `supabase/migrations/00029_relationship_vocabulary.sql` lines
   82-84 (types self-FK), 102-114 (roles table), 166-198 (RLS).
-- **REF-007**: PR #439 review, issue #428.
+- **REF-007**: PR #439 review, issue #428. The second round of that review (a
+  GitHub Copilot comment on the pushed migration) is what produced the
+  partial-patch revision recorded in NEG-003 and ALT-011.

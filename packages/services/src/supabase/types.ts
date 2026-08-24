@@ -1621,11 +1621,12 @@ export type Database = {
       };
       set_relationship_role: {
         Args: {
-          p_inverse_key: string;
-          p_is_active: boolean;
+          p_inverse_key?: string;
+          p_is_active?: boolean;
           p_key: string;
-          p_label: string;
-          p_sort_order: number;
+          p_label?: string;
+          p_set_inverse_key?: boolean;
+          p_sort_order?: number;
           p_type_key: string;
         };
         Returns: {

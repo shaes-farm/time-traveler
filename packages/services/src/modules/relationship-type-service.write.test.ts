@@ -95,36 +95,6 @@ function makeRpcClient(result: Result) {
   return { client: client as unknown as SupabaseClient<Database>, rpc };
 }
 
-/**
- * A client with `.from()` for the pre-write read and `.rpc()` for the write —
- * the shape `updateRelationshipRole` uses to merge a partial patch onto the
- * current row before calling `set_relationship_role`, since the RPC has no
- * partial encoding for `inverse_key`.
- */
-function makeRoleRpcClient(options: { read: Result; rpc: Result }) {
-  const readResolved = {
-    data: options.read.data ?? null,
-    error: options.read.error ?? null,
-  };
-  const builder = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue(readResolved),
-  };
-  const rpc = vi.fn().mockResolvedValue({
-    data: options.rpc.data ?? null,
-    error: options.rpc.error ?? null,
-  });
-  const from = vi.fn().mockReturnValue(builder);
-  const client = { from, rpc };
-  return {
-    client: client as unknown as SupabaseClient<Database>,
-    from,
-    builder,
-    rpc,
-  };
-}
-
 const CATEGORY_ROW = {
   key: "family",
   label: "Family",
@@ -487,63 +457,90 @@ describe("relationship roles", () => {
   });
 
   describe("updateRelationshipRole", () => {
-    it("merges a partial patch onto the current row before calling the RPC", async () => {
-      // toggleActive sends only `{ is_active }` — set_relationship_role has no
-      // partial encoding, so label/inverse_key/sort_order must come from the
-      // read, or a deactivate-only edit would wipe them.
-      const { client, from, rpc } = makeRoleRpcClient({
-        read: { data: ROLE_ROW },
-        rpc: { data: { ...ROLE_ROW, is_active: false } },
+    it("sends only the fields the patch actually names", async () => {
+      // toggleActive sends only `{ is_active }`. set_relationship_role
+      // (00031/ADR-0042, revised) merges under its own row lock now — the
+      // service must not read the row itself and merge client-side, or two
+      // concurrent partial patches could each merge a stale snapshot and the
+      // later write would silently revert the earlier one. Sending only the
+      // named field is what lets the DB side tell "not mentioned" from
+      // "explicitly set".
+      const { client, rpc } = makeRpcClient({
+        data: { ...ROLE_ROW, is_active: false },
       });
 
       await updateRelationshipRole(client, "family", "parent", {
         is_active: false,
       });
 
-      expect(from).toHaveBeenCalledWith("relationship_roles");
       expect(rpc).toHaveBeenCalledWith("set_relationship_role", {
         p_type_key: "family",
         p_key: "parent",
-        p_label: "Parent",
-        p_inverse_key: "child",
-        p_sort_order: 10,
         p_is_active: false,
       });
     });
 
-    it("addresses a role by both halves of its composite key when reading the current row", async () => {
-      const { client, builder } = makeRoleRpcClient({
-        read: { data: ROLE_ROW },
-        rpc: { data: ROLE_ROW },
+    it("sends nothing beyond the key when the patch is empty", async () => {
+      const { client, rpc } = makeRpcClient({ data: ROLE_ROW });
+
+      await updateRelationshipRole(client, "family", "parent", {});
+
+      expect(rpc).toHaveBeenCalledWith("set_relationship_role", {
+        p_type_key: "family",
+        p_key: "parent",
       });
+    });
+
+    it("addresses a role by both halves of its composite key", async () => {
+      const { client, rpc } = makeRpcClient({ data: ROLE_ROW });
 
       await updateRelationshipRole(client, "family", "parent", {
         label: "Parent or guardian",
       });
 
-      expect(builder.eq).toHaveBeenCalledWith("type_key", "family");
-      expect(builder.eq).toHaveBeenCalledWith("key", "parent");
+      expect(rpc).toHaveBeenCalledWith(
+        "set_relationship_role",
+        expect.objectContaining({ p_type_key: "family", p_key: "parent" }),
+      );
     });
 
-    it("contextualises a failure reading the current row", async () => {
-      const { client } = makeRoleRpcClient({
-        read: { error: { message: "row not found" } },
-        rpc: { data: ROLE_ROW },
+    it("sends inverse_key and the set-flag together, and only together", async () => {
+      // The flag is what tells the RPC "I am writing inverse_key" — sending
+      // the value without it would be silently ignored.
+      const { client, rpc } = makeRpcClient({ data: ROLE_ROW });
+
+      await updateRelationshipRole(client, "family", "parent", {
+        inverse_key: "child",
       });
-      await expect(
-        updateRelationshipRole(client, "family", "ghost", { label: "X" }),
-      ).rejects.toThrow(
-        "RelationshipTypeService.updateRelationshipRole: row not found",
-      );
+
+      expect(rpc).toHaveBeenCalledWith("set_relationship_role", {
+        p_type_key: "family",
+        p_key: "parent",
+        p_inverse_key: "child",
+        p_set_inverse_key: true,
+      });
+    });
+
+    it("clears the pairing with an explicit null, distinct from not mentioning it", async () => {
+      const { client, rpc } = makeRpcClient({ data: ROLE_ROW });
+
+      await updateRelationshipRole(client, "family", "parent", {
+        inverse_key: null,
+      });
+
+      expect(rpc).toHaveBeenCalledWith("set_relationship_role", {
+        p_type_key: "family",
+        p_key: "parent",
+        p_inverse_key: null,
+        p_set_inverse_key: true,
+      });
     });
 
     it("maps an unresolved update target to a friendly message", async () => {
       // set_relationship_role raises no_data_found (P0002) when the row it
-      // was told to update doesn't resolve — deleted between the read and the
-      // write, or invisible under RLS.
-      const { client } = makeRoleRpcClient({
-        read: { data: ROLE_ROW },
-        rpc: { error: { code: "P0002", message: "no_data_found" } },
+      // was told to update doesn't resolve — deleted, or invisible under RLS.
+      const { client } = makeRpcClient({
+        error: { code: "P0002", message: "no_data_found" },
       });
       await expect(
         updateRelationshipRole(client, "family", "parent", { label: "X" }),

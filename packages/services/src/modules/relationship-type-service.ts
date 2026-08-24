@@ -420,13 +420,18 @@ export async function createRelationshipRole(
  *
  * Roles have a composite PK, so both halves are needed to address one.
  *
- * `set_relationship_role` (00031/ADR-0042) takes the whole row: `inverse_key`
- * has no "leave it alone" encoding distinguishable from "clear it" once it
- * crosses into SQL, so a partial patch sent as-is would silently wipe every
- * field the caller didn't mention — exactly what `toggleActive`'s
- * `{ is_active }}`-only patch sends today. Read the current row and merge the
- * patch on top before calling the RPC, the same shape
- * {@link updateRelationshipType} already uses for the symmetry invariant.
+ * `set_relationship_role` (00031/ADR-0042) merges the patch *inside* the
+ * function, under the row lock it already takes, rather than the caller
+ * reading the current row first and merging client-side: a client-side
+ * read/merge is not protected by that lock, so two concurrent partial patches
+ * (e.g. `toggleActive`'s `{ is_active }}`-only patch racing a label edit)
+ * could each merge against the same pre-edit snapshot, and the later write
+ * would silently revert the earlier one. Only send the fields this patch
+ * actually names, so the DB side can tell "not mentioned" from "explicitly
+ * set" — `p_label`/`p_sort_order`/`p_is_active` default to leaving the column
+ * alone when omitted (none of the three has NULL as a legal value), and
+ * `inverse_key` — where NULL legitimately means "no inverse" — is only
+ * touched when `p_set_inverse_key` is sent alongside it.
  */
 export async function updateRelationshipRole(
   client: SupabaseClient<Database>,
@@ -436,23 +441,20 @@ export async function updateRelationshipRole(
 ): Promise<RelationshipRoleRow> {
   const values = relationshipRoleUpdateSchema.parse(patch);
 
-  const { data: current, error: readError } = await client
-    .from("relationship_roles")
-    .select("label, inverse_key, sort_order, is_active")
-    .eq("type_key", typeKey)
-    .eq("key", key)
-    .single();
-  assertNoError(readError, "updateRelationshipRole");
-
-  const merged = { ...current, ...values };
-
   const { data, error } = await client.rpc("set_relationship_role", {
     p_type_key: typeKey,
     p_key: key,
-    p_label: merged.label,
-    p_inverse_key: merged.inverse_key as unknown as string,
-    p_sort_order: merged.sort_order,
-    p_is_active: merged.is_active,
+    ...(values.label !== undefined && { p_label: values.label }),
+    ...(values.sort_order !== undefined && {
+      p_sort_order: values.sort_order,
+    }),
+    ...(values.is_active !== undefined && { p_is_active: values.is_active }),
+    // Sent as a pair, never independently, so the flag can't drift from the
+    // value it governs.
+    ...(values.inverse_key !== undefined && {
+      p_inverse_key: values.inverse_key as unknown as string,
+      p_set_inverse_key: true,
+    }),
   });
 
   assertNoWriteError(error, "updateRelationshipRole", ROLE_WRITE_ERRORS);

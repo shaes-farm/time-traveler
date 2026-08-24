@@ -141,32 +141,54 @@ $$;
 -- ============================================================================
 -- 3. set_relationship_role — update one role and re-pair its inverse
 --
--- Full-replacement semantics: every mutable column is stated. inverse_key has
--- no "leave it alone" encoding distinguishable from "clear it" (NULL is a
--- meaningful value and plpgsql cannot see which arguments were omitted), so a
--- partial patch could silently break a pairing. The caller sends the whole
--- desired row instead. `type_key` and `key` address the row and are not
--- editable here — renaming a key cascades into character_relationships and
--- stays a SQL operation per ADR-0041.
+-- Partial-patch semantics, merged INSIDE the lock. The caller states only the
+-- columns it is changing; everything else is read from the current row after
+-- the type's roles are locked, so there is no window between "read the row"
+-- and "write the row" for a second admin to slip through. An earlier revision
+-- of this function took full-replacement arguments and left the merge to the
+-- service layer, which had to SELECT the row in a separate, unlocked round
+-- trip — two concurrent partial edits (a label rename and an is_active toggle)
+-- both merged the same pre-edit snapshot and the later write silently reverted
+-- the earlier one. The lock existed but was acquired after the race window.
+-- See ADR-0042 (NEG-003, POS-006).
+--
+-- "Leave this column alone" encodings:
+--   * label / sort_order / is_active: NULL. None of the three has NULL as a
+--     legal value (label is NOT NULL and schema-validated non-empty; the other
+--     two are NOT NULL DEFAULTed), so NULL is unambiguous and COALESCE against
+--     the locked current value is enough.
+--   * inverse_key: NULL is a *meaningful* value there — it clears a pairing —
+--     so the sentinel cannot be the value itself. p_set_inverse_key is the
+--     explicit "I am writing this column" flag. Only when it is true does the
+--     function write inverse_key and run the pairing helper; p_inverse_key is
+--     ignored otherwise, whatever it holds.
+--
+-- `type_key` and `key` address the row and are not editable here — renaming a
+-- key cascades into character_relationships and stays a SQL operation per
+-- ADR-0041.
 --
 -- The type's roles are locked in key order up front. That serializes two
 -- admins re-pairing overlapping roles concurrently, and the deterministic order
 -- means they cannot deadlock. A type holds a handful of roles (16 at the widest
--- in 00030), and this is an admin-only, low-frequency operation.
+-- in 00030), and this is an admin-only, low-frequency operation. The current
+-- row is then re-read under that held lock: no other transaction can have
+-- changed it between the lock and the read, and none can change it between the
+-- read and the UPDATE.
 --
--- Under RLS a non-admin sees no lockable/updatable row, so the UPDATE matches
--- nothing and the function raises no_data_found — the same "invisible target
--- reads as missing" behaviour as
--- 00026_delete_category_reparenting_children.sql.
+-- Under RLS a non-admin sees no lockable row (SELECT ... FOR UPDATE applies the
+-- UPDATE policy's USING clause), so the merge read finds nothing and the
+-- function raises no_data_found — the same "invisible target reads as missing"
+-- behaviour as 00026_delete_category_reparenting_children.sql.
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION public.set_relationship_role(
-  p_type_key    VARCHAR(100),
-  p_key         VARCHAR(100),
-  p_label       TEXT,
-  p_inverse_key VARCHAR(100),
-  p_sort_order  INTEGER,
-  p_is_active   BOOLEAN
+  p_type_key        VARCHAR(100),
+  p_key             VARCHAR(100),
+  p_label           TEXT         DEFAULT NULL,
+  p_inverse_key     VARCHAR(100) DEFAULT NULL,
+  p_set_inverse_key BOOLEAN      DEFAULT false,
+  p_sort_order      INTEGER      DEFAULT NULL,
+  p_is_active       BOOLEAN      DEFAULT NULL
 )
 RETURNS public.relationship_roles
 LANGUAGE plpgsql
@@ -174,7 +196,8 @@ SECURITY INVOKER
 SET search_path = ''
 AS $$
 DECLARE
-  v_row public.relationship_roles;
+  v_current public.relationship_roles;
+  v_row     public.relationship_roles;
 BEGIN
   PERFORM 1
      FROM public.relationship_roles
@@ -182,11 +205,29 @@ BEGIN
     ORDER BY key
       FOR UPDATE;
 
+  -- The lock above is already held, so this read is the merge base no other
+  -- session can invalidate. FOR UPDATE again is a no-op on an already-locked
+  -- row; it is kept so RLS filters this read exactly as it filters the lock.
+  SELECT *
+    INTO v_current
+    FROM public.relationship_roles
+   WHERE type_key = p_type_key
+     AND key      = p_key
+     FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'relationship role %.% not found', p_type_key, p_key
+      USING ERRCODE = 'no_data_found';
+  END IF;
+
   UPDATE public.relationship_roles
-     SET label       = p_label,
-         inverse_key = p_inverse_key,
-         sort_order  = p_sort_order,
-         is_active   = p_is_active
+     SET label       = COALESCE(p_label, v_current.label),
+         inverse_key = CASE WHEN p_set_inverse_key
+                            THEN p_inverse_key
+                            ELSE v_current.inverse_key
+                       END,
+         sort_order  = COALESCE(p_sort_order, v_current.sort_order),
+         is_active   = COALESCE(p_is_active, v_current.is_active)
    WHERE type_key = p_type_key
      AND key      = p_key
   RETURNING * INTO v_row;
@@ -196,8 +237,13 @@ BEGIN
       USING ERRCODE = 'no_data_found';
   END IF;
 
+  -- Only re-pair when the caller actually wrote inverse_key. A patch that did
+  -- not mention it must not disturb sibling rows: the helper is set-based and
+  -- would otherwise re-assert (and steal) pairings on an unrelated edit.
   -- Never touches the target row, so v_row stays the row that was written.
-  PERFORM public.pair_relationship_role_inverse(p_type_key, p_key, p_inverse_key);
+  IF p_set_inverse_key THEN
+    PERFORM public.pair_relationship_role_inverse(p_type_key, p_key, p_inverse_key);
+  END IF;
 
   RETURN v_row;
 END;
@@ -262,9 +308,10 @@ GRANT EXECUTE ON FUNCTION public.pair_relationship_role_inverse(
   VARCHAR, VARCHAR, VARCHAR) TO authenticated, service_role;
 
 REVOKE ALL ON FUNCTION public.set_relationship_role(
-  VARCHAR, VARCHAR, TEXT, VARCHAR, INTEGER, BOOLEAN) FROM PUBLIC, anon;
+  VARCHAR, VARCHAR, TEXT, VARCHAR, BOOLEAN, INTEGER, BOOLEAN) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.set_relationship_role(
-  VARCHAR, VARCHAR, TEXT, VARCHAR, INTEGER, BOOLEAN) TO authenticated, service_role;
+  VARCHAR, VARCHAR, TEXT, VARCHAR, BOOLEAN, INTEGER, BOOLEAN)
+  TO authenticated, service_role;
 
 REVOKE ALL ON FUNCTION public.create_relationship_role(
   VARCHAR, VARCHAR, TEXT, VARCHAR, INTEGER, BOOLEAN) FROM PUBLIC, anon;
