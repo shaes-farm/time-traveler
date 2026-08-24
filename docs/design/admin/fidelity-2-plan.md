@@ -199,12 +199,12 @@ Closes [#35](https://github.com/shaes-farm/time-traveler/issues/35) and [#36](ht
 
 **(admin) stays structural.** `(admin)/layout.tsx` enforces the `role = 'admin'` gate (verified end-to-end via a placeholder protected stub the layout points at). No admin-specific pages in this batch — that's product surface a later batch designs intentionally.
 
-**Email confirmation flow uses Inbucket.** Local Supabase keeps email confirmation on; Inbucket (the local SMTP catcher Supabase ships) receives the confirmation emails. Smoke-test plan exercises the full round-trip: register → check Inbucket → click confirm link → callback route exchanges code → session usable.
+**Email confirmation flow uses Mailpit.** Local Supabase keeps email confirmation on; Mailpit (the local SMTP catcher Supabase ships) receives the confirmation emails. Smoke-test plan exercises the full round-trip: register → check Mailpit → click confirm link → callback route exchanges code → session usable.
 
 - Supabase project dashboard configured: email/password and magic-link providers, custom email templates, redirect URLs for localhost + production
 - Profile auto-creation trigger (#16) verified end-to-end against this flow — already lives in `00004_is_admin_and_profile_trigger.sql`
 - `apps/admin/.env.local` set up by the developer (gitignored); mirrors `.env.local.example` at the repo root. Next.js reads from the app's directory, not the repo root
-- Manual smoke-test plan in the PR description: register → confirm via Inbucket → sign in → sign out → magic link → password reset → admin gate
+- Manual smoke-test plan in the PR description: register → confirm via Mailpit → sign in → sign out → magic link → password reset → admin gate
 
 **Design for extraction.** The public reader app (`apps/reader`, D3-based — [ADR-0030](../../adr/adr-0030-public-reader-app-placement.md)) will need the same auth surface. To keep that lift mechanical instead of a rewrite, structure `apps/admin/lib/auth/` so the core stays Next-agnostic — auth methods (`signIn`, `signUp`, `signInWithMagicLink`, `resetPassword`, `updatePassword`, `signOut`) and the client factories accept cookie-adapter callbacks rather than calling `cookies()` directly, and route-protection logic accepts an abstract "redirect on unauthenticated" callback. Confine `next/server`, `next/headers`, and `next/navigation` imports to `proxy.ts`, the auth callback route handler, and the page-level Server Actions that call into `lib/auth/`. When the reader app starts and a second consumer materializes, the move to `packages/auth` becomes a copy + rename of `lib/auth/`, plus reproducing the thin Next-specific wrappers in each consumer.
 
