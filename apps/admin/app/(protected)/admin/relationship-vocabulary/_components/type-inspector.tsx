@@ -53,7 +53,7 @@ import {
   blankType,
   mapTypeToFormValues,
   toTypeCreateInput,
-  toTypeUpdateData,
+  toTypeUpdateDataDirty,
   typeFormSchema,
   type TypeFormValues,
 } from "./vocabulary-form-mappers";
@@ -129,10 +129,14 @@ export function TypeInspector({
     setFormError(null);
     try {
       if (type) {
-        await updateMut.mutateAsync({
-          key: type.key,
-          patch: toTypeUpdateData(values),
-        });
+        // Only the fields the user actually touched — the inspector stays
+        // mounted (same `key`) across an out-of-band change like a ▲▼
+        // reorder, so a full patch built from stale `defaultValues` would
+        // silently write back whatever this form loaded with and undo it.
+        const patch = toTypeUpdateDataDirty(values, form.formState.dirtyFields);
+        if (Object.keys(patch).length > 0) {
+          await updateMut.mutateAsync({ key: type.key, patch });
+        }
         toast.success(`Saved “${values.label}”.`);
         form.reset(values);
         onSaved(type.key);
@@ -497,9 +501,17 @@ export function TypeInspector({
             // `isPending` (true only while there's no data at all) would let
             // that stale cached count enable deletion for the moment before
             // the fresh one lands.
-            isLoading={usageQuery.isFetching}
-            isError={usageQuery.isError}
-            onRetry={() => void usageQuery.refetch()}
+            //
+            // Combines both queries: gating on the usage query alone would let
+            // deletion enable the moment it resolves even while the inverse
+            // -reference check is still pending (or has failed), letting an
+            // admin delete before ever seeing the un-pairing warning.
+            isLoading={usageQuery.isFetching || inverseRefsQuery.isFetching}
+            isError={usageQuery.isError || inverseRefsQuery.isError}
+            onRetry={() => {
+              void usageQuery.refetch();
+              void inverseRefsQuery.refetch();
+            }}
             inverseReferenceCount={inverseRefsQuery.data}
             inverseReferenceNoun="type"
           />

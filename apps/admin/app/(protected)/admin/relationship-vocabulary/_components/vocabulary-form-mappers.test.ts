@@ -12,10 +12,13 @@ import {
   symmetryModeOf,
   toCategoryCreateInput,
   toCategoryUpdateData,
+  toCategoryUpdateDataDirty,
   toRoleCreateInput,
   toRoleUpdateData,
+  toRoleUpdateDataDirty,
   toTypeCreateInput,
   toTypeUpdateData,
+  toTypeUpdateDataDirty,
   typeFormSchema,
   type TypeFormValues,
 } from "./vocabulary-form-mappers";
@@ -323,5 +326,84 @@ describe("role mappers", () => {
       roleFormSchema.safeParse({ ...mapRoleToFormValues(ROLE), key: "Bad Key" })
         .success,
     ).toBe(false);
+  });
+});
+
+/**
+ * The inspector's `key` prop only encodes the selected row's identity, so an
+ * out-of-band change to a field this form never touched — a ▲▼ reorder
+ * rewriting `sort_order` while the row's inspector is open, for instance —
+ * never resyncs `defaultValues`. A full-patch Save would silently write that
+ * stale value back and undo the reorder; these functions exist so Save sends
+ * only what the user actually edited.
+ */
+describe("dirty-only update patches", () => {
+  it("includes only the category field the user touched", () => {
+    const values = mapCategoryToFormValues(CATEGORY);
+    expect(toCategoryUpdateDataDirty(values, { label: true })).toEqual({
+      label: values.label,
+    });
+  });
+
+  it("sends an empty category patch when nothing is dirty", () => {
+    const values = mapCategoryToFormValues(CATEGORY);
+    expect(toCategoryUpdateDataDirty(values, {})).toEqual({});
+  });
+
+  it("includes only the role field the user touched", () => {
+    const values = mapRoleToFormValues(ROLE);
+    expect(toRoleUpdateDataDirty(values, { sort_order: true })).toEqual({
+      sort_order: values.sort_order,
+    });
+  });
+
+  it("does not resend a role's sort_order that a concurrent reorder changed underneath it", () => {
+    // Simulates the exact bug: the form still holds the pre-reorder
+    // sort_order (10, from ROLE's fixture), but only the label was dirtied
+    // in this session.
+    const values = { ...mapRoleToFormValues(ROLE), label: "Mother/Father" };
+    const patch = toRoleUpdateDataDirty(values, { label: true });
+    expect(patch).not.toHaveProperty("sort_order");
+    expect(patch).toEqual({ label: "Mother/Father" });
+  });
+
+  it("includes only the simple type fields the user touched", () => {
+    const values = validType();
+    expect(toTypeUpdateDataDirty(values, { label: true })).toEqual({
+      label: values.label,
+    });
+    expect(toTypeUpdateDataDirty(values, { sort_order: true })).toEqual({
+      sort_order: values.sort_order,
+    });
+  });
+
+  it("carries all four symmetry-derived columns when any contributing field is touched", () => {
+    // is_symmetric/inverse_key/direction_verb/symmetric_noun are derived
+    // together from symmetry+inverse_key+direction_verb+symmetric_noun — they
+    // must travel as a unit or the merged row could fail the symmetry
+    // invariant.
+    const values = validType({
+      symmetry: "inverse",
+      inverse_key: "student_mentor",
+    });
+    const patch = toTypeUpdateDataDirty(values, { symmetry: true });
+    expect(patch).toEqual({
+      is_symmetric: false,
+      inverse_key: "student_mentor",
+      direction_verb: null,
+      symmetric_noun: null,
+    });
+  });
+
+  it("leaves the symmetry columns out entirely when none of their fields were touched", () => {
+    const values = validType();
+    const patch = toTypeUpdateDataDirty(values, {
+      label: true,
+      sort_order: true,
+    });
+    expect(patch).not.toHaveProperty("is_symmetric");
+    expect(patch).not.toHaveProperty("inverse_key");
+    expect(patch).not.toHaveProperty("direction_verb");
+    expect(patch).not.toHaveProperty("symmetric_noun");
   });
 });

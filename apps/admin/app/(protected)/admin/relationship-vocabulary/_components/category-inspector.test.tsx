@@ -163,10 +163,22 @@ describe("CategoryInspector — validation and saving", () => {
     );
     renderInspector({ category: FAMILY });
 
+    // An unchanged form no-ops on Save (nothing dirty to send) — edit
+    // something so the update path actually runs.
+    await user.type(screen.getByLabelText("Label"), "!");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByText("Couldn’t save")).toBeInTheDocument();
     expect(screen.getByText("Something went wrong.")).toBeInTheDocument();
+  });
+
+  it("no-ops without a network call when Save is clicked with nothing changed", async () => {
+    const user = userEvent.setup();
+    renderInspector({ category: FAMILY });
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(updateRelationshipCategory).not.toHaveBeenCalled();
   });
 });
 

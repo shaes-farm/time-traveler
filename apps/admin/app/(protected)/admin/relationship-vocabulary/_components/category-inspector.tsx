@@ -39,7 +39,7 @@ import {
   categoryFormSchema,
   mapCategoryToFormValues,
   toCategoryCreateInput,
-  toCategoryUpdateData,
+  toCategoryUpdateDataDirty,
   type CategoryFormValues,
 } from "./vocabulary-form-mappers";
 
@@ -86,10 +86,17 @@ export function CategoryInspector({
     setFormError(null);
     try {
       if (category) {
-        await updateMut.mutateAsync({
-          key: category.key,
-          patch: toCategoryUpdateData(values),
-        });
+        // Only the fields the user actually touched — the inspector stays
+        // mounted (same `key`) across an out-of-band change like a ▲▼
+        // reorder, so a full patch built from stale `defaultValues` would
+        // silently write back whatever this form loaded with and undo it.
+        const patch = toCategoryUpdateDataDirty(
+          values,
+          form.formState.dirtyFields,
+        );
+        if (Object.keys(patch).length > 0) {
+          await updateMut.mutateAsync({ key: category.key, patch });
+        }
         toast.success(`Saved “${values.label}”.`);
         form.reset(values);
         onSaved(category.key);

@@ -12,6 +12,7 @@ const createRelationshipType = vi.fn();
 const updateRelationshipType = vi.fn();
 const deleteRelationshipType = vi.fn();
 const countRelationshipTypeUsage = vi.fn().mockResolvedValue(0);
+const countRelationshipTypeInverseReferences = vi.fn().mockResolvedValue(0);
 
 vi.mock("@repo/services/relationship-type-service", () => ({
   listRelationshipCategories: vi.fn().mockResolvedValue([]),
@@ -28,7 +29,8 @@ vi.mock("@repo/services/relationship-type-service", () => ({
   countRelationshipTypeUsage: (...a: unknown[]) =>
     countRelationshipTypeUsage(...a),
   countRelationshipRoleUsage: vi.fn().mockResolvedValue(0),
-  countRelationshipTypeInverseReferences: vi.fn().mockResolvedValue(0),
+  countRelationshipTypeInverseReferences: (...a: unknown[]) =>
+    countRelationshipTypeInverseReferences(...a),
   countRelationshipRoleInverseReferences: vi.fn().mockResolvedValue(0),
 }));
 
@@ -104,6 +106,7 @@ function renderInspector(
 beforeEach(() => {
   vi.clearAllMocks();
   countRelationshipTypeUsage.mockResolvedValue(0);
+  countRelationshipTypeInverseReferences.mockResolvedValue(0);
 });
 
 describe("TypeInspector — key immutability", () => {
@@ -304,6 +307,37 @@ describe("TypeInspector — destructive actions", () => {
         CLIENT,
         "mentor_student",
       ),
+    );
+  });
+
+  it("keeps delete disabled while the inverse-reference check is still pending, even after usage resolves", async () => {
+    // Usage resolving must not be enough on its own — the informational
+    // inverse-reference warning has to have a chance to load too, or an
+    // admin could delete before ever seeing it.
+    let resolveInverseRefs!: (value: number) => void;
+    countRelationshipTypeInverseReferences.mockReturnValue(
+      new Promise((resolve) => {
+        resolveInverseRefs = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+    renderInspector({ type: MENTOR });
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(
+      screen.getByRole("menuitem", { name: "Delete permanently…" }),
+    );
+
+    await waitFor(() => expect(countRelationshipTypeUsage).toHaveBeenCalled());
+    expect(
+      screen.getByRole("button", { name: "Delete permanently" }),
+    ).toBeDisabled();
+
+    resolveInverseRefs(0);
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Delete permanently" }),
+      ).toBeEnabled(),
     );
   });
 

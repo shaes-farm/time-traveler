@@ -29,6 +29,48 @@ import type {
  */
 
 /* ================================================================ *
+ * Dirty-only patches
+ * ================================================================ */
+
+/**
+ * Filters a full update patch down to the fields the user actually changed,
+ * per react-hook-form's `dirtyFields` (computed against the form's
+ * `defaultValues`, captured once when it mounts).
+ *
+ * Needed because an inspector's `key` prop encodes only the selected row's
+ * *identity* — switching category/type/role remounts it, but an out-of-band
+ * change to a field this form never touched does not. The ▲▼ reorder buttons
+ * are the concrete case: they rewrite a row's `sort_order` while that row's
+ * inspector can be sitting open, untouched. Since `defaultValues` never
+ * resyncs, the form still holds the pre-reorder `sort_order`, and a plain
+ * full-patch Save — even one only editing the label — would silently write
+ * that stale value back and undo the reorder. Sending only what the user
+ * actually edited means a save can never revert a field it never touched.
+ *
+ * `groups` lets one output field depend on several form fields moving
+ * together: the type form's derived `symmetry` mode decides four persisted
+ * columns at once ({@link symmetryColumns}), so touching any of its
+ * contributing fields must carry all four into the patch — they are written
+ * as a unit, never independently.
+ */
+function pickDirtyPatch<
+  Patch extends Record<string, unknown>,
+  FormValues extends Record<string, unknown>,
+>(
+  patch: Patch,
+  dirtyFields: Partial<Record<keyof FormValues, unknown>>,
+  groups: { [K in keyof Patch]: readonly (keyof FormValues)[] },
+): Partial<Patch> {
+  const result: Partial<Patch> = {};
+  for (const key of Object.keys(patch) as (keyof Patch)[]) {
+    if (groups[key].some((field) => dirtyFields[field])) {
+      result[key] = patch[key];
+    }
+  }
+  return result;
+}
+
+/* ================================================================ *
  * Symmetry mode — how the illegal state is made unreachable
  * ================================================================ */
 
@@ -125,6 +167,19 @@ export function toCategoryUpdateData(
     sort_order: values.sort_order,
     is_active: values.is_active,
   };
+}
+
+/** As {@link toCategoryUpdateData}, keeping only the fields the user edited. */
+export function toCategoryUpdateDataDirty(
+  values: CategoryFormValues,
+  dirtyFields: Partial<Record<keyof CategoryFormValues, unknown>>,
+): Partial<RelationshipCategoryUpdateInput> {
+  return pickDirtyPatch(toCategoryUpdateData(values), dirtyFields, {
+    label: ["label"],
+    description: ["description"],
+    sort_order: ["sort_order"],
+    is_active: ["is_active"],
+  });
 }
 
 /* ================================================================ *
@@ -298,6 +353,37 @@ export function toTypeUpdateData(
   };
 }
 
+/**
+ * As {@link toTypeUpdateData}, keeping only the fields the user edited.
+ *
+ * The four symmetry-derived columns share one group: they come from
+ * {@link symmetryColumns}, which reads `symmetry`, `inverse_key`,
+ * `direction_verb` and `symmetric_noun` together, so touching any one of
+ * those form fields must carry all four columns into the patch.
+ */
+export function toTypeUpdateDataDirty(
+  values: TypeFormValues,
+  dirtyFields: Partial<Record<keyof TypeFormValues, unknown>>,
+): Partial<RelationshipTypeUpdateInput> {
+  const symmetryFields = [
+    "symmetry",
+    "inverse_key",
+    "direction_verb",
+    "symmetric_noun",
+  ] as const;
+  return pickDirtyPatch(toTypeUpdateData(values), dirtyFields, {
+    label: ["label"],
+    category_key: ["category_key"],
+    description: ["description"],
+    sort_order: ["sort_order"],
+    is_active: ["is_active"],
+    is_symmetric: symmetryFields,
+    inverse_key: symmetryFields,
+    direction_verb: symmetryFields,
+    symmetric_noun: symmetryFields,
+  });
+}
+
 /* ================================================================ *
  * Roles
  * ================================================================ */
@@ -369,4 +455,17 @@ export function toRoleUpdateData(
     sort_order: values.sort_order,
     is_active: values.is_active,
   };
+}
+
+/** As {@link toRoleUpdateData}, keeping only the fields the user edited. */
+export function toRoleUpdateDataDirty(
+  values: RoleFormValues,
+  dirtyFields: Partial<Record<keyof RoleFormValues, unknown>>,
+): Partial<RelationshipRoleUpdateInput> {
+  return pickDirtyPatch(toRoleUpdateData(values), dirtyFields, {
+    label: ["label"],
+    inverse_key: ["inverse_key"],
+    sort_order: ["sort_order"],
+    is_active: ["is_active"],
+  });
 }

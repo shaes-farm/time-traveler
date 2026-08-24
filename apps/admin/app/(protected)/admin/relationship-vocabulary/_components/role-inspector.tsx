@@ -51,7 +51,7 @@ import {
   mapRoleToFormValues,
   roleFormSchema,
   toRoleCreateInput,
-  toRoleUpdateData,
+  toRoleUpdateDataDirty,
   type RoleFormValues,
 } from "./vocabulary-form-mappers";
 
@@ -127,11 +127,21 @@ export function RoleInspector({
     setFormError(null);
     try {
       if (role) {
-        await updateMut.mutateAsync({
-          typeKey: parentType.key,
-          key: role.key,
-          patch: toRoleUpdateData(values),
-        });
+        // Only the fields the user actually touched — the inspector stays
+        // mounted (same `key`) across an out-of-band change like a ▲▼
+        // reorder, so a full patch built from stale `defaultValues` would
+        // silently write back whatever this form loaded with and undo it.
+        // (It also matches set_relationship_role's own partial-patch
+        // contract — see ADR-0042 — so an untouched inverse_key correctly
+        // stays untouched rather than being resent as unchanged.)
+        const patch = toRoleUpdateDataDirty(values, form.formState.dirtyFields);
+        if (Object.keys(patch).length > 0) {
+          await updateMut.mutateAsync({
+            typeKey: parentType.key,
+            key: role.key,
+            patch,
+          });
+        }
         toast.success(`Saved “${values.label}”.`);
         form.reset(values);
         onSaved(role.key);
@@ -356,9 +366,16 @@ export function RoleInspector({
             level="role"
             blockingCount={usageQuery.data}
             blockingNoun="relationship"
-            isLoading={usageQuery.isFetching}
-            isError={usageQuery.isError}
-            onRetry={() => void usageQuery.refetch()}
+            // Combines both queries: gating on the usage query alone would let
+            // deletion enable the moment it resolves even while the inverse
+            // -reference check is still pending (or has failed), letting an
+            // admin delete before ever seeing the un-pairing warning.
+            isLoading={usageQuery.isFetching || inverseRefsQuery.isFetching}
+            isError={usageQuery.isError || inverseRefsQuery.isError}
+            onRetry={() => {
+              void usageQuery.refetch();
+              void inverseRefsQuery.refetch();
+            }}
             inverseReferenceCount={inverseRefsQuery.data}
             inverseReferenceNoun="sub-role"
           />

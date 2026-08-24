@@ -188,8 +188,20 @@ describe("RoleInspector — validation and saving", () => {
     updateRelationshipRole.mockRejectedValue(new Error("Nope."));
     renderInspector({ role: PARENT });
 
+    // An unchanged form no-ops on Save (nothing dirty to send) — edit
+    // something so the update path actually runs.
+    await user.type(screen.getByLabelText("Label"), "!");
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(await screen.findByText("Nope.")).toBeInTheDocument();
+  });
+
+  it("no-ops without a network call when Save is clicked with nothing changed", async () => {
+    const user = userEvent.setup();
+    renderInspector({ role: PARENT });
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(updateRelationshipRole).not.toHaveBeenCalled();
   });
 });
 
