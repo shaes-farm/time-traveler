@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  assertSymmetryInvariant,
   relationshipCategoryCreateSchema,
   relationshipCategoryUpdateSchema,
   relationshipRoleCreateSchema,
@@ -166,6 +165,34 @@ function assertNoWriteError(
   }
 }
 
+/**
+ * Fail a delete that matched no rows.
+ *
+ * PostgREST reports a delete affecting zero rows as a success: `error` is null
+ * and, without a representation, there is nothing else to look at. That is the
+ * wrong answer for these three. Every caller is an admin inspector that toasts
+ * `Deleted "X"` and navigates away on resolve, so a silent no-op tells the user
+ * something happened that did not — and the `is_admin()` DELETE policy from
+ * 00029 makes "the row is there but invisible to you" an ordinary case rather
+ * than a theoretical one, alongside the everyday one of two admins on the same
+ * row.
+ *
+ * The rest of `packages/services` checks only `error` on delete. This is a
+ * deliberate local divergence, not a pattern to copy blindly: it is worth the
+ * extra round-trip payload precisely where the UI reports success unconditionally.
+ */
+function assertDeletedSomething(
+  rows: readonly unknown[] | null,
+  context: string,
+  noun: string,
+): void {
+  if (rows === null || rows.length === 0) {
+    throw new Error(
+      `RelationshipTypeService.${context}: That ${noun} no longer exists, or you no longer have permission to delete it. Refresh and try again.`,
+    );
+  }
+}
+
 /* ---------------------------------------------------------------- *
  * Categories
  * ---------------------------------------------------------------- */
@@ -234,16 +261,18 @@ export async function deleteRelationshipCategory(
   client: SupabaseClient<Database>,
   key: string,
 ): Promise<void> {
-  const { error } = await client
+  const { data, error } = await client
     .from("relationship_categories")
     .delete()
-    .eq("key", key);
+    .eq("key", key)
+    .select("key");
 
   assertNoWriteError(
     error,
     "deleteRelationshipCategory",
     CATEGORY_WRITE_ERRORS,
   );
+  assertDeletedSomething(data, "deleteRelationshipCategory", "group");
 }
 
 /* ---------------------------------------------------------------- *
@@ -270,36 +299,99 @@ const TYPE_WRITE_ERRORS = {
       message:
         "A symmetric type cannot have an inverse — its reciprocal carries the same type.",
     },
+    {
+      constraint: "relationship_types_inverse_key_not_self",
+      message:
+        "A type cannot be its own inverse. Mark it symmetric instead — that is what symmetry means.",
+    },
   ],
   byCode: {
     [PG_UNIQUE_VIOLATION]: "A relationship type with that key already exists.",
+    // Raised by pair_relationship_type_inverse (00032/ADR-0043) when the chosen
+    // inverse is a symmetric type. Writing the pairing back to it would breach
+    // relationship_types_symmetric_has_no_inverse on a row the admin never
+    // edited, so the pairing helper refuses first and names the offender.
+    "22023":
+      "That type is symmetric, so it can't be used as an inverse. Pick a directed type.",
+    // set_relationship_type raises this when the row it was asked to update no
+    // longer resolves — deleted, or invisible under RLS.
+    P0002: "Couldn’t find that type. It may have just been deleted.",
   },
 } as const;
 
+/**
+ * The four columns that encode a type's reciprocal semantics. They move as one
+ * unit — see {@link updateRelationshipType}.
+ */
+const SYMMETRY_FIELDS = [
+  "is_symmetric",
+  "inverse_key",
+  "direction_verb",
+  "symmetric_noun",
+] as const;
+
+/**
+ * Create a type and pair its inverse in one transaction.
+ *
+ * Goes through `create_relationship_type` (00032/ADR-0043) rather than a plain
+ * insert, for the same reason {@link createRelationshipRole} does one level
+ * down: if `inverse_key` names another type, the RPC also points that type's
+ * `inverse_key` back. A plain insert would leave the pairing one-sided, and the
+ * reciprocal writer in `character-relationship-service` takes involution as
+ * given — it resolves a reciprocal row's type through `inverse_key` and later
+ * goes looking for exactly that row again.
+ */
 export async function createRelationshipType(
   client: SupabaseClient<Database>,
   input: RelationshipTypeCreateInput,
 ): Promise<RelationshipTypeRow> {
   const values = relationshipTypeCreateSchema.parse(input);
 
-  const { data, error } = await client
-    .from("relationship_types")
-    .insert(values)
-    .select()
-    .single();
+  const { data, error } = await client.rpc("create_relationship_type", {
+    p_key: values.key,
+    p_label: values.label,
+    p_category_key: values.category_key,
+    p_sort_order: values.sort_order,
+    p_is_symmetric: values.is_symmetric,
+    // The generated RPC arg type is `string`, not `string | null` — the
+    // Supabase generator never models nullable function parameters.
+    p_inverse_key: values.inverse_key as unknown as string,
+    p_direction_verb: values.direction_verb as unknown as string,
+    p_symmetric_noun: values.symmetric_noun as unknown as string,
+    p_description: values.description as unknown as string,
+    p_is_active: values.is_active,
+  });
 
   assertNoWriteError(error, "createRelationshipType", TYPE_WRITE_ERRORS);
-  return data;
+  return data as RelationshipTypeRow;
 }
 
 /**
- * Update a type.
+ * Update a type and re-pair its inverse in one transaction.
  *
- * The symmetry invariant is checked against the *merged* row, not the patch: a
- * patch that sets only `is_symmetric: true` is individually harmless but
- * illegal against a row that already carries an inverse. Reading first costs a
- * round trip and is worth it — the alternative is surfacing a bare 23514 for a
- * field the user never touched.
+ * `set_relationship_type` (00032/ADR-0043) merges the patch *inside* the
+ * function, under the lock it already takes. This used to read the current row
+ * first and merge here, because the symmetry invariant can only be judged
+ * against the merged row — a patch setting only `is_symmetric: true` is
+ * individually harmless but illegal against a row that already carries an
+ * inverse. That read was not covered by the write's lock, so two concurrent
+ * partial patches could each merge the same pre-edit snapshot and the later
+ * write would silently revert the earlier one (ADR-0042 NEG-003, the same
+ * defect one level up). Merging under the lock removes both problems at once:
+ * the CHECK now sees a coherent row by construction.
+ *
+ * Only the fields this patch actually names are sent, so the function can tell
+ * "not mentioned" from "explicitly set". `p_label`/`p_category_key`/
+ * `p_sort_order`/`p_is_active` default to leaving the column alone when
+ * omitted (none has NULL as a legal value); `description`, where NULL means
+ * "no text", is governed by `p_set_description`.
+ *
+ * The four symmetry columns are sent as one unit behind `p_set_symmetry`. They
+ * are mutually constrained — a symmetric type must carry no inverse and reads
+ * with `symmetric_noun`, a directed one reads with `direction_verb` — so a
+ * patch moving one without the others could only produce a row the CHECK
+ * rejects or the UI cannot render. Callers that state part of the group are
+ * rejected here rather than silently having the rest cleared.
  */
 export async function updateRelationshipType(
   client: SupabaseClient<Database>,
@@ -308,32 +400,46 @@ export async function updateRelationshipType(
 ): Promise<RelationshipTypeRow> {
   const values = relationshipTypeUpdateSchema.parse(patch);
 
-  if (values.is_symmetric !== undefined || values.inverse_key !== undefined) {
-    const { data: current, error: readError } = await client
-      .from("relationship_types")
-      .select("is_symmetric, inverse_key")
-      .eq("key", key)
-      .single();
-
-    assertNoError(readError, "updateRelationshipType");
-    assertSymmetryInvariant({
-      is_symmetric: values.is_symmetric ?? current.is_symmetric,
-      inverse_key:
-        values.inverse_key !== undefined
-          ? values.inverse_key
-          : current.inverse_key,
-    });
+  const statedSymmetryFields = SYMMETRY_FIELDS.filter(
+    (field) => values[field] !== undefined,
+  );
+  if (
+    statedSymmetryFields.length > 0 &&
+    statedSymmetryFields.length < SYMMETRY_FIELDS.length
+  ) {
+    throw new Error(
+      `RelationshipTypeService.updateRelationshipType: a symmetry patch must state all of ${SYMMETRY_FIELDS.join(", ")} together; got only ${statedSymmetryFields.join(", ")}.`,
+    );
   }
+  const setsSymmetry = statedSymmetryFields.length === SYMMETRY_FIELDS.length;
 
-  const { data, error } = await client
-    .from("relationship_types")
-    .update(values)
-    .eq("key", key)
-    .select()
-    .single();
+  const { data, error } = await client.rpc("set_relationship_type", {
+    p_key: key,
+    ...(values.label !== undefined && { p_label: values.label }),
+    ...(values.category_key !== undefined && {
+      p_category_key: values.category_key,
+    }),
+    ...(values.sort_order !== undefined && {
+      p_sort_order: values.sort_order,
+    }),
+    ...(values.is_active !== undefined && { p_is_active: values.is_active }),
+    // Each flag is sent with the value(s) it governs, never independently, so
+    // it cannot drift from them.
+    ...(values.description !== undefined && {
+      p_description: values.description as unknown as string,
+      p_set_description: true,
+    }),
+    ...(setsSymmetry && {
+      p_is_symmetric: values.is_symmetric,
+      p_inverse_key: values.inverse_key as unknown as string,
+      p_direction_verb: values.direction_verb as unknown as string,
+      p_symmetric_noun: values.symmetric_noun as unknown as string,
+      p_set_symmetry: true,
+    }),
+  });
 
   assertNoWriteError(error, "updateRelationshipType", TYPE_WRITE_ERRORS);
-  return data;
+  return data as RelationshipTypeRow;
 }
 
 /**
@@ -349,12 +455,14 @@ export async function deleteRelationshipType(
   client: SupabaseClient<Database>,
   key: string,
 ): Promise<void> {
-  const { error } = await client
+  const { data, error } = await client
     .from("relationship_types")
     .delete()
-    .eq("key", key);
+    .eq("key", key)
+    .select("key");
 
   assertNoWriteError(error, "deleteRelationshipType", TYPE_WRITE_ERRORS);
+  assertDeletedSomething(data, "deleteRelationshipType", "type");
 }
 
 /* ---------------------------------------------------------------- *
@@ -466,13 +574,15 @@ export async function deleteRelationshipRole(
   typeKey: string,
   key: string,
 ): Promise<void> {
-  const { error } = await client
+  const { data, error } = await client
     .from("relationship_roles")
     .delete()
     .eq("type_key", typeKey)
-    .eq("key", key);
+    .eq("key", key)
+    .select("type_key, key");
 
   assertNoWriteError(error, "deleteRelationshipRole", ROLE_WRITE_ERRORS);
+  assertDeletedSomething(data, "deleteRelationshipRole", "sub-role");
 }
 
 /* ---------------------------------------------------------------- *

@@ -180,8 +180,11 @@ export const relationshipTypeCreateSchema = typeFieldsSchema
  * Partial update. The symmetry check deliberately does *not* live here: a
  * refinement sees the patch, not the merged row, so a patch setting only
  * `is_symmetric: true` has no `inverse_key` to test against and would pass
- * while still producing an illegal row. The service applies
- * {@link assertSymmetryInvariant} to the merged result instead.
+ * while still producing an illegal row. Since
+ * `00032_relationship_type_inverse_integrity.sql` (ADR-0043) the merged row is
+ * assembled inside `set_relationship_type`, under its lock, and judged there by
+ * the `relationship_types_symmetric_has_no_inverse` CHECK — which is why no
+ * client-side merged-row guard exists any more.
  */
 export const relationshipTypeUpdateSchema = typeFieldsSchema
   .omit({ key: true })
@@ -215,24 +218,6 @@ export const relationshipRoleCreateSchema = roleFieldsSchema.extend({
 export const relationshipRoleUpdateSchema = roleFieldsSchema
   .omit({ type_key: true, key: true })
   .partial();
-
-/**
- * Guard the symmetry invariant on a merged type row. Used by the update path,
- * where the patch alone is not enough to decide (see
- * {@link relationshipTypeUpdateSchema}).
- *
- * @throws if the row is both symmetric and carries an inverse.
- */
-export function assertSymmetryInvariant(row: {
-  is_symmetric: boolean;
-  inverse_key: string | null;
-}): void {
-  if (row.is_symmetric && row.inverse_key !== null) {
-    throw new Error(
-      "A symmetric type cannot have an inverse — its reciprocal carries the same type.",
-    );
-  }
-}
 
 export type RelationshipCategoryCreateInput = z.input<
   typeof relationshipCategoryCreateSchema

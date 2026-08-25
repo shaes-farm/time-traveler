@@ -55,36 +55,8 @@ function makeClient(result: Result) {
 }
 
 /**
- * A client whose first `single()` resolves `first` and whose subsequent ones
- * resolve `second` — the read-then-write shape `updateRelationshipType` uses
- * to check the symmetry invariant against the merged row.
- */
-function makeReadThenWriteClient(first: Result, second: Result) {
-  const shape = (r: Result) => ({
-    data: r.data ?? null,
-    error: r.error ?? null,
-    count: r.count ?? null,
-  });
-  const single = vi
-    .fn()
-    .mockResolvedValueOnce(shape(first))
-    .mockResolvedValue(shape(second));
-  const builder = {
-    select: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single,
-  };
-  const client = { from: vi.fn().mockReturnValue(builder) };
-  return {
-    client: client as unknown as SupabaseClient<Database>,
-    builder,
-  };
-}
-
-/**
- * A client with `.rpc()` only — what `createRelationshipRole` calls directly
- * (00031/ADR-0042), no preceding read.
+ * A client with `.rpc()` only — what the type and role write paths call
+ * directly (00031/ADR-0042, 00032/ADR-0043), no preceding read.
  */
 function makeRpcClient(result: Result) {
   const rpc = vi.fn().mockResolvedValue({
@@ -200,11 +172,22 @@ describe("updateRelationshipCategory", () => {
 
 describe("deleteRelationshipCategory", () => {
   it("deletes by key", async () => {
-    const { client, from, builder } = makeClient({});
+    const { client, from, builder } = makeClient({ data: [{ key: "family" }] });
     await deleteRelationshipCategory(client, "family");
     expect(from).toHaveBeenCalledWith("relationship_categories");
     expect(builder.delete).toHaveBeenCalled();
     expect(builder.eq).toHaveBeenCalledWith("key", "family");
+  });
+
+  it("fails rather than reporting success when the delete matched no rows", async () => {
+    // PostgREST reports a zero-row delete as a success. The inspector toasts
+    // `Deleted "X"` and navigates away on resolve, so without this the user is
+    // told something happened that did not — two admins on the same row, or a
+    // row the is_admin() DELETE policy filtered out.
+    const { client } = makeClient({ data: [] });
+    await expect(deleteRelationshipCategory(client, "family")).rejects.toThrow(
+      /group no longer exists, or you no longer have permission/,
+    );
   });
 
   it("explains a RESTRICT failure instead of leaking the constraint name", async () => {
@@ -224,8 +207,11 @@ describe("deleteRelationshipCategory", () => {
 // ---- types ---------------------------------------------------------------
 
 describe("createRelationshipType", () => {
-  it("inserts a symmetric type with its defaults", async () => {
-    const { client, from, builder } = makeClient({ data: TYPE_ROW });
+  it("creates a symmetric type with its defaults via the pairing RPC", async () => {
+    // 00032/ADR-0043: create_relationship_type inserts and pairs the named
+    // inverse in one transaction, rather than a plain insert that would leave a
+    // fresh pairing one-sided until something else touched the partner.
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
 
     await createRelationshipType(client, {
       key: "friendship",
@@ -234,21 +220,24 @@ describe("createRelationshipType", () => {
       symmetric_noun: "friends",
     });
 
-    expect(from).toHaveBeenCalledWith("relationship_types");
-    expect(builder.insert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        key: "friendship",
-        is_symmetric: true,
-        inverse_key: null,
-        symmetric_noun: "friends",
-      }),
-    );
+    expect(rpc).toHaveBeenCalledWith("create_relationship_type", {
+      p_key: "friendship",
+      p_label: "Friendship",
+      p_category_key: "social",
+      p_sort_order: 0,
+      p_is_symmetric: true,
+      p_inverse_key: null,
+      p_direction_verb: null,
+      p_symmetric_noun: "friends",
+      p_description: null,
+      p_is_active: true,
+    });
   });
 
   it("rejects a symmetric type carrying an inverse before it reaches the DB", async () => {
     // Mirrors `relationship_types_symmetric_has_no_inverse`; catching it here
     // turns a bare 23514 into a field-level message.
-    const { client, from } = makeClient({ data: TYPE_ROW });
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
     await expect(
       createRelationshipType(client, {
         key: "friendship",
@@ -258,11 +247,11 @@ describe("createRelationshipType", () => {
         inverse_key: "enmity",
       }),
     ).rejects.toThrow();
-    expect(from).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it("accepts a directed type with an inverse", async () => {
-    const { client } = makeClient({ data: TYPE_ROW });
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
     await expect(
       createRelationshipType(client, {
         key: "mentor_student",
@@ -272,11 +261,15 @@ describe("createRelationshipType", () => {
         inverse_key: "student_mentor",
       }),
     ).resolves.toEqual(TYPE_ROW);
+    expect(rpc).toHaveBeenCalledWith(
+      "create_relationship_type",
+      expect.objectContaining({ p_inverse_key: "student_mentor" }),
+    );
   });
 
   it("accepts a directed type with no reciprocal at all", async () => {
     // The CHECK is one-directional: only symmetric+inverse is illegal.
-    const { client } = makeClient({ data: TYPE_ROW });
+    const { client } = makeRpcClient({ data: TYPE_ROW });
     await expect(
       createRelationshipType(client, {
         key: "influenced",
@@ -286,76 +279,140 @@ describe("createRelationshipType", () => {
       }),
     ).resolves.toEqual(TYPE_ROW);
   });
+
+  it("explains an inverse naming a symmetric type", async () => {
+    // pair_relationship_type_inverse refuses before writing back to it, rather
+    // than letting the CHECK fire on a row the admin never edited.
+    const { client } = makeRpcClient({
+      error: { code: "22023", message: "is symmetric and cannot be used" },
+    });
+    await expect(
+      createRelationshipType(client, {
+        key: "mentor_student",
+        label: "Mentor",
+        category_key: "professional",
+        is_symmetric: false,
+        inverse_key: "friendship",
+      }),
+    ).rejects.toThrow(/can't be used as an inverse. Pick a directed type/);
+  });
 });
 
 describe("updateRelationshipType", () => {
-  it("sends only the named fields and skips the invariant read", async () => {
-    const { client, builder } = makeClient({ data: TYPE_ROW });
+  it("sends only the fields the patch actually names", async () => {
+    // The ▲▼ reorder patch. set_relationship_type merges under its own lock now
+    // (00032/ADR-0043), so the service must not read the row and merge
+    // client-side — two concurrent partial patches would each merge a stale
+    // snapshot and the later write would silently revert the earlier one.
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
 
     await updateRelationshipType(client, "mentor_student", { sort_order: 20 });
 
-    expect(builder.update).toHaveBeenCalledWith({ sort_order: 20 });
-    // No symmetry column touched → no reason to pay for the invariant read.
-    // The write itself ends in one `.single()`; a preceding read would be two.
-    expect(builder.single).toHaveBeenCalledTimes(1);
+    expect(rpc).toHaveBeenCalledWith("set_relationship_type", {
+      p_key: "mentor_student",
+      p_sort_order: 20,
+    });
   });
 
-  it("rejects making a type symmetric while it still carries an inverse", async () => {
-    // The patch alone looks harmless; only the merged row is illegal, which is
-    // why the check cannot live in the schema refinement.
-    const { client, builder } = makeReadThenWriteClient(
-      { data: { is_symmetric: false, inverse_key: "student_mentor" } },
-      { data: TYPE_ROW },
-    );
+  it("sends nothing beyond the key when the patch is empty", async () => {
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
+
+    await updateRelationshipType(client, "mentor_student", {});
+
+    expect(rpc).toHaveBeenCalledWith("set_relationship_type", {
+      p_key: "mentor_student",
+    });
+  });
+
+  it("sends the whole symmetry quad with its set-flag, and only together", async () => {
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
+
+    await updateRelationshipType(client, "mentor_student", {
+      is_symmetric: false,
+      inverse_key: "student_mentor",
+      direction_verb: "mentors",
+      symmetric_noun: null,
+    });
+
+    expect(rpc).toHaveBeenCalledWith("set_relationship_type", {
+      p_key: "mentor_student",
+      p_is_symmetric: false,
+      p_inverse_key: "student_mentor",
+      p_direction_verb: "mentors",
+      p_symmetric_noun: null,
+      p_set_symmetry: true,
+    });
+  });
+
+  it("refuses a patch that states part of the symmetry quad", async () => {
+    // The four columns are mutually constrained, and the RPC writes them as a
+    // unit — a partial patch could only clear the ones it left out. The admin
+    // form already groups them (`symmetryFields`); this makes that binding.
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
 
     await expect(
       updateRelationshipType(client, "mentor_student", { is_symmetric: true }),
-    ).rejects.toThrow(/symmetric type cannot have an inverse/);
-    expect(builder.update).not.toHaveBeenCalled();
+    ).rejects.toThrow(/must state all of .* together/);
+    expect(rpc).not.toHaveBeenCalled();
   });
 
-  it("allows making a type symmetric when the inverse is cleared in the same patch", async () => {
-    const { client, builder } = makeReadThenWriteClient(
-      { data: { is_symmetric: false, inverse_key: "student_mentor" } },
-      { data: TYPE_ROW },
-    );
+  it("clears a pairing with an explicit null across the whole quad", async () => {
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
 
     await updateRelationshipType(client, "mentor_student", {
       is_symmetric: true,
       inverse_key: null,
+      direction_verb: null,
+      symmetric_noun: "peers",
     });
 
-    expect(builder.update).toHaveBeenCalledWith({
-      is_symmetric: true,
-      inverse_key: null,
-    });
+    expect(rpc).toHaveBeenCalledWith(
+      "set_relationship_type",
+      expect.objectContaining({ p_inverse_key: null, p_set_symmetry: true }),
+    );
   });
 
-  it("allows adding an inverse to an already-asymmetric type", async () => {
-    const { client, builder } = makeReadThenWriteClient(
-      { data: { is_symmetric: false, inverse_key: null } },
-      { data: TYPE_ROW },
-    );
+  it("sends description with its own set-flag, distinct from not mentioning it", async () => {
+    const { client, rpc } = makeRpcClient({ data: TYPE_ROW });
 
     await updateRelationshipType(client, "mentor_student", {
-      inverse_key: "student_mentor",
+      description: null,
     });
 
-    expect(builder.update).toHaveBeenCalledWith({
-      inverse_key: "student_mentor",
+    expect(rpc).toHaveBeenCalledWith("set_relationship_type", {
+      p_key: "mentor_student",
+      p_description: null,
+      p_set_description: true,
     });
   });
 
-  it("contextualises a failure reading the current row", async () => {
-    const { client } = makeReadThenWriteClient(
-      { error: { message: "row not found" } },
-      { data: TYPE_ROW },
-    );
+  it("maps an unresolved update target to a friendly message", async () => {
+    // set_relationship_type raises no_data_found (P0002) when the row it was
+    // told to update doesn't resolve — deleted, or invisible under RLS.
+    const { client } = makeRpcClient({
+      error: { code: "P0002", message: "no_data_found" },
+    });
     await expect(
-      updateRelationshipType(client, "ghost", { is_symmetric: true }),
-    ).rejects.toThrow(
-      "RelationshipTypeService.updateRelationshipType: row not found",
-    );
+      updateRelationshipType(client, "ghost", { label: "X" }),
+    ).rejects.toThrow(/Couldn.t find that type/);
+  });
+
+  it("explains an attempt to make a type its own inverse", async () => {
+    const { client } = makeRpcClient({
+      error: {
+        code: "23514",
+        message:
+          'violates check constraint "relationship_types_inverse_key_not_self"',
+      },
+    });
+    await expect(
+      updateRelationshipType(client, "mentor_student", {
+        is_symmetric: false,
+        inverse_key: "mentor_student",
+        direction_verb: "mentors",
+        symmetric_noun: null,
+      }),
+    ).rejects.toThrow(/cannot be its own inverse. Mark it symmetric instead/);
   });
 });
 
@@ -374,11 +431,18 @@ describe("deleteRelationshipType", () => {
   });
 
   it("deletes an unused type", async () => {
-    const { client, builder } = makeClient({});
+    const { client, builder } = makeClient({ data: [{ key: "typo_type" }] });
     await expect(
       deleteRelationshipType(client, "typo_type"),
     ).resolves.toBeUndefined();
     expect(builder.eq).toHaveBeenCalledWith("key", "typo_type");
+  });
+
+  it("fails rather than reporting success when the delete matched no rows", async () => {
+    const { client } = makeClient({ data: [] });
+    await expect(deleteRelationshipType(client, "typo_type")).rejects.toThrow(
+      /type no longer exists, or you no longer have permission/,
+    );
   });
 });
 
@@ -550,10 +614,21 @@ describe("relationship roles", () => {
 
   describe("deleteRelationshipRole", () => {
     it("deletes by the composite key", async () => {
-      const { client, builder } = makeClient({});
+      const { client, builder } = makeClient({
+        data: [{ type_key: "family", key: "parent" }],
+      });
       await deleteRelationshipRole(client, "family", "parent");
       expect(builder.eq).toHaveBeenCalledWith("type_key", "family");
       expect(builder.eq).toHaveBeenCalledWith("key", "parent");
+    });
+
+    it("fails rather than reporting success when the delete matched no rows", async () => {
+      const { client } = makeClient({ data: [] });
+      await expect(
+        deleteRelationshipRole(client, "family", "parent"),
+      ).rejects.toThrow(
+        /sub-role no longer exists, or you no longer have permission/,
+      );
     });
   });
 });
