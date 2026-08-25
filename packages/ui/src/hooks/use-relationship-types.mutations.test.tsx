@@ -169,6 +169,46 @@ describe("vocabulary mutations invalidate the vocabulary cache", () => {
     },
   );
 
+  it("holds mutateAsync open until the refetch settles", async () => {
+    // The vocabulary inspectors navigate to the saved row inside the
+    // `await mutateAsync` continuation, and the manager shell renders
+    // "This group no longer exists." for a key its cached tree doesn't hold.
+    // If `onSuccess` voided the invalidation promise (as every other hook
+    // module here does), a create would resolve against the stale tree and
+    // flash that not-found for a row it had just created.
+    createRelationshipType.mockResolvedValue({ key: "friendship", label: "F" });
+    const { wrapper, invalidateSpy } = createWrapper();
+
+    let releaseRefetch: () => void = () => {};
+    const refetchDone = new Promise<void>((resolve) => {
+      releaseRefetch = resolve;
+    });
+    invalidateSpy.mockReturnValue(refetchDone);
+
+    const { result } = renderHook(() => useCreateRelationshipType(client), {
+      wrapper,
+    });
+
+    let settled = false;
+    const mutation = result.current
+      .mutateAsync({
+        key: "friendship",
+        label: "F",
+        category_key: "social",
+      } as never)
+      .then(() => {
+        settled = true;
+      });
+
+    // The service call has resolved; only the refetch is outstanding.
+    await waitFor(() => expect(invalidateSpy).toHaveBeenCalled());
+    expect(settled).toBe(false);
+
+    releaseRefetch();
+    await mutation;
+    expect(settled).toBe(true);
+  });
+
   it("does not invalidate when the mutation fails", async () => {
     createRelationshipType.mockRejectedValue(new Error("permission denied"));
     const { wrapper, invalidateSpy } = createWrapper();

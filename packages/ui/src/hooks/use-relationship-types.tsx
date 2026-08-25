@@ -10,7 +10,7 @@
  */
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import {
   useMutation,
   useQuery,
@@ -212,11 +212,24 @@ export function useRelationshipRoleInverseReferences(
  * so `all` is the only key that covers both.
  * ---------------------------------------------------------------- */
 
-/** Invalidate every cached view of the vocabulary. */
+/**
+ * Invalidate every cached view of the vocabulary.
+ *
+ * Returns the promise rather than voiding it, which is what makes `onSuccess`
+ * hold the mutation open until the refetch settles. Every other hook module in
+ * this package voids its invalidations; this one must not, because the
+ * vocabulary inspectors navigate to the saved row *inside* the `await
+ * mutateAsync` continuation. Resolving early would land that navigation on a
+ * tree that does not contain the new key yet, and the manager shell renders
+ * "This group no longer exists." for exactly that case — a create would flash
+ * a not-found for a row it had just created successfully.
+ */
 function useInvalidateVocabulary() {
   const queryClient = useQueryClient();
-  return () =>
-    void queryClient.invalidateQueries({ queryKey: relationshipTypeKeys.all });
+  return useCallback(
+    () => queryClient.invalidateQueries({ queryKey: relationshipTypeKeys.all }),
+    [queryClient],
+  );
 }
 
 export function useCreateRelationshipCategory(client: ServiceClient) {
