@@ -1514,6 +1514,40 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      create_relationship_type: {
+        Args: {
+          p_category_key: string;
+          p_description: string;
+          p_direction_verb: string;
+          p_inverse_key: string;
+          p_is_active: boolean;
+          p_is_symmetric: boolean;
+          p_key: string;
+          p_label: string;
+          p_sort_order: number;
+          p_symmetric_noun: string;
+        };
+        Returns: {
+          category_key: string;
+          created_at: string | null;
+          description: string | null;
+          direction_verb: string | null;
+          inverse_key: string | null;
+          is_active: boolean;
+          is_symmetric: boolean;
+          key: string;
+          label: string;
+          sort_order: number;
+          symmetric_noun: string | null;
+          updated_at: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "relationship_types";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       delete_category_reparenting_children: {
         Args: { p_category_id: string };
         Returns: undefined;
@@ -1619,6 +1653,10 @@ export type Database = {
         Args: { p_inverse_key: string; p_key: string; p_type_key: string };
         Returns: undefined;
       };
+      pair_relationship_type_inverse: {
+        Args: { p_inverse_key: string; p_key: string };
+        Returns: undefined;
+      };
       set_relationship_role: {
         Args: {
           p_inverse_key?: string;
@@ -1640,6 +1678,42 @@ export type Database = {
         SetofOptions: {
           from: "*";
           to: "relationship_roles";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
+      set_relationship_type: {
+        Args: {
+          p_category_key?: string;
+          p_description?: string;
+          p_direction_verb?: string;
+          p_inverse_key?: string;
+          p_is_active?: boolean;
+          p_is_symmetric?: boolean;
+          p_key: string;
+          p_label?: string;
+          p_set_description?: boolean;
+          p_set_symmetry?: boolean;
+          p_sort_order?: number;
+          p_symmetric_noun?: string;
+        };
+        Returns: {
+          category_key: string;
+          created_at: string | null;
+          description: string | null;
+          direction_verb: string | null;
+          inverse_key: string | null;
+          is_active: boolean;
+          is_symmetric: boolean;
+          key: string;
+          label: string;
+          sort_order: number;
+          symmetric_noun: string | null;
+          updated_at: string | null;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "relationship_types";
           isOneToOne: true;
           isSetofReturn: false;
         };

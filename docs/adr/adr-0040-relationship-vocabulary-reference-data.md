@@ -15,7 +15,7 @@ tags:
 supersedes: ""
 superseded_by: ""
 amends: "ADR-0008 (character relationships as directed pairs); ADR-0009 (relationship_role sub-role taxonomy)"
-amended_by: "ADR-0041 (admin CRUD surface; key rename withheld from the UI)"
+amended_by: "ADR-0041 (admin CRUD surface; key rename withheld from the UI); ADR-0042 (role-level inverse integrity); ADR-0043 (type-level inverse integrity; closes NEG-006)"
 ---
 
 # ADR-0040: Relationship vocabulary as reference data
