@@ -397,9 +397,13 @@ describe("TypeInspector — destructive actions", () => {
     // Usage resolving must not be enough on its own — the informational
     // inverse-reference warning has to have a chance to load too, or an
     // admin could delete before ever seeing it.
-    let resolveInverseRefs!: (value: number) => void;
+    // Optional rather than a definite-assignment assertion: `!` would assert
+    // away the one thing worth checking. If the component never calls the
+    // mocked service, the resolver is never captured, and the narrowing below
+    // says so instead of throwing an opaque "not a function".
+    let resolveInverseRefs: ((value: number) => void) | undefined;
     countRelationshipTypeInverseReferences.mockReturnValue(
-      new Promise((resolve) => {
+      new Promise<number>((resolve) => {
         resolveInverseRefs = resolve;
       }),
     );
@@ -416,6 +420,11 @@ describe("TypeInspector — destructive actions", () => {
       screen.getByRole("button", { name: "Delete permanently" }),
     ).toBeDisabled();
 
+    if (resolveInverseRefs === undefined) {
+      throw new Error(
+        "countRelationshipTypeInverseReferences was never called, so the pending promise this test hangs the assertion on was never created.",
+      );
+    }
     resolveInverseRefs(0);
     await waitFor(() =>
       expect(
