@@ -294,6 +294,67 @@ describe("VocabularyManagerShell — a stale or mistyped deep link", () => {
   });
 });
 
+/**
+ * The guard has to distinguish two navigations that look identical from the
+ * shell's side: the one a user starts while an edit is unsaved (prompt), and
+ * the one an inspector starts *after* saving (never prompt).
+ *
+ * They are hard to tell apart because an inspector reports its dirty state up
+ * through an effect, so at the moment `onSaved` fires — synchronously after
+ * `form.reset()` and before React has re-rendered — the shell's `isDirty` is
+ * still `true` from before the save. Routing that through the guard prompted
+ * the user to discard the changes they had just written, and because the
+ * dialog is modal it also took the tree out of the accessibility tree behind
+ * it. Both e2e specs for this manager failed on it.
+ */
+describe("VocabularyManagerShell — the unsaved-changes guard", () => {
+  it("does not prompt after a successful save", async () => {
+    const user = userEvent.setup();
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    updateRelationshipCategory.mockResolvedValue({
+      ...CATEGORIES[0],
+      label: "Kin",
+    });
+    searchParams = new URLSearchParams({ level: "category", key: "family" });
+    renderShell();
+
+    const label = await screen.findByLabelText("Label");
+    await user.clear(label);
+    await user.type(label, "Kin");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(updateRelationshipCategory).toHaveBeenCalled());
+    expect(
+      screen.queryByRole("heading", { name: "Discard unsaved changes?" }),
+    ).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith(
+        "/admin/relationship-vocabulary?level=category&key=family",
+      ),
+    );
+  });
+
+  it("still prompts when the user navigates away with the edit unsaved", async () => {
+    // The bypass above must not disarm the guard for real navigations.
+    const user = userEvent.setup();
+    listRelationshipCategories.mockResolvedValue(CATEGORIES);
+    searchParams = new URLSearchParams({ level: "category", key: "family" });
+    renderShell();
+
+    const label = await screen.findByLabelText("Label");
+    await user.clear(label);
+    await user.type(label, "Kin");
+    await user.click(
+      await screen.findByRole("treeitem", { name: /Professional/ }),
+    );
+
+    expect(
+      await screen.findByRole("heading", { name: "Discard unsaved changes?" }),
+    ).toBeInTheDocument();
+    expect(replace).not.toHaveBeenCalled();
+  });
+});
+
 describe("VocabularyManagerShell — reordering", () => {
   it("swaps sort_order with the adjacent sibling", async () => {
     const user = userEvent.setup();

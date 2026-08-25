@@ -63,6 +63,20 @@ export function useUnsavedChangesGuard(
 
   return {
     requestNavigate,
+    /**
+     * Navigate without consulting the guard.
+     *
+     * For navigations that *follow* a successful save, where there is nothing
+     * left to discard. Those cannot go through `requestNavigate`: an editor
+     * reports its dirty state up through an effect, so right after
+     * `form.reset()` — and before React has re-rendered — `isDirty` here is
+     * still the stale `true` from before the save, and the guard would prompt
+     * to discard changes that were just written.
+     *
+     * Use only where the save has already resolved. Every user-initiated
+     * navigation belongs on `requestNavigate`.
+     */
+    navigateNow: navigate,
     isConfirmOpen: pendingHref !== null,
     confirmNavigation,
     cancelNavigation,

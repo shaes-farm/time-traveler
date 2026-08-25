@@ -103,17 +103,30 @@ export function VocabularyManagerShell() {
   const selection = parseSelection(searchParams);
 
   const select = React.useCallback(
-    (next: VocabularySelection | null) => {
+    (
+      next: VocabularySelection | null,
+      /**
+       * Set by the navigations that follow a successful save. An inspector
+       * reports its dirty state up through an effect, so at the moment
+       * `onSaved` runs — synchronously after `form.reset()`, before React has
+       * re-rendered — `isDirty` here is still `true` from before the save.
+       * Routing that through the guard prompts the user to discard the changes
+       * they just saved, and the modal then hides the tree behind it. There is
+       * nothing to discard after a save, so it navigates outright.
+       */
+      options?: { afterSave?: boolean },
+    ) => {
+      const navigate = options?.afterSave
+        ? guard.navigateNow
+        : guard.requestNavigate;
       if (!next) {
-        guard.requestNavigate("/admin/relationship-vocabulary");
+        navigate("/admin/relationship-vocabulary");
         return;
       }
       const params = new URLSearchParams({ level: next.level });
       if (next.key) params.set("key", next.key);
       if (next.parentKey) params.set("parent", next.parentKey);
-      guard.requestNavigate(
-        `/admin/relationship-vocabulary?${params.toString()}`,
-      );
+      navigate(`/admin/relationship-vocabulary?${params.toString()}`);
     },
     [guard],
   );
@@ -361,7 +374,10 @@ function Inspector({
   client: SupabaseClient;
   categories: RelationshipCategoryMeta[];
   selection: VocabularySelection | null;
-  onSelect: (selection: VocabularySelection | null) => void;
+  onSelect: (
+    selection: VocabularySelection | null,
+    options?: { afterSave?: boolean },
+  ) => void;
 }) {
   if (!selection) {
     return (
@@ -389,7 +405,9 @@ function Inspector({
         client={client}
         category={category}
         defaultSortOrder={nextSortOrder(categories)}
-        onSaved={(key) => onSelect({ level: "category", key })}
+        onSaved={(key) =>
+          onSelect({ level: "category", key }, { afterSave: true })
+        }
         onDeleted={() => onSelect(null)}
         onCancel={() => onSelect(null)}
       />
@@ -416,7 +434,7 @@ function Inspector({
         type={type}
         defaultCategoryKey={parentCategoryKey}
         defaultSortOrder={nextSortOrder(siblings)}
-        onSaved={(key) => onSelect({ level: "type", key })}
+        onSaved={(key) => onSelect({ level: "type", key }, { afterSave: true })}
         // Land on the parent group rather than clearing the selection. Beyond
         // being a sensible place to end up, it keeps the tree where it was:
         // the Tree reveals a selected node by expanding its ancestors, so
@@ -470,7 +488,10 @@ function Inspector({
       role={role}
       defaultSortOrder={nextSortOrder(parentType.roles)}
       onSaved={(key) =>
-        onSelect({ level: "role", key, parentKey: parentTypeKey })
+        onSelect(
+          { level: "role", key, parentKey: parentTypeKey },
+          { afterSave: true },
+        )
       }
       // Land on the parent type — see the note on TypeInspector's onDeleted.
       onDeleted={() => onSelect({ level: "type", key: parentTypeKey })}
