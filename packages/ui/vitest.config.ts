@@ -41,6 +41,7 @@ export default defineConfig({
         "src/hooks/use-media.tsx",
         "src/hooks/use-periods.tsx",
         "src/hooks/use-profiles.tsx",
+        "src/hooks/use-relationship-types.tsx",
         "src/hooks/use-stories.tsx",
         "src/hooks/use-timelines.tsx",
         "src/stores/navigation-store.ts",

@@ -1,5 +1,5 @@
 import { createServiceRoleClient } from "./supabase-admin";
-import { TEST_USER } from "./test-user";
+import { SEEDED_ACCOUNT_EMAILS } from "./test-user";
 
 /**
  * Prefix-wide sweeps for e2e-created rows — the safety net beneath the
@@ -47,6 +47,26 @@ const E2E_SLUG_PREFIX = "e2e-";
 const E2E_EMAIL_PATTERN = /^e2e-.+@timetraveler\.test$/;
 
 /**
+ * Vocabulary rows the admin specs create, in dependency-safe order.
+ *
+ * **Roles before types before categories** — `relationship_types.category_key`
+ * and `character_relationships.relationship_type` are both `ON DELETE RESTRICT`,
+ * so a category cannot go while it still holds a type.
+ *
+ * The prefix is `e2e_`, with an **underscore**, not the `e2e-` used for every
+ * content slug: vocabulary keys are validated against `^[a-z][a-z0-9_]*$` and a
+ * hyphen is not a legal key character.
+ */
+const VOCABULARY_SWEEP_ORDER = [
+  "relationship_roles",
+  "relationship_types",
+  "relationship_categories",
+] as const;
+
+/** Key prefix every e2e-created vocabulary row shares. */
+const E2E_KEY_PREFIX = "e2e\\_";
+
+/**
  * Delete every `e2e-`-slugged row owned by `userId`, across all seven content
  * tables, in {@link SWEEP_ORDER}.
  *
@@ -69,6 +89,37 @@ export async function sweepE2eContent(userId: string): Promise<void> {
     // accumulated in the first place.
     if (error) {
       throw new Error(`sweepE2eContent failed on ${table}: ${error.message}`);
+    }
+  }
+}
+
+/**
+ * Delete every `e2e_`-keyed relationship vocabulary row.
+ *
+ * Unlike content, the vocabulary is global reference data with no `user_id`, so
+ * this sweep is prefix-scoped rather than owner-scoped. That makes it the more
+ * dangerous of the two sweeps and the reason the prefix is matched with an
+ * escaped underscore: in `ilike`, a bare `_` is a single-character wildcard, so
+ * `e2e_%` would also match `e2ex…`, and the seeded vocabulary — which the
+ * `00030` pgTAP suite asserts exact row counts for — is not something to delete
+ * by accident.
+ *
+ * Stranded rows are not merely untidy here: `00030_seed_relationship_vocabulary_test.sql`
+ * asserts exactly 10 categories / 32 types / 32 roles, so a leftover row turns
+ * `pnpm db:test` red in a way that looks unrelated to the run that caused it.
+ */
+export async function sweepE2eVocabulary(): Promise<void> {
+  const admin = createServiceRoleClient();
+
+  for (const table of VOCABULARY_SWEEP_ORDER) {
+    const { error } = await admin
+      .from(table)
+      .delete()
+      .ilike("key", `${E2E_KEY_PREFIX}%`);
+    if (error) {
+      throw new Error(
+        `sweepE2eVocabulary failed on ${table}: ${error.message}`,
+      );
     }
   }
 }
@@ -118,13 +169,14 @@ export interface AuthSweepOptions {
    */
   minAgeMs?: number;
   /**
-   * Also delete {@link TEST_USER}. Teardown-only: the specs are finished, so
-   * nothing is signed in as it any more, and `seedTestUser` recreates the
-   * account (and its `profiles` row, via the `handle_new_user` trigger) at the
-   * start of the next run before signing in and rewriting `storageState`.
+   * Also delete the seeded accounts in {@link SEEDED_ACCOUNT_EMAILS} — the
+   * editor and the admin. Teardown-only: the specs are finished, so nothing is
+   * signed in as them any more, and the setup projects recreate them (and their
+   * `profiles` rows, via the `handle_new_user` trigger) at the start of the next
+   * run before signing in and rewriting `storageState`.
    *
-   * The entry sweep must never set this — `setup` seeds the account moments
-   * before the `authenticated` project signs in as it.
+   * The entry sweep must never set this — `setup` seeds those accounts moments
+   * before the authenticated projects sign in as them.
    */
   includeTestUser?: boolean;
 }
@@ -161,11 +213,15 @@ export async function sweepE2eAuthUsers(
       if (!E2E_EMAIL_PATTERN.test(email)) {
         continue;
       }
-      if (email === TEST_USER.email) {
+      if (SEEDED_ACCOUNT_EMAILS.includes(email)) {
         // The age floor guards against deleting an account an in-flight anon
-        // spec just created; TEST_USER is never that. Exempt it, or the
-        // teardown — which seeds it moments earlier — could skip it whenever
-        // the database clock runs marginally ahead of this process's.
+        // spec just created; the seeded accounts are never that. Exempt them,
+        // or the teardown — which seeds them moments earlier — could skip them
+        // whenever the database clock runs marginally ahead of this process's.
+        //
+        // Both seeded accounts match E2E_EMAIL_PATTERN, so without this the
+        // entry sweep would delete whichever of them was over an hour old
+        // *while a setup project was preparing to sign in as it*.
         if (includeTestUser) {
           doomed.push(user.id);
         }

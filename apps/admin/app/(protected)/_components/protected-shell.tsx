@@ -14,11 +14,17 @@ import {
 import { Shell, type ShellUser } from "@repo/ui/components/shell";
 import { useUiStore } from "@repo/ui/stores";
 import { ShellLink } from "../../../components/shell-link";
-import { NAV_ITEMS, QUICK_CREATE_ITEMS } from "../../../lib/nav";
+import { navItemsForRole, QUICK_CREATE_ITEMS } from "../../../lib/nav";
 import { signOutAction } from "../../auth/_actions";
 
 interface ProtectedShellProps {
   user: ShellUser;
+  /**
+   * Drives which nav entries render. The server layout already loads the
+   * profile, so this costs nothing extra. Access is enforced by `proxy.ts` and
+   * the admin route's own layout — this only decides what is offered.
+   */
+  role: "editor" | "admin";
   children: ReactNode;
 }
 
@@ -29,9 +35,14 @@ interface ProtectedShellProps {
  * this component owns the Next-specific link adapter + pathname + the
  * sign-out Server Action handoff.
  */
-export const ProtectedShell = ({ user, children }: ProtectedShellProps) => {
+export const ProtectedShell = ({
+  user,
+  role,
+  children,
+}: ProtectedShellProps) => {
   const pathname = usePathname() ?? "/dashboard";
   const router = useRouter();
+  const navItems = navItemsForRole(role);
 
   // Global unsaved-changes guard for shell navigation. `ShellLink` cancels the
   // client-side navigation and stashes the target here when any editor is dirty;
@@ -69,7 +80,7 @@ export const ProtectedShell = ({ user, children }: ProtectedShellProps) => {
   return (
     <>
       <Shell
-        nav={NAV_ITEMS}
+        nav={navItems}
         currentPath={pathname}
         user={user}
         quickCreateItems={QUICK_CREATE_ITEMS}

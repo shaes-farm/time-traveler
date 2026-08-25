@@ -18,9 +18,13 @@ import { createServerSupabaseClient } from "./lib/auth";
  *  1. Refresh the Supabase session cookie on every request (the SDK
  *     rotates JWTs; without a refresh the user is silently logged out
  *     when the access token expires).
- *  2. Gate `(protected)` and `(admin)` route groups — Next route
- *     groups don't appear in URLs, so this file owns the URL-pattern
- *     → gate mapping.
+ *  2. Gate protected and admin routes — Next route groups don't appear
+ *     in URLs, so this file owns the URL-pattern → gate mapping. Note
+ *     the corollary: an admin page must carry a real `/admin` URL
+ *     segment to be gated here. Putting one behind a bare `(admin)`
+ *     route group would produce a URL this file never matches, and the
+ *     check below would silently never run. Admin surfaces therefore
+ *     live at `app/(protected)/admin/*` (ADR-0041).
  *  3. Redirect already-authenticated users away from auth pages.
  *
  * Closes #36. Note: #36's text says `is_admin = true`; the schema in

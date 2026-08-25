@@ -3,12 +3,15 @@
 import * as React from "react";
 
 /**
- * Bridges the category inspector's dirty state up to the manager shell's
- * unsaved-changes guard. The inspector lives in the `[id]`/`new` child route
- * while the navigations that would lose edits — switching tree nodes, "New
- * category" — live in the shell (the parent layout), so the shell can't read
- * the form's state directly. The shell provides `setDirty`; the inspector
- * reports through `useReportEditorDirty`.
+ * Bridges an inspector's dirty state up to its shell's unsaved-changes guard.
+ * The inspector lives nested (a child route, or a query-param-selected panel)
+ * while the navigations that would lose its edits — switching tree nodes/rows,
+ * "New" — live in the shell, so the shell can't read the form's state directly.
+ * The shell provides `setDirty`; the inspector reports through
+ * `useReportEditorDirty`.
+ *
+ * Shared by the category manager and the relationship-vocabulary manager —
+ * generic on purpose, despite the name predating the second consumer.
  */
 interface EditorGuardValue {
   setDirty: (dirty: boolean) => void;

@@ -628,6 +628,8 @@ Consequences worth knowing when working in this area:
 - **The app layer does not enumerate values.** `relationship_type` is validated as a shape (`/^[a-z][a-z0-9_]*$/`), the same way UUID FK columns are validated; membership is the FK's job. An unknown value surfaces as `23503`, which the service maps to a readable error.
 - **Vocabulary tables are globally readable, admin-writable** (`USING (true)` read, `is_admin()` writes), like `categories`.
 - **`00029` and `00030` are not independently deployable.** Between them the vocabulary is empty and no relationship can be created.
+- **The management surface is `/admin/relationship-vocabulary`** (admin-only; [ADR-0041](adr/adr-0041-admin-only-surfaces-and-immutable-vocabulary-keys.md)). It reads with `activeOnly: false` so retired entries stay visible and restorable, and every mutation invalidates the shared vocabulary query so editors see a new type without reloading. Note two guard rails it enforces that the schema alone does not: **`key` is immutable after creation** — the FKs are `ON UPDATE CASCADE`, so a rename would silently rewrite `relationship_type` on every referencing row, and that stays a SQL operation — and the symmetry `CHECK` is made unreachable by exposing the three legal reciprocal states as one choice rather than two independent columns.
+- **`ON DELETE RESTRICT` means deletion is the exception, deactivation the rule.** Deleting an in-use type or a non-empty category raises `23503`; `is_active = false` retires a verb without touching a single historical row.
 
 ### 3.4 Junction Tables
 

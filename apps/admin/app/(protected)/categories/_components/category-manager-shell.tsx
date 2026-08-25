@@ -20,12 +20,12 @@ import {
   useCategoryUsageCounts,
 } from "@repo/ui/hooks/use-categories";
 import { getBrowserSupabaseClient } from "../../../../lib/auth/browser-client";
+import { EditorGuardProvider } from "../../../../lib/editor-guard-context";
 import { useRegisterUnsavedChanges } from "../../../../lib/use-register-unsaved-changes";
 import { useUnsavedChangesGuard } from "../../../../lib/use-unsaved-changes-guard";
 
 import { CategoryTree } from "./category-tree";
 import { flattenTree } from "./category-tree-utils";
-import { EditorGuardProvider } from "./editor-guard-context";
 
 /**
  * The persistent left pane of the category manager: the tree, its header, and

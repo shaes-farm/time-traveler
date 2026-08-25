@@ -29,17 +29,25 @@ import {
 export function ReaderShell({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "/";
   const mainRef = useRef<HTMLElement>(null);
-  const isFirstRenderRef = useRef(true);
+  const focusedPathRef = useRef(pathname);
 
   // Move focus to the destination screen's <h1> (or the main landmark) on
-  // navigation, so keyboard/SR users land on the new content. Skipped on the
-  // initial load so we never steal focus from a fresh page. Focus restoration
-  // is independent of motion — it happens at the static end state.
+  // navigation, so keyboard/SR users land on the new content. Never on the
+  // initial load — stealing focus from a fresh page would skip the whole
+  // header, the skip link included. Focus restoration is independent of
+  // motion — it happens at the static end state.
+  //
+  // The guard tracks the path already focused rather than counting effect
+  // runs. A "first run" flag reads the same but is not safe under StrictMode,
+  // which mounts, cleans up and re-runs effects: the flag is a ref, so it
+  // survives the remount already flipped, and the second run mistakes the
+  // initial load for a navigation and focuses the <h1>. That is not
+  // hypothetical — it is what broke the skip-link and era-toggle keyboard
+  // specs, and it moves the browser's sequential-focus starting point into
+  // the hero, so a user's first Tab lands mid-page.
   useEffect(() => {
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      return;
-    }
+    if (focusedPathRef.current === pathname) return;
+    focusedPathRef.current = pathname;
     const main = mainRef.current;
     if (!main) return;
     const heading = main.querySelector<HTMLElement>("h1");
