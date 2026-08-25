@@ -9,6 +9,7 @@ import {
   mapRoleToFormValues,
   mapTypeToFormValues,
   roleFormSchema,
+  SELF_INVERSE,
   symmetryModeOf,
   toCategoryCreateInput,
   toCategoryUpdateData,
@@ -306,6 +307,28 @@ describe("role mappers", () => {
     const values = mapRoleToFormValues({ ...ROLE, inverse_key: null });
     expect(values.inverse_key).toBe("");
     expect(toRoleCreateInput(values).inverse_key).toBeNull();
+  });
+
+  it("models a self-inverse role as the sentinel, not as 'no inverse'", () => {
+    // `inverse_key = key` is how a symmetric sub-role is written (spouse ↔
+    // spouse), and 16 of the 32 roles 00030 seeds use it. Collapsing it to ""
+    // would make the form report "None" and then write NULL on the next save.
+    const values = mapRoleToFormValues({ ...ROLE, inverse_key: "parent" });
+    expect(values.inverse_key).toBe(SELF_INVERSE);
+    expect(toRoleCreateInput(values).inverse_key).toBe("parent");
+    expect(toRoleUpdateData(values).inverse_key).toBe("parent");
+  });
+
+  it("resolves the sentinel against the key being typed on a new role", () => {
+    // The sentinel exists precisely so a create-mode key that is still being
+    // typed cannot leave a stale literal behind in inverse_key.
+    const values = {
+      ...blankRole("parent_child", 20),
+      key: "twin",
+      label: "Twin",
+      inverse_key: SELF_INVERSE,
+    };
+    expect(toRoleCreateInput(values).inverse_key).toBe("twin");
   });
 
   it("omits both halves of the composite key from the update patch", () => {

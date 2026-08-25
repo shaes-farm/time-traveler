@@ -388,11 +388,29 @@ export function toTypeUpdateDataDirty(
  * Roles
  * ================================================================ */
 
+/**
+ * Form-only sentinel for "this sub-role is its own inverse".
+ *
+ * Self-inversion (`inverse_key = key`) is the sanctioned encoding for a
+ * symmetric sub-role — spouse ↔ spouse, sibling ↔ sibling — and 16 of the 32
+ * roles seeded by 00030 use it; 00031 declined a `inverse_key <> key` CHECK
+ * precisely to keep it legal. The form cannot hold the literal key there,
+ * because in create mode the key is still being typed and would go stale the
+ * moment it changed. The sentinel is resolved to the row's own key on the way
+ * out, in {@link resolveRoleInverseKey}.
+ *
+ * Cannot collide with a real key: those match `^[a-z][a-z0-9_]*$`.
+ */
+export const SELF_INVERSE = "__self__";
+
 export interface RoleFormValues {
   type_key: string;
   key: string;
   label: string;
-  /** `""` when the role is its own inverse or has none. */
+  /**
+   * `""` when the role has no inverse, {@link SELF_INVERSE} when it is its own,
+   * otherwise a sibling role's key.
+   */
   inverse_key: string;
   sort_order: number;
   is_active: boolean;
@@ -423,10 +441,22 @@ export function mapRoleToFormValues(
     type_key: role.type_key,
     key: role.key,
     label: role.label,
-    inverse_key: role.inverse_key ?? "",
+    inverse_key:
+      role.inverse_key === null
+        ? ""
+        : role.inverse_key === role.key
+          ? SELF_INVERSE
+          : role.inverse_key,
     sort_order: role.sort_order,
     is_active: role.is_active,
   };
+}
+
+/** The column value behind {@link RoleFormValues.inverse_key}. */
+export function resolveRoleInverseKey(values: RoleFormValues): string | null {
+  if (values.inverse_key === "") return null;
+  if (values.inverse_key === SELF_INVERSE) return values.key;
+  return values.inverse_key;
 }
 
 export function blankRole(typeKey: string, sortOrder: number): RoleFormValues {
@@ -440,7 +470,7 @@ export function toRoleCreateInput(
     type_key: values.type_key,
     key: values.key,
     label: values.label,
-    inverse_key: values.inverse_key || null,
+    inverse_key: resolveRoleInverseKey(values),
     sort_order: values.sort_order,
     is_active: values.is_active,
   };
@@ -451,7 +481,7 @@ export function toRoleUpdateData(
 ): RelationshipRoleUpdateInput {
   return {
     label: values.label,
-    inverse_key: values.inverse_key || null,
+    inverse_key: resolveRoleInverseKey(values),
     sort_order: values.sort_order,
     is_active: values.is_active,
   };

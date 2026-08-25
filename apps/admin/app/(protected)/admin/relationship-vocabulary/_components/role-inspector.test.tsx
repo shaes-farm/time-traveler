@@ -131,6 +131,64 @@ describe("RoleInspector — inverse sub-role picker", () => {
     });
     expect(screen.getByLabelText("Inverse sub-role")).toHaveTextContent("None");
   });
+
+  it("shows a self-inverse role as symmetric, not as None", async () => {
+    // `inverse_key = key` is how a symmetric sub-role is written (spouse ↔
+    // spouse) and 16 of the 32 roles 00030 seeds use it. Rendering that as the
+    // "None" placeholder misreports the row, and re-saving from that state
+    // would write NULL and break the involution 00030's pgTAP asserts.
+    renderInspector({ role: { ...PARENT, inverse_key: "parent" } });
+    expect(screen.getByLabelText("Inverse sub-role")).toHaveTextContent(
+      "Itself — symmetric",
+    );
+  });
+
+  it("round-trips a self-inverse role untouched", async () => {
+    const user = userEvent.setup();
+    updateRelationshipRole.mockResolvedValue({
+      ...PARENT,
+      inverse_key: "parent",
+    });
+    renderInspector({ role: { ...PARENT, inverse_key: "parent" } });
+
+    await user.clear(screen.getByLabelText("Label"));
+    await user.type(screen.getByLabelText("Label"), "Parent or guardian");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(updateRelationshipRole).toHaveBeenCalled());
+    // The picker was never touched, so the patch must not mention inverse_key
+    // at all — resending it would be harmless, clearing it would not.
+    expect(updateRelationshipRole.mock.calls[0]?.[3]).toEqual({
+      label: "Parent or guardian",
+    });
+  });
+
+  it("writes a new symmetric sub-role's own key as its inverse", async () => {
+    const user = userEvent.setup();
+    createRelationshipRole.mockResolvedValue({
+      ...PARENT,
+      key: "twin",
+      label: "Twin",
+      inverse_key: "twin",
+    });
+    renderInspector();
+
+    await user.type(screen.getByLabelText("Key"), "twin");
+    await user.type(screen.getByLabelText("Label"), "Twin");
+    await user.click(screen.getByLabelText("Inverse sub-role"));
+    await user.click(
+      screen.getByRole("option", { name: "Itself — symmetric" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    await waitFor(() => expect(createRelationshipRole).toHaveBeenCalled());
+    // The sentinel resolves to the key the user just typed — a symmetric
+    // sub-role is authorable in one pass, not create-then-edit.
+    expect(createRelationshipRole.mock.calls[0]?.[1]).toMatchObject({
+      key: "twin",
+      inverse_key: "twin",
+    });
+  });
 });
 
 describe("RoleInspector — validation and saving", () => {

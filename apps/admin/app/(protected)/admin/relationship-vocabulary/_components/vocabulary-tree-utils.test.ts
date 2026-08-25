@@ -229,6 +229,52 @@ describe("swapSortOrder", () => {
     expect(order).toEqual(["a", "c", "b"]);
   });
 
+  it("never pushes an untouched sibling out of position when the gap is too tight", () => {
+    // The tied run needs three distinct values but only one slot separates its
+    // bounds. Renumbering in place would have produced 11/12/13 and collided
+    // with "e" at 12, moving a row the user never touched.
+    const tight = [
+      { key: "a", label: "A", sort_order: 10 },
+      { key: "b", label: "B", sort_order: 11 },
+      { key: "c", label: "C", sort_order: 11 },
+      { key: "d", label: "D", sort_order: 11 },
+      { key: "e", label: "E", sort_order: 12 },
+    ];
+    const patches = swapSortOrder(tight, "c", "up");
+    const byKey = new Map(patches?.map((p) => [p.key, p.sort_order]));
+
+    // Apply the patches and read the resulting order back.
+    const resolved = tight
+      .map((item) => ({
+        key: item.key,
+        sort_order: byKey.get(item.key) ?? item.sort_order,
+      }))
+      .sort((x, y) => x.sort_order - y.sort_order)
+      .map((item) => item.key);
+
+    expect(resolved).toEqual(["a", "c", "b", "d", "e"]);
+    // Every value distinct — no residual tie for the next click to trip over.
+    const values = resolved.map(
+      (key) => byKey.get(key) ?? tight.find((i) => i.key === key)!.sort_order,
+    );
+    expect(new Set(values).size).toBe(values.length);
+  });
+
+  it("compacts to the seed's spacing and writes only the rows that move", () => {
+    const tight = [
+      { key: "a", label: "A", sort_order: 10 },
+      { key: "b", label: "B", sort_order: 11 },
+      { key: "c", label: "C", sort_order: 11 },
+      { key: "d", label: "D", sort_order: 11 },
+      { key: "e", label: "E", sort_order: 12 },
+    ];
+    const patches = swapSortOrder(tight, "c", "up");
+
+    expect(patches?.every((p) => p.sort_order % 10 === 0)).toBe(true);
+    // "a" is already at 10 and keeps its position, so it needs no write.
+    expect(patches?.some((p) => p.key === "a")).toBe(false);
+  });
+
   it("handles a single-item and an empty list", () => {
     expect(
       swapSortOrder([{ key: "a", label: "A", sort_order: 10 }], "a", "up"),

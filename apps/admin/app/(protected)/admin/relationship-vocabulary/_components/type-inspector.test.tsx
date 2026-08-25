@@ -216,6 +216,89 @@ describe("TypeInspector — the symmetry invariant is unreachable", () => {
   });
 });
 
+describe("TypeInspector — the inverse picker only offers legal partners", () => {
+  // Two directed types already paired with each other, plus the symmetric
+  // FRIENDSHIP from the shared fixture.
+  const OWNS: RelationshipTypeMeta = {
+    ...MENTOR,
+    key: "owns",
+    label: "Owns",
+    inverse_key: "owned_by",
+  };
+  const OWNED_BY: RelationshipTypeMeta = {
+    ...MENTOR,
+    key: "owned_by",
+    label: "Owned by",
+    inverse_key: "owns",
+  };
+  const PAIRED_CATEGORIES: RelationshipCategoryMeta[] = [
+    { ...CATEGORIES[0]!, types: [MENTOR, OWNS, OWNED_BY] },
+    CATEGORIES[1]!,
+  ];
+
+  it("leaves out symmetric types, which cannot hold an inverse", async () => {
+    // Pairing writes the reciprocal back into the chosen type, and a symmetric
+    // type carrying an inverse is the state the CHECK forbids — so offering
+    // FRIENDSHIP here would be offering a choice guaranteed to be rejected.
+    const user = userEvent.setup();
+    renderInspector({ categories: PAIRED_CATEGORIES });
+
+    await user.click(
+      screen.getByRole("radio", { name: /Directed, with an inverse/ }),
+    );
+    await user.click(await screen.findByLabelText("Inverse type"));
+
+    expect(screen.getByRole("option", { name: /^Owns/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Friendship/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("leaves out the type being edited", async () => {
+    const user = userEvent.setup();
+    renderInspector({ type: MENTOR, categories: PAIRED_CATEGORIES });
+
+    await user.click(
+      screen.getByRole("radio", { name: /Directed, with an inverse/ }),
+    );
+    await user.click(await screen.findByLabelText("Inverse type"));
+
+    expect(
+      screen.queryByRole("option", { name: /Mentor/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says whose partner it is about to take", async () => {
+    // Pairing is exclusive: picking a type that already has a partner releases
+    // that partner. Better said before the choice than discovered after it.
+    const user = userEvent.setup();
+    renderInspector({ categories: PAIRED_CATEGORIES });
+
+    await user.click(
+      screen.getByRole("radio", { name: /Directed, with an inverse/ }),
+    );
+    await user.click(await screen.findByLabelText("Inverse type"));
+
+    expect(
+      screen.getByRole("option", {
+        name: "Owns — currently paired with Owned by",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("does not flag the partner it is already paired with", async () => {
+    const user = userEvent.setup();
+    renderInspector({ type: OWNS, categories: PAIRED_CATEGORIES });
+
+    await user.click(await screen.findByLabelText("Inverse type"));
+
+    // OWNED_BY names OWNS, but that is this very type — not a steal.
+    expect(
+      screen.getByRole("option", { name: "Owned by" }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("TypeInspector — validation and saving", () => {
   it("requires a noun for a symmetric type", async () => {
     const user = userEvent.setup();

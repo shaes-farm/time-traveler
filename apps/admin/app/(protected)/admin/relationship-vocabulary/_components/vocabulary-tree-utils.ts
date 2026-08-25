@@ -167,6 +167,9 @@ export function swapSortOrder(
   // bounds it in the full list, then swap `current` and `neighbour`'s
   // *positions* within that renumbering. Self-healing: any reorder that
   // touches a tied group leaves it fully unique going forward.
+  //
+  // "Sandwiched" only holds while the surrounding gap is wide enough to hold
+  // the run; when it is not, the fallback below widens instead of overrunning.
   const tiedValue = current.sort_order;
   const runStart = ordered.findIndex((item) => item.sort_order === tiedValue);
   let runEnd = runStart;
@@ -184,10 +187,31 @@ export function swapSortOrder(
   const upperBound = after
     ? after.sort_order
     : tiedValue + SORT_ORDER_GAP * run.length;
-  const step = Math.max(
-    1,
-    Math.floor((upperBound - lowerBound) / (run.length + 1)),
-  );
+  const step = Math.floor((upperBound - lowerBound) / (run.length + 1));
+
+  // A step of 0 means the interval cannot hold `run.length` distinct values —
+  // siblings at 10, 11, 11, 11, 12 leave one slot for three rows. Clamping the
+  // step up to 1 would renumber that run to 11/12/13 and shove the untouched
+  // sibling at 12 out of position, which is a worse outcome than the tie. Widen
+  // instead: compact the whole sibling list back to the seed's gaps-of-10
+  // spacing, with the move applied, and write only the rows whose value
+  // actually changes. Bounded by the sibling count (a group holds tens of
+  // types, a type a handful of roles) and the caller already applies a patch
+  // list of any length.
+  if (step < 1) {
+    const compacted = [...ordered];
+    compacted[index] = neighbour;
+    compacted[neighbourIndex] = current;
+
+    const patches: SortOrderPatch[] = [];
+    compacted.forEach((item, i) => {
+      const sortOrder = (i + 1) * SORT_ORDER_GAP;
+      if (sortOrder !== item.sort_order) {
+        patches.push({ key: item.key, sort_order: sortOrder });
+      }
+    });
+    return patches;
+  }
 
   const renumbered: SortOrderPatch[] = run.map((item, i) => ({
     key: item.key,

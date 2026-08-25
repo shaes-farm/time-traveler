@@ -50,6 +50,7 @@ import {
   blankRole,
   mapRoleToFormValues,
   roleFormSchema,
+  SELF_INVERSE,
   toRoleCreateInput,
   toRoleUpdateDataDirty,
   type RoleFormValues,
@@ -115,12 +116,20 @@ export function RoleInspector({
   });
   useReportEditorDirty(form.formState.isDirty);
 
-  // A role's inverse names a sibling role of the same type (parent ↔ child).
-  // Since 00031/ADR-0042 it's a composite FK, and the update/create RPCs keep
-  // the pairing two-sided — offering a picker rather than a text box just
-  // keeps the *input* resolvable, the same reasoning as before that migration.
-  const siblingRoles = parentType.roles.filter(
-    (candidate) => candidate.key !== role?.key,
+  // A role's inverse names a sibling role of the same type (parent ↔ child) or
+  // the role itself (spouse ↔ spouse). Since 00031/ADR-0042 it's a composite
+  // FK, and the update/create RPCs keep the pairing two-sided — offering a
+  // picker rather than a text box just keeps the *input* resolvable, the same
+  // reasoning as before that migration.
+  //
+  // The role itself is offered through the SELF_INVERSE sentinel rather than by
+  // leaving itself in this list: in create mode the key does not exist yet, and
+  // in edit mode a literal self-key would be indistinguishable from a sibling.
+  // Self-inversion is not an edge case here — it is how a symmetric sub-role is
+  // written, and 16 of the 32 roles 00030 seeds use it.
+  const siblingRoles = React.useMemo(
+    () => parentType.roles.filter((candidate) => candidate.key !== role?.key),
+    [parentType.roles, role?.key],
   );
 
   const onSubmit = async (values: RoleFormValues) => {
@@ -284,18 +293,24 @@ export function RoleInspector({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={NO_INVERSE}>None</SelectItem>
+                      <SelectItem value={SELF_INVERSE}>
+                        Itself — symmetric
+                      </SelectItem>
                       {siblingRoles.map((candidate) => (
                         <SelectItem key={candidate.key} value={candidate.key}>
                           {candidate.label}
+                          {candidate.is_active ? "" : " (inactive)"}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-foreground-muted">
                     The sub-role the reciprocal relationship carries — Parent ↔
-                    Child. Leave as None for a role that is its own inverse.
-                    Saving also points the chosen sub-role back at this one —
-                    pairing is always kept two-sided.
+                    Child. Pick “Itself” for a symmetric sub-role, where both
+                    sides read the same — Spouse ↔ Spouse. None means the
+                    reciprocal carries no sub-role at all. Saving also points
+                    the chosen sub-role back at this one — pairing is always
+                    kept two-sided.
                   </p>
                 </div>
               )}

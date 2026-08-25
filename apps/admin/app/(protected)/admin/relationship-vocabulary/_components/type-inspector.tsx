@@ -117,13 +117,38 @@ export function TypeInspector({
 
   const symmetry = useWatch({ control: form.control, name: "symmetry" });
 
-  // Candidates for `inverse_key`: any other type. A type may not be its own
-  // inverse — that is what `is_symmetric` expresses.
-  const inverseCandidates = React.useMemo(
-    () =>
-      allTypes(categories).filter((candidate) => candidate.key !== type?.key),
-    [categories, type?.key],
-  );
+  // Candidates for `inverse_key`: any other DIRECTED type.
+  //
+  // Not itself — that is what `is_symmetric` expresses, and since 00032 the
+  // `relationship_types_inverse_key_not_self` CHECK enforces it. Not a
+  // symmetric one either: pairing writes the reciprocal back into the chosen
+  // type, and a symmetric type carrying an inverse is the state
+  // `relationship_types_symmetric_has_no_inverse` forbids. The RPC refuses that
+  // case with a sentence rather than a raw SQLSTATE, but a picker that offers
+  // an option guaranteed to be rejected is a trap; leave it out.
+  //
+  // Pairing is exclusive, so choosing a type that already has a partner takes
+  // it — the label says whose, before the choice is made rather than after.
+  const inverseCandidates = React.useMemo(() => {
+    const all = allTypes(categories);
+    const labelOf = (key: string) =>
+      all.find((candidate) => candidate.key === key)?.label ?? key;
+
+    return all
+      .filter(
+        (candidate) => candidate.key !== type?.key && !candidate.is_symmetric,
+      )
+      .map((candidate) => ({
+        key: candidate.key,
+        label: [
+          candidate.label,
+          candidate.is_active ? "" : " (inactive)",
+          candidate.inverse_key && candidate.inverse_key !== type?.key
+            ? ` — currently paired with ${labelOf(candidate.inverse_key)}`
+            : "",
+        ].join(""),
+      }));
+  }, [categories, type?.key]);
 
   const onSubmit = async (values: TypeFormValues) => {
     setFormError(null);
